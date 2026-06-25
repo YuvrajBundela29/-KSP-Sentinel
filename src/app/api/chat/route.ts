@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -17,7 +20,7 @@ You have access to the crime database provided below.
 Your job is to help investigators find patterns, connections, and intelligence.
 
 Rules:
-1. Always cite which FIR IDs support your answers. Format: [FIR-2024-KA-0023]
+1. Always cite which FIR IDs support your answers. Format: [FIR-2024-KA-XXXX]
 2. When you identify a gang connection, name the gang and list member accused IDs.
 3. When asked about patterns, look for: same vehicle, same modus_operandi, same gang_id, same time patterns.
 4. Answer in the same language the user writes in. If they write in Kannada, reply in Kannada.
@@ -25,13 +28,14 @@ Rules:
 6. Never invent data not in the database.
 7. If asked for a risk score, look up the accused profile risk field.
 8. Be concise and analytical. Use bullet points for lists.
+9. Format your responses with **bold** for key terms and proper line breaks.
 
 DATABASE:
 ${JSON.stringify(dataset, null, 2)}`;
 
     // Build messages array for Claude API format
-    const messages = [
-      { role: "user", content: systemPrompt },
+    const messages: Array<{ role: "user" | "assistant" | "system"; content: string }> = [
+      { role: "system", content: systemPrompt },
       { role: "assistant", content: "Understood. I am KSP Sentinel, ready to assist with crime intelligence analysis using the provided Karnataka crime database." },
     ];
 
@@ -47,21 +51,14 @@ ${JSON.stringify(dataset, null, 2)}`;
 
     // Try to use z-ai-web-dev-sdk for the LLM call
     try {
-      const { createLlmChatCompletion } = await import("z-ai-web-dev-sdk");
-      const response = await createLlmChatCompletion({
-        messages: messages.map((m: { role: string; content: string }) => ({
-          role: m.role as "user" | "assistant",
-          content: m.content,
-        })),
+      const ZAI = (await import("z-ai-web-dev-sdk")).default;
+      const zai = await ZAI.create();
+      const response = await zai.chat.completions.create({
         model: "claude-sonnet-4-6",
+        messages,
       });
 
-      const aiText =
-        typeof response === "string"
-          ? response
-          : response?.choices?.[0]?.message?.content ||
-            response?.content?.[0]?.text ||
-            JSON.stringify(response);
+      const aiText = response?.choices?.[0]?.message?.content || "";
 
       return NextResponse.json({ response: aiText });
     } catch (sdkError) {
@@ -225,5 +222,3 @@ function generateFallbackResponse(
   return response;
 }
 
-export const runtime = "nodejs";
-export const maxDuration = 30;

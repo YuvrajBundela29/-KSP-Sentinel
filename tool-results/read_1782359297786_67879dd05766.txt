@@ -1,0 +1,732 @@
+     1→     1→"use client";
+     2→     2→
+     3→     3→import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+     4→     4→import { useAppStore } from "@/lib/store";
+     5→     5→import { getNetworkEdges } from "@/lib/data";
+     6→     6→import { Button } from "@/components/ui/button";
+     7→     7→import {
+     8→     8→  Select,
+     9→     9→  SelectContent,
+    10→    10→  SelectItem,
+    11→    11→  SelectTrigger,
+    12→    12→  SelectValue,
+    13→    13→} from "@/components/ui/select";
+    14→    14→import { X, User, Shield, FileText, Car, MapPin, Users } from "lucide-react";
+    15→    15→import type { FIR, Accused, Gang, Vehicle, District } from "@/lib/types";
+    16→    16→import LoadingSpinner from "./LoadingSpinner";
+    17→    17→
+    18→    18→/* ------------------------------------------------------------------ */
+    19→    19→/*  Types                                                              */
+    20→    20→/* ------------------------------------------------------------------ */
+    21→    21→
+    22→    22→interface SimNode {
+    23→    23→  id: string;
+    24→    24→  name: string;
+    25→    25→  type: "accused" | "gang" | "fir" | "vehicle" | "district";
+    26→    26→  color: string;
+    27→    27→  size: number;
+    28→    28→  x: number;
+    29→    29→  y: number;
+    30→    30→  vx: number;
+    31→    31→  vy: number;
+    32→    32→  fx: number | null;
+    33→    33→  fy: number | null;
+    34→    34→  _accused?: Accused;
+    35→    35→  _gang?: Gang;
+    36→    36→  _fir?: FIR;
+    37→    37→  _vehicle?: Vehicle;
+    38→    38→  _district?: District;
+    39→    39→  _firCount?: number;
+    40→    40→}
+    41→    41→
+    42→    42→interface SimLink {
+    43→    43→  source: string;
+    44→    44→  target: string;
+    45→    45→  type: string;
+    46→    46→  color: string;
+    47→    47→}
+    48→    48→
+    49→    49→/* ------------------------------------------------------------------ */
+    50→    50→/*  Constants                                                          */
+    51→    51→/* ------------------------------------------------------------------ */
+    52→    52→
+    53→    53→const LINK_COLORS: Record<string, string> = {
+    54→    54→  involved_in: "#64748b",
+    55→    55→  member_of: "#f59e0b",
+    56→    56→  occurred_in: "#8b5cf6",
+    57→    57→  used_vehicle: "#06b6d4",
+    58→    58→  gang_associate: "#f59e0b",
+    59→    59→};
+    60→    60→
+    61→    61→const CRIME_TYPES = [
+    62→    62→  "Chain Snatching",
+    63→    63→  "Vehicle Theft",
+    64→    64→  "Cyber Fraud",
+    65→    65→  "Jewellery Heist",
+    66→    66→  "Drug Trafficking",
+    67→    67→];
+    68→    68→
+    69→    69→/* ------------------------------------------------------------------ */
+    70→    70→/*  Info Panel sub-components                                          */
+    71→    71→/* ------------------------------------------------------------------ */
+    72→    72→
+    73→    73→function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: React.ReactNode }) {
+    74→    74→  return (
+    75→    75→    <div className="flex items-start gap-2 py-1.5">
+    76→    76→      <Icon className="size-4 mt-0.5 shrink-0 text-[#94a3b8]" />
+    77→    77→      <div className="min-w-0">
+    78→    78→        <p className="text-[11px] uppercase tracking-wider text-[#64748b]">{label}</p>
+    79→    79→        <p className="text-sm text-[#e2e8f0] break-words">{value}</p>
+    80→    80→      </div>
+    81→    81→    </div>
+    82→    82→  );
+    83→    83→}
+    84→    84→
+    85→    85→function AccusedPanel({ node }: { node: SimNode }) {
+    86→    86→  const a = node._accused!;
+    87→    87→  const crimeData = useAppStore((s) => s.crimeData);
+    88→    88→  const firs = crimeData?.firs.filter((f) => f.accused.includes(a.id)) ?? [];
+    89→    89→  const gang = crimeData?.gangs.find((g) => g.id === a.gang);
+    90→    90→  return (
+    91→    91→    <div className="space-y-3">
+    92→    92→      <div className="flex items-center gap-2">
+    93→    93→        <div className="w-9 h-9 rounded-full bg-red-500/20 flex items-center justify-center">
+    94→    94→          <User className="size-4 text-red-400" />
+    95→    95→        </div>
+    96→    96→        <div>
+    97→    97→          <h3 className="text-base font-semibold text-white leading-tight">{a.name}</h3>
+    98→    98→          <span className="text-[11px] text-[#64748b] uppercase">Accused • {a.id}</span>
+    99→    99→        </div>
+   100→   100→      </div>
+   101→   101→      <InfoRow icon={User} label="Age" value={`${a.age} years`} />
+   102→   102→      <InfoRow icon={Users} label="Gender" value={a.gender} />
+   103→   103→      <InfoRow icon={Shield} label="Risk Score" value={
+   104→   104→        <span className={a.risk > 80 ? "text-red-400 font-bold" : a.risk > 60 ? "text-orange-400 font-bold" : "text-green-400 font-bold"}>
+   105→   105→          {a.risk}/100
+   106→   106→        </span>
+   107→   107→      } />
+   108→   108→      <InfoRow icon={Shield} label="Gang" value={gang ? gang.name : "None"} />
+   109→   109→      <InfoRow icon={FileText} label="Prior FIRs" value={String(a.prior_firs)} />
+   110→   110→      {firs.length > 0 && (
+   111→   111→        <div className="mt-2">
+   112→   112→          <p className="text-[11px] uppercase tracking-wider text-[#64748b] mb-1">Linked FIRs</p>
+   113→   113→          <div className="flex flex-wrap gap-1">
+   114→   114→            {firs.map((f) => (
+   115→   115→              <span key={f.fir_id} className="px-1.5 py-0.5 bg-yellow-500/10 text-yellow-400 text-[11px] rounded">
+   116→   116→                {f.fir_id}
+   117→   117→              </span>
+   118→   118→            ))}
+   119→   119→          </div>
+   120→   120→        </div>
+   121→   121→      )}
+   122→   122→    </div>
+   123→   123→  );
+   124→   124→}
+   125→   125→
+   126→   126→function GangPanel({ node }: { node: SimNode }) {
+   127→   127→  const g = node._gang!;
+   128→   128→  const crimeData = useAppStore((s) => s.crimeData);
+   129→   129→  return (
+   130→   130→    <div className="space-y-3">
+   131→   131→      <div className="flex items-center gap-2">
+   132→   132→        <div className="w-9 h-9 rounded-full bg-orange-500/20 flex items-center justify-center">
+   133→   133→          <Shield className="size-4 text-orange-400" />
+   134→   134→        </div>
+   135→   135→        <div>
+   136→   136→          <h3 className="text-base font-semibold text-white leading-tight">{g.name}</h3>
+   137→   137→          <span className="text-[11px] text-[#64748b] uppercase">Gang • {g.id}</span>
+   138→   138→        </div>
+   139→   139→      </div>
+   140→   140→      <InfoRow icon={Shield} label="Type" value={g.type} />
+   141→   141→      <InfoRow icon={MapPin} label="Base" value={g.base} />
+   142→   142→      <InfoRow icon={Users} label="Members" value={
+   143→   143→        <div className="space-y-0.5">
+   144→   144→          {g.members.map((mid) => {
+   145→   145→            const acc = crimeData?.accused.find((a) => a.id === mid);
+   146→   146→            return <div key={mid}>{acc ? acc.name : mid} <span className="text-[#64748b]">({mid})</span></div>;
+   147→   147→          })}
+   148→   148→        </div>
+   149→   149→      } />
+   150→   150→    </div>
+   151→   151→  );
+   152→   152→}
+   153→   153→
+   154→   154→function FIRPanel({ node }: { node: SimNode }) {
+   155→   155→  const f = node._fir!;
+   156→   156→  return (
+   157→   157→    <div className="space-y-3">
+   158→   158→      <div className="flex items-center gap-2">
+   159→   159→        <div className="w-9 h-9 rounded-full bg-yellow-500/20 flex items-center justify-center">
+   160→   160→          <FileText className="size-4 text-yellow-400" />
+   161→   161→        </div>
+   162→   162→        <div>
+   163→   163→          <h3 className="text-base font-semibold text-white leading-tight">{f.fir_id}</h3>
+   164→   164→          <span className="text-[11px] text-[#64748b] uppercase">FIR • {f.crime_type}</span>
+   165→   165→        </div>
+   166→   166→      </div>
+   167→   167→      <InfoRow icon={FileText} label="Date" value={`${f.date} ${f.time}`} />
+   168→   168→      <InfoRow icon={MapPin} label="District" value={f.district} />
+   169→   169→      <InfoRow icon={Shield} label="Severity" value={
+   170→   170→        <span className={
+   171→   171→          f.severity === "critical" ? "text-red-400" : f.severity === "high" ? "text-orange-400" : "text-yellow-400"
+   172→   172→        }>{f.severity.toUpperCase()}</span>
+   173→   173→      } />
+   174→   174→      <InfoRow icon={Shield} label="Status" value={f.investigation_status} />
+   175→   175→      <InfoRow icon={MapPin} label="Location" value={f.location.place} />
+   176→   176→      <InfoRow icon={Users} label="Accused" value={
+   177→   177→        <div className="space-y-0.5">{f.accused.map((a) => <div key={a}>{a}</div>)}</div>
+   178→   178→      } />
+   179→   179→    </div>
+   180→   180→  );
+   181→   181→}
+   182→   182→
+   183→   183→function VehiclePanel({ node }: { node: SimNode }) {
+   184→   184→  const v = node._vehicle!;
+   185→   185→  return (
+   186→   186→    <div className="space-y-3">
+   187→   187→      <div className="flex items-center gap-2">
+   188→   188→        <div className="w-9 h-9 rounded-full bg-cyan-500/20 flex items-center justify-center">
+   189→   189→          <Car className="size-4 text-cyan-400" />
+   190→   190→        </div>
+   191→   191→        <div>
+   192→   192→          <h3 className="text-base font-semibold text-white leading-tight">{v.reg}</h3>
+   193→   193→          <span className="text-[11px] text-[#64748b] uppercase">Vehicle • {v.id}</span>
+   194→   194→        </div>
+   195→   195→      </div>
+   196→   196→      <InfoRow icon={Car} label="Type" value={v.type} />
+   197→   197→      <InfoRow icon={Car} label="Make" value={v.make} />
+   198→   198→      <InfoRow icon={Shield} label="Color" value={v.color} />
+   199→   199→    </div>
+   200→   200→  );
+   201→   201→}
+   202→   202→
+   203→   203→function DistrictPanel({ node }: { node: SimNode }) {
+   204→   204→  const d = node._district!;
+   205→   205→  return (
+   206→   206→    <div className="space-y-3">
+   207→   207→      <div className="flex items-center gap-2">
+   208→   208→        <div className="w-9 h-9 rounded-full bg-purple-500/20 flex items-center justify-center">
+   209→   209→          <MapPin className="size-4 text-purple-400" />
+   210→   210→        </div>
+   211→   211→        <div>
+   212→   212→          <h3 className="text-base font-semibold text-white leading-tight">{d.name}</h3>
+   213→   213→          <span className="text-[11px] text-[#64748b] uppercase">District</span>
+   214→   214→        </div>
+   215→   215→      </div>
+   216→   216→      <InfoRow icon={MapPin} label="Name" value={d.name} />
+   217→   217→      <InfoRow icon={FileText} label="FIR Count" value={
+   218→   218→        <span className="font-bold text-purple-400">{node._firCount ?? 0}</span>
+   219→   219→      } />
+   220→   220→    </div>
+   221→   221→  );
+   222→   222→}
+   223→   223→
+   224→   224→/* ------------------------------------------------------------------ */
+   225→   225→/*  Simple force simulation (no D3 dependency)                         */
+   226→   226→/* ------------------------------------------------------------------ */
+   227→   227→
+   228→   228→function simulateForce(nodes: SimNode[], links: SimLink[], width: number, height: number, iterations: number = 100) {
+   229→   229→  const nodeMap = new Map<string, SimNode>();
+   230→   230→  for (const n of nodes) {
+   231→   231→    n.x = width / 2 + (Math.random() - 0.5) * width * 0.6;
+   232→   232→    n.y = height / 2 + (Math.random() - 0.5) * height * 0.6;
+   233→   233→    n.vx = 0;
+   234→   234→    n.vy = 0;
+   235→   235→    n.fx = null;
+   236→   236→    n.fy = null;
+   237→   237→    nodeMap.set(n.id, n);
+   238→   238→  }
+   239→   239→
+   240→   240→  for (let iter = 0; iter < iterations; iter++) {
+   241→   241→    const alpha = 1 - iter / iterations;
+   242→   242→    const repulsion = 2000;
+   243→   243→    const attraction = 0.005;
+   244→   244→    const centerForce = 0.01;
+   245→   245→    const damping = 0.9;
+   246→   246→
+   247→   247→    // Repulsion between all pairs
+   248→   248→    for (let i = 0; i < nodes.length; i++) {
+   249→   249→      for (let j = i + 1; j < nodes.length; j++) {
+   250→   250→        const a = nodes[i];
+   251→   251→        const b = nodes[j];
+   252→   252→        let dx = a.x - b.x;
+   253→   253→        let dy = a.y - b.y;
+   254→   254→        let dist = Math.sqrt(dx * dx + dy * dy);
+   255→   255→        if (dist < 1) { dist = 1; dx = Math.random() - 0.5; dy = Math.random() - 0.5; }
+   256→   256→        const force = (repulsion * alpha) / (dist * dist);
+   257→   257→        const fx = (dx / dist) * force;
+   258→   258→        const fy = (dy / dist) * force;
+   259→   259→        if (a.fx === null) { a.vx += fx; a.vy += fy; }
+   260→   260→        if (b.fx === null) { b.vx -= fx; b.vy -= fy; }
+   261→   261→      }
+   262→   262→    }
+   263→   263→
+   264→   264→    // Attraction along links
+   265→   265→    for (const link of links) {
+   266→   266→      const s = nodeMap.get(link.source);
+   267→   267→      const t = nodeMap.get(link.target);
+   268→   268→      if (!s || !t) continue;
+   269→   269→      const dx = t.x - s.x;
+   270→   270→      const dy = t.y - s.y;
+   271→   271→      const dist = Math.sqrt(dx * dx + dy * dy);
+   272→   272→      if (dist < 1) continue;
+   273→   273→      const force = dist * attraction * alpha;
+   274→   274→      const fx = (dx / dist) * force;
+   275→   275→      const fy = (dy / dist) * force;
+   276→   276→      if (s.fx === null) { s.vx += fx; s.vy += fy; }
+   277→   277→      if (t.fx === null) { t.vx -= fx; t.vy -= fy; }
+   278→   278→    }
+   279→   279→
+   280→   280→    // Center gravity
+   281→   281→    for (const n of nodes) {
+   282→   282→      if (n.fx === null) {
+   283→   283→        n.vx += (width / 2 - n.x) * centerForce * alpha;
+   284→   284→        n.vy += (height / 2 - n.y) * centerForce * alpha;
+   285→   285→      }
+   286→   286→    }
+   287→   287→
+   288→   288→    // Apply velocity
+   289→   289→    for (const n of nodes) {
+   290→   290→      if (n.fx === null) {
+   291→   291→        n.vx *= damping;
+   292→   292→        n.vy *= damping;
+   293→   293→        n.x += n.vx;
+   294→   294→        n.y += n.vy;
+   295→   295→        // Keep in bounds
+   296→   296→        n.x = Math.max(30, Math.min(width - 30, n.x));
+   297→   297→        n.y = Math.max(30, Math.min(height - 30, n.y));
+   298→   298→      }
+   299→   299→    }
+   300→   300→  }
+   301→   301→}
+   302→   302→
+   303→   303→/* ------------------------------------------------------------------ */
+   304→   304→/*  Canvas drawing                                                     */
+   305→   305→/* ------------------------------------------------------------------ */
+   306→   306→
+   307→   307→function drawGraph(
+   308→   308→  ctx: CanvasRenderingContext2D,
+   309→   309→  nodes: SimNode[],
+   310→   310→  links: SimLink[],
+   311→   311→  width: number,
+   312→   312→  height: number,
+   313→   313→  hoveredNode: SimNode | null,
+   314→   314→  selectedNode: SimNode | null
+   315→   315→) {
+   316→   316→  const nodeMap = new Map<string, SimNode>();
+   317→   317→  for (const n of nodes) nodeMap.set(n.id, n);
+   318→   318→
+   319→   319→  ctx.clearRect(0, 0, width, height);
+   320→   320→  ctx.fillStyle = "#0a0f1e";
+   321→   321→  ctx.fillRect(0, 0, width, height);
+   322→   322→
+   323→   323→  // Draw links
+   324→   324→  for (const link of links) {
+   325→   325→    const s = nodeMap.get(link.source);
+   326→   326→    const t = nodeMap.get(link.target);
+   327→   327→    if (!s || !t) continue;
+   328→   328→
+   329→   329→    ctx.beginPath();
+   330→   330→    ctx.strokeStyle = link.color;
+   331→   331→    ctx.globalAlpha = 0.4;
+   332→   332→    ctx.lineWidth = link.type === "gang_associate" ? 1 : 1.5;
+   333→   333→    if (link.type === "gang_associate") ctx.setLineDash([4, 3]);
+   334→   334→    else ctx.setLineDash([]);
+   335→   335→    ctx.moveTo(s.x, s.y);
+   336→   336→    ctx.lineTo(t.x, t.y);
+   337→   337→    ctx.stroke();
+   338→   338→    ctx.setLineDash([]);
+   339→   339→    ctx.globalAlpha = 1;
+   340→   340→  }
+   341→   341→
+   342→   342→  // Draw nodes
+   343→   343→  for (const node of nodes) {
+   344→   344→    const isHovered = hoveredNode?.id === node.id;
+   345→   345→    const isSelected = selectedNode?.id === node.id;
+   346→   346→    const size = node.size * 3;
+   347→   347→
+   348→   348→    // Glow
+   349→   349→    if (isHovered || isSelected) {
+   350→   350→      ctx.shadowColor = node.color;
+   351→   351→      ctx.shadowBlur = 16;
+   352→   352→    }
+   353→   353→
+   354→   354→    ctx.fillStyle = node.color;
+   355→   355→
+   356→   356→    switch (node.type) {
+   357→   357→      case "accused": {
+   358→   358→        ctx.beginPath();
+   359→   359→        ctx.arc(node.x, node.y, size, 0, 2 * Math.PI);
+   360→   360→        ctx.fill();
+   361→   361→        ctx.fillStyle = "rgba(255,255,255,0.18)";
+   362→   362→        ctx.beginPath();
+   363→   363→        ctx.arc(node.x - size * 0.25, node.y - size * 0.25, size * 0.35, 0, 2 * Math.PI);
+   364→   364→        ctx.fill();
+   365→   365→        break;
+   366→   366→      }
+   367→   367→      case "gang": {
+   368→   368→        const sides = 6;
+   369→   369→        ctx.beginPath();
+   370→   370→        for (let i = 0; i < sides; i++) {
+   371→   371→          const angle = (Math.PI * 2 * i) / sides - Math.PI / 2;
+   372→   372→          const px = node.x + size * Math.cos(angle);
+   373→   373→          const py = node.y + size * Math.sin(angle);
+   374→   374→          if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+   375→   375→        }
+   376→   376→        ctx.closePath();
+   377→   377→        ctx.fill();
+   378→   378→        break;
+   379→   379→      }
+   380→   380→      case "fir": {
+   381→   381→        const half = size * 0.85;
+   382→   382→        ctx.fillRect(node.x - half, node.y - half, half * 2, half * 2);
+   383→   383→        break;
+   384→   384→      }
+   385→   385→      case "vehicle": {
+   386→   386→        ctx.beginPath();
+   387→   387→        ctx.moveTo(node.x, node.y - size);
+   388→   388→        ctx.lineTo(node.x - size * 0.866, node.y + size * 0.5);
+   389→   389→        ctx.lineTo(node.x + size * 0.866, node.y + size * 0.5);
+   390→   390→        ctx.closePath();
+   391→   391→        ctx.fill();
+   392→   392→        break;
+   393→   393→      }
+   394→   394→      case "district": {
+   395→   395→        ctx.beginPath();
+   396→   396→        ctx.arc(node.x, node.y, size * 1.2, 0, 2 * Math.PI);
+   397→   397→        ctx.fill();
+   398→   398→        ctx.fillStyle = "rgba(255,255,255,0.12)";
+   399→   399→        ctx.beginPath();
+   400→   400→        ctx.arc(node.x, node.y, size * 0.5, 0, 2 * Math.PI);
+   401→   401→        ctx.fill();
+   402→   402→        break;
+   403→   403→      }
+   404→   404→    }
+   405→   405→    ctx.shadowBlur = 0;
+   406→   406→
+   407→   407→    // Label
+   408→   408→    ctx.font = `${isHovered || isSelected ? "11px" : "10px"} Inter, system-ui, sans-serif`;
+   409→   409→    ctx.textAlign = "center";
+   410→   410→    ctx.textBaseline = "top";
+   411→   411→    ctx.fillStyle = isHovered || isSelected ? "#ffffff" : "rgba(255,255,255,0.8)";
+   412→   412→    const label = node.name.length > 14 ? node.name.slice(0, 14) + "..." : node.name;
+   413→   413→    ctx.fillText(label, node.x, node.y + size + 4);
+   414→   414→  }
+   415→   415→
+   416→   416→  // Tooltip for hovered node
+   417→   417→  if (hoveredNode) {
+   418→   418→    const tx = hoveredNode.x + 15;
+   419→   419→    const ty = hoveredNode.y - 10;
+   420→   420→    const text = `${hoveredNode.name} (${hoveredNode.type})`;
+   421→   421→    ctx.font = "12px Inter, system-ui, sans-serif";
+   422→   422→    const metrics = ctx.measureText(text);
+   423→   423→    const pw = metrics.width + 16;
+   424→   424→    const ph = 26;
+   425→   425→    ctx.fillStyle = "rgba(26, 32, 53, 0.95)";
+   426→   426→    ctx.strokeStyle = "#2a3550";
+   427→   427→    ctx.lineWidth = 1;
+   428→   428→    ctx.beginPath();
+   429→   429→    ctx.roundRect(tx, ty - ph, pw, ph, 6);
+   430→   430→    ctx.fill();
+   431→   431→    ctx.stroke();
+   432→   432→    ctx.fillStyle = "#e2e8f0";
+   433→   433→    ctx.textAlign = "left";
+   434→   434→    ctx.textBaseline = "middle";
+   435→   435→    ctx.fillText(text, tx + 8, ty - ph / 2);
+   436→   436→  }
+   437→   437→}
+   438→   438→
+   439→   439→/* ------------------------------------------------------------------ */
+   440→   440→/*  Main Component                                                     */
+   441→   441→/* ------------------------------------------------------------------ */
+   442→   442→
+   443→   443→export default function NetworkGraph() {
+   444→   444→  const crimeData = useAppStore((s) => s.crimeData);
+   445→   445→  const [crimeTypeFilter, setCrimeTypeFilter] = useState<string>("all");
+   446→   446→  const [gangFilter, setGangFilter] = useState<string>("all");
+   447→   447→  const [selectedNode, setSelectedNode] = useState<SimNode | null>(null);
+   448→   448→  const [hoveredNode, setHoveredNode] = useState<SimNode | null>(null);
+   449→   449→  const canvasRef = useRef<HTMLCanvasElement>(null);
+   450→   450→  const containerRef = useRef<HTMLDivElement>(null);
+   451→   451→  const simNodesRef = useRef<SimNode[]>([]);
+   452→   452→  const dragNodeRef = useRef<SimNode | null>(null);
+   453→   453→  const [canvasSize, setCanvasSize] = useState({ w: 800, h: 600 });
+   454→   454→
+   455→   455→  /* derive unique crime types & gang names */
+   456→   456→  const crimeTypes = useMemo(() => {
+   457→   457→    if (!crimeData) return CRIME_TYPES;
+   458→   458→    const set = new Set(crimeData.firs.map((f) => f.crime_type));
+   459→   459→    return CRIME_TYPES.filter((t) => set.has(t));
+   460→   460→  }, [crimeData]);
+   461→   461→
+   462→   462→  const gangNames = useMemo(() => {
+   463→   463→    if (!crimeData) return [];
+   464→   464→    return crimeData.gangs.map((g) => g.name);
+   465→   465→  }, [crimeData]);
+   466→   466→
+   467→   467→  /* build filtered nodes & links */
+   468→   468→  const { nodes, links } = useMemo(() => {
+   469→   469→    if (!crimeData) return { nodes: [] as SimNode[], links: [] as SimLink[] };
+   470→   470→
+   471→   471→    const firs = crimeData.firs;
+   472→   472→    const accused = crimeData.accused;
+   473→   473→    const gangs = crimeData.gangs;
+   474→   474→    const vehicles = crimeData.vehicles;
+   475→   475→    const districts = crimeData.districts;
+   476→   476→
+   477→   477→    let visibleFirIds: Set<string> | null = null;
+   478→   478→    let visibleAccusedIds: Set<string> | null = null;
+   479→   479→    let visibleGangIds: Set<string> | null = null;
+   480→   480→
+   481→   481→    if (crimeTypeFilter !== "all") {
+   482→   482→      visibleFirIds = new Set(firs.filter((f) => f.crime_type === crimeTypeFilter).map((f) => f.fir_id));
+   483→   483→      visibleAccusedIds = new Set<string>();
+   484→   484→      for (const fir of firs) {
+   485→   485→        if (visibleFirIds.has(fir.fir_id)) {
+   486→   486→          for (const aid of fir.accused) visibleAccusedIds.add(aid);
+   487→   487→          if (fir.vehicle_used) visibleAccusedIds.add(fir.vehicle_used);
+   488→   488→          visibleAccusedIds.add(fir.district);
+   489→   489→          if (fir.gang_id) visibleAccusedIds.add(fir.gang_id);
+   490→   490→        }
+   491→   491→      }
+   492→   492→    }
+   493→   493→
+   494→   494→    if (gangFilter !== "all") {
+   495→   495→      const gang = gangs.find((g) => g.name === gangFilter);
+   496→   496→      if (gang) {
+   497→   497→        visibleGangIds = new Set([gang.id]);
+   498→   498→        const memberIds = new Set(gang.members);
+   499→   499→        const gangFirIds = new Set(firs.filter((f) => f.gang_id === gang.id).map((f) => f.fir_id));
+   500→   500→        visibleFirIds = visibleFirIds ? new Set([...visibleFirIds].filter((id) => gangFirIds.has(id))) : gangFirIds;
+   501→   501→        visibleAccusedIds = memberIds;
+   502→   502→        for (const fir of firs) {
+   503→   503→          if (visibleFirIds.has(fir.fir_id)) {
+   504→   504→            if (fir.vehicle_used) memberIds.add(fir.vehicle_used);
+   505→   505→            memberIds.add(fir.district);
+   506→   506→          }
+   507→   507→        }
+   508→   508→      }
+   509→   509→    }
+   510→   510→
+   511→   511→    const isFiltered = visibleFirIds !== null || visibleAccusedIds !== null;
+   512→   512→    const nodeMap = new Map<string, SimNode>();
+   513→   513→
+   514→   514→    for (const a of accused) {
+   515→   515→      if (isFiltered && visibleAccusedIds && !visibleAccusedIds.has(a.id)) continue;
+   516→   516→      nodeMap.set(a.id, { id: a.id, name: a.name, type: "accused", color: "#ef4444", size: a.risk / 10, x: 0, y: 0, vx: 0, vy: 0, fx: null, fy: null, _accused: a });
+   517→   517→    }
+   518→   518→    for (const g of gangs) {
+   519→   519→      if (isFiltered && visibleGangIds && !visibleGangIds.has(g.id)) continue;
+   520→   520→      if (isFiltered && visibleAccusedIds && !visibleAccusedIds.has(g.id)) continue;
+   521→   521→      nodeMap.set(g.id, { id: g.id, name: g.name, type: "gang", color: "#f59e0b", size: 6, x: 0, y: 0, vx: 0, vy: 0, fx: null, fy: null, _gang: g });
+   522→   522→    }
+   523→   523→    for (const f of firs) {
+   524→   524→      if (isFiltered && visibleFirIds && !visibleFirIds.has(f.fir_id)) continue;
+   525→   525→      nodeMap.set(f.fir_id, { id: f.fir_id, name: f.fir_id, type: "fir", color: "#eab308", size: 2, x: 0, y: 0, vx: 0, vy: 0, fx: null, fy: null, _fir: f });
+   526→   526→    }
+   527→   527→    for (const v of vehicles) {
+   528→   528→      if (isFiltered && visibleAccusedIds && !visibleAccusedIds.has(v.id)) continue;
+   529→   529→      nodeMap.set(v.id, { id: v.id, name: v.reg, type: "vehicle", color: "#06b6d4", size: 3, x: 0, y: 0, vx: 0, vy: 0, fx: null, fy: null, _vehicle: v });
+   530→   530→    }
+   531→   531→    for (const d of districts) {
+   532→   532→      if (isFiltered && visibleAccusedIds && !visibleAccusedIds.has(d.name)) continue;
+   533→   533→      const firCount = firs.filter((f) => (!visibleFirIds || visibleFirIds.has(f.fir_id)) && f.district === d.name).length;
+   534→   534→      if (isFiltered && firCount === 0) continue;
+   535→   535→      nodeMap.set(d.name, { id: d.name, name: d.name, type: "district", color: "#8b5cf6", size: 4, x: 0, y: 0, vx: 0, vy: 0, fx: null, fy: null, _district: d, _firCount: firCount });
+   536→   536→    }
+   537→   537→
+   538→   538→    const allEdges = getNetworkEdges(crimeData);
+   539→   539→    const nodeIds = new Set(nodeMap.keys());
+   540→   540→    const filteredEdges = allEdges.filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target));
+   541→   541→    const filteredLinks: SimLink[] = filteredEdges.map((e) => ({ source: e.source, target: e.target, type: e.type, color: LINK_COLORS[e.type] || "#64748b" }));
+   542→   542→
+   543→   543→    return { nodes: Array.from(nodeMap.values()), links: filteredLinks };
+   544→   544→  }, [crimeData, crimeTypeFilter, gangFilter]);
+   545→   545→
+   546→   546→  /* Run force simulation when data changes */
+   547→   547→  useEffect(() => {
+   548→   548→    if (nodes.length === 0) return;
+   549→   549→    const simNodes = nodes.map((n) => ({ ...n }));
+   550→   550→    simulateForce(simNodes, links, canvasSize.w, canvasSize.h, 150);
+   551→   551→    simNodesRef.current = simNodes;
+   552→   552→  }, [nodes, links, canvasSize.w, canvasSize.h]);
+   553→   553→
+   554→   554→  /* Draw canvas */
+   555→   555→  useEffect(() => {
+   556→   556→    const canvas = canvasRef.current;
+   557→   557→    if (!canvas || simNodesRef.current.length === 0) return;
+   558→   558→    const ctx = canvas.getContext("2d");
+   559→   559→    if (!ctx) return;
+   560→   560→    drawGraph(ctx, simNodesRef.current, links, canvasSize.w, canvasSize.h, hoveredNode, selectedNode);
+   561→   561→  }, [links, canvasSize, hoveredNode, selectedNode]);
+   562→   562→
+   563→   563→  /* Resize observer */
+   564→   564→  useEffect(() => {
+   565→   565→    const container = containerRef.current;
+   566→   566→    if (!container) return;
+   567→   567→    const observer = new ResizeObserver((entries) => {
+   568→   568→      for (const entry of entries) {
+   569→   569→        const { width, height } = entry.contentRect;
+   570→   570→        if (width > 0 && height > 0) {
+   571→   571→          setCanvasSize({ w: Math.floor(width), h: Math.floor(height) });
+   572→   572→        }
+   573→   573→      }
+   574→   574→    });
+   575→   575→    observer.observe(container);
+   576→   576→    return () => observer.disconnect();
+   577→   577→  }, []);
+   578→   578→
+   579→   579→  /* Canvas interaction handlers */
+   580→   580→  const getMouseNode = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+   581→   581→    const canvas = canvasRef.current;
+   582→   582→    if (!canvas) return null;
+   583→   583→    const rect = canvas.getBoundingClientRect();
+   584→   584→    const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+   585→   585→    const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+   586→   586→    for (const n of simNodesRef.current) {
+   587→   587→      const dx = mx - n.x;
+   588→   588→      const dy = my - n.y;
+   589→   589→      const hitSize = Math.max(n.size * 3, 10) + 5;
+   590→   590→      if (dx * dx + dy * dy < hitSize * hitSize) return n;
+   591→   591→    }
+   592→   592→    return null;
+   593→   593→  }, []);
+   594→   594→
+   595→   595→  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+   596→   596→    if (dragNodeRef.current) {
+   597→   597→      const canvas = canvasRef.current;
+   598→   598→      if (!canvas) return;
+   599→   599→      const rect = canvas.getBoundingClientRect();
+   600→   600→      dragNodeRef.current.x = (e.clientX - rect.left) * (canvas.width / rect.width);
+   601→   601→      dragNodeRef.current.y = (e.clientY - rect.top) * (canvas.height / rect.height);
+   602→   602→      return;
+   603→   603→    }
+   604→   604→    const node = getMouseNode(e);
+   605→   605→    setHoveredNode(node);
+   606→   606→  }, [getMouseNode]);
+   607→   607→
+   608→   608→  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+   609→   609→    const node = getMouseNode(e);
+   610→   610→    if (node) {
+   611→   611→      dragNodeRef.current = node;
+   612→   612→    }
+   613→   613→  }, [getMouseNode]);
+   614→   614→
+   615→   615→  const handleMouseUp = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+   616→   616→    if (dragNodeRef.current) {
+   617→   617→      dragNodeRef.current = null;
+   618→   618→      return;
+   619→   619→    }
+   620→   620→  }, []);
+   621→   621→
+   622→   622→  const handleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+   623→   623→    if (dragNodeRef.current) return;
+   624→   624→    const node = getMouseNode(e);
+   625→   625→    setSelectedNode(node);
+   626→   626→  }, [getMouseNode]);
+   627→   627→
+   628→   628→  const handleReset = useCallback(() => {
+   629→   629→    setCrimeTypeFilter("all");
+   630→   630→    setGangFilter("all");
+   631→   631→    setSelectedNode(null);
+   632→   632→  }, []);
+   633→   633→
+   634→   634→  if (!crimeData) {
+   635→   635→    return <LoadingSpinner message="Loading network data..." />;
+   636→   636→  }
+   637→   637→
+   638→   638→  return (
+   639→   639→    <div className="flex flex-col h-full w-full">
+   640→   640→      {/* Filter Controls */}
+   641→   641→      <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-[#0d1321] border-b border-[#1e293b] shrink-0">
+   642→   642→        <div className="flex items-center gap-2">
+   643→   643→          <label className="text-xs font-medium text-[#94a3b8] uppercase tracking-wider">Crime Type</label>
+   644→   644→          <Select value={crimeTypeFilter} onValueChange={(v) => { setCrimeTypeFilter(v); setSelectedNode(null); }}>
+   645→   645→            <SelectTrigger className="w-48 bg-[#0a0f1e] border-[#1e293b] text-[#e2e8f0]">
+   646→   646→              <SelectValue placeholder="Show All" />
+   647→   647→            </SelectTrigger>
+   648→   648→            <SelectContent className="bg-[#0d1321] border-[#1e293b]">
+   649→   649→              <SelectItem value="all" className="text-[#e2e8f0]">Show All</SelectItem>
+   650→   650→              {crimeTypes.map((ct) => (
+   651→   651→                <SelectItem key={ct} value={ct} className="text-[#e2e8f0]">{ct}</SelectItem>
+   652→   652→              ))}
+   653→   653→            </SelectContent>
+   654→   654→          </Select>
+   655→   655→        </div>
+   656→   656→        <div className="flex items-center gap-2">
+   657→   657→          <label className="text-xs font-medium text-[#94a3b8] uppercase tracking-wider">Gang</label>
+   658→   658→          <Select value={gangFilter} onValueChange={(v) => { setGangFilter(v); setSelectedNode(null); }}>
+   659→   659→            <SelectTrigger className="w-56 bg-[#0a0f1e] border-[#1e293b] text-[#e2e8f0]">
+   660→   660→              <SelectValue placeholder="All Gangs" />
+   661→   661→            </SelectTrigger>
+   662→   662→            <SelectContent className="bg-[#0d1321] border-[#1e293b]">
+   663→   663→              <SelectItem value="all" className="text-[#e2e8f0]">All Gangs</SelectItem>
+   664→   664→              {gangNames.map((gn) => (
+   665→   665→                <SelectItem key={gn} value={gn} className="text-[#e2e8f0]">{gn}</SelectItem>
+   666→   666→              ))}
+   667→   667→            </SelectContent>
+   668→   668→          </Select>
+   669→   669→        </div>
+   670→   670→        <Button variant="outline" size="sm" onClick={handleReset} className="border-[#334155] text-[#94a3b8] hover:bg-[#1e293b] hover:text-white bg-transparent">
+   671→   671→          Reset
+   672→   672→        </Button>
+   673→   673→        {/* Legend */}
+   674→   674→        <div className="flex items-center gap-3 ml-auto">
+   675→   675→          {[
+   676→   676→            { color: "#ef4444", label: "Accused" },
+   677→   677→            { color: "#f59e0b", label: "Gang" },
+   678→   678→            { color: "#eab308", label: "FIR" },
+   679→   679→            { color: "#06b6d4", label: "Vehicle" },
+   680→   680→            { color: "#8b5cf6", label: "District" },
+   681→   681→          ].map((item) => (
+   682→   682→            <div key={item.label} className="flex items-center gap-1">
+   683→   683→              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+   684→   684→              <span className="text-[11px] text-[#64748b] hidden sm:inline">{item.label}</span>
+   685→   685→            </div>
+   686→   686→          ))}
+   687→   687→        </div>
+   688→   688→      </div>
+   689→   689→
+   690→   690→      {/* Graph + Info Panel */}
+   691→   691→      <div className="flex-1 relative overflow-hidden" ref={containerRef}>
+   692→   692→        <canvas
+   693→   693→          ref={canvasRef}
+   694→   694→          width={canvasSize.w}
+   695→   695→          height={canvasSize.h}
+   696→   696→          className="w-full h-full cursor-grab active:cursor-grabbing"
+   697→   697→          onMouseMove={handleMouseMove}
+   698→   698→          onMouseDown={handleMouseDown}
+   699→   699→          onMouseUp={handleMouseUp}
+   700→   700→          onClick={handleClick}
+   701→   701→        />
+   702→   702→
+   703→   703→        {/* Right Side Info Panel */}
+   704→   704→        {selectedNode && (
+   705→   705→          <div className="absolute top-0 right-0 w-80 h-full bg-[#0d1321]/95 backdrop-blur-md border-l border-[#1e293b] z-10 flex flex-col overflow-hidden">
+   706→   706→            <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e293b] shrink-0">
+   707→   707→              <h2 className="text-sm font-semibold text-white uppercase tracking-wider">Node Details</h2>
+   708→   708→              <button onClick={() => setSelectedNode(null)} className="w-7 h-7 rounded-md flex items-center justify-center text-[#64748b] hover:text-white hover:bg-[#1e293b] transition-colors">
+   709→   709→                <X className="size-4" />
+   710→   710→              </button>
+   711→   711→            </div>
+   712→   712→            <div className="flex-1 overflow-y-auto px-4 py-4">
+   713→   713→              {selectedNode.type === "accused" && <AccusedPanel node={selectedNode} />}
+   714→   714→              {selectedNode.type === "gang" && <GangPanel node={selectedNode} />}
+   715→   715→              {selectedNode.type === "fir" && <FIRPanel node={selectedNode} />}
+   716→   716→              {selectedNode.type === "vehicle" && <VehiclePanel node={selectedNode} />}
+   717→   717→              {selectedNode.type === "district" && <DistrictPanel node={selectedNode} />}
+   718→   718→            </div>
+   719→   719→            <div className="px-4 py-2 border-t border-[#1e293b] shrink-0">
+   720→   720→              <div className="flex items-center gap-2">
+   721→   721→                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedNode.color }} />
+   722→   722→                <span className="text-[11px] text-[#64748b] uppercase">{selectedNode.type}</span>
+   723→   723→                <span className="text-[11px] text-[#334155]">•</span>
+   724→   724→                <span className="text-[11px] text-[#475569] truncate">{selectedNode.id}</span>
+   725→   725→              </div>
+   726→   726→            </div>
+   727→   727→          </div>
+   728→   728→        )}
+   729→   729→      </div>
+   730→   730→    </div>
+   731→   731→  );
+   732→   732→}

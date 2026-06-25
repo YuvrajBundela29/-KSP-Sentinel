@@ -1,6 +1,9 @@
 "use client";
 
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
+import dynamic from "next/dynamic";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls, Html, Line } from "@react-three/drei";
 import { useAppStore } from "@/lib/store";
 import { getNetworkEdges } from "@/lib/data";
 import { Button } from "@/components/ui/button";
@@ -27,10 +30,7 @@ interface SimNode {
   size: number;
   x: number;
   y: number;
-  vx: number;
-  vy: number;
-  fx: number | null;
-  fy: number | null;
+  z: number;
   _accused?: Accused;
   _gang?: Gang;
   _fir?: FIR;
@@ -95,7 +95,7 @@ function AccusedPanel({ node }: { node: SimNode }) {
         </div>
         <div>
           <h3 className="text-base font-semibold text-white leading-tight">{a.name}</h3>
-          <span className="text-[11px] text-[#64748b] uppercase">Accused • {a.id}</span>
+          <span className="text-[11px] text-[#64748b] uppercase">Accused &bull; {a.id}</span>
         </div>
       </div>
       <InfoRow icon={User} label="Age" value={`${a.age} years`} />
@@ -134,7 +134,7 @@ function GangPanel({ node }: { node: SimNode }) {
         </div>
         <div>
           <h3 className="text-base font-semibold text-white leading-tight">{g.name}</h3>
-          <span className="text-[11px] text-[#64748b] uppercase">Gang • {g.id}</span>
+          <span className="text-[11px] text-[#64748b] uppercase">Gang &bull; {g.id}</span>
         </div>
       </div>
       <InfoRow icon={Shield} label="Type" value={g.type} />
@@ -161,7 +161,7 @@ function FIRPanel({ node }: { node: SimNode }) {
         </div>
         <div>
           <h3 className="text-base font-semibold text-white leading-tight">{f.fir_id}</h3>
-          <span className="text-[11px] text-[#64748b] uppercase">FIR • {f.crime_type}</span>
+          <span className="text-[11px] text-[#64748b] uppercase">FIR &bull; {f.crime_type}</span>
         </div>
       </div>
       <InfoRow icon={FileText} label="Date" value={`${f.date} ${f.time}`} />
@@ -190,7 +190,7 @@ function VehiclePanel({ node }: { node: SimNode }) {
         </div>
         <div>
           <h3 className="text-base font-semibold text-white leading-tight">{v.reg}</h3>
-          <span className="text-[11px] text-[#64748b] uppercase">Vehicle • {v.id}</span>
+          <span className="text-[11px] text-[#64748b] uppercase">Vehicle &bull; {v.id}</span>
         </div>
       </div>
       <InfoRow icon={Car} label="Type" value={v.type} />
@@ -222,235 +222,280 @@ function DistrictPanel({ node }: { node: SimNode }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Simple force simulation (no D3 dependency)                         */
+/*  3D Force Simulation (no D3 dependency)                             */
 /* ------------------------------------------------------------------ */
 
-function simulateForce(nodes: SimNode[], links: SimLink[], width: number, height: number, iterations: number = 100) {
-  const nodeMap = new Map<string, SimNode>();
+function simulateForce3D(nodes: SimNode[], links: SimLink[], iterations: number = 200) {
+  const spread = 150;
   for (const n of nodes) {
-    n.x = width / 2 + (Math.random() - 0.5) * width * 0.6;
-    n.y = height / 2 + (Math.random() - 0.5) * height * 0.6;
-    n.vx = 0;
-    n.vy = 0;
-    n.fx = null;
-    n.fy = null;
-    nodeMap.set(n.id, n);
+    n.x = (Math.random() - 0.5) * spread * 2;
+    n.y = (Math.random() - 0.5) * spread * 2;
+    n.z = (Math.random() - 0.5) * spread * 2;
   }
+
+  const nodeMap = new Map<string, SimNode>();
+  for (const n of nodes) nodeMap.set(n.id, n);
 
   for (let iter = 0; iter < iterations; iter++) {
     const alpha = 1 - iter / iterations;
-    const repulsion = 2000;
-    const attraction = 0.005;
-    const centerForce = 0.01;
-    const damping = 0.9;
+    const repulsion = 8000;
+    const attraction = 0.004;
+    const centerForce = 0.008;
+    const damping = 0.85;
 
-    // Repulsion between all pairs
+    const vels = new Map<string, { vx: number; vy: number; vz: number }>();
+    for (const n of nodes) vels.set(n.id, { vx: 0, vy: 0, vz: 0 });
+
+    // Repulsion between all pairs (3D)
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
         const a = nodes[i];
         const b = nodes[j];
         let dx = a.x - b.x;
         let dy = a.y - b.y;
-        let dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 1) { dist = 1; dx = Math.random() - 0.5; dy = Math.random() - 0.5; }
+        let dz = a.z - b.z;
+        let dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (dist < 1) {
+          dist = 1;
+          dx = Math.random() - 0.5;
+          dy = Math.random() - 0.5;
+          dz = Math.random() - 0.5;
+        }
         const force = (repulsion * alpha) / (dist * dist);
         const fx = (dx / dist) * force;
         const fy = (dy / dist) * force;
-        if (a.fx === null) { a.vx += fx; a.vy += fy; }
-        if (b.fx === null) { b.vx -= fx; b.vy -= fy; }
+        const fz = (dz / dist) * force;
+        const va = vels.get(a.id)!;
+        const vb = vels.get(b.id)!;
+        va.vx += fx; va.vy += fy; va.vz += fz;
+        vb.vx -= fx; vb.vy -= fy; vb.vz -= fz;
       }
     }
 
-    // Attraction along links
+    // Attraction along links (spring force)
     for (const link of links) {
       const s = nodeMap.get(link.source);
       const t = nodeMap.get(link.target);
       if (!s || !t) continue;
       const dx = t.x - s.x;
       const dy = t.y - s.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
+      const dz = t.z - s.z;
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
       if (dist < 1) continue;
       const force = dist * attraction * alpha;
       const fx = (dx / dist) * force;
       const fy = (dy / dist) * force;
-      if (s.fx === null) { s.vx += fx; s.vy += fy; }
-      if (t.fx === null) { t.vx -= fx; t.vy -= fy; }
+      const fz = (dz / dist) * force;
+      const vs = vels.get(s.id)!;
+      const vt = vels.get(t.id)!;
+      vs.vx += fx; vs.vy += fy; vs.vz += fz;
+      vt.vx -= fx; vt.vy -= fy; vt.vz -= fz;
     }
 
-    // Center gravity
+    // Center gravity pulling toward origin
     for (const n of nodes) {
-      if (n.fx === null) {
-        n.vx += (width / 2 - n.x) * centerForce * alpha;
-        n.vy += (height / 2 - n.y) * centerForce * alpha;
-      }
+      const v = vels.get(n.id)!;
+      v.vx += (0 - n.x) * centerForce * alpha;
+      v.vy += (0 - n.y) * centerForce * alpha;
+      v.vz += (0 - n.z) * centerForce * alpha;
     }
 
-    // Apply velocity
+    // Apply velocity with damping
     for (const n of nodes) {
-      if (n.fx === null) {
-        n.vx *= damping;
-        n.vy *= damping;
-        n.x += n.vx;
-        n.y += n.vy;
-        // Keep in bounds
-        n.x = Math.max(30, Math.min(width - 30, n.x));
-        n.y = Math.max(30, Math.min(height - 30, n.y));
-      }
+      const v = vels.get(n.id)!;
+      v.vx *= damping;
+      v.vy *= damping;
+      v.vz *= damping;
+      n.x += v.vx;
+      n.y += v.vy;
+      n.z += v.vz;
     }
   }
 }
 
 /* ------------------------------------------------------------------ */
-/*  Canvas drawing                                                     */
+/*  R3F 3D Scene Components (must be rendered inside Canvas)           */
 /* ------------------------------------------------------------------ */
 
-function drawGraph(
-  ctx: CanvasRenderingContext2D,
-  nodes: SimNode[],
-  links: SimLink[],
-  width: number,
-  height: number,
-  hoveredNode: SimNode | null,
-  selectedNode: SimNode | null
-) {
-  const nodeMap = new Map<string, SimNode>();
-  for (const n of nodes) nodeMap.set(n.id, n);
+function GraphNodeMesh({
+  node,
+  isSelected,
+  onSelect,
+}: {
+  node: SimNode;
+  isSelected: boolean;
+  onSelect: (node: SimNode) => void;
+}) {
+  const [hovered, setHovered] = useState(false);
 
-  ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = "#0a0f1e";
-  ctx.fillRect(0, 0, width, height);
+  const scale = hovered || isSelected ? 1.3 : 1;
+  const emissiveIntensity = hovered || isSelected ? 0.4 : 0.05;
 
-  // Draw links
-  for (const link of links) {
-    const s = nodeMap.get(link.source);
-    const t = nodeMap.get(link.target);
-    if (!s || !t) continue;
-
-    ctx.beginPath();
-    ctx.strokeStyle = link.color;
-    ctx.globalAlpha = 0.4;
-    ctx.lineWidth = link.type === "gang_associate" ? 1 : 1.5;
-    if (link.type === "gang_associate") ctx.setLineDash([4, 3]);
-    else ctx.setLineDash([]);
-    ctx.moveTo(s.x, s.y);
-    ctx.lineTo(t.x, t.y);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.globalAlpha = 1;
-  }
-
-  // Draw nodes
-  for (const node of nodes) {
-    const isHovered = hoveredNode?.id === node.id;
-    const isSelected = selectedNode?.id === node.id;
-    const size = node.size * 3;
-
-    // Glow
-    if (isHovered || isSelected) {
-      ctx.shadowColor = node.color;
-      ctx.shadowBlur = 16;
-    }
-
-    ctx.fillStyle = node.color;
-
+  const labelY = (() => {
     switch (node.type) {
-      case "accused": {
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, size, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.fillStyle = "rgba(255,255,255,0.18)";
-        ctx.beginPath();
-        ctx.arc(node.x - size * 0.25, node.y - size * 0.25, size * 0.35, 0, 2 * Math.PI);
-        ctx.fill();
-        break;
-      }
-      case "gang": {
-        const sides = 6;
-        ctx.beginPath();
-        for (let i = 0; i < sides; i++) {
-          const angle = (Math.PI * 2 * i) / sides - Math.PI / 2;
-          const px = node.x + size * Math.cos(angle);
-          const py = node.y + size * Math.sin(angle);
-          if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-        }
-        ctx.closePath();
-        ctx.fill();
-        break;
-      }
-      case "fir": {
-        const half = size * 0.85;
-        ctx.fillRect(node.x - half, node.y - half, half * 2, half * 2);
-        break;
-      }
-      case "vehicle": {
-        ctx.beginPath();
-        ctx.moveTo(node.x, node.y - size);
-        ctx.lineTo(node.x - size * 0.866, node.y + size * 0.5);
-        ctx.lineTo(node.x + size * 0.866, node.y + size * 0.5);
-        ctx.closePath();
-        ctx.fill();
-        break;
-      }
-      case "district": {
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, size * 1.2, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.fillStyle = "rgba(255,255,255,0.12)";
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, size * 0.5, 0, 2 * Math.PI);
-        ctx.fill();
-        break;
-      }
+      case "accused": return -(node.size * scale + 15);
+      case "gang": return -(8 * scale + 15);
+      case "fir": return -(5 * scale + 15);
+      case "vehicle": return -(6 * scale + 15);
+      case "district": return -(10 * scale + 15);
+      default: return -15;
     }
-    ctx.shadowBlur = 0;
+  })();
 
-    // Label
-    ctx.font = `${isHovered || isSelected ? "11px" : "10px"} Inter, system-ui, sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "top";
-    ctx.fillStyle = isHovered || isSelected ? "#ffffff" : "rgba(255,255,255,0.8)";
-    const label = node.name.length > 14 ? node.name.slice(0, 14) + "..." : node.name;
-    ctx.fillText(label, node.x, node.y + size + 4);
-  }
+  const label = node.name.length > 14 ? node.name.slice(0, 14) + "..." : node.name;
 
-  // Tooltip for hovered node
-  if (hoveredNode) {
-    const tx = hoveredNode.x + 15;
-    const ty = hoveredNode.y - 10;
-    const text = `${hoveredNode.name} (${hoveredNode.type})`;
-    ctx.font = "12px Inter, system-ui, sans-serif";
-    const metrics = ctx.measureText(text);
-    const pw = metrics.width + 16;
-    const ph = 26;
-    ctx.fillStyle = "rgba(26, 32, 53, 0.95)";
-    ctx.strokeStyle = "#2a3550";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.roundRect(tx, ty - ph, pw, ph, 6);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = "#e2e8f0";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
-    ctx.fillText(text, tx + 8, ty - ph / 2);
-  }
+  return (
+    <group position={[node.x, node.y, node.z]}>
+      <mesh
+        scale={scale}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          onSelect(node);
+        }}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          setHovered(true);
+          document.body.style.cursor = "pointer";
+        }}
+        onPointerOut={() => {
+          setHovered(false);
+          document.body.style.cursor = "auto";
+        }}
+      >
+        {node.type === "accused" && (
+          <sphereGeometry args={[node.size, 16, 16]} />
+        )}
+        {node.type === "gang" && (
+          <dodecahedronGeometry args={[8, 0]} />
+        )}
+        {node.type === "fir" && (
+          <boxGeometry args={[5, 5, 5]} />
+        )}
+        {node.type === "vehicle" && (
+          <coneGeometry args={[6, 12, 8]} />
+        )}
+        {node.type === "district" && (
+          <sphereGeometry args={[10, 16, 16]} />
+        )}
+
+        {node.type === "district" ? (
+          <meshStandardMaterial
+            color={node.color}
+            transparent
+            opacity={0.5}
+            emissive={node.color}
+            emissiveIntensity={emissiveIntensity}
+          />
+        ) : (
+          <meshStandardMaterial
+            color={node.color}
+            emissive={node.color}
+            emissiveIntensity={emissiveIntensity}
+          />
+        )}
+      </mesh>
+
+      {/* Selection ring */}
+      {isSelected && (
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[node.type === "accused" ? node.size * 1.8 : 14, node.type === "accused" ? node.size * 2 : 16, 32]} />
+          <meshBasicMaterial color="#ffffff" transparent opacity={0.4} side={2} />
+        </mesh>
+      )}
+
+      {/* Label */}
+      <Html position={[0, labelY, 0]} center>
+        <div
+          style={{
+            background: "rgba(10,15,30,0.85)",
+            color: "#fff",
+            padding: "2px 6px",
+            borderRadius: "4px",
+            fontSize: "10px",
+            whiteSpace: "nowrap",
+            pointerEvents: "none",
+            border: "1px solid #2a3550",
+            fontFamily: "Inter, system-ui, sans-serif",
+          }}
+        >
+          {label}
+        </div>
+      </Html>
+    </group>
+  );
+}
+
+function GraphLinkLine({ link, nodeMap }: { link: SimLink; nodeMap: Map<string, SimNode> }) {
+  const s = nodeMap.get(link.source);
+  const t = nodeMap.get(link.target);
+  if (!s || !t) return null;
+
+  const isGangAssociate = link.type === "gang_associate";
+
+  return (
+    <Line
+      points={[[s.x, s.y, s.z], [t.x, t.y, t.z]]}
+      color={link.color}
+      lineWidth={1}
+      opacity={isGangAssociate ? 0.15 : 0.3}
+      transparent
+      dashed={isGangAssociate}
+    />
+  );
+}
+
+function GraphScene({
+  nodes,
+  links,
+  selectedNode,
+  onSelectNode,
+}: {
+  nodes: SimNode[];
+  links: SimLink[];
+  selectedNode: SimNode | null;
+  onSelectNode: (node: SimNode) => void;
+}) {
+  const nodeMap = useMemo(() => {
+    const m = new Map<string, SimNode>();
+    for (const n of nodes) m.set(n.id, n);
+    return m;
+  }, [nodes]);
+
+  return (
+    <>
+      <ambientLight intensity={0.6} />
+      <pointLight position={[200, 200, 200]} intensity={1.2} />
+      <pointLight position={[-150, -100, -150]} intensity={0.4} color="#8b5cf6" />
+
+      {/* Links */}
+      {links.map((link, i) => (
+        <GraphLinkLine key={`${link.source}-${link.target}-${i}`} link={link} nodeMap={nodeMap} />
+      ))}
+
+      {/* Nodes */}
+      {nodes.map((node) => (
+        <GraphNodeMesh
+          key={node.id}
+          node={node}
+          isSelected={selectedNode?.id === node.id}
+          onSelect={onSelectNode}
+        />
+      ))}
+
+      <OrbitControls enableDamping dampingFactor={0.05} />
+    </>
+  );
 }
 
 /* ------------------------------------------------------------------ */
-/*  Main Component                                                     */
+/*  Main Inner Component (all hooks + Canvas)                          */
 /* ------------------------------------------------------------------ */
 
-export default function NetworkGraph() {
+function NetworkGraphInner() {
   const crimeData = useAppStore((s) => s.crimeData);
   const [crimeTypeFilter, setCrimeTypeFilter] = useState<string>("all");
   const [gangFilter, setGangFilter] = useState<string>("all");
   const [selectedNode, setSelectedNode] = useState<SimNode | null>(null);
-  const [hoveredNode, setHoveredNode] = useState<SimNode | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const simNodesRef = useRef<SimNode[]>([]);
-  const dragNodeRef = useRef<SimNode | null>(null);
-  const [canvasSize, setCanvasSize] = useState({ w: 800, h: 600 });
 
   /* derive unique crime types & gang names */
   const crimeTypes = useMemo(() => {
@@ -464,7 +509,7 @@ export default function NetworkGraph() {
     return crimeData.gangs.map((g) => g.name);
   }, [crimeData]);
 
-  /* build filtered nodes & links */
+  /* build filtered nodes & links (same logic as before) */
   const { nodes, links } = useMemo(() => {
     if (!crimeData) return { nodes: [] as SimNode[], links: [] as SimLink[] };
 
@@ -513,117 +558,66 @@ export default function NetworkGraph() {
 
     for (const a of accused) {
       if (isFiltered && visibleAccusedIds && !visibleAccusedIds.has(a.id)) continue;
-      nodeMap.set(a.id, { id: a.id, name: a.name, type: "accused", color: "#ef4444", size: a.risk / 10, x: 0, y: 0, vx: 0, vy: 0, fx: null, fy: null, _accused: a });
+      nodeMap.set(a.id, {
+        id: a.id, name: a.name, type: "accused", color: "#ef4444",
+        size: a.risk / 10, x: 0, y: 0, z: 0, _accused: a,
+      });
     }
     for (const g of gangs) {
       if (isFiltered && visibleGangIds && !visibleGangIds.has(g.id)) continue;
       if (isFiltered && visibleAccusedIds && !visibleAccusedIds.has(g.id)) continue;
-      nodeMap.set(g.id, { id: g.id, name: g.name, type: "gang", color: "#f59e0b", size: 6, x: 0, y: 0, vx: 0, vy: 0, fx: null, fy: null, _gang: g });
+      nodeMap.set(g.id, {
+        id: g.id, name: g.name, type: "gang", color: "#f59e0b",
+        size: 6, x: 0, y: 0, z: 0, _gang: g,
+      });
     }
     for (const f of firs) {
       if (isFiltered && visibleFirIds && !visibleFirIds.has(f.fir_id)) continue;
-      nodeMap.set(f.fir_id, { id: f.fir_id, name: f.fir_id, type: "fir", color: "#eab308", size: 2, x: 0, y: 0, vx: 0, vy: 0, fx: null, fy: null, _fir: f });
+      nodeMap.set(f.fir_id, {
+        id: f.fir_id, name: f.fir_id, type: "fir", color: "#eab308",
+        size: 2, x: 0, y: 0, z: 0, _fir: f,
+      });
     }
     for (const v of vehicles) {
       if (isFiltered && visibleAccusedIds && !visibleAccusedIds.has(v.id)) continue;
-      nodeMap.set(v.id, { id: v.id, name: v.reg, type: "vehicle", color: "#06b6d4", size: 3, x: 0, y: 0, vx: 0, vy: 0, fx: null, fy: null, _vehicle: v });
+      nodeMap.set(v.id, {
+        id: v.id, name: v.reg, type: "vehicle", color: "#06b6d4",
+        size: 3, x: 0, y: 0, z: 0, _vehicle: v,
+      });
     }
     for (const d of districts) {
       if (isFiltered && visibleAccusedIds && !visibleAccusedIds.has(d.name)) continue;
       const firCount = firs.filter((f) => (!visibleFirIds || visibleFirIds.has(f.fir_id)) && f.district === d.name).length;
       if (isFiltered && firCount === 0) continue;
-      nodeMap.set(d.name, { id: d.name, name: d.name, type: "district", color: "#8b5cf6", size: 4, x: 0, y: 0, vx: 0, vy: 0, fx: null, fy: null, _district: d, _firCount: firCount });
+      nodeMap.set(d.name, {
+        id: d.name, name: d.name, type: "district", color: "#8b5cf6",
+        size: 4, x: 0, y: 0, z: 0, _district: d, _firCount: firCount,
+      });
     }
 
     const allEdges = getNetworkEdges(crimeData);
     const nodeIds = new Set(nodeMap.keys());
     const filteredEdges = allEdges.filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target));
-    const filteredLinks: SimLink[] = filteredEdges.map((e) => ({ source: e.source, target: e.target, type: e.type, color: LINK_COLORS[e.type] || "#64748b" }));
+    const filteredLinks: SimLink[] = filteredEdges.map((e) => ({
+      source: e.source, target: e.target, type: e.type, color: LINK_COLORS[e.type] || "#64748b",
+    }));
 
     return { nodes: Array.from(nodeMap.values()), links: filteredLinks };
   }, [crimeData, crimeTypeFilter, gangFilter]);
 
-  /* Run force simulation when data changes */
-  useEffect(() => {
-    if (nodes.length === 0) return;
-    const simNodes = nodes.map((n) => ({ ...n }));
-    simulateForce(simNodes, links, canvasSize.w, canvasSize.h, 150);
-    simNodesRef.current = simNodes;
-  }, [nodes, links, canvasSize.w, canvasSize.h]);
+  /* Run 3D force simulation via useMemo (synchronous computation) */
+  const simNodes = useMemo(() => {
+    if (nodes.length === 0) return [];
+    const result = nodes.map((n) => ({ ...n }));
+    simulateForce3D(result, links, 200);
+    return result;
+  }, [nodes, links]);
 
-  /* Draw canvas */
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || simNodesRef.current.length === 0) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    drawGraph(ctx, simNodesRef.current, links, canvasSize.w, canvasSize.h, hoveredNode, selectedNode);
-  }, [links, canvasSize, hoveredNode, selectedNode]);
+  const simReady = simNodes.length > 0;
 
-  /* Resize observer */
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const { width, height } = entry.contentRect;
-        if (width > 0 && height > 0) {
-          setCanvasSize({ w: Math.floor(width), h: Math.floor(height) });
-        }
-      }
-    });
-    observer.observe(container);
-    return () => observer.disconnect();
+  const handleSelectNode = useCallback((node: SimNode) => {
+    setSelectedNode((prev) => (prev?.id === node.id ? null : node));
   }, []);
-
-  /* Canvas interaction handlers */
-  const getMouseNode = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return null;
-    const rect = canvas.getBoundingClientRect();
-    const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
-    const my = (e.clientY - rect.top) * (canvas.height / rect.height);
-    for (const n of simNodesRef.current) {
-      const dx = mx - n.x;
-      const dy = my - n.y;
-      const hitSize = Math.max(n.size * 3, 10) + 5;
-      if (dx * dx + dy * dy < hitSize * hitSize) return n;
-    }
-    return null;
-  }, []);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (dragNodeRef.current) {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      dragNodeRef.current.x = (e.clientX - rect.left) * (canvas.width / rect.width);
-      dragNodeRef.current.y = (e.clientY - rect.top) * (canvas.height / rect.height);
-      return;
-    }
-    const node = getMouseNode(e);
-    setHoveredNode(node);
-  }, [getMouseNode]);
-
-  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const node = getMouseNode(e);
-    if (node) {
-      dragNodeRef.current = node;
-    }
-  }, [getMouseNode]);
-
-  const handleMouseUp = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (dragNodeRef.current) {
-      dragNodeRef.current = null;
-      return;
-    }
-  }, []);
-
-  const handleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (dragNodeRef.current) return;
-    const node = getMouseNode(e);
-    setSelectedNode(node);
-  }, [getMouseNode]);
 
   const handleReset = useCallback(() => {
     setCrimeTypeFilter("all");
@@ -637,7 +631,7 @@ export default function NetworkGraph() {
 
   return (
     <div className="flex flex-col h-full w-full">
-      {/* Filter Controls */}
+      {/* Filter Controls (HTML overlay, NOT inside Canvas) */}
       <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-[#0d1321] border-b border-[#1e293b] shrink-0">
         <div className="flex items-center gap-2">
           <label className="text-xs font-medium text-[#94a3b8] uppercase tracking-wider">Crime Type</label>
@@ -687,25 +681,64 @@ export default function NetworkGraph() {
         </div>
       </div>
 
-      {/* Graph + Info Panel */}
-      <div className="flex-1 relative overflow-hidden" ref={containerRef}>
-        <canvas
-          ref={canvasRef}
-          width={canvasSize.w}
-          height={canvasSize.h}
-          className="w-full h-full cursor-grab active:cursor-grabbing"
-          onMouseMove={handleMouseMove}
-          onMouseDown={handleMouseDown}
-          onMouseUp={handleMouseUp}
-          onClick={handleClick}
-        />
+      {/* 3D Canvas + Info Panel */}
+      <div className="flex-1 relative overflow-hidden" style={{ background: "#0a0f1e" }}>
+        {/* R3F Canvas */}
+        {simReady && (
+          <Canvas
+            camera={{ position: [0, 0, 500], fov: 60 }}
+            style={{ background: "#0a0f1e" }}
+            onPointerMissed={() => setSelectedNode(null)}
+          >
+            <GraphScene
+              nodes={simNodes}
+              links={links}
+              selectedNode={selectedNode}
+              onSelectNode={handleSelectNode}
+            />
+          </Canvas>
+        )}
 
-        {/* Right Side Info Panel */}
+        {/* Loading indicator while sim runs */}
+        {!simReady && nodes.length > 0 && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <LoadingSpinner message="Computing 3D layout..." />
+          </div>
+        )}
+
+        {/* Stats overlay */}
+        {simReady && (
+          <div className="absolute bottom-3 left-3 z-10">
+            <div className="px-3 py-1.5 bg-[#0a0f1e]/80 backdrop-blur-sm border border-[#1e293b] rounded-md">
+              <p className="text-[11px] text-[#64748b]">
+                <span className="text-[#94a3b8] font-medium">{simNodes.length}</span> nodes
+                <span className="mx-1.5 text-[#334155]">&bull;</span>
+                <span className="text-[#94a3b8] font-medium">{links.length}</span> links
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Controls hint */}
+        {simReady && (
+          <div className="absolute bottom-3 right-3 z-10">
+            <div className="px-3 py-1.5 bg-[#0a0f1e]/80 backdrop-blur-sm border border-[#1e293b] rounded-md">
+              <p className="text-[10px] text-[#475569]">
+                Left drag: rotate &bull; Scroll: zoom &bull; Right drag: pan
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Right Side Info Panel (HTML overlay, NOT inside Canvas) */}
         {selectedNode && (
           <div className="absolute top-0 right-0 w-80 h-full bg-[#0d1321]/95 backdrop-blur-md border-l border-[#1e293b] z-10 flex flex-col overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e293b] shrink-0">
               <h2 className="text-sm font-semibold text-white uppercase tracking-wider">Node Details</h2>
-              <button onClick={() => setSelectedNode(null)} className="w-7 h-7 rounded-md flex items-center justify-center text-[#64748b] hover:text-white hover:bg-[#1e293b] transition-colors">
+              <button
+                onClick={() => setSelectedNode(null)}
+                className="w-7 h-7 rounded-md flex items-center justify-center text-[#64748b] hover:text-white hover:bg-[#1e293b] transition-colors"
+              >
                 <X className="size-4" />
               </button>
             </div>
@@ -720,7 +753,7 @@ export default function NetworkGraph() {
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedNode.color }} />
                 <span className="text-[11px] text-[#64748b] uppercase">{selectedNode.type}</span>
-                <span className="text-[11px] text-[#334155]">•</span>
+                <span className="text-[11px] text-[#334155]">&bull;</span>
                 <span className="text-[11px] text-[#475569] truncate">{selectedNode.id}</span>
               </div>
             </div>
@@ -730,3 +763,9 @@ export default function NetworkGraph() {
     </div>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/*  Dynamic wrapper for SSR safety (Three.js needs window)             */
+/* ------------------------------------------------------------------ */
+
+export default dynamic(() => Promise.resolve(NetworkGraphInner), { ssr: false });
