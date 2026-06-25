@@ -1,28 +1,23 @@
 ---
 Task ID: 1
 Agent: Main
-Task: Transform KSP Sentinel AI into Enterprise Crime Intelligence Platform (Sprint Omega)
+Task: Sprint Omega+2 — Data Management Console for KSP Sentinel AI
 
 Work Log:
-- Analyzed entire existing codebase (20 files, ~4500 lines)
-- Updated types.ts: Added InvestigationBrief, SimilarCrimeResult, TimelineEvent, ExplainableResponse, IntelFeedItem, InvestigationQueueItem interfaces; Extended ChatMessage with optional explainable field; Extended ViewType with "timeline" | "report"
-- Updated store.ts: Added selectedFirId, commandPaletteOpen state and setters
-- Created intelligence.ts (763 lines): Full analysis engine with generateInvestigationBrief, computeSimilarCrimes, generateTimeline, getIntelFeedItems, getInvestigationQueue, getAIRecommendations, getCrimeTrendByMonth, wrapExplainableAI
-- Updated globals.css: Added glassmorphism classes (.glass, .glass-strong, .glass-card), ambient background effects, skeleton loaders, 7+ animation keyframes, sparkline CSS, timeline pulse, command palette overrides, confidence ring styles
-- Created CommandPalette.tsx (107 lines): cmdk-based command palette with Ctrl+K shortcut, Alt+1-6 navigation shortcuts
-- Rewrote DashboardHome.tsx (729 lines): Preserved all existing stat cards, chart, recent FIRs, high risk table. Added: SparklineStatCard with inline SVG sparklines, Live Intelligence Feed, AI Recommendations, Investigation Queue, Risk Alerts, ambient background, framer-motion animations, glass-card styling
-- Updated chat API route.ts: Added buildExplainableResponse function, returns explainable metadata alongside response
-- Updated ChatView.tsx (395 lines): Added ExplainablePanel component showing confidence score, evidence chain, reasoning summary, alternative explanations in collapsible panel below AI responses
-- Created InvestigationTimeline.tsx (564 lines): Animated vertical timeline with FIR selector, alternating left/right layout, framer-motion staggered entry, color-coded status nodes, summary progress bar
-- Created ReportGenerator.tsx (1001 lines): Configuration panel, 8-section report preview (header, executive summary, timeline, similar crimes, network intelligence, AI findings, evidence summary, footer), PDF export via jsPDF, confidence score ring
-- Enhanced AccusedProfile.tsx (1029 lines): Added AI Investigation Brief section (confidence ring, executive summary, related cases, likely associates, behavioral analysis, missing evidence, financial links, suggested actions) and Similar Crime Engine section (similarity bars, matched factor badges)
-- Updated page.tsx: Added timeline/report routes, CommandPalette component
-- Updated Sidebar.tsx: Added Timeline and Reports nav items, Command Palette button, Kannada labels
-- Updated Header.tsx: Added timeline/report view labels in EN/KN
+- Read entire codebase (types, store, data, components, layout, page, API routes)
+- Extended ViewType union with 11 new DM view types
+- Added new interfaces: RolePermission, EvidenceItem, AuditLogEntry, ImportJob, AIQueueItem, DuplicateDetectionResult, OCRExtractionResult, FIRWizardData, EvidenceViewMode
+- Extended Zustand store with: sidebarCollapsed, auditLogs, evidenceItems, importJobs, aiQueue, notifications (with addNotification, markNotificationRead)
+- Created export-utils.ts (CSV, Excel, JSON, Print, formatBytes, formatNumber, generateId)
+- Rewrote Sidebar.tsx with collapsible sidebar, mobile-responsive hamburger menu, Data Management section with 11 nav items
+- Updated Header.tsx with notification dropdown, DM badge, all 18 view labels
+- Updated CommandPalette.tsx with DM command group (11 commands)
+- Updated page.tsx with lazy-loaded DM components via React.lazy + Suspense
+- Built 11 DM components (11,168 lines total) via parallel subagents
+- Fixed TypeScript errors in EvidenceManagement (missing read: false) and VictimsPage (Map → Record)
 
 Stage Summary:
-- All 7 capabilities built: Mission Control, AI Brief, Similar Crimes, Explainable AI, Timeline, Premium UI, Report Generator
-- Build passes cleanly (next build succeeds)
-- Dev server runs with 200 OK
-- Chat API verified: returns explainable metadata with confidence scores and evidence chains
-- Zero existing functionality broken — all routes, auth, data, and views preserved
+- Build: PASS (compiled successfully, zero errors)
+- All existing features preserved (login, dashboard, chat, network, map, accused, timeline, report)
+- 11 new pages fully functional with dark glassmorphism theme
+- Code-split via React.lazy for DM components

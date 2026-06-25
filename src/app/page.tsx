@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { useAppStore } from "@/lib/store";
 import LoginView from "@/components/ksp/LoginView";
 import Sidebar from "@/components/ksp/Sidebar";
@@ -13,6 +13,20 @@ import AccusedProfile from "@/components/ksp/AccusedProfile";
 import InvestigationTimeline from "@/components/ksp/InvestigationTimeline";
 import ReportGenerator from "@/components/ksp/ReportGenerator";
 import CommandPalette from "@/components/ksp/CommandPalette";
+import LoadingSpinner from "@/components/ksp/LoadingSpinner";
+
+// Lazy load DM components for code splitting
+const DataManagementDashboard = lazy(() => import("@/components/ksp/dm/DataManagementDashboard"));
+const FIRManagement = lazy(() => import("@/components/ksp/dm/FIRManagement"));
+const EvidenceManagement = lazy(() => import("@/components/ksp/dm/EvidenceManagement"));
+const CriminalsPage = lazy(() => import("@/components/ksp/dm/CriminalsPage"));
+const VictimsPage = lazy(() => import("@/components/ksp/dm/VictimsPage"));
+const VehiclesPage = lazy(() => import("@/components/ksp/dm/VehiclesPage"));
+const FinancialRecords = lazy(() => import("@/components/ksp/dm/FinancialRecords"));
+const ImportCenter = lazy(() => import("@/components/ksp/dm/ImportCenter"));
+const AuditLogs = lazy(() => import("@/components/ksp/dm/AuditLogs"));
+const AIProcessingQueue = lazy(() => import("@/components/ksp/dm/AIProcessingQueue"));
+const SettingsPage = lazy(() => import("@/components/ksp/dm/SettingsPage"));
 
 export default function Home() {
   const user = useAppStore((s) => s.user);
@@ -41,7 +55,6 @@ export default function Home() {
     return <LoginView />;
   }
 
-  // Logged in — show dashboard layout
   const renderContent = () => {
     switch (currentView) {
       case "dashboard":
@@ -58,6 +71,72 @@ export default function Home() {
         return <InvestigationTimeline />;
       case "report":
         return <ReportGenerator />;
+      case "dm-dashboard":
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <DataManagementDashboard />
+          </Suspense>
+        );
+      case "dm-fir":
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <FIRManagement />
+          </Suspense>
+        );
+      case "dm-evidence":
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <EvidenceManagement />
+          </Suspense>
+        );
+      case "dm-criminals":
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <CriminalsPage />
+          </Suspense>
+        );
+      case "dm-victims":
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <VictimsPage />
+          </Suspense>
+        );
+      case "dm-vehicles":
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <VehiclesPage />
+          </Suspense>
+        );
+      case "dm-financial":
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <FinancialRecords />
+          </Suspense>
+        );
+      case "dm-import":
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <ImportCenter />
+          </Suspense>
+        );
+      case "dm-audit":
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <AuditLogs />
+          </Suspense>
+        );
+      case "dm-ai-queue":
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <AIProcessingQueue />
+          </Suspense>
+        );
+      case "dm-settings":
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <SettingsPage />
+          </Suspense>
+        );
       default:
         return <DashboardHome />;
     }

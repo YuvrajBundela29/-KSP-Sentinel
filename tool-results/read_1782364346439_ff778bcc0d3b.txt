@@ -1,0 +1,764 @@
+     1→// KSP Sentinel AI — Intelligence Analysis Engine
+     2→// Generates investigation briefs, similar crimes, timelines, feeds, and queue
+     3→
+     4→import type {
+     5→  CrimeDataset, FIR, Accused, Gang,
+     6→  InvestigationBrief, SimilarCrimeResult, TimelineEvent,
+     7→  IntelFeedItem, InvestigationQueueItem, ExplainableResponse,
+     8→} from "./types";
+     9→
+    10→// ═══════════════════════════════════════════════════════════════════
+    11→//  1. AI INVESTIGATION BRIEF GENERATOR
+    12→// ═══════════════════════════════════════════════════════════════════
+    13→
+    14→export function generateInvestigationBrief(
+    15→  data: CrimeDataset,
+    16→  targetId: string,
+    17→  targetType: "accused" | "fir"
+    18→): InvestigationBrief {
+    19→  if (targetType === "accused") {
+    20→    return generateAccusedBrief(data, targetId);
+    21→  }
+    22→  return generateFIRBrief(data, targetId);
+    23→}
+    24→
+    25→function generateAccusedBrief(data: CrimeDataset, accusedId: string): InvestigationBrief {
+    26→  const accused = data.accused.find(a => a.id === accusedId);
+    27→  if (!accused) {
+    28→    return emptyBrief();
+    29→  }
+    30→
+    31→  const linkedFIRs = data.firs.filter(f => f.accused.includes(accusedId));
+    32→  const gang = accused.gang ? data.gangs.find(g => g.id === accused.gang) : null;
+    33→  const gangMembers = gang
+    34→    ? data.accused.filter(a => a.id !== accusedId && gang.members.includes(a.id))
+    35→    : [];
+    36→
+    37→  // Related cases: other FIRs by same gang or co-accused
+    38→  const relatedCases = linkedFIRs.map(f => ({
+    39→    firId: f.fir_id,
+    40→    crimeType: f.crime_type,
+    41→    date: f.date,
+    42→    status: f.investigation_status,
+    43→    relevance: f.gang_id === accused.gang ? "Direct gang involvement" : "Co-accused in case",
+    44→  }));
+    45→
+    46→  // Add FIRs from gang members not involving this accused
+    47→  if (gang) {
+    48→    for (const member of gangMembers) {
+    49→      const memberFIRs = data.firs.filter(f => f.accused.includes(member.id) && !f.accused.includes(accusedId));
+    50→      for (const f of memberFIRs) {
+    51→        if (!relatedCases.find(r => r.firId === f.fir_id)) {
+    52→          relatedCases.push({
+    53→            firId: f.fir_id,
+    54→            crimeType: f.crime_type,
+    55→            date: f.date,
+    56→            status: f.investigation_status,
+    57→            relevance: `Associate ${member.name} involved in same gang operation`,
+    58→          });
+    59→        }
+    60→      }
+    61→    }
+    62→  }
+    63→
+    64→  // Likely associates
+    65→  const associateMap = new Map<string, { name: string; id: string; connection: string; strength: "strong" | "moderate" | "weak" }>();
+    66→  for (const f of linkedFIRs) {
+    67→    for (const aid of f.accused) {
+    68→      if (aid === accusedId) continue;
+    69→      const other = data.accused.find(a => a.id === aid);
+    70→      if (!other) continue;
+    71→      const existing = associateMap.get(aid);
+    72→      if (existing) {
+    73→        existing.connection += `, co-accused in ${f.fir_id}`;
+    74→      } else {
+    75→        const sameGang = accused.gang && other.gang && accused.gang === other.gang;
+    76→        associateMap.set(aid, {
+    77→          name: other.name,
+    78→          id: other.id,
+    79→          connection: sameGang
+    80→            ? `Same gang (${gang?.name}) — ${f.fir_id}`
+    81→            : `Co-accused in ${f.fir_id}`,
+    82→          strength: sameGang ? "strong" : "moderate",
+    83→        });
+    84→      }
+    85→    }
+    86→  }
+    87→
+    88→  // Financial links
+    89→  const financialLinks: InvestigationBrief["financialLinks"] = [];
+    90→  const fTxs = linkedFIRs.filter(f => f.financial_transaction);
+    91→  const txAccounts = new Set(fTxs.map(f => f.financial_transaction!.account));
+    92→  for (const accId of txAccounts) {
+    93→    const bank = data.bank_accounts.find(b => b.id === accId);
+    94→    const txs = fTxs.filter(f => f.financial_transaction!.account === accId);
+    95→    const total = txs.reduce((s, f) => s + (f.financial_transaction?.amount_inr ?? 0), 0);
+    96→    financialLinks.push({
+    97→      bank: bank?.bank ?? "Unknown",
+    98→      account: bank?.acc ?? accId,
+    99→      holder: bank?.holder ?? "Unknown",
+   100→      totalAmount: total,
+   101→      transactions: txs.length,
+   102→      details: txs.map(t => `${t.fir_id}: ₹${t.financial_transaction?.amount_inr.toLocaleString("en-IN")} via ${t.financial_transaction?.mode}`).join("; "),
+   103→    });
+   104→  }
+   105→
+   106→  // Behavioral analysis
+   107→  const timeSlots: Record<string, number> = { morning: 0, afternoon: 0, evening: 0, night: 0 };
+   108→  const crimeTypes: Record<string, number> = {};
+   109→  const districts: Record<string, number> = {};
+   110→  const modiSet = new Set<string>();
+   111→  for (const f of linkedFIRs) {
+   112→    const h = parseInt(f.time.split(":")[0]);
+   113→    if (h >= 6 && h < 12) timeSlots.morning++;
+   114→    else if (h >= 12 && h < 17) timeSlots.afternoon++;
+   115→    else if (h >= 17 && h < 21) timeSlots.evening++;
+   116→    else timeSlots.night++;
+   117→    crimeTypes[f.crime_type] = (crimeTypes[f.crime_type] ?? 0) + 1;
+   118→    districts[f.district] = (districts[f.district] ?? 0) + 1;
+   119→    modiSet.add(f.modus_operandi);
+   120→  }
+   121→
+   122→  const peakTime = Object.entries(timeSlots).sort(([, a], [, b]) => b - a)[0];
+   123→  const topDistrict = Object.entries(districts).sort(([, a], [, b]) => b - a)[0];
+   124→  const topCrime = Object.entries(crimeTypes).sort(([, a], [, b]) => b - a)[0];
+   125→
+   126→  const behavioralAnalysis: InvestigationBrief["behavioralAnalysis"] = [
+   127→    {
+   128→      pattern: "Temporal Pattern",
+   129→      description: `Peak activity during ${peakTime?.[0] ?? "unknown"} hours (${peakTime?.[1] ?? 0} incidents). ${peakTime?.[0] === "night" ? "Operates under cover of darkness — high evasion probability." : peakTime?.[0] === "evening" ? "Targets evening commuters and walkers in dimly lit areas." : "Daytime operations suggest confidence or opportunity-based targeting."}`,
+   130→      frequency: `${linkedFIRs.length} incidents analyzed`,
+   131→    },
+   132→    {
+   133→      pattern: "Geographic Preference",
+   134→      description: `Primary operating zone: ${topDistrict?.[0] ?? "unknown"} (${topDistrict?.[1] ?? 0} incidents). ${gang ? `Gang base at ${gang.base}.` : "No confirmed gang affiliation."} ${Object.keys(districts).length > 1 ? `Also active in ${Object.entries(districts).slice(1).map(([d, c]) => `${d} (${c})`).join(", ")}.` : ""}`,
+   135→      frequency: `${Object.keys(districts).length} district${Object.keys(districts).length > 1 ? "s" : ""} covered`,
+   136→    },
+   137→    {
+   138→      pattern: "Crime Specialization",
+   139→      description: `Primary crime type: ${topCrime?.[0] ?? "unknown"} (${topCrime?.[1] ?? 0} incidents). ${Object.keys(crimeTypes).length > 1 ? `Also involved in: ${Object.entries(crimeTypes).slice(1).map(([t, c]) => `${t} (${c})`).join(", ")}.` : ""}`,
+   140→      frequency: `${Object.keys(crimeTypes).length} distinct crime type${Object.keys(crimeTypes).length > 1 ? "s" : ""}`,
+   141→    },
+   142→    {
+   143→      pattern: "Modus Operandi",
+   144→      description: `${modiSet.size > 1 ? `Uses ${modiSet.size} different MOs, suggesting adaptability:` : "Consistent MO indicates specialization:"} ${[...modiSet].slice(0, 3).map(m => `"${m}"`).join("; ")}`,
+   145→      frequency: `${modiSet.size} unique method${modiSet.size > 1 ? "s" : ""} identified`,
+   146→    },
+   147→  ];
+   148→
+   149→  // Missing evidence
+   150→  const missingEvidence: InvestigationBrief["missingEvidence"] = [];
+   151→  const noWitness = linkedFIRs.filter(f => f.witnesses.length === 0);
+   152→  const noVehicle = linkedFIRs.filter(f => !f.vehicle_used);
+   153→  const noFinancial = linkedFIRs.filter(f => !f.financial_transaction && (f.crime_type.includes("Fraud") || f.crime_type.includes("Heist")));
+   154→  const noCctv = linkedFIRs.filter(f => !f.witnesses.some(w => w.toLowerCase().includes("cctv") || w.toLowerCase().includes("camera")));
+   155→
+   156→  if (noWitness.length > 0) missingEvidence.push({ type: "Witness Testimony", description: `${noWitness.length} case(s) have zero witnesses recorded — ${noWitness.map(f => f.fir_id).join(", ")}`, priority: "high" });
+   157→  if (noCctv.length > 0 && linkedFIRs.length > 2) missingEvidence.push({ type: "CCTV Footage", description: `No CCTV evidence documented in ${noCctv.length} case(s) — consider area surveillance audit`, priority: "medium" });
+   158→  if (noFinancial.length > 0) missingEvidence.push({ type: "Financial Trail", description: `No financial transaction data for ${noFinancial.length} financial crime(s) — ${noFinancial.map(f => f.fir_id).join(", ")}`, priority: "high" });
+   159→  if (noVehicle.length > 0 && gang?.type?.includes("Vehicle")) missingEvidence.push({ type: "Vehicle Intelligence", description: `No vehicle linked in ${noVehicle.length} case(s) despite vehicle theft gang profile`, priority: "medium" });
+   160→  missingEvidence.push({ type: "Mobile Tower Dump", description: "No phone interception data on record — recommend CDR analysis for all co-accused", priority: "medium" });
+   161→  missingEvidence.push({ type: "Social Media Intelligence", description: "No OSINT/social media profiling documented — recommended for cyber-crime linked accused", priority: "low" });
+   162→
+   163→  // Suggested actions
+   164→  const suggestedActions: InvestigationBrief["suggestedActions"] = [
+   165→    { action: `Summon ${gangMembers.slice(0, 2).map(m => m.name).join(" & ")} for interrogation`, rationale: gang ? `Same gang (${gang.name}) — likely to reveal operational hierarchy and next targets` : "Frequent co-accused with shared criminal patterns", priority: "immediate" },
+   166→    { action: "Obtain CDR (Call Detail Records) for all co-accused", rationale: "Cross-reference call patterns during incident windows to establish communication chains", priority: "immediate" },
+   167→    { action: `Surveillance operation in ${topDistrict?.[0] ?? "primary district"} during ${peakTime?.[0] ?? "peak hours"}`, rationale: "Pattern analysis indicates high probability of repeat offending in this time/location window", priority: "short_term" },
+   168→    { action: "Freeze identified bank accounts and initiate KYC investigation", rationale: `₹${financialLinks.reduce((s, l) => s + l.totalAmount, 0).toLocaleString("en-IN")} in linked transactions across ${financialLinks.length} account(s)`, priority: "immediate" },
+   169→    { action: "Cross-reference with interstate crime databases (NCRB CCTNS)", rationale: `${accused.prior_firs} prior FIRs suggest interstate network — check for warrants in other states`, priority: "short_term" },
+   170→    { action: "Deploy technical surveillance at known associate addresses", rationale: "Intelligence indicates organized operation — monitoring communications may reveal upcoming plans", priority: "long_term" },
+   171→  ];
+   172→
+   173→  // Confidence score based on data completeness
+   174→  let confidence = 40;
+   175→  if (linkedFIRs.length >= 2) confidence += 15;
+   176→  if (gang) confidence += 10;
+   177→  if (gangMembers.length >= 2) confidence += 5;
+   178→  if (financialLinks.length > 0) confidence += 10;
+   179→  if (linkedFIRs.some(f => f.witnesses.length > 0)) confidence += 8;
+   180→  if (linkedFIRs.some(f => f.vehicle_used)) confidence += 7;
+   181→  if (missingEvidence.filter(m => m.priority === "high").length === 0) confidence += 5;
+   182→  confidence = Math.min(confidence, 97);
+   183→
+   184→  const executiveSummary = `${accused.name} (${accusedId}) is a ${accused.risk > 80 ? "high-risk" : accused.risk > 60 ? "moderate-risk" : "low-risk"} offender with ${linkedFIRs.length} linked FIR${linkedFIRs.length !== 1 ? "s" : ""} and ${accused.prior_firs} prior record${accused.prior_firs !== 1 ? "s" : ""}. ${gang ? `Confirmed member of "${gang.name}" (${gang.type}) based at ${gang.base} with ${gang.members.length} known members.` : "No confirmed gang affiliation identified."} Primary activity zone: ${topDistrict?.[0] ?? "unknown"}. ${financialLinks.length > 0 ? `Financial intelligence reveals ${financialLinks.length} account(s) with total transactions of ₹${financialLinks.reduce((s, l) => s + l.totalAmount, 0).toLocaleString("en-IN")}.` : ""} ${missingEvidence.filter(m => m.priority === "high").length > 0 ? `CRITICAL: ${missingEvidence.filter(m => m.priority === "high").length} high-priority evidence gaps identified.` : ""}`;
+   185→
+   186→  return {
+   187→    executiveSummary,
+   188→    relatedCases,
+   189→    likelyAssociates: [...associateMap.values()].sort((a, b) => (a.strength === "strong" ? 0 : 1) - (b.strength === "strong" ? 0 : 1)),
+   190→    financialLinks,
+   191→    behavioralAnalysis,
+   192→    missingEvidence,
+   193→    suggestedActions,
+   194→    confidenceScore: confidence,
+   195→  };
+   196→}
+   197→
+   198→function generateFIRBrief(data: CrimeDataset, firId: string): InvestigationBrief {
+   199→  const fir = data.firs.find(f => f.fir_id === firId);
+   200→  if (!fir) return emptyBrief();
+   201→
+   202→  const accusedProfiles = fir.accused.map(id => data.accused.find(a => a.id === id)).filter(Boolean) as Accused[];
+   203→  const gang = fir.gang_id ? data.gangs.find(g => g.id === fir.gang_id) : null;
+   204→  const allGangFIRs = gang ? data.firs.filter(f => f.gang_id === gang.id && f.fir_id !== firId) : [];
+   205→
+   206→  const relatedCases = allGangFIRs.map(f => ({
+   207→    firId: f.fir_id, crimeType: f.crime_type, date: f.date, status: f.investigation_status,
+   208→    relevance: gang ? `Same gang (${gang.name}) operation` : "Related criminal network",
+   209→  }));
+   210→
+   211→  // Co-accused in other cases
+   212→  for (const aid of fir.accused) {
+   213→    const otherFIRs = data.firs.filter(f => f.accused.includes(aid) && f.fir_id !== firId);
+   214→    for (const f of otherFIRs) {
+   215→      if (!relatedCases.find(r => r.firId === f.fir_id)) {
+   216→        relatedCases.push({ firId: f.fir_id, crimeType: f.crime_type, date: f.date, status: f.investigation_status, relevance: `Accused ${aid} also involved` });
+   217→      }
+   218→    }
+   219→  }
+   220→
+   221→  const likelyAssociates = accusedProfiles.map(a => {
+   222→    const g = a.gang ? data.gangs.find(gg => gg.id === a.gang) : null;
+   223→    return {
+   224→      name: a.name, id: a.id,
+   225→      connection: g ? `Member of ${g.name}` : "Independent operator",
+   226→      strength: (a.risk > 75 ? "strong" : a.risk > 50 ? "moderate" : "weak") as "strong" | "moderate" | "weak",
+   227→    };
+   228→  });
+   229→
+   230→  const financialLinks: InvestigationBrief["financialLinks"] = [];
+   231→  if (fir.financial_transaction) {
+   232→    const bank = data.bank_accounts.find(b => b.id === fir.financial_transaction!.account);
+   233→    financialLinks.push({
+   234→      bank: bank?.bank ?? "Unknown", account: bank?.acc ?? fir.financial_transaction!.account,
+   235→      holder: bank?.holder ?? "Unknown", totalAmount: fir.financial_transaction.amount_inr,
+   236→      transactions: 1, details: `₹${fir.financial_transaction.amount_inr.toLocaleString("en-IN")} via ${fir.financial_transaction.mode} — ${fir.financial_transaction.note}`,
+   237→    });
+   238→  }
+   239→
+   240→  return {
+   241→    executiveSummary: `${fir.crime_type} (${fir.ipc_section}) reported on ${fir.date} at ${fir.time} in ${fir.district}. ${fir.accused.length} accused identified: ${accusedProfiles.map(a => `${a.name} (Risk: ${a.risk})`).join(", ")}. ${gang ? `Linked to ${gang.name} gang.` : ""} ${fir.vehicle_used ? `Vehicle used: ${fir.vehicle_used}.` : ""} Status: ${fir.investigation_status}.`,
+   242→    relatedCases, likelyAssociates, financialLinks,
+   243→    behavioralAnalysis: [
+   244→      { pattern: "Incident Timing", description: `Crime occurred at ${fir.time} — ${parseInt(fir.time) >= 18 || parseInt(fir.time) < 6 ? "night/evening operation suggesting premeditation" : "daylight operation suggesting opportunity or confidence"}.`, frequency: "Single incident" },
+   245→      { pattern: "Method of Operation", description: fir.modus_operandi, frequency: "Primary MO for this case" },
+   246→      { pattern: "Target Selection", description: `Victim: ${fir.victim.name} (${fir.victim.occupation}). ${fir.victim.age && fir.victim.age > 55 ? "Elderly victim — potential vulnerability targeting." : ""} ${fir.socio_tags.includes("high_value") ? "High-value target suggesting reconnaissance." : ""}`, frequency: "Single incident" },
+   247→    ],
+   248→    missingEvidence: fir.witnesses.length === 0
+   249→      ? [{ type: "Witness Testimony", description: "No witnesses recorded for this case", priority: "high" }]
+   250→      : [],
+   251→    suggestedActions: [
+   252→      { action: "Verify alibis of all accused", rationale: "Establish timeline consistency with incident timing", priority: "immediate" },
+   253→      { action: "Canvass CCTV in 500m radius", rationale: "Identify approach/escape routes and additional suspects", priority: "immediate" },
+   254→      { action: "Cross-reference with similar MO cases statewide", rationale: "May reveal series pattern or copycat crimes", priority: "short_term" },
+   255→    ],
+   256→    confidenceScore: fir.accused.length > 0 ? 75 : 40,
+   257→  };
+   258→}
+   259→
+   260→function emptyBrief(): InvestigationBrief {
+   261→  return {
+   262→    executiveSummary: "Insufficient data to generate investigation brief.",
+   263→    relatedCases: [], likelyAssociates: [], financialLinks: [],
+   264→    behavioralAnalysis: [], missingEvidence: [], suggestedActions: [],
+   265→    confidenceScore: 0,
+   266→  };
+   267→}
+   268→
+   269→// ═══════════════════════════════════════════════════════════════════
+   270→//  2. SIMILAR CRIME ENGINE
+   271→// ═══════════════════════════════════════════════════════════════════
+   272→
+   273→export function computeSimilarCrimes(
+   274→  data: CrimeDataset,
+   275→  targetFirId: string,
+   276→  maxResults: number = 5
+   277→): SimilarCrimeResult[] {
+   278→  const target = data.firs.find(f => f.fir_id === targetFirId);
+   279→  if (!target) return [];
+   280→
+   281→  const results: SimilarCrimeResult[] = [];
+   282→
+   283→  for (const fir of data.firs) {
+   284→    if (fir.fir_id === targetFirId) continue;
+   285→
+   286→    const factors: SimilarCrimeResult["matchedFactors"] = [];
+   287→    let totalWeight = 0;
+   288→    let matchedWeight = 0;
+   289→
+   290→    // Crime type match (weight: 30)
+   291→    const crimeMatch = fir.crime_type === target.crime_type;
+   292→    factors.push({ factor: "Crime Type", weight: 30, matched: crimeMatch, detail: crimeMatch ? `Both are ${fir.crime_type}` : `${target.crime_type} vs ${fir.crime_type}` });
+   293→    totalWeight += 30;
+   294→    if (crimeMatch) matchedWeight += 30;
+   295→
+   296→    // Modus operandi similarity (weight: 25)
+   297→    const modiWords = new Set(target.modus_operandi.toLowerCase().split(/\s+/));
+   298→    const firModiWords = fir.modus_operandi.toLowerCase().split(/\s+/);
+   299→    const commonWords = firModiWords.filter(w => modiWords.has(w) && w.length > 3);
+   300→    const modiSimilarity = commonWords.length / Math.max(modiWords.size, 1);
+   301→    const modiMatch = modiSimilarity >= 0.3;
+   302→    factors.push({ factor: "Modus Operandi", weight: 25, matched: modiMatch, detail: modiMatch ? `${Math.round(modiSimilarity * 100)}% keyword overlap: "${commonWords.slice(0, 3).join(", ")}"` : "Different methods employed" });
+   303→    totalWeight += 25;
+   304→    if (modiMatch) matchedWeight += Math.round(25 * modiSimilarity);
+   305→
+   306→    // District proximity (weight: 15)
+   307→    const districtMatch = fir.district === target.district;
+   308→    factors.push({ factor: "District", weight: 15, matched: districtMatch, detail: districtMatch ? `Both in ${fir.district}` : `${target.district} vs ${fir.district}` });
+   309→    totalWeight += 15;
+   310→    if (districtMatch) matchedWeight += 15;
+   311→
+   312→    // Vehicle match (weight: 15)
+   313→    const vehicleMatch = target.vehicle_used && fir.vehicle_used && target.vehicle_used === fir.vehicle_used;
+   314→    const vehiclePartial = target.vehicle_used && fir.vehicle_used && target.vehicle_used !== fir.vehicle_used;
+   315→    factors.push({ factor: "Vehicle", weight: 15, matched: !!vehicleMatch, detail: vehicleMatch ? `Same vehicle: ${target.vehicle_used}` : vehiclePartial ? `Different vehicles: ${target.vehicle_used} vs ${fir.vehicle_used}` : !target.vehicle_used ? "No vehicle in reference case" : "No vehicle in this case" });
+   316→    totalWeight += 15;
+   317→    if (vehicleMatch) matchedWeight += 15;
+   318→
+   319→    // Gang match (weight: 10)
+   320→    const gangMatch = target.gang_id && fir.gang_id && target.gang_id === fir.gang_id;
+   321→    factors.push({ factor: "Gang", weight: 10, matched: !!gangMatch, detail: gangMatch ? `Same gang implicated` : target.gang_id ? "Different gangs or no gang link" : "No gang in reference case" });
+   322→    totalWeight += 10;
+   323→    if (gangMatch) matchedWeight += 10;
+   324→
+   325→    // Time proximity (weight: 5)
+   326→    const targetDate = new Date(target.date).getTime();
+   327→    const firDate = new Date(fir.date).getTime();
+   328→    const daysDiff = Math.abs(targetDate - firDate) / (1000 * 60 * 60 * 24);
+   329→    const timeProximity = daysDiff <= 30;
+   330→    factors.push({ factor: "Time", weight: 5, matched: timeProximity, detail: timeProximity ? `${Math.round(daysDiff)} days apart` : `${Math.round(daysDiff)} days apart — outside 30-day window` });
+   331→    totalWeight += 5;
+   332→    if (timeProximity) matchedWeight += 5;
+   333→
+   334→    const score = Math.round((matchedWeight / totalWeight) * 100);
+   335→
+   336→    // Accused overlap bonus
+   337→    const accusedOverlap = fir.accused.filter(a => target.accused.includes(a));
+   338→    if (accusedOverlap.length > 0) {
+   339→      const names = accusedOverlap.map(a => data.accused.find(ac => ac.id === a)?.name ?? a).join(", ");
+   340→      factors.push({ factor: "Shared Accused", weight: 0, matched: true, detail: `Common accused: ${names}` });
+   341→    }
+   342→
+   343→    if (score >= 25) {
+   344→      const matchedFactors = factors.filter(f => f.matched);
+   345→      results.push({
+   346→        fir,
+   347→        similarityScore: score,
+   348→        matchedFactors: factors,
+   349→        explanation: `${score}% similar to ${targetFirId}. ${matchedFactors.length} factor${matchedFactors.length !== 1 ? "s" : ""} matched: ${matchedFactors.map(f => f.detail).join("; ")}. ${accusedOverlap.length > 0 ? `ALERT: Shared accused (${accusedOverlap.join(", ")}).` : ""}`,
+   350→      });
+   351→    }
+   352→  }
+   353→
+   354→  return results.sort((a, b) => b.similarityScore - a.similarityScore).slice(0, maxResults);
+   355→}
+   356→
+   357→// ═══════════════════════════════════════════════════════════════════
+   358→//  3. INVESTIGATION TIMELINE GENERATOR
+   359→// ═══════════════════════════════════════════════════════════════════
+   360→
+   361→export function generateTimeline(
+   362→  data: CrimeDataset,
+   363→  firId: string
+   364→): TimelineEvent[] {
+   365→  const fir = data.firs.find(f => f.fir_id === firId);
+   366→  if (!fir) return [];
+   367→
+   368→  const baseDate = new Date(fir.date + "T" + fir.time + ":00");
+   369→  const events: TimelineEvent[] = [];
+   370→  let evtIdx = 0;
+   371→
+   372→  // FIR Filed
+   373→  events.push({
+   374→    id: `${firId}-evt-${evtIdx++}`, type: "fir_filed",
+   375→    title: "FIR Registered", description: `${fir.fir_id} filed at ${fir.police_station} under IPC ${fir.ipc_section}. Crime: ${fir.crime_type}. Severity: ${fir.severity.toUpperCase()}.`,
+   376→    timestamp: fir.date + "T" + fir.time, firId, icon: "FileText", status: "completed",
+   377→  });
+   378→
+   379→  // Complaint
+   380→  events.push({
+   381→    id: `${firId}-evt-${evtIdx++}`, type: "complaint",
+   382→    title: "Complaint Received", description: `Complaint from ${fir.victim.name} (${fir.victim.occupation}). ${fir.victim.age ? `Age: ${fir.victim.age}.` : ""} Location: ${fir.location.place}.`,
+   383→    timestamp: shiftTime(baseDate, -2, "hours"), firId, icon: "MessageSquare", status: "completed",
+   384→  });
+   385→
+   386→  // Witnesses
+   387→  if (fir.witnesses.length > 0) {
+   388→    events.push({
+   389→      id: `${firId}-evt-${evtIdx++}`, type: "witness",
+   390→      title: "Witness Statements", description: `${fir.witnesses.length} witness(es) identified: ${fir.witnesses.join("; ")}. Statements recorded.`,
+   391→      timestamp: shiftTime(baseDate, 1, "hours"), firId, icon: "Users", status: "completed",
+   392→    });
+   393→  } else {
+   394→    events.push({
+   395→      id: `${firId}-evt-${evtIdx++}`, type: "witness",
+   396→      title: "Witness Search", description: "No witnesses identified at scene. Area canvass recommended.",
+   397→      timestamp: shiftTime(baseDate, 1, "hours"), firId, icon: "Users", status: "pending",
+   398→    });
+   399→  }
+   400→
+   401→  // CCTV
+   402→  const hasCCTV = fir.witnesses.some(w => w.toLowerCase().includes("cctv") || w.toLowerCase().includes("camera"));
+   403→  events.push({
+   404→    id: `${firId}-evt-${evtIdx++}`, type: "cctv",
+   405→    title: hasCCTV ? "CCTV Footage Retrieved" : "CCTV Analysis",
+   406→    description: hasCCTV
+   407→      ? "CCTV footage from nearby location obtained and under analysis. Suspect movements being tracked."
+   408→      : "CCTV survey within 500m radius requested. Awaiting footage from commercial and traffic cameras.",
+   409→    timestamp: shiftTime(baseDate, 4, "hours"), firId, icon: "Camera", status: hasCCTV ? "completed" : "in_progress",
+   410→  });
+   411→
+   412→  // Phone/Communication
+   413→  events.push({
+   414→    id: `${firId}-evt-${evtIdx++}`, type: "phone",
+   415→    title: "Phone Interception", description: fir.crime_type === "Cyber Fraud"
+   416→      ? "Digital forensics initiated on victim's devices. CDR analysis requested for accused numbers."
+   417→      : "Mobile tower dump analysis requested for incident location and time window. CDR analysis pending for identified accused.",
+   418→    timestamp: shiftTime(baseDate, 8, "hours"), firId, icon: "Phone", status: "in_progress",
+   419→  });
+   420→
+   421→  // Vehicle
+   422→  if (fir.vehicle_used) {
+   423→    const vehicle = data.vehicles.find(v => v.id === fir.vehicle_used);
+   424→    events.push({
+   425→      id: `${firId}-evt-${evtIdx++}`, type: "vehicle",
+   426→      title: "Vehicle Traced", description: `Vehicle: ${vehicle ? `${vehicle.reg} (${vehicle.make}, ${vehicle.color})` : fir.vehicle_used}. FASTag/toll data pulled. RTO records being verified.`,
+   427→      timestamp: shiftTime(baseDate, 12, "hours"), firId, icon: "Car", status: "completed",
+   428→    });
+   429→  } else {
+   430→    events.push({
+   431→      id: `${firId}-evt-${evtIdx++}`, type: "vehicle",
+   432→      title: "Vehicle Check", description: "No vehicle directly linked. Checking ANPR camera data for suspicious vehicles near scene.",
+   433→      timestamp: shiftTime(baseDate, 12, "hours"), firId, icon: "Car", status: "pending",
+   434→    });
+   435→  }
+   436→
+   437→  // Financial
+   438→  if (fir.financial_transaction) {
+   439→    const bank = data.bank_accounts.find(b => b.id === fir.financial_transaction!.account);
+   440→    events.push({
+   441→      id: `${firId}-evt-${evtIdx++}`, type: "financial",
+   442→      title: "Financial Trail Identified", description: `Account: ${bank?.acc ?? "N/A"} (${bank?.bank ?? "Unknown"}, Holder: ${bank?.holder ?? "Unknown"}). Amount: ₹${fir.financial_transaction.amount_inr.toLocaleString("en-IN")} via ${fir.financial_transaction.mode}. ${fir.financial_transaction.note}.`,
+   443→      timestamp: shiftTime(baseDate, 24, "hours"), firId, icon: "Banknote", status: "in_progress",
+   444→    });
+   445→  }
+   446→
+   447→  // Investigation
+   448→  events.push({
+   449→    id: `${firId}-evt-${evtIdx++}`, type: "investigation",
+   450→    title: "Investigation Status", description: `Current status: ${fir.investigation_status}. Officer: ${fir.officer_id}. ${fir.investigation_status === "Under Investigation" ? "Case is actively being investigated. Multiple leads being pursued." : fir.investigation_status === "Arrested" ? "Arrest(s) made. Chargesheet preparation underway." : "Case closed."}`,
+   451→    timestamp: shiftTime(baseDate, 48, "hours"), firId, icon: "Search", status: fir.investigation_status === "Arrested" ? "completed" : "in_progress",
+   452→  });
+   453→
+   454→  // Arrest
+   455→  if (fir.investigation_status === "Arrested") {
+   456→    const names = fir.accused.map(a => data.accused.find(ac => ac.id === a)?.name ?? a).join(", ");
+   457→    events.push({
+   458→      id: `${firId}-evt-${evtIdx++}`, type: "arrest",
+   459→      title: "Arrest Executed", description: `${fir.accused.length} accused arrested: ${names}. Remanded to judicial custody. Legal proceedings initiated.`,
+   460→      timestamp: shiftTime(baseDate, 72, "hours"), firId, icon: "Handcuffs", status: "completed",
+   461→    });
+   462→  } else {
+   463→    events.push({
+   464→      id: `${firId}-evt-${evtIdx++}`, type: "arrest",
+   465→      title: "Arrest Pending", description: `${fir.accused.length} accused identified but not yet arrested: ${fir.accused.join(", ")}. Lookout notices issued.`,
+   466→      timestamp: shiftTime(baseDate, 120, "hours"), firId, icon: "Handcuffs", status: "pending",
+   467→    });
+   468→  }
+   469→
+   470→  return events;
+   471→}
+   472→
+   473→function shiftTime(base: Date, amount: number, unit: "hours" | "days"): string {
+   474→  const d = new Date(base);
+   475→  if (unit === "hours") d.setHours(d.getHours() + amount);
+   476→  else d.setDate(d.getDate() + amount);
+   477→  return d.toISOString();
+   478→}
+   479→
+   480→// ═══════════════════════════════════════════════════════════════════
+   481→//  4. LIVE INTELLIGENCE FEED
+   482→// ═══════════════════════════════════════════════════════════════════
+   483→
+   484→export function getIntelFeedItems(data: CrimeDataset): IntelFeedItem[] {
+   485→  const items: IntelFeedItem[] = [];
+   486→  const now = new Date();
+   487→
+   488→  // Critical severity alerts
+   489→  for (const fir of data.firs) {
+   490→    if (fir.severity === "critical" && fir.investigation_status === "Under Investigation") {
+   491→      items.push({
+   492→        id: `feed-${fir.fir_id}`, type: "alert",
+   493→        title: `Critical Case Active: ${fir.fir_id}`,
+   494→        description: `${fir.crime_type} in ${fir.district} — ${fir.investigation_status}. ${fir.accused.length} suspects identified.`,
+   495→        timestamp: new Date(now.getTime() - Math.random() * 3600000 * 2).toISOString(),
+   496→        severity: "critical", relatedFirs: [fir.fir_id],
+   497→      });
+   498→    }
+   499→  }
+   500→
+   501→  // Arrest updates
+   502→  for (const fir of data.firs) {
+   503→    if (fir.investigation_status === "Arrested") {
+   504→      const names = fir.accused.map(a => data.accused.find(ac => ac.id === a)?.name ?? a).join(", ");
+   505→      items.push({
+   506→        id: `feed-arrest-${fir.fir_id}`, type: "arrest",
+   507→        title: `Arrest: ${names}`,
+   508→        description: `Arrested in connection with ${fir.fir_id} (${fir.crime_type}) at ${fir.police_station}.`,
+   509→        timestamp: new Date(now.getTime() - Math.random() * 86400000 * 7).toISOString(),
+   510→        severity: "medium", relatedFirs: [fir.fir_id],
+   511→      });
+   512→    }
+   513→  }
+   514→
+   515→  // Pattern detections
+   516→  const byGang = new Map<string, FIR[]>();
+   517→  for (const fir of data.firs) {
+   518→    if (fir.gang_id) {
+   519→      const arr = byGang.get(fir.gang_id) ?? [];
+   520→      arr.push(fir);
+   521→      byGang.set(fir.gang_id, arr);
+   522→    }
+   523→  }
+   524→  for (const [gid, firs] of byGang) {
+   525→    const gang = data.gangs.find(g => g.id === gid);
+   526→    if (gang && firs.length >= 3) {
+   527→      const districts = [...new Set(firs.map(f => f.district))];
+   528→      items.push({
+   529→        id: `feed-pattern-${gid}`, type: "pattern",
+   530→        title: `Emerging Pattern: ${gang.name}`,
+   531→        description: `${firs.length} linked incidents across ${districts.join(", ")}. ${districts.length > 1 ? "Cross-district operation detected — possible interstate network." : "Localized gang activity concentrated in single district."}`,
+   532→        timestamp: new Date(now.getTime() - Math.random() * 3600000 * 4).toISOString(),
+   533→        severity: "high", relatedFirs: firs.map(f => f.fir_id),
+   534→      });
+   535→    }
+   536→  }
+   537→
+   538→  // Intelligence updates
+   539→  for (const fir of data.firs) {
+   540→    if (fir.financial_transaction) {
+   541→      const bank = data.bank_accounts.find(b => b.id === fir.financial_transaction!.account);
+   542→      items.push({
+   543→        id: `feed-fin-${fir.fir_id}`, type: "intelligence",
+   544→        title: `Financial Intelligence: ₹${fir.financial_transaction.amount_inr.toLocaleString("en-IN")}`,
+   545→        description: `Transaction traced to ${bank?.bank ?? "Unknown Bank"} (A/C: ${bank?.acc?.slice(-4) ?? "XXXX"}). ${fir.financial_transaction.mode} — ${fir.financial_transaction.note}.`,
+   546→        timestamp: new Date(now.getTime() - Math.random() * 86400000 * 3).toISOString(),
+   547→        severity: fir.financial_transaction.amount_inr > 500000 ? "high" : "medium",
+   548→        relatedFirs: [fir.fir_id],
+   549→      });
+   550→    }
+   551→  }
+   552→
+   553→  // High risk offender alerts
+   554→  for (const acc of data.accused) {
+   555→    if (acc.risk >= 85) {
+   556→      const firs = data.firs.filter(f => f.accused.includes(acc.id) && f.investigation_status === "Under Investigation");
+   557→      if (firs.length > 0) {
+   558→        items.push({
+   559→          id: `feed-risk-${acc.id}`, type: "alert",
+   560→          title: `High-Risk Offender Active: ${acc.name}`,
+   561→          description: `Risk score ${acc.risk}/100. ${firs.length} active case(s). ${acc.prior_firs} prior FIRs. Consider priority surveillance.`,
+   562→          timestamp: new Date(now.getTime() - Math.random() * 3600000 * 6).toISOString(),
+   563→          severity: "high", relatedFirs: firs.map(f => f.fir_id),
+   564→        });
+   565→      }
+   566→    }
+   567→  }
+   568→
+   569→  return items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+   570→}
+   571→
+   572→// ═══════════════════════════════════════════════════════════════════
+   573→//  5. INVESTIGATION QUEUE
+   574→// ═══════════════════════════════════════════════════════════════════
+   575→
+   576→export function getInvestigationQueue(data: CrimeDataset): InvestigationQueueItem[] {
+   577→  const now = new Date();
+   578→  return data.firs
+   579→    .filter(f => f.investigation_status === "Under Investigation")
+   580→    .map(f => {
+   581→      const daysOpen = Math.floor((now.getTime() - new Date(f.date).getTime()) / 86400000);
+   582→      const severityPriority = f.severity === "critical" ? 100 : f.severity === "high" ? 75 : f.severity === "medium" ? 50 : 25;
+   583→      const agePriority = Math.min(daysOpen / 2, 25);
+   584→      const evidencePenalty = f.witnesses.length === 0 ? -10 : 0;
+   585→      const priority = Math.round(severityPriority + agePriority + evidencePenalty);
+   586→
+   587→      let reason = "";
+   588→      if (f.severity === "critical") reason += "Critical severity — ";
+   589→      if (daysOpen > 90) reason += `Cold case risk (${daysOpen} days open) — `;
+   590→      if (f.witnesses.length === 0) reason += "No witnesses — ";
+   591→      if (f.accused.length === 0) reason += "No accused identified — ";
+   592→      if (f.financial_transaction && f.financial_transaction.amount_inr > 500000) reason += "High-value financial crime — ";
+   593→      if (!reason) reason = "Active investigation — requires follow-up";
+   594→
+   595→      return {
+   596→        firId: f.fir_id, crimeType: f.crime_type, district: f.district,
+   597→        priority, status: f.investigation_status, daysOpen, reason: reason.replace(/ — $/, ""),
+   598→      };
+   599→    })
+   600→    .sort((a, b) => b.priority - a.priority);
+   601→}
+   602→
+   603→// ═══════════════════════════════════════════════════════════════════
+   604→//  6. AI RECOMMENDATIONS
+   605→// ═══════════════════════════════════════════════════════════════════
+   606→
+   607→export function getAIRecommendations(data: CrimeDataset): { title: string; description: string; priority: "high" | "medium" | "low"; action: string }[] {
+   608→  const recs: { title: string; description: string; priority: "high" | "medium" | "low"; action: string }[] = [];
+   609→
+   610→  // Check for cross-district gang activity
+   611→  for (const gang of data.gangs) {
+   612→    const gangFirs = data.firs.filter(f => f.gang_id === gang.id);
+   613→    const districts = [...new Set(gangFirs.map(f => f.district))];
+   614→    if (districts.length >= 2) {
+   615→      recs.push({
+   616→        title: `Cross-District Alert: ${gang.name}`,
+   617→        description: `${gang.name} is operating across ${districts.length} districts (${districts.join(", ")}). Recommend coordinated multi-district operation with shared intelligence.`,
+   618→        priority: "high", action: "Coordinate with SPs of all affected districts",
+   619→      });
+   620→    }
+   621→  }
+   622→
+   623→  // Under-investigated cyber crimes
+   624→  const cyberOpen = data.firs.filter(f => f.crime_type === "Cyber Fraud" && f.investigation_status === "Under Investigation");
+   625→  if (cyberOpen.length >= 2) {
+   626→    const totalAmt = cyberOpen.reduce((s, f) => s + (f.financial_transaction?.amount_inr ?? 0), 0);
+   627→    recs.push({
+   628→      title: "Cyber Crime Task Force Activation",
+   629→      description: `${cyberOpen.length} active cyber fraud cases with total loss of ₹${totalAmt.toLocaleString("en-IN")}. Pattern suggests organized operation requiring specialized cyber cell intervention.`,
+   630→      priority: "high", action: "Escalate to Cyber Crime Division",
+   631→    });
+   632→  }
+   633→
+   634→  // Serial offenders still active
+   635→  for (const acc of data.accused) {
+   636→    if (acc.risk >= 80) {
+   637→      const activeFirs = data.firs.filter(f => f.accused.includes(acc.id) && f.investigation_status === "Under Investigation");
+   638→      if (activeFirs.length > 0) {
+   639→        recs.push({
+   640→          title: `Priority Surveillance: ${acc.name} (${acc.id})`,
+   641→          description: `Risk score ${acc.risk}/100 with ${activeFirs.length} active cases. ${acc.prior_firs} prior FIRs indicate repeat offending pattern. Immediate surveillance recommended.`,
+   642→          priority: "high", action: "Initiate technical and physical surveillance",
+   643→        });
+   644→      }
+   645→    }
+   646→  }
+   647→
+   648→  // Vehicle pattern analysis
+   649→  const vehicleFirs = data.firs.filter(f => f.vehicle_used);
+   650→  const vehicleUsage = new Map<string, number>();
+   651→  for (const f of vehicleFirs) { if (f.vehicle_used) vehicleUsage.set(f.vehicle_used, (vehicleUsage.get(f.vehicle_used) ?? 0) + 1); }
+   652→  for (const [vid, count] of vehicleUsage) {
+   653→    if (count >= 2) {
+   654→      const v = data.vehicles.find(ve => ve.id === vid);
+   655→      recs.push({
+   656→        title: `Vehicle Pattern: ${v?.reg ?? vid}`,
+   657→        description: `Vehicle ${v?.reg ?? vid} (${v?.make ?? "Unknown"} ${v?.color ?? ""}) linked to ${count} crimes. Recommend ANPR alert and RTO intelligence sharing.`,
+   658→        priority: "medium", action: "Set up ANPR alert network",
+   659→      });
+   660→    }
+   661→  }
+   662→
+   663→  // Cold case warnings
+   664→  for (const fir of data.firs) {
+   665→    const daysOpen = Math.floor((Date.now() - new Date(fir.date).getTime()) / 86400000);
+   666→    if (daysOpen > 180 && fir.investigation_status === "Under Investigation") {
+   667→      recs.push({
+   668→        title: `Cold Case Warning: ${fir.fir_id}`,
+   669→        description: `${fir.crime_type} in ${fir.district} has been open for ${daysOpen} days with no arrest. Evidence degradation risk. Recommend case review and fresh investigation team.`,
+   670→        priority: "medium", action: "Schedule case review meeting",
+   671→      });
+   672→    }
+   673→  }
+   674→
+   675→  // Financial intelligence
+   676→  const bankTxMap = new Map<string, { amount: number; firs: string[] }>();
+   677→  for (const fir of data.firs) {
+   678→    if (fir.financial_transaction) {
+   679→      const existing = bankTxMap.get(fir.financial_transaction.account) ?? { amount: 0, firs: [] };
+   680→      existing.amount += fir.financial_transaction.amount_inr;
+   681→      existing.firs.push(fir.fir_id);
+   682→      bankTxMap.set(fir.financial_transaction.account, existing);
+   683→    }
+   684→  }
+   685→  for (const [accId, info] of bankTxMap) {
+   686→    const bank = data.bank_accounts.find(b => b.id === accId);
+   687→    if (info.amount > 1000000) {
+   688→      recs.push({
+   689→        title: `High-Value Account: ${bank?.holder ?? "Unknown"}`,
+   690→        description: `Account at ${bank?.bank ?? "Unknown"} shows ₹${info.amount.toLocaleString("en-IN")} across ${info.firs.length} linked cases. Recommend ED notification and account freeze.`,
+   691→        priority: "high", action: "Initiate account freeze and ED referral",
+   692→      });
+   693→    }
+   694→  }
+   695→
+   696→  return recs.sort((a, b) => (a.priority === "high" ? 0 : 1) - (b.priority === "high" ? 0 : 1));
+   697→}
+   698→
+   699→// ═══════════════════════════════════════════════════════════════════
+   700→//  7. CRIME TREND DATA (for sparklines)
+   701→// ═══════════════════════════════════════════════════════════════════
+   702→
+   703→export function getCrimeTrendByMonth(data: CrimeDataset): { month: string; count: number }[] {
+   704→  const monthMap = new Map<string, number>();
+   705→  for (const fir of data.firs) {
+   706→    const d = new Date(fir.date);
+   707→    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+   708→    monthMap.set(key, (monthMap.get(key) ?? 0) + 1);
+   709→  }
+   710→  return [...monthMap.entries()]
+   711→    .sort(([a], [b]) => a.localeCompare(b))
+   712→    .map(([month, count]) => ({ month, count }));
+   713→}
+   714→
+   715→// ═══════════════════════════════════════════════════════════════════
+   716→//  8. EXPLAINABLE AI WRAPPER
+   717→// ═══════════════════════════════════════════════════════════════════
+   718→
+   719→export function wrapExplainableAI(
+   720→  content: string,
+   721→  data: CrimeDataset
+   722→): ExplainableResponse {
+   723→  const firIds = content.match(/FIR-\d{4}-KA-\d{4}/g) ?? [];
+   724→  const uniqueFirIds = [...new Set(firIds)];
+   725→
+   726→  const evidenceChain = uniqueFirIds.map(id => {
+   727→    const fir = data.firs.find(f => f.fir_id === id);
+   728→    return {
+   729→      firId: id,
+   730→      relevance: fir ? `${fir.crime_type} in ${fir.district} (${fir.date})` : "Referenced in analysis",
+   731→    };
+   732→  });
+   733→
+   734→  // Confidence based on data support
+   735→  let confidence = 50;
+   736→  if (uniqueFirIds.length >= 3) confidence += 20;
+   737→  else if (uniqueFirIds.length >= 1) confidence += 15;
+   738→  if (content.includes("gang") || content.includes("Gang")) confidence += 10;
+   739→  if (content.includes("pattern") || content.includes("Pattern")) confidence += 5;
+   740→  if (uniqueFirIds.length === 0) confidence = 25;
+   741→  confidence = Math.min(confidence, 96);
+   742→
+   743→  // Extract reasoning summary from first 2 lines
+   744→  const lines = content.split("\n").filter(l => l.trim().length > 0);
+   745→  const reasoningSummary = lines.slice(0, 2).join(" ").slice(0, 200);
+   746→
+   747→  // Alternative explanations when confidence is low
+   748→  const alternatives: string[] = [];
+   749→  if (confidence < 70) {
+   750→    alternatives.push("Data may be incomplete — additional FIR records could change the analysis.");
+   751→    alternatives.push("Temporal patterns might be skewed due to limited dataset window.");
+   752→  }
+   753→  if (uniqueFirIds.length < 3) {
+   754→    alternatives.push("Low evidence count — conclusions should be verified with additional intelligence sources.");
+   755→  }
+   756→
+   757→  return {
+   758→    content,
+   759→    evidenceChain,
+   760→    confidenceScore: confidence,
+   761→    reasoningSummary,
+   762→    alternativeExplanations: alternatives.length > 0 ? alternatives : undefined,
+   763→  };
+   764→}

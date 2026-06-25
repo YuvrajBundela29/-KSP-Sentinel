@@ -103,7 +103,26 @@ export interface ChatMessage {
   explainable?: ExplainableResponse;
 }
 
-export type ViewType = "login" | "dashboard" | "chat" | "network" | "map" | "accused" | "timeline" | "report";
+export type ViewType =
+  | "login"
+  | "dashboard"
+  | "chat"
+  | "network"
+  | "map"
+  | "accused"
+  | "timeline"
+  | "report"
+  | "dm-dashboard"
+  | "dm-fir"
+  | "dm-evidence"
+  | "dm-criminals"
+  | "dm-victims"
+  | "dm-vehicles"
+  | "dm-financial"
+  | "dm-import"
+  | "dm-audit"
+  | "dm-ai-queue"
+  | "dm-settings";
 
 // ─── Intelligence Types ───────────────────────────────────────────
 
@@ -167,4 +186,153 @@ export interface InvestigationQueueItem {
 export interface AuthUser {
   username: string;
   role: string;
+  permissions?: RolePermission[];
 }
+
+// ─── Data Management Types ──────────────────────────────────────
+
+export type RoleName =
+  | "super_admin"
+  | "state_admin"
+  | "district_admin"
+  | "station_officer"
+  | "investigator"
+  | "analyst"
+  | "auditor"
+  | "demo_user";
+
+export interface RolePermission {
+  role: RoleName;
+  label: string;
+  can: Record<string, boolean>;
+}
+
+export interface EvidenceItem {
+  id: string;
+  firId: string;
+  type: "photo" | "video" | "audio" | "pdf" | "cctv" | "document";
+  filename: string;
+  size: number;
+  uploadedAt: string;
+  uploadedBy: string;
+  tags: string[];
+  aiSummary: string;
+  linkedAccused: string[];
+  linkedVictim: string;
+  linkedVehicle: string;
+  status: "processing" | "ready" | "archived";
+}
+
+export interface AuditLogEntry {
+  id: string;
+  timestamp: string;
+  user: string;
+  role: string;
+  action: string;
+  entity: string;
+  entityId: string;
+  oldValue: string;
+  newValue: string;
+  ip: string;
+  status: "success" | "failure" | "pending";
+}
+
+export interface ImportJob {
+  id: string;
+  filename: string;
+  format: "csv" | "excel" | "json" | "parquet" | "zip";
+  status: "queued" | "processing" | "completed" | "failed" | "rolled_back";
+  totalRows: number;
+  processedRows: number;
+  errors: number;
+  duplicates: number;
+  startedAt: string;
+  completedAt: string | null;
+  startedBy: string;
+  columnMapping: Record<string, string>;
+}
+
+export interface AIQueueItem {
+  id: string;
+  firId: string;
+  stage: "queued" | "ocr" | "entity_extraction" | "relationship_detection" | "risk_scoring" | "network_update" | "embedding" | "completed" | "failed";
+  progress: number;
+  startedAt: string;
+  completedAt: string | null;
+  error: string | null;
+}
+
+export interface DuplicateDetectionResult {
+  field: string;
+  value: string;
+  existingFirId: string;
+  similarity: number;
+  suggestion: "merge" | "review" | "ignore";
+  explanation: string;
+}
+
+export interface OCRExtractionResult {
+  text: string;
+  entities: {
+    names: string[];
+    addresses: string[];
+    phones: string[];
+    vehicles: string[];
+    accounts: string[];
+    ipcSections: string[];
+    dates: string[];
+    locations: string[];
+    weapons: string[];
+    evidence: string[];
+    timeline: { event: string; date: string }[];
+  };
+  confidence: number;
+}
+
+export interface FIRWizardData {
+  // Step 1: Incident
+  crimeType: string;
+  ipcSection: string;
+  date: string;
+  time: string;
+  district: string;
+  location: string;
+  latitude: number;
+  longitude: number;
+  modusOperandi: string;
+  itemsStolen: string[];
+  severity: "critical" | "high" | "medium" | "low";
+  socioTags: string[];
+  policeStation: string;
+  // Step 2: Victim
+  victimName: string;
+  victimAge: number;
+  victimGender: string;
+  victimOccupation: string;
+  victimAddress: string;
+  victimPhone: string;
+  // Step 3: Accused
+  accusedPersons: { name: string; age: number; gender: string; address: string }[];
+  // Step 4: Witness
+  witnesses: { name: string; phone: string; statement: string }[];
+  // Step 5: Vehicle
+  vehicleUsed: boolean;
+  vehicleId: string;
+  vehicleReg: string;
+  vehicleType: string;
+  vehicleMake: string;
+  vehicleColor: string;
+  // Step 6: Financial
+  hasFinancial: boolean;
+  bankAccount: string;
+  bankName: string;
+  amount: number;
+  transactionMode: string;
+  transactionNote: string;
+  // Step 7: Evidence
+  evidenceFiles: File[];
+  evidenceDescription: string;
+  // Step 8-10: Review, AI, Submit handled internally
+}
+
+export type EvidenceViewMode = "grid" | "card" | "table" | "timeline";

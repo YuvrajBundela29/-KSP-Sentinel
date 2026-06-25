@@ -1,7 +1,7 @@
 // KSP Sentinel AI — Global state store
 
 import { create } from "zustand";
-import type { ViewType, AuthUser, CrimeDataset, ChatMessage } from "./types";
+import type { ViewType, AuthUser, CrimeDataset, ChatMessage, AuditLogEntry, EvidenceItem, ImportJob, AIQueueItem } from "./types";
 
 interface AppState {
   // Auth
@@ -14,10 +14,12 @@ interface AppState {
   selectedAccusedId: string | null;
   selectedFirId: string | null;
   commandPaletteOpen: boolean;
+  sidebarCollapsed: boolean;
   setView: (view: ViewType) => void;
   setSelectedAccusedId: (id: string | null) => void;
   setSelectedFirId: (id: string | null) => void;
   setCommandPaletteOpen: (open: boolean) => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
 
   // Data
   crimeData: CrimeDataset | null;
@@ -35,6 +37,20 @@ interface AppState {
   // Language
   lang: "en" | "kn";
   toggleLang: () => void;
+
+  // Data Management
+  auditLogs: AuditLogEntry[];
+  addAuditLog: (log: Omit<AuditLogEntry, "id" | "timestamp" | "ip">) => void;
+  evidenceItems: EvidenceItem[];
+  addEvidenceItem: (item: EvidenceItem) => void;
+  importJobs: ImportJob[];
+  addImportJob: (job: ImportJob) => void;
+  aiQueue: AIQueueItem[];
+  addAIQueueItem: (item: AIQueueItem) => void;
+  updateAIQueueItem: (id: string, updates: Partial<AIQueueItem>) => void;
+  notifications: { id: string; title: string; message: string; timestamp: string; read: boolean; type: "info" | "warning" | "error" | "success" }[];
+  addNotification: (n: Omit<{ id: string; title: string; message: string; timestamp: string; read: boolean; type: "info" | "warning" | "error" | "success" }, "id" | "timestamp">) => void;
+  markNotificationRead: (id: string) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -59,10 +75,12 @@ export const useAppStore = create<AppState>((set) => ({
   selectedAccusedId: null,
   selectedFirId: null,
   commandPaletteOpen: false,
+  sidebarCollapsed: false,
   setView: (view) => set({ currentView: view }),
   setSelectedAccusedId: (id) => set({ selectedAccusedId: id }),
   setSelectedFirId: (id) => set({ selectedFirId: id }),
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
+  setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
 
   // Data
   crimeData: null,
@@ -80,4 +98,52 @@ export const useAppStore = create<AppState>((set) => ({
   // Language
   lang: "en",
   toggleLang: () => set((s) => ({ lang: s.lang === "en" ? "kn" : "en" })),
+
+  // Data Management
+  auditLogs: [],
+  addAuditLog: (log) =>
+    set((s) => ({
+      auditLogs: [
+        {
+          ...log,
+          id: `AL-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          timestamp: new Date().toISOString(),
+          ip: "192.168.1." + Math.floor(Math.random() * 255),
+        },
+        ...s.auditLogs,
+      ],
+    })),
+  evidenceItems: [],
+  addEvidenceItem: (item) =>
+    set((s) => ({ evidenceItems: [...s.evidenceItems, item] })),
+  importJobs: [],
+  addImportJob: (job) =>
+    set((s) => ({ importJobs: [...s.importJobs, job] })),
+  aiQueue: [],
+  addAIQueueItem: (item) =>
+    set((s) => ({ aiQueue: [...s.aiQueue, item] })),
+  updateAIQueueItem: (id, updates) =>
+    set((s) => ({
+      aiQueue: s.aiQueue.map((item) =>
+        item.id === id ? { ...item, ...updates } : item
+      ),
+    })),
+  notifications: [
+    { id: "n1", title: "FIR Processing Complete", message: "FIR-2024-KA-0042 has been processed by AI", timestamp: new Date(Date.now() - 300000).toISOString(), read: false, type: "success" },
+    { id: "n2", title: "Duplicate Detected", message: "Possible duplicate FIR in Bengaluru district", timestamp: new Date(Date.now() - 900000).toISOString(), read: false, type: "warning" },
+    { id: "n3", title: "Risk Alert", message: "High-risk suspect A005 linked to new case", timestamp: new Date(Date.now() - 1800000).toISOString(), read: true, type: "error" },
+  ],
+  addNotification: (n) =>
+    set((s) => ({
+      notifications: [
+        { ...n, id: `n-${Date.now()}`, timestamp: new Date().toISOString(), read: false },
+        ...s.notifications,
+      ],
+    })),
+  markNotificationRead: (id) =>
+    set((s) => ({
+      notifications: s.notifications.map((n) =>
+        n.id === id ? { ...n, read: true } : n
+      ),
+    })),
 }));
