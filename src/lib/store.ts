@@ -12,8 +12,12 @@ interface AppState {
   // Navigation
   currentView: ViewType;
   selectedAccusedId: string | null;
+  selectedFirId: string | null;
+  commandPaletteOpen: boolean;
   setView: (view: ViewType) => void;
   setSelectedAccusedId: (id: string | null) => void;
+  setSelectedFirId: (id: string | null) => void;
+  setCommandPaletteOpen: (open: boolean) => void;
 
   // Data
   crimeData: CrimeDataset | null;
@@ -53,8 +57,12 @@ export const useAppStore = create<AppState>((set) => ({
   // Navigation
   currentView: "login",
   selectedAccusedId: null,
+  selectedFirId: null,
+  commandPaletteOpen: false,
   setView: (view) => set({ currentView: view }),
   setSelectedAccusedId: (id) => set({ selectedAccusedId: id }),
+  setSelectedFirId: (id) => set({ selectedFirId: id }),
+  setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
 
   // Data
   crimeData: null,

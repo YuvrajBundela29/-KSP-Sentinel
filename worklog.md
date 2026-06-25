@@ -1,38 +1,28 @@
 ---
 Task ID: 1
-Agent: Main Agent
-Task: Build KSP Sentinel AI — Crime Intelligence Platform for Karnataka Police
+Agent: Main
+Task: Transform KSP Sentinel AI into Enterprise Crime Intelligence Platform (Sprint Omega)
 
 Work Log:
-- Initialized fullstack dev environment with Next.js 16, TypeScript, Tailwind CSS 4, shadcn/ui
-- Installed additional packages: react-force-graph-2d, jspdf, leaflet, react-leaflet, @types/leaflet
-- Created synthetic crime dataset with 20 FIRs, 12 accused, 4 gangs, 6 vehicles, 4 bank accounts, 8 districts
-- Created TypeScript interfaces (types.ts) and data query functions (data.ts)
-- Created Zustand store (store.ts) for auth, navigation, data, chat, and language state
-- Updated globals.css with dark theme (background #0a0f1e, cards #1a2035, borders #2a3550)
-- Updated layout.tsx with Leaflet CSS and dark theme
-- Created LoginView with KSP branding, 3 hardcoded users, DEMO MODE badge
-- Created Sidebar with navigation (Dashboard, AI Copilot, Network Graph, Crime Map) and Kannada labels
-- Created Header with real-time clock, Kannada/English toggle, notification bell
-- Created main page.tsx as SPA router with client-side view switching
-- Created DashboardHome with 6 stat cards, Recharts bar chart, recent FIRs list, high risk accused table
-- Created ChatView with AI chat, voice input (Web Speech API), 5 example queries, evidence panel, PDF export
-- Created chat API route (/api/chat) with intelligent fallback responses based on dataset analysis
-- Created NetworkGraph with custom canvas-based force simulation, filters, node shapes, info panel
-- Created CrimeMap with React-Leaflet, colored markers, filter panel, stats panel, district summary table
-- Created AccusedProfile with criminal timeline, behavioral analysis, risk breakdown, financial connections, AI analysis
-- Created LoadingSpinner component
-- Created DEMO_SCRIPT.md with step-by-step demo instructions
-- Fixed store login to set view to "dashboard"
-- Rewrote NetworkGraph from react-force-graph-2d to custom canvas implementation for React 19 compatibility
-- Verified all views work: Login → Dashboard → AI Copilot → Network Graph → Crime Map → Accused Profile
-- Verified Kannada toggle works correctly
-- All lint checks pass
+- Analyzed entire existing codebase (20 files, ~4500 lines)
+- Updated types.ts: Added InvestigationBrief, SimilarCrimeResult, TimelineEvent, ExplainableResponse, IntelFeedItem, InvestigationQueueItem interfaces; Extended ChatMessage with optional explainable field; Extended ViewType with "timeline" | "report"
+- Updated store.ts: Added selectedFirId, commandPaletteOpen state and setters
+- Created intelligence.ts (763 lines): Full analysis engine with generateInvestigationBrief, computeSimilarCrimes, generateTimeline, getIntelFeedItems, getInvestigationQueue, getAIRecommendations, getCrimeTrendByMonth, wrapExplainableAI
+- Updated globals.css: Added glassmorphism classes (.glass, .glass-strong, .glass-card), ambient background effects, skeleton loaders, 7+ animation keyframes, sparkline CSS, timeline pulse, command palette overrides, confidence ring styles
+- Created CommandPalette.tsx (107 lines): cmdk-based command palette with Ctrl+K shortcut, Alt+1-6 navigation shortcuts
+- Rewrote DashboardHome.tsx (729 lines): Preserved all existing stat cards, chart, recent FIRs, high risk table. Added: SparklineStatCard with inline SVG sparklines, Live Intelligence Feed, AI Recommendations, Investigation Queue, Risk Alerts, ambient background, framer-motion animations, glass-card styling
+- Updated chat API route.ts: Added buildExplainableResponse function, returns explainable metadata alongside response
+- Updated ChatView.tsx (395 lines): Added ExplainablePanel component showing confidence score, evidence chain, reasoning summary, alternative explanations in collapsible panel below AI responses
+- Created InvestigationTimeline.tsx (564 lines): Animated vertical timeline with FIR selector, alternating left/right layout, framer-motion staggered entry, color-coded status nodes, summary progress bar
+- Created ReportGenerator.tsx (1001 lines): Configuration panel, 8-section report preview (header, executive summary, timeline, similar crimes, network intelligence, AI findings, evidence summary, footer), PDF export via jsPDF, confidence score ring
+- Enhanced AccusedProfile.tsx (1029 lines): Added AI Investigation Brief section (confidence ring, executive summary, related cases, likely associates, behavioral analysis, missing evidence, financial links, suggested actions) and Similar Crime Engine section (similarity bars, matched factor badges)
+- Updated page.tsx: Added timeline/report routes, CommandPalette component
+- Updated Sidebar.tsx: Added Timeline and Reports nav items, Command Palette button, Kannada labels
+- Updated Header.tsx: Added timeline/report view labels in EN/KN
 
 Stage Summary:
-- Complete KSP Sentinel AI application built as single-page app under / route
-- All 5 views working: Dashboard, AI Copilot, Network Graph, Crime Map, Accused Profile
-- Chat API uses intelligent fallback when z-ai-web-dev-sdk is unavailable
-- Dark theme with blue accent throughout
-- Kannada/English language toggle for UI labels
-- Voice input, PDF export, and interactive network graph all functional
+- All 7 capabilities built: Mission Control, AI Brief, Similar Crimes, Explainable AI, Timeline, Premium UI, Report Generator
+- Build passes cleanly (next build succeeds)
+- Dev server runs with 200 OK
+- Chat API verified: returns explainable metadata with confidence scores and evidence chains
+- Zero existing functionality broken — all routes, auth, data, and views preserved

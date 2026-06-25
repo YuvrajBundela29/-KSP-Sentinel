@@ -8,21 +8,27 @@ import {
   MapPin,
   LogOut,
   Shield,
+  Clock,
+  FileText,
 } from "lucide-react";
 
 const LABELS: Record<string, Record<string, string>> = {
   en: {
-    dashboard: "Dashboard",
+    dashboard: "Mission Control",
     chat: "AI Copilot",
     network: "Network Graph",
     map: "Crime Map",
+    timeline: "Timeline",
+    report: "Reports",
     logout: "Logout",
   },
   kn: {
-    dashboard: "ಮುಖಪುಟ",
+    dashboard: "ಮಿಷನ್ ಕಂಟ್ರೋಲ್",
     chat: "AI ಸಹಾಯಕ",
     network: "ನೆಟ್‌ವರ್ಕ್ ಗ್ರಾಫ್",
     map: "ಅಪರಾಧ ನಕ್ಷೆ",
+    timeline: "ಟೈಮ್‌ಲೈನ್",
+    report: "ವರದಿಗಳು",
     logout: "ಲಾಗ್ ಔಟ್",
   },
 };
@@ -32,6 +38,8 @@ const NAV_ITEMS = [
   { key: "chat", icon: Bot, view: "chat" as const },
   { key: "network", icon: Network, view: "network" as const },
   { key: "map", icon: MapPin, view: "map" as const },
+  { key: "timeline", icon: Clock, view: "timeline" as const },
+  { key: "report", icon: FileText, view: "report" as const },
 ];
 
 export default function Sidebar() {
@@ -40,6 +48,7 @@ export default function Sidebar() {
   const lang = useAppStore((s) => s.lang);
   const setView = useAppStore((s) => s.setView);
   const logout = useAppStore((s) => s.logout);
+  const setCommandPaletteOpen = useAppStore((s) => s.setCommandPaletteOpen);
   const labels = LABELS[lang];
 
   return (
@@ -85,6 +94,13 @@ export default function Sidebar() {
             <p className="text-xs text-[#4a5568]">{user.role}</p>
           </div>
         )}
+        <button
+          onClick={() => setCommandPaletteOpen(true)}
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-[#64748b] hover:bg-[#1a2035] hover:text-[#94a3b8] transition-colors mb-2 border border-dashed border-[#2a3550]"
+        >
+          <kbd className="font-mono text-[10px] bg-[#2a3550] px-1 rounded">Ctrl+K</kbd>
+          <span>Command Palette</span>
+        </button>
         <button
           onClick={logout}
           className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors"

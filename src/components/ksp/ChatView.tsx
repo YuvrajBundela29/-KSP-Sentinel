@@ -10,10 +10,14 @@ import {
   User,
   Trash2,
   Loader2,
+  ChevronDown,
+  ChevronUp,
+  Link,
+  Brain,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useAppStore } from "@/lib/store";
-import type { ChatMessage, FIR } from "@/lib/types";
+import type { ChatMessage, FIR, ExplainableResponse } from "@/lib/types";
 import { searchFIRs } from "@/lib/data";
 import jsPDF from "jspdf";
 
@@ -46,6 +50,65 @@ function extractFIRIds(text: string): string[] {
 
 function fmtTime(d: Date): string {
   return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+}
+
+function ExplainablePanel({ exp }: { exp: ExplainableResponse }) {
+  const [open, setOpen] = useState(false);
+  const confColor = exp.confidenceScore >= 80 ? "#10b981" : exp.confidenceScore >= 60 ? "#f59e0b" : "#ef4444";
+  return (
+    <div className="mt-1.5 rounded-lg overflow-hidden animate-fade-in" style={{ border: "1px solid rgba(42,53,80,0.6)", backgroundColor: "rgba(13,19,38,0.8)", backdropFilter: "blur(8px)" }}>
+      <button onClick={() => setOpen(!open)} className="w-full flex items-center gap-2 px-3 py-2 text-left cursor-pointer hover:bg-[#1a2035]/50 transition-colors">
+        <Brain className="w-3.5 h-3.5 flex-shrink-0" style={{ color: confColor }} />
+        <span className="text-[11px] font-semibold" style={{ color: "#94a3b8" }}>EXPLAINABLE AI</span>
+        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: `${confColor}20`, color: confColor, border: `1px solid ${confColor}40` }}>
+          {exp.confidenceScore}% confidence
+        </span>
+        {exp.evidenceChain.length > 0 && (
+          <span className="text-[10px]" style={{ color: "#64748b" }}>
+            <Link className="w-3 h-3 inline mr-0.5" /> {exp.evidenceChain.length} source{exp.evidenceChain.length > 1 ? "s" : ""}
+          </span>
+        )}
+        {open ? <ChevronUp className="w-3 h-3 ml-auto" style={{ color: "#64748b" }} /> : <ChevronDown className="w-3 h-3 ml-auto" style={{ color: "#64748b" }} />}
+      </button>
+      {open && (
+        <div className="px-3 pb-3 space-y-2.5 animate-fade-in">
+          {exp.evidenceChain.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "#64748b" }}>Evidence Chain</p>
+              <div className="flex flex-wrap gap-1.5">
+                {exp.evidenceChain.map((e, i) => (
+                  <span key={i} className="text-[10px] px-2 py-0.5 rounded-full font-mono" style={{ backgroundColor: "rgba(59,130,246,0.1)", color: "#3b82f6", border: "1px solid rgba(59,130,246,0.2)" }}>
+                    {e.firId}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: "#64748b" }}>Reasoning</p>
+            <p className="text-[11px] leading-relaxed" style={{ color: "#94a3b8" }}>{exp.reasoningSummary}</p>
+          </div>
+          {exp.evidenceChain.map((e, i) => (
+            <div key={i} className="flex items-start gap-2">
+              <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: "#3b82f6" }} />
+              <div>
+                <span className="text-[10px] font-mono font-bold" style={{ color: "#e2e8f0" }}>{e.firId}</span>
+                <span className="text-[10px] ml-2" style={{ color: "#94a3b8" }}>{e.relevance}</span>
+              </div>
+            </div>
+          ))}
+          {exp.alternativeExplanations && exp.alternativeExplanations.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "#f59e0b" }}>Alternative Explanations</p>
+              {exp.alternativeExplanations.map((alt, i) => (
+                <p key={i} className="text-[10px] leading-relaxed" style={{ color: "#94a3b8" }}>&#8226; {alt}</p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function ChatView() {
@@ -95,7 +158,7 @@ export default function ChatView() {
       });
       if (!res.ok) throw new Error("Failed");
       const data = await res.json();
-      addChatMessage({ role: "assistant", content: data.response ?? "No response." });
+      addChatMessage({ role: "assistant", content: data.response ?? "No response.", explainable: data.explainable });
     } catch {
       addChatMessage({ role: "assistant", content: "Unable to reach the intelligence server. Please try again." });
     } finally {
@@ -226,6 +289,9 @@ export default function ChatView() {
                 >
                   {msg.content}
                 </div>
+                {msg.role === "assistant" && msg.explainable && (
+                  <ExplainablePanel exp={msg.explainable} />
+                )}
                 <span className="text-[10px] mt-1 px-1" style={{ color: "#64748b" }}>{fmtTime(new Date())}</span>
               </div>
               {msg.role === "user" && (

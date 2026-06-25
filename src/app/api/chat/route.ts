@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { CrimeDataset, ExplainableResponse } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -60,13 +61,13 @@ ${JSON.stringify(dataset, null, 2)}`;
 
       const aiText = response?.choices?.[0]?.message?.content || "";
 
-      return NextResponse.json({ response: aiText });
+      const explainable = buildExplainableResponse(aiText, dataset);
+      return NextResponse.json({ response: aiText, explainable });
     } catch (sdkError) {
       console.error("z-ai-web-dev-sdk error, using fallback:", sdkError);
-      // Fallback: generate a response based on the dataset analysis
-      return NextResponse.json({
-        response: generateFallbackResponse(message, dataset),
-      });
+      const fallbackText = generateFallbackResponse(message, dataset);
+      const explainable = buildExplainableResponse(fallbackText, dataset);
+      return NextResponse.json({ response: fallbackText, explainable });
     }
   } catch (error) {
     console.error("Chat API error:", error);
@@ -75,6 +76,39 @@ ${JSON.stringify(dataset, null, 2)}`;
       { status: 500 }
     );
   }
+}
+
+function buildExplainableResponse(content: string, dataset: any): ExplainableResponse {
+  const firIds = content.match(/FIR-\d{4}-KA-\d{4}/g) ?? [];
+  const uniqueIds = [...new Set(firIds)];
+  const firs = dataset.firs || [];
+
+  const evidenceChain = uniqueIds.map(id => {
+    const fir = firs.find((f: any) => f.fir_id === id);
+    return { firId: id, relevance: fir ? `${fir.crime_type} in ${fir.district} (${fir.date})` : "Referenced in analysis" };
+  });
+
+  let confidence = 50;
+  if (uniqueIds.length >= 3) confidence += 20;
+  else if (uniqueIds.length >= 1) confidence += 15;
+  if (content.includes("gang") || content.includes("Gang")) confidence += 10;
+  if (content.includes("pattern") || content.includes("Pattern")) confidence += 5;
+  if (uniqueIds.length === 0) confidence = 25;
+  confidence = Math.min(confidence, 96);
+
+  const lines = content.split("\n").filter((l: string) => l.trim().length > 0);
+  const reasoningSummary = lines.slice(0, 2).join(" ").slice(0, 200);
+
+  const alternatives: string[] = [];
+  if (confidence < 70) {
+    alternatives.push("Data may be incomplete — additional FIR records could change the analysis.");
+    alternatives.push("Temporal patterns might be skewed due to limited dataset window.");
+  }
+  if (uniqueIds.length < 3) {
+    alternatives.push("Low evidence count — conclusions should be verified with additional intelligence sources.");
+  }
+
+  return { content, evidenceChain, confidenceScore: confidence, reasoningSummary, alternativeExplanations: alternatives.length > 0 ? alternatives : undefined };
 }
 
 function generateFallbackResponse(

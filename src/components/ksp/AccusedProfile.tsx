@@ -4,6 +4,8 @@ import { useEffect, useState, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
 import { getAccusedById, getFIRsByAccused } from "@/lib/data";
 import type { Accused, FIR } from "@/lib/types";
+import { generateInvestigationBrief, computeSimilarCrimes } from "@/lib/intelligence";
+import type { InvestigationBrief, SimilarCrimeResult } from "@/lib/types";
 import LoadingSpinner from "@/components/ksp/LoadingSpinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +27,8 @@ import {
   Car,
   Users,
   FileText,
+  Brain,
+  Search,
 } from "lucide-react";
 
 function formatINR(amount: number): string {
@@ -92,6 +96,24 @@ const investigationStatusColors: Record<string, string> = {
   "Trial in Progress": "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
   "Evidence Collection": "bg-purple-500/20 text-purple-400 border-purple-500/30",
 };
+
+function SeverityBadge({ severity }: { severity: string }) {
+  const map: Record<string, string> = {
+    critical: "bg-red-500/20 text-red-400 border-red-500/30",
+    high: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+    medium: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+    low: "bg-green-500/20 text-green-400 border-green-500/30",
+  };
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${
+        map[severity] ?? map.low
+      }`}
+    >
+      {severity}
+    </span>
+  );
+}
 
 export default function AccusedProfile() {
   const crimeData = useAppStore((s) => s.crimeData);
@@ -216,6 +238,20 @@ export default function AccusedProfile() {
         transaction: f.financial_transaction!,
       }));
   }, [firs]);
+
+  // AI Investigation Brief
+  const brief = useMemo(() => {
+    if (!crimeData || !selectedAccusedId) return null;
+    return generateInvestigationBrief(crimeData, selectedAccusedId, "accused");
+  }, [crimeData, selectedAccusedId]);
+
+  // Similar Crimes (based on first FIR linked to accused)
+  const similarCrimes = useMemo(() => {
+    if (!crimeData || !selectedAccusedId) return [];
+    const firstFir = crimeData.firs.find(f => f.accused.includes(selectedAccusedId));
+    if (!firstFir) return [];
+    return computeSimilarCrimes(crimeData, firstFir.fir_id, 4);
+  }, [crimeData, selectedAccusedId]);
 
   // AI Analysis
   const [aiState, setAiState] = useState<{
@@ -807,6 +843,187 @@ export default function AccusedProfile() {
             )}
           </CardContent>
         </Card>
+
+        {/* Section 6 — AI Investigation Brief */}
+        {brief && (
+          <div className="space-y-4 animate-fade-in-up">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-[#e2e8f0] flex items-center gap-2">
+                <Brain className="w-5 h-5 text-blue-400" /> AI Investigation Brief
+              </h2>
+              {/* Confidence Score Ring */}
+              <div className="flex items-center gap-2">
+                <svg width="44" height="44" className="confidence-ring">
+                  <circle cx="22" cy="22" r="18" fill="none" stroke="#2a3550" strokeWidth="3" />
+                  <circle cx="22" cy="22" r="18" fill="none"
+                    stroke={brief.confidenceScore >= 80 ? "#10b981" : brief.confidenceScore >= 60 ? "#f59e0b" : "#ef4444"}
+                    strokeWidth="3" strokeLinecap="round"
+                    strokeDasharray={2 * Math.PI * 18}
+                    strokeDashoffset={2 * Math.PI * 18 - (brief.confidenceScore / 100) * 2 * Math.PI * 18}
+                    className="confidence-ring-circle" />
+                  <text x="22" y="22" textAnchor="middle" dominantBaseline="central" fill="#e2e8f0" fontSize="10" fontWeight="bold" style={{transform: "rotate(90deg)", transformOrigin: "center"}}>{brief.confidenceScore}%</text>
+                </svg>
+                <span className="text-xs text-[#94a3b8]">Confidence</span>
+              </div>
+            </div>
+
+            {/* Executive Summary */}
+            <div className="glass-card p-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-[#64748b] mb-2">Executive Summary</h3>
+              <p className="text-sm text-[#e2e8f0] leading-relaxed">{brief.executiveSummary}</p>
+            </div>
+
+            {/* Related Cases */}
+            {brief.relatedCases.length > 0 && (
+              <div className="glass-card p-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#64748b] mb-3">Related Cases ({brief.relatedCases.length})</h3>
+                <div className="space-y-2">
+                  {brief.relatedCases.map((c, i) => (
+                    <div key={i} className="flex items-center justify-between py-1.5 border-b border-[#2a3550]/50 last:border-0">
+                      <div>
+                        <span className="text-xs font-mono text-blue-400">{c.firId}</span>
+                        <span className="text-xs text-[#94a3b8] ml-2">{c.crimeType}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-[#94a3b8]">{c.date}</span>
+                        <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full ${c.status === "Arrested" ? "bg-green-500/20 text-green-400" : c.status === "Under Investigation" ? "bg-yellow-500/20 text-yellow-400" : "bg-gray-500/20 text-gray-400"}`}>{c.status}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Likely Associates */}
+            {brief.likelyAssociates.length > 0 && (
+              <div className="glass-card p-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#64748b] mb-3">Likely Associates</h3>
+                <div className="space-y-2">
+                  {brief.likelyAssociates.map((a, i) => (
+                    <div key={i} className="flex items-center justify-between py-1.5 border-b border-[#2a3550]/50 last:border-0">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${a.strength === "strong" ? "bg-red-500" : a.strength === "moderate" ? "bg-yellow-500" : "bg-green-500"}`} />
+                        <span className="text-sm text-[#e2e8f0]">{a.name}</span>
+                        <span className="text-[10px] text-[#64748b]">({a.id})</span>
+                      </div>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${a.strength === "strong" ? "bg-red-500/20 text-red-400" : a.strength === "moderate" ? "bg-yellow-500/20 text-yellow-400" : "bg-green-500/20 text-green-400"}`}>{a.strength}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Behavioral Analysis + Missing Evidence side by side */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="glass-card p-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#64748b] mb-3">Behavioral Analysis</h3>
+                <div className="space-y-3">
+                  {brief.behavioralAnalysis.map((b, i) => (
+                    <div key={i}>
+                      <p className="text-xs font-semibold text-[#e2e8f0]">{b.pattern}</p>
+                      <p className="text-[11px] text-[#94a3b8] mt-0.5 leading-relaxed">{b.description}</p>
+                      <p className="text-[10px] text-[#64748b] mt-0.5">{b.frequency}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="glass-card p-4">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-[#64748b] mb-3">Missing Evidence</h3>
+                  <div className="space-y-2">
+                    {brief.missingEvidence.map((m, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${m.priority === "high" ? "bg-red-500" : m.priority === "medium" ? "bg-yellow-500" : "bg-blue-500"}`} />
+                        <div>
+                          <p className="text-xs font-semibold text-[#e2e8f0]">{m.type}</p>
+                          <p className="text-[11px] text-[#94a3b8]">{m.description}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {brief.financialLinks.length > 0 && (
+                  <div className="glass-card p-4">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-[#64748b] mb-3">Financial Links</h3>
+                    {brief.financialLinks.map((f, i) => (
+                      <div key={i} className="mb-2 last:mb-0">
+                        <p className="text-xs text-[#e2e8f0]">{f.bank} — {f.holder}</p>
+                        <p className="text-[10px] text-[#94a3b8]">A/C: {f.account.slice(-4)} | Total: ₹{f.totalAmount.toLocaleString("en-IN")} | {f.transactions} txns</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Suggested Actions */}
+            <div className="glass-card p-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-[#64748b] mb-3">Suggested Investigative Actions</h3>
+              <div className="space-y-2">
+                {brief.suggestedActions.map((a, i) => (
+                  <div key={i} className="flex items-start gap-3 py-2 border-b border-[#2a3550]/50 last:border-0">
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold flex-shrink-0 mt-0.5 ${a.priority === "immediate" ? "bg-red-500/20 text-red-400" : a.priority === "short_term" ? "bg-yellow-500/20 text-yellow-400" : "bg-blue-500/20 text-blue-400"}`}>
+                      {a.priority === "immediate" ? "IMMEDIATE" : a.priority === "short_term" ? "SHORT-TERM" : "LONG-TERM"}
+                    </span>
+                    <div>
+                      <p className="text-sm text-[#e2e8f0]">{a.action}</p>
+                      <p className="text-[11px] text-[#94a3b8] mt-0.5">{a.rationale}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Section 7 — Similar Crimes Engine */}
+        {similarCrimes.length > 0 && (
+          <div className="space-y-4 animate-fade-in-up">
+            <h2 className="text-lg font-bold text-[#e2e8f0] flex items-center gap-2">
+              <Search className="w-5 h-5 text-blue-400" /> Similar Crimes Engine
+            </h2>
+            <div className="space-y-3">
+              {similarCrimes.map((sc, i) => (
+                <div key={i} className="glass-card p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-mono font-bold text-blue-400">{sc.fir.fir_id}</span>
+                      <SeverityBadge severity={sc.fir.severity} />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-24 h-2 rounded-full bg-[#2a3550] overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${sc.similarityScore}%`,
+                            backgroundColor: sc.similarityScore >= 70 ? "#10b981" : sc.similarityScore >= 40 ? "#f59e0b" : "#ef4444",
+                          }}
+                        />
+                      </div>
+                      <span className="text-sm font-bold" style={{
+                        color: sc.similarityScore >= 70 ? "#10b981" : sc.similarityScore >= 40 ? "#f59e0b" : "#ef4444"
+                      }}>{sc.similarityScore}%</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-[#e2e8f0] mb-1">{sc.fir.crime_type} — {sc.fir.district} — {sc.fir.date}</p>
+                  <p className="text-[11px] text-[#94a3b8] leading-relaxed mb-2">{sc.explanation}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {sc.matchedFactors.filter(f => f.matched).map((f, j) => (
+                      <span key={j} className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">
+                        {f.factor}
+                      </span>
+                    ))}
+                    {sc.matchedFactors.filter(f => !f.matched).map((f, j) => (
+                      <span key={j} className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/10 text-red-400/60 border border-red-500/10">
+                        {f.factor}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

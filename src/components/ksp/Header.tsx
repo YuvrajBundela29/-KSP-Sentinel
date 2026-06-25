@@ -7,18 +7,22 @@ import { Languages, Bell } from "lucide-react";
 
 const VIEW_LABELS: Record<string, Record<string, string>> = {
   en: {
-    dashboard: "Dashboard",
+    dashboard: "Mission Control",
     chat: "AI Copilot",
     network: "Network Graph",
     map: "Crime Map",
     accused: "Accused Profile",
+    timeline: "Investigation Timeline",
+    report: "Report Generator",
   },
   kn: {
-    dashboard: "ಮುಖಪುಟ",
+    dashboard: "ಮಿಷನ್ ಕಂಟ್ರೋಲ್",
     chat: "AI ಸಹಾಯಕ",
     network: "ನೆಟ್‌ವರ್ಕ್ ಗ್ರಾಫ್",
     map: "ಅಪರಾಧ ನಕ್ಷೆ",
     accused: "ಆರೋಪಿತ ಪ್ರೊಫೈಲ್",
+    timeline: "ತನಿಖೆ ಟೈಮ್‌ಲೈನ್",
+    report: "ವರದಿ ಜನರೇಟರ್",
   },
 };
 

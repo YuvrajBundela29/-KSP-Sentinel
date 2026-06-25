@@ -10,6 +10,9 @@ import ChatView from "@/components/ksp/ChatView";
 import NetworkGraph from "@/components/ksp/NetworkGraph";
 import CrimeMap from "@/components/ksp/CrimeMap";
 import AccusedProfile from "@/components/ksp/AccusedProfile";
+import InvestigationTimeline from "@/components/ksp/InvestigationTimeline";
+import ReportGenerator from "@/components/ksp/ReportGenerator";
+import CommandPalette from "@/components/ksp/CommandPalette";
 
 export default function Home() {
   const user = useAppStore((s) => s.user);
@@ -51,6 +54,10 @@ export default function Home() {
         return <CrimeMap />;
       case "accused":
         return <AccusedProfile />;
+      case "timeline":
+        return <InvestigationTimeline />;
+      case "report":
+        return <ReportGenerator />;
       default:
         return <DashboardHome />;
     }
@@ -61,8 +68,9 @@ export default function Home() {
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-auto">{renderContent()}</main>
+        <main className="flex-1 overflow-auto relative">{renderContent()}</main>
       </div>
+      <CommandPalette />
     </div>
   );
 }

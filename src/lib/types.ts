@@ -100,9 +100,69 @@ export interface NetworkEdge {
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  explainable?: ExplainableResponse;
 }
 
-export type ViewType = "login" | "dashboard" | "chat" | "network" | "map" | "accused";
+export type ViewType = "login" | "dashboard" | "chat" | "network" | "map" | "accused" | "timeline" | "report";
+
+// ─── Intelligence Types ───────────────────────────────────────────
+
+export interface InvestigationBrief {
+  executiveSummary: string;
+  relatedCases: { firId: string; crimeType: string; date: string; status: string; relevance: string }[];
+  likelyAssociates: { name: string; id: string; connection: string; strength: "strong" | "moderate" | "weak" }[];
+  financialLinks: { bank: string; account: string; holder: string; totalAmount: number; transactions: number; details: string }[];
+  behavioralAnalysis: { pattern: string; description: string; frequency: string }[];
+  missingEvidence: { type: string; description: string; priority: "high" | "medium" | "low" }[];
+  suggestedActions: { action: string; rationale: string; priority: "immediate" | "short_term" | "long_term" }[];
+  confidenceScore: number;
+}
+
+export interface SimilarCrimeResult {
+  fir: FIR;
+  similarityScore: number;
+  matchedFactors: { factor: string; weight: number; matched: boolean; detail: string }[];
+  explanation: string;
+}
+
+export interface TimelineEvent {
+  id: string;
+  type: "complaint" | "witness" | "cctv" | "phone" | "vehicle" | "financial" | "investigation" | "arrest" | "fir_filed";
+  title: string;
+  description: string;
+  timestamp: string;
+  firId?: string;
+  icon: string;
+  status: "completed" | "in_progress" | "pending" | "unknown";
+}
+
+export interface ExplainableResponse {
+  content: string;
+  evidenceChain: { firId: string; relevance: string }[];
+  confidenceScore: number;
+  reasoningSummary: string;
+  alternativeExplanations?: string[];
+}
+
+export interface IntelFeedItem {
+  id: string;
+  type: "alert" | "update" | "arrest" | "pattern" | "intelligence";
+  title: string;
+  description: string;
+  timestamp: string;
+  severity: "critical" | "high" | "medium" | "low";
+  relatedFirs?: string[];
+}
+
+export interface InvestigationQueueItem {
+  firId: string;
+  crimeType: string;
+  district: string;
+  priority: number;
+  status: string;
+  daysOpen: number;
+  reason: string;
+}
 
 export interface AuthUser {
   username: string;
