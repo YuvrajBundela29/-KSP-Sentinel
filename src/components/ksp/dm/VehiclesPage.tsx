@@ -145,14 +145,14 @@ function StatCard({ icon, label, value, suffix = "", color, delay }: StatCardPro
       />
       <div className="relative flex items-start justify-between p-5">
         <div className="flex-1">
-          <span className="text-[#64748b] text-xs font-medium uppercase tracking-wider">
+          <span className="text-[#5a657a] text-xs font-medium uppercase tracking-wider">
             {label}
           </span>
           <div className="flex items-baseline gap-1.5 mt-1">
-            <span className="text-[#e2e8f0] text-3xl font-bold tabular-nums">
+            <span className="text-[#f1f5f9] text-3xl font-bold tabular-nums">
               {animatedValue.toLocaleString("en-IN")}
             </span>
-            {suffix && <span className="text-[#64748b] text-sm">{suffix}</span>}
+            {suffix && <span className="text-[#5a657a] text-sm">{suffix}</span>}
           </div>
         </div>
         <div
@@ -299,11 +299,11 @@ export default function VehiclesPage() {
   }, [filterType, filterColor, filterStatus]);
 
   const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ChevronsUpDown className="h-3.5 w-3.5 text-[#4a5568]" />;
+    if (sortField !== field) return <ChevronsUpDown className="h-3.5 w-3.5 text-[#3d4659]" />;
     return sortDir === "asc" ? (
-      <ChevronUp className="h-3.5 w-3.5 text-blue-400" />
+      <ChevronUp className="h-3.5 w-3.5 text-[#22d3ee]" />
     ) : (
-      <ChevronDown className="h-3.5 w-3.5 text-blue-400" />
+      <ChevronDown className="h-3.5 w-3.5 text-[#22d3ee]" />
     );
   };
 
@@ -375,9 +375,9 @@ export default function VehiclesPage() {
 
   const statusColor = (s: VehicleStatus) => {
     switch (s) {
-      case "Active": return "bg-red-500/15 text-red-400 border-red-500/30";
-      case "Under Investigation": return "bg-amber-500/15 text-amber-400 border-amber-500/30";
-      case "Cleared": return "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
+      case "Active": return "bg-[#f87171]/15 text-[#f87171] border-[rgba(248,113,113,0.15)]";
+      case "Under Investigation": return "bg-[#fbbf24]/15 text-[#fbbf24] border-[rgba(251,191,36,0.15)]";
+      case "Cleared": return "bg-[#34d399]/15 text-[#34d399] border-[rgba(52,211,153,0.15)]";
     }
   };
 
@@ -420,22 +420,22 @@ export default function VehiclesPage() {
       {/* ── Page Header ── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-[#e2e8f0] text-2xl font-bold tracking-tight">
+          <h1 className="text-[#f1f5f9] text-2xl font-bold tracking-tight">
             Vehicle Records
           </h1>
-          <p className="text-[#64748b] text-sm mt-1">
+          <p className="text-[#5a657a] text-sm mt-1">
             Track vehicles linked to criminal activities across districts
           </p>
         </div>
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#e2e8f0] rounded-xl">
+              <Button variant="outline" className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#f1f5f9] rounded-xl">
                 <FileDown className="h-4 w-4" />
                 Export
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="bg-[#1a2035] border-white/10 text-[#e2e8f0]">
+            <DropdownMenuContent className="bg-[rgba(15,21,36,0.45)] border-white/10 text-[#f1f5f9]">
               <DropdownMenuItem onClick={() => exportToCSV(getExportData(), "vehicles_export")}>
                 <FileDown className="mr-2 h-4 w-4" /> Export CSV
               </DropdownMenuItem>
@@ -460,28 +460,28 @@ export default function VehiclesPage() {
           icon={<Car className="h-5 w-5" />}
           label="Total Vehicles"
           value={stats.total}
-          color="#3b82f6"
+          color="#22d3ee"
           delay={0}
         />
         <StatCard
           icon={<Link2 className="h-5 w-5" />}
           label="Linked to Crimes"
           value={stats.linked}
-          color="#10b981"
+          color="#34d399"
           delay={1}
         />
         <StatCard
           icon={<ShieldAlert className="h-5 w-5" />}
           label="Stolen"
           value={stats.stolen}
-          color="#ef4444"
+          color="#f87171"
           delay={2}
         />
         <StatCard
           icon={<Eye className="h-5 w-5" />}
           label="Under Surveillance"
           value={stats.surveillance}
-          color="#f59e0b"
+          color="#fbbf24"
           delay={3}
         />
       </div>
@@ -490,12 +490,12 @@ export default function VehiclesPage() {
       <div className="space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#4a5568]" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#3d4659]" />
             <Input
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
               placeholder="Search by registration, make, type..."
-              className="pl-10 bg-white/5 border-white/10 text-[#e2e8f0] placeholder:text-[#4a5568] h-10 rounded-xl focus-visible:border-blue-500/50 focus-visible:ring-blue-500/20"
+              className="pl-10 bg-white/5 border-white/10 text-[#f1f5f9] placeholder:text-[#3d4659] h-10 rounded-xl focus-visible:border-[rgba(34,211,238,0.3)] focus-visible:ring-[rgba(34,211,238,0.2)]"
             />
           </div>
           <Button
@@ -503,14 +503,14 @@ export default function VehiclesPage() {
             onClick={() => setShowFilters(!showFilters)}
             className={`gap-2 border-white/10 rounded-xl h-10 ${
               showFilters || activeFilterCount > 0
-                ? "bg-blue-500/10 border-blue-500/30 text-blue-400"
-                : "bg-white/5 text-[#94a3b8] hover:bg-white/10"
+                ? "bg-[rgba(34,211,238,0.08)] border-[rgba(34,211,238,0.15)] text-[#22d3ee]"
+                : "bg-white/5 text-[#8b97b0] hover:bg-white/10"
             }`}
           >
             <Filter className="h-4 w-4" />
             Filters
             {activeFilterCount > 0 && (
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold text-white">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#22d3ee] text-[10px] font-bold text-white">
                 {activeFilterCount}
               </span>
             )}
@@ -529,14 +529,14 @@ export default function VehiclesPage() {
             >
               <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-4">
                 <div className="space-y-1.5">
-                  <label className="text-[#64748b] text-xs font-medium uppercase tracking-wider">
+                  <label className="text-[#5a657a] text-xs font-medium uppercase tracking-wider">
                     Vehicle Type
                   </label>
                   <Select value={filterType} onValueChange={(v) => { setFilterType(v); setPage(1); }}>
-                    <SelectTrigger className="w-[180px] bg-white/5 border-white/10 text-[#e2e8f0] h-9 rounded-xl">
+                    <SelectTrigger className="w-[180px] bg-white/5 border-white/10 text-[#f1f5f9] h-9 rounded-xl">
                       <SelectValue placeholder="All Types" />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#1a2035] border-white/10 text-[#e2e8f0]">
+                    <SelectContent className="bg-[rgba(15,21,36,0.45)] border-white/10 text-[#f1f5f9]">
                       <SelectItem value="all">All Types</SelectItem>
                       {vehicleTypes.map((t) => (
                         <SelectItem key={t} value={t}>{t}</SelectItem>
@@ -545,14 +545,14 @@ export default function VehiclesPage() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[#64748b] text-xs font-medium uppercase tracking-wider">
+                  <label className="text-[#5a657a] text-xs font-medium uppercase tracking-wider">
                     Color
                   </label>
                   <Select value={filterColor} onValueChange={(v) => { setFilterColor(v); setPage(1); }}>
-                    <SelectTrigger className="w-[160px] bg-white/5 border-white/10 text-[#e2e8f0] h-9 rounded-xl">
+                    <SelectTrigger className="w-[160px] bg-white/5 border-white/10 text-[#f1f5f9] h-9 rounded-xl">
                       <SelectValue placeholder="All Colors" />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#1a2035] border-white/10 text-[#e2e8f0]">
+                    <SelectContent className="bg-[rgba(15,21,36,0.45)] border-white/10 text-[#f1f5f9]">
                       <SelectItem value="all">All Colors</SelectItem>
                       {vehicleColors.map((c) => (
                         <SelectItem key={c} value={c}>{c}</SelectItem>
@@ -561,14 +561,14 @@ export default function VehiclesPage() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[#64748b] text-xs font-medium uppercase tracking-wider">
+                  <label className="text-[#5a657a] text-xs font-medium uppercase tracking-wider">
                     Status
                   </label>
                   <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v); setPage(1); }}>
-                    <SelectTrigger className="w-[180px] bg-white/5 border-white/10 text-[#e2e8f0] h-9 rounded-xl">
+                    <SelectTrigger className="w-[180px] bg-white/5 border-white/10 text-[#f1f5f9] h-9 rounded-xl">
                       <SelectValue placeholder="All Statuses" />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#1a2035] border-white/10 text-[#e2e8f0]">
+                    <SelectContent className="bg-[rgba(15,21,36,0.45)] border-white/10 text-[#f1f5f9]">
                       <SelectItem value="all">All Statuses</SelectItem>
                       <SelectItem value="Active">Active</SelectItem>
                       <SelectItem value="Under Investigation">Under Investigation</SelectItem>
@@ -579,7 +579,7 @@ export default function VehiclesPage() {
                 <Button
                   variant="ghost"
                   onClick={clearFilters}
-                  className="text-[#94a3b8] hover:text-[#e2e8f0] hover:bg-white/10 h-9 text-xs"
+                  className="text-[#8b97b0] hover:text-[#f1f5f9] hover:bg-white/10 h-9 text-xs"
                 >
                   Clear All
                 </Button>
@@ -591,9 +591,9 @@ export default function VehiclesPage() {
 
       {/* ── Results Info ── */}
       <div className="flex items-center justify-between">
-        <p className="text-[#64748b] text-sm">
-          Showing <span className="text-[#e2e8f0] font-medium">{paged.length}</span> of{" "}
-          <span className="text-[#e2e8f0] font-medium">{filtered.length}</span> vehicles
+        <p className="text-[#5a657a] text-sm">
+          Showing <span className="text-[#f1f5f9] font-medium">{paged.length}</span> of{" "}
+          <span className="text-[#f1f5f9] font-medium">{filtered.length}</span> vehicles
         </p>
       </div>
 
@@ -605,16 +605,16 @@ export default function VehiclesPage() {
           className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl py-20"
         >
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5">
-            <Truck className="h-8 w-8 text-[#4a5568]" />
+            <Truck className="h-8 w-8 text-[#3d4659]" />
           </div>
           <div className="text-center">
-            <p className="text-[#e2e8f0] font-medium">No vehicles found</p>
-            <p className="text-[#64748b] text-sm mt-1">
+            <p className="text-[#f1f5f9] font-medium">No vehicles found</p>
+            <p className="text-[#5a657a] text-sm mt-1">
               Try adjusting your search or filters
             </p>
           </div>
           {activeFilterCount > 0 && (
-            <Button variant="ghost" onClick={clearFilters} className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10">
+            <Button variant="ghost" onClick={clearFilters} className="text-[#22d3ee] hover:text-[#67e8f9] hover:bg-[rgba(34,211,238,0.08)]">
               Clear Filters
             </Button>
           )}
@@ -630,45 +630,45 @@ export default function VehiclesPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="border-white/5 hover:bg-transparent">
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">
-                      <button onClick={() => handleSort("reg")} className="flex items-center gap-1 hover:text-[#e2e8f0] transition-colors">
+                    <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">
+                      <button onClick={() => handleSort("reg")} className="flex items-center gap-1 hover:text-[#f1f5f9] transition-colors">
                         Registration <SortIcon field="reg" />
                       </button>
                     </TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">
-                      <button onClick={() => handleSort("type")} className="flex items-center gap-1 hover:text-[#e2e8f0] transition-colors">
+                    <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">
+                      <button onClick={() => handleSort("type")} className="flex items-center gap-1 hover:text-[#f1f5f9] transition-colors">
                         Type <SortIcon field="type" />
                       </button>
                     </TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">
-                      <button onClick={() => handleSort("make")} className="flex items-center gap-1 hover:text-[#e2e8f0] transition-colors">
+                    <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">
+                      <button onClick={() => handleSort("make")} className="flex items-center gap-1 hover:text-[#f1f5f9] transition-colors">
                         Make <SortIcon field="make" />
                       </button>
                     </TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">
-                      <button onClick={() => handleSort("color")} className="flex items-center gap-1 hover:text-[#e2e8f0] transition-colors">
+                    <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">
+                      <button onClick={() => handleSort("color")} className="flex items-center gap-1 hover:text-[#f1f5f9] transition-colors">
                         Color <SortIcon field="color" />
                       </button>
                     </TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">
-                      <button onClick={() => handleSort("linkedCrimes")} className="flex items-center gap-1 hover:text-[#e2e8f0] transition-colors">
+                    <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">
+                      <button onClick={() => handleSort("linkedCrimes")} className="flex items-center gap-1 hover:text-[#f1f5f9] transition-colors">
                         Linked Crimes <SortIcon field="linkedCrimes" />
                       </button>
                     </TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">
+                    <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">
                       Districts Used
                     </TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">
-                      <button onClick={() => handleSort("lastCrimeDate")} className="flex items-center gap-1 hover:text-[#e2e8f0] transition-colors">
+                    <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">
+                      <button onClick={() => handleSort("lastCrimeDate")} className="flex items-center gap-1 hover:text-[#f1f5f9] transition-colors">
                         Last Crime Date <SortIcon field="lastCrimeDate" />
                       </button>
                     </TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">
-                      <button onClick={() => handleSort("status")} className="flex items-center gap-1 hover:text-[#e2e8f0] transition-colors">
+                    <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">
+                      <button onClick={() => handleSort("status")} className="flex items-center gap-1 hover:text-[#f1f5f9] transition-colors">
                         Status <SortIcon field="status" />
                       </button>
                     </TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider text-right">
+                    <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-[#5a657a] text-right">
                       Actions
                     </TableHead>
                   </TableRow>
@@ -683,12 +683,12 @@ export default function VehiclesPage() {
                       className="border-white/5 hover:bg-white/5 cursor-pointer transition-colors group"
                       onClick={() => setSelectedVehicle(v)}
                     >
-                      <TableCell className="text-[#e2e8f0] font-mono text-sm font-medium">
+                      <TableCell className="text-[#f1f5f9] font-mono text-sm font-medium">
                         {v.reg}
                       </TableCell>
-                      <TableCell className="text-[#94a3b8] text-sm">{v.type}</TableCell>
-                      <TableCell className="text-[#94a3b8] text-sm">{v.make}</TableCell>
-                      <TableCell className="text-[#94a3b8] text-sm">
+                      <TableCell className="text-[#8b97b0] text-sm">{v.type}</TableCell>
+                      <TableCell className="text-[#8b97b0] text-sm">{v.make}</TableCell>
+                      <TableCell className="text-[#8b97b0] text-sm">
                         <div className="flex items-center gap-2">
                           <span
                             className="inline-block h-3 w-3 rounded-full border border-white/20"
@@ -697,36 +697,36 @@ export default function VehiclesPage() {
                           {v.color}
                         </div>
                       </TableCell>
-                      <TableCell className="text-[#e2e8f0] text-sm font-medium">
+                      <TableCell className="text-[#f1f5f9] text-sm font-medium">
                         {v.linkedCrimeCount > 0 ? (
-                          <Badge className="bg-blue-500/15 text-blue-400 border-blue-500/30 text-[10px]">
+                          <Badge className="bg-[#22d3ee]/15 text-[#22d3ee] border-[rgba(34,211,238,0.15)] text-[10px]">
                             {v.linkedCrimeCount} FIR{v.linkedCrimeCount !== 1 ? "s" : ""}
                           </Badge>
                         ) : (
-                          <span className="text-[#4a5568]">—</span>
+                          <span className="text-[#3d4659]">—</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-[#94a3b8] text-sm">
+                      <TableCell className="text-[#8b97b0] text-sm">
                         {v.districtsUsed.length > 0 ? (
                           <div className="flex flex-wrap gap-1">
                             {v.districtsUsed.map((d) => (
-                              <Badge key={d} variant="outline" className="text-[10px] border-white/10 text-[#94a3b8]">
+                              <Badge key={d} variant="outline" className="text-[10px] border-white/10 text-[#8b97b0]">
                                 {d}
                               </Badge>
                             ))}
                           </div>
                         ) : (
-                          <span className="text-[#4a5568]">—</span>
+                          <span className="text-[#3d4659]">—</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-[#94a3b8] text-sm">
+                      <TableCell className="text-[#8b97b0] text-sm">
                         {v.lastCrimeDate
                           ? new Date(v.lastCrimeDate).toLocaleDateString("en-IN", {
                               day: "2-digit",
                               month: "short",
                               year: "numeric",
                             })
-                          : <span className="text-[#4a5568]">—</span>}
+                          : <span className="text-[#3d4659]">—</span>}
                       </TableCell>
                       <TableCell>
                         <Badge className={`text-[10px] border ${statusColor(v.status)}`}>
@@ -739,7 +739,7 @@ export default function VehiclesPage() {
                             size="sm"
                             variant="ghost"
                             onClick={(e) => { e.stopPropagation(); handleAction("View Linked FIRs", v); }}
-                            className="h-7 w-7 p-0 text-[#94a3b8] hover:text-blue-400 hover:bg-blue-500/10"
+                            className="h-7 w-7 p-0 text-[#8b97b0] hover:text-[#22d3ee] hover:bg-[rgba(34,211,238,0.08)]"
                             title="View Linked FIRs"
                           >
                             <Eye className="h-3.5 w-3.5" />
@@ -748,7 +748,7 @@ export default function VehiclesPage() {
                             size="sm"
                             variant="ghost"
                             onClick={(e) => { e.stopPropagation(); handleAction("View on Network", v); }}
-                            className="h-7 w-7 p-0 text-[#94a3b8] hover:text-emerald-400 hover:bg-emerald-500/10"
+                            className="h-7 w-7 p-0 text-[#8b97b0] hover:text-[#34d399] hover:bg-[rgba(52,211,153,0.08)]"
                             title="View on Network"
                           >
                             <Network className="h-3.5 w-3.5" />
@@ -757,7 +757,7 @@ export default function VehiclesPage() {
                             size="sm"
                             variant="ghost"
                             onClick={(e) => { e.stopPropagation(); handleAction("Add Note", v); }}
-                            className="h-7 w-7 p-0 text-[#94a3b8] hover:text-amber-400 hover:bg-amber-500/10"
+                            className="h-7 w-7 p-0 text-[#8b97b0] hover:text-[#fbbf24] hover:bg-[rgba(251,191,36,0.08)]"
                             title="Add Note"
                           >
                             <StickyNote className="h-3.5 w-3.5" />
@@ -774,7 +774,7 @@ export default function VehiclesPage() {
           {/* ── Pagination ── */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between">
-              <p className="text-[#64748b] text-sm">
+              <p className="text-[#5a657a] text-sm">
                 Page {page} of {totalPages}
               </p>
               <div className="flex items-center gap-2">
@@ -783,7 +783,7 @@ export default function VehiclesPage() {
                   size="sm"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="border-white/10 bg-white/5 text-[#94a3b8] hover:bg-white/10 rounded-lg h-8"
+                  className="border-white/10 bg-white/5 text-[#8b97b0] hover:bg-white/10 rounded-lg h-8"
                 >
                   Previous
                 </Button>
@@ -792,7 +792,7 @@ export default function VehiclesPage() {
                   size="sm"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  className="border-white/10 bg-white/5 text-[#94a3b8] hover:bg-white/10 rounded-lg h-8"
+                  className="border-white/10 bg-white/5 text-[#8b97b0] hover:bg-white/10 rounded-lg h-8"
                 >
                   Next
                 </Button>
@@ -810,22 +810,22 @@ export default function VehiclesPage() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 400 }}
             transition={{ type: "spring", damping: 25, stiffness: 250 }}
-            className="fixed right-0 top-0 bottom-0 z-40 w-[480px] border-l border-white/10 bg-[#0d1225]/95 backdrop-blur-xl shadow-2xl"
+            className="fixed right-0 top-0 bottom-0 z-40 w-[480px] border-l border-white/10 bg-[rgba(15,21,36,0.45)]/95 backdrop-blur-xl shadow-2xl"
           >
             <ScrollArea className="h-full">
               <div className="p-6 space-y-6">
                 {/* Header */}
                 <div className="flex items-start justify-between">
                   <div>
-                    <h2 className="text-[#e2e8f0] text-lg font-bold">{selectedVehicle.reg}</h2>
-                    <p className="text-[#64748b] text-sm mt-0.5">
+                    <h2 className="text-[#f1f5f9] text-lg font-bold">{selectedVehicle.reg}</h2>
+                    <p className="text-[#5a657a] text-sm mt-0.5">
                       {selectedVehicle.make} · {selectedVehicle.type} · {selectedVehicle.color}
                     </p>
                   </div>
                   <Button
                     variant="ghost"
                     onClick={() => setSelectedVehicle(null)}
-                    className="h-8 w-8 p-0 text-[#64748b] hover:text-[#e2e8f0] hover:bg-white/10 rounded-lg"
+                    className="h-8 w-8 p-0 text-[#5a657a] hover:text-[#f1f5f9] hover:bg-white/10 rounded-lg"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -837,12 +837,12 @@ export default function VehiclesPage() {
                     {selectedVehicle.status}
                   </Badge>
                   {selectedVehicle.isStolen && (
-                    <Badge className="bg-red-500/15 text-red-400 border-red-500/30 text-xs">
+                    <Badge className="bg-[#f87171]/15 text-[#f87171] border-[rgba(248,113,113,0.15)] text-xs">
                       <ShieldAlert className="h-3 w-3 mr-1" /> Stolen
                     </Badge>
                   )}
                   {selectedVehicle.underSurveillance && (
-                    <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30 text-xs animate-pulse">
+                    <Badge className="bg-[#fbbf24]/15 text-[#fbbf24] border-[rgba(251,191,36,0.15)] text-xs animate-pulse">
                       <Eye className="h-3 w-3 mr-1" /> Under Surveillance
                     </Badge>
                   )}
@@ -850,7 +850,7 @@ export default function VehiclesPage() {
 
                 {/* Vehicle Details Grid */}
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
-                  <h3 className="text-[#e2e8f0] text-sm font-semibold">Vehicle Details</h3>
+                  <h3 className="text-[#f1f5f9] text-sm font-semibold">Vehicle Details</h3>
                   {[
                     { label: "Registration", value: selectedVehicle.reg },
                     { label: "Type", value: selectedVehicle.type },
@@ -871,8 +871,8 @@ export default function VehiclesPage() {
                     },
                   ].map((item) => (
                     <div key={item.label} className="flex justify-between">
-                      <span className="text-[#64748b] text-sm">{item.label}</span>
-                      <span className="text-[#e2e8f0] text-sm font-medium">{item.value}</span>
+                      <span className="text-[#5a657a] text-sm">{item.label}</span>
+                      <span className="text-[#f1f5f9] text-sm font-medium">{item.value}</span>
                     </div>
                   ))}
                 </div>
@@ -881,19 +881,19 @@ export default function VehiclesPage() {
                 <div className="flex flex-wrap gap-2">
                   <Button
                     onClick={() => handleAction("View Linked FIRs", selectedVehicle)}
-                    className="gap-2 bg-blue-600 hover:bg-blue-700 text-white border-0 rounded-xl text-sm flex-1"
+                    className="gap-2 bg-[#22d3ee] hover:bg-[#06b6d4] text-white border-0 rounded-xl text-sm flex-1"
                   >
                     <Eye className="h-4 w-4" /> View Linked FIRs
                   </Button>
                   <Button
                     onClick={() => handleAction("View on Network", selectedVehicle)}
-                    className="gap-2 bg-white/5 hover:bg-white/10 text-[#e2e8f0] border border-white/10 rounded-xl text-sm flex-1"
+                    className="gap-2 bg-white/5 hover:bg-white/10 text-[#f1f5f9] border border-white/10 rounded-xl text-sm flex-1"
                   >
                     <Network className="h-4 w-4" /> View on Network
                   </Button>
                   <Button
                     onClick={() => setShowNoteDialog(true)}
-                    className="gap-2 bg-white/5 hover:bg-white/10 text-[#e2e8f0] border border-white/10 rounded-xl text-sm flex-1"
+                    className="gap-2 bg-white/5 hover:bg-white/10 text-[#f1f5f9] border border-white/10 rounded-xl text-sm flex-1"
                   >
                     <StickyNote className="h-4 w-4" /> Add Note
                   </Button>
@@ -902,8 +902,8 @@ export default function VehiclesPage() {
                 {/* Linked FIRs */}
                 {selectedVehicle.linkedFirs.length > 0 && (
                   <div className="space-y-3">
-                    <h3 className="text-[#e2e8f0] text-sm font-semibold flex items-center gap-2">
-                      <Link2 className="h-4 w-4 text-blue-400" />
+                    <h3 className="text-[#f1f5f9] text-sm font-semibold flex items-center gap-2">
+                      <Link2 className="h-4 w-4 text-[#22d3ee]" />
                       Linked FIRs ({selectedVehicle.linkedFirs.length})
                     </h3>
                     <div className="space-y-2">
@@ -919,15 +919,15 @@ export default function VehiclesPage() {
                             }}
                           >
                             <div className="flex items-center justify-between">
-                              <span className="text-[#e2e8f0] text-sm font-mono font-medium">
+                              <span className="text-[#f1f5f9] text-sm font-mono font-medium">
                                 {fir.fir_id}
                               </span>
-                              <Badge className="text-[10px] bg-blue-500/15 text-blue-400 border-blue-500/30">
+                              <Badge className="text-[10px] bg-[#22d3ee]/15 text-[#22d3ee] border-[rgba(34,211,238,0.15)]">
                                 {fir.crime_type}
                               </Badge>
                             </div>
                             <div className="flex items-center gap-3 mt-1.5">
-                              <span className="text-[#94a3b8] text-xs flex items-center gap-1">
+                              <span className="text-[#8b97b0] text-xs flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
                                 {new Date(fir.date).toLocaleDateString("en-IN", {
                                   day: "2-digit",
@@ -935,11 +935,11 @@ export default function VehiclesPage() {
                                   year: "numeric",
                                 })}
                               </span>
-                              <span className="text-[#94a3b8] text-xs flex items-center gap-1">
+                              <span className="text-[#8b97b0] text-xs flex items-center gap-1">
                                 <MapPin className="h-3 w-3" />
                                 {fir.district}
                               </span>
-                              <span className="text-[#94a3b8] text-xs flex items-center gap-1">
+                              <span className="text-[#8b97b0] text-xs flex items-center gap-1">
                                 <ShieldAlert className="h-3 w-3" />
                                 {fir.severity}
                               </span>
@@ -953,8 +953,8 @@ export default function VehiclesPage() {
                 {/* Usage Timeline */}
                 {selectedVehicle.linkedFirs.length > 1 && (
                   <div className="space-y-3">
-                    <h3 className="text-[#e2e8f0] text-sm font-semibold flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-amber-400" />
+                    <h3 className="text-[#f1f5f9] text-sm font-semibold flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-[#fbbf24]" />
                       Usage Timeline
                     </h3>
                     <div className="relative pl-6 space-y-4">
@@ -966,20 +966,20 @@ export default function VehiclesPage() {
                             <div
                               className="absolute -left-[18px] top-1.5 h-3 w-3 rounded-full border-2"
                               style={{
-                                borderColor: i === 0 ? "#3b82f6" : "#f59e0b",
-                                backgroundColor: i === 0 ? "#3b82f6" : "#f59e0b",
+                                borderColor: i === 0 ? "#22d3ee" : "#fbbf24",
+                                backgroundColor: i === 0 ? "#22d3ee" : "#fbbf24",
                               }}
                             />
                             <div className="rounded-lg border border-white/10 bg-white/5 p-3">
                               <div className="flex items-center justify-between">
-                                <span className="text-[#e2e8f0] text-sm font-medium">
+                                <span className="text-[#f1f5f9] text-sm font-medium">
                                   {fir.crime_type}
                                 </span>
-                                <span className="text-[#64748b] text-xs">
+                                <span className="text-[#5a657a] text-xs">
                                   {new Date(fir.date).toLocaleDateString("en-IN")}
                                 </span>
                               </div>
-                              <p className="text-[#94a3b8] text-xs mt-1">
+                              <p className="text-[#8b97b0] text-xs mt-1">
                                 {fir.district} · {fir.location.place}
                               </p>
                             </div>
@@ -1009,10 +1009,10 @@ export default function VehiclesPage() {
 
       {/* ── Note Dialog ── */}
       <Dialog open={showNoteDialog} onOpenChange={setShowNoteDialog}>
-        <DialogContent className="bg-[#1a2035] border-white/10 text-[#e2e8f0] sm:max-w-md">
+        <DialogContent className="bg-[rgba(15,21,36,0.45)] border-white/10 text-[#f1f5f9] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Add Note — {selectedVehicle?.reg}</DialogTitle>
-            <DialogDescription className="text-[#64748b]">
+            <DialogDescription className="text-[#5a657a]">
               Add an investigative note to this vehicle record
             </DialogDescription>
           </DialogHeader>
@@ -1021,20 +1021,20 @@ export default function VehiclesPage() {
             onChange={(e) => setNoteText(e.target.value)}
             placeholder="Enter your note here..."
             rows={4}
-            className="bg-white/5 border-white/10 text-[#e2e8f0] placeholder:text-[#4a5568] focus-visible:border-blue-500/50 focus-visible:ring-blue-500/20 rounded-xl"
+            className="bg-white/5 border-white/10 text-[#f1f5f9] placeholder:text-[#3d4659] focus-visible:border-[rgba(34,211,238,0.3)] focus-visible:ring-[rgba(34,211,238,0.2)] rounded-xl"
           />
           <DialogFooter>
             <Button
               variant="ghost"
               onClick={() => { setShowNoteDialog(false); setNoteText(""); }}
-              className="text-[#94a3b8] hover:text-[#e2e8f0] hover:bg-white/10 rounded-xl"
+              className="text-[#8b97b0] hover:text-[#f1f5f9] hover:bg-white/10 rounded-xl"
             >
               Cancel
             </Button>
             <Button
               onClick={handleAddNote}
               disabled={!noteText.trim()}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 rounded-xl"
+              className="bg-[#34d399] hover:bg-[#2bc48a] text-white border-0 rounded-xl"
             >
               Save Note
             </Button>

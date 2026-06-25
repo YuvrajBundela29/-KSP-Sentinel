@@ -235,9 +235,9 @@ function formatTimestamp(dateStr: string): string {
 // ─── Status Badge ───────────────────────────────────────────────────
 function StatusBadge({ status }: { status: AuditLogEntry["status"] }) {
   const config = {
-    success: { bg: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", icon: <CheckCircle2 className="h-3 w-3" /> },
-    failure: { bg: "bg-red-500/15 text-red-400 border-red-500/30", icon: <XCircle className="h-3 w-3" /> },
-    pending: { bg: "bg-amber-500/15 text-amber-400 border-amber-500/30", icon: <Clock className="h-3 w-3" /> },
+    success: { bg: "bg-[#34d399]/15 text-[#34d399] border-[rgba(52,211,153,0.15)]", icon: <CheckCircle2 className="h-3 w-3" /> },
+    failure: { bg: "bg-[#f87171]/15 text-[#f87171] border-[rgba(248,113,113,0.15)]", icon: <XCircle className="h-3 w-3" /> },
+    pending: { bg: "bg-[#fbbf24]/15 text-[#fbbf24] border-[rgba(251,191,36,0.15)]", icon: <Clock className="h-3 w-3" /> },
   };
   const c = config[status];
   return (
@@ -351,10 +351,10 @@ export default function AuditLogs() {
   const openDetail = (log: AuditLogEntry) => { setSelectedLog(log); setShowDetail(true); };
 
   const statCards = [
-    { label: "Total Actions", value: animTotal, icon: <Activity className="h-5 w-5" />, color: "#3b82f6", delay: 0 },
-    { label: "Success Rate", value: animRate, suffix: "%", icon: <CheckCircle2 className="h-5 w-5" />, color: "#10b981", delay: 1 },
-    { label: "Failed Actions", value: animFailed, icon: <XCircle className="h-5 w-5" />, color: "#ef4444", delay: 2 },
-    { label: "Active Users", value: animUsers, icon: <Users className="h-5 w-5" />, color: "#f59e0b", delay: 3 },
+    { label: "Total Actions", value: animTotal, icon: <Activity className="h-5 w-5" />, color: "#22d3ee", delay: 0 },
+    { label: "Success Rate", value: animRate, suffix: "%", icon: <CheckCircle2 className="h-5 w-5" />, color: "#34d399", delay: 1 },
+    { label: "Failed Actions", value: animFailed, icon: <XCircle className="h-5 w-5" />, color: "#f87171", delay: 2 },
+    { label: "Active Users", value: animUsers, icon: <Users className="h-5 w-5" />, color: "#fbbf24", delay: 3 },
   ];
 
   if (loading) {
@@ -370,13 +370,13 @@ export default function AuditLogs() {
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
-          <h1 className="text-[#e2e8f0] text-2xl font-bold tracking-tight">Audit Logs</h1>
-          <p className="text-[#64748b] text-sm mt-1">Complete activity trail with real-time monitoring</p>
+          <h1 className="text-[#f1f5f9] text-2xl font-bold tracking-tight">Audit Logs</h1>
+          <p className="text-[#5a657a] text-sm mt-1">Complete activity trail with real-time monitoring</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2">
-            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-emerald-400 text-xs font-medium">Live</span>
+          <div className="flex items-center gap-2 rounded-xl border border-[rgba(52,211,153,0.15)] bg-[#34d399]/10 px-4 py-2">
+            <div className="h-2 w-2 rounded-full bg-[#34d399] animate-pulse" />
+            <span className="text-[#34d399] text-xs font-medium">Live</span>
           </div>
         </div>
       </motion.div>
@@ -396,10 +396,10 @@ export default function AuditLogs() {
               style={{ background: `linear-gradient(135deg, ${sc.color}08 0%, transparent 60%)` }} />
             <div className="relative flex items-start justify-between p-5">
               <div>
-                <span className="text-[#64748b] text-xs font-medium uppercase tracking-wider">{sc.label}</span>
+                <span className="text-[#5a657a] text-xs font-medium uppercase tracking-wider">{sc.label}</span>
                 <div className="flex items-baseline gap-1 mt-1">
-                  <span className="text-[#e2e8f0] text-3xl font-bold tabular-nums">{sc.value}</span>
-                  {sc.suffix && <span className="text-[#64748b] text-sm">{sc.suffix}</span>}
+                  <span className="text-[#f1f5f9] text-3xl font-bold tabular-nums">{sc.value}</span>
+                  {sc.suffix && <span className="text-[#5a657a] text-sm">{sc.suffix}</span>}
                 </div>
               </div>
               <div className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: `${sc.color}15`, color: sc.color }}>
@@ -418,18 +418,18 @@ export default function AuditLogs() {
         className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5"
       >
         <div className="flex items-center gap-2 mb-4">
-          <Filter className="h-4 w-4 text-[#64748b]" />
-          <span className="text-[#e2e8f0] text-sm font-semibold">Filters</span>
+          <Filter className="h-4 w-4 text-[#5a657a]" />
+          <span className="text-[#f1f5f9] text-sm font-semibold">Filters</span>
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
           {/* Search */}
           <div className="relative xl:col-span-2">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748b]" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#5a657a]" />
             <Input
               placeholder="Search all fields..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 bg-white/5 border-white/10 text-[#e2e8f0] placeholder:text-[#4a5568] h-9"
+              className="pl-9 bg-white/5 border-white/10 text-[#f1f5f9] placeholder:text-[#3d4659] h-9"
             />
           </div>
           {/* Date From */}
@@ -437,21 +437,21 @@ export default function AuditLogs() {
             type="date"
             value={filterFrom}
             onChange={(e) => setFilterFrom(e.target.value)}
-            className="bg-white/5 border-white/10 text-[#e2e8f0] h-9"
+            className="bg-white/5 border-white/10 text-[#f1f5f9] h-9"
           />
           {/* Date To */}
           <Input
             type="date"
             value={filterTo}
             onChange={(e) => setFilterTo(e.target.value)}
-            className="bg-white/5 border-white/10 text-[#e2e8f0] h-9"
+            className="bg-white/5 border-white/10 text-[#f1f5f9] h-9"
           />
           {/* User */}
           <Select value={filterUser} onValueChange={setFilterUser}>
-            <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#e2e8f0] h-9">
+            <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#f1f5f9] h-9">
               <SelectValue placeholder="All Users" />
             </SelectTrigger>
-            <SelectContent className="bg-[#1a2035] border-[#2a3550]">
+            <SelectContent className="bg-[rgba(15,21,36,0.95)] border-[rgba(255,255,255,0.06)]">
               <SelectItem value="all">All Users</SelectItem>
               {USERS.map((u) => (
                 <SelectItem key={u.name} value={u.name}>{u.name}</SelectItem>
@@ -460,10 +460,10 @@ export default function AuditLogs() {
           </Select>
           {/* Action */}
           <Select value={filterAction} onValueChange={setFilterAction}>
-            <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#e2e8f0] h-9">
+            <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#f1f5f9] h-9">
               <SelectValue placeholder="All Actions" />
             </SelectTrigger>
-            <SelectContent className="bg-[#1a2035] border-[#2a3550]">
+            <SelectContent className="bg-[rgba(15,21,36,0.95)] border-[rgba(255,255,255,0.06)]">
               <SelectItem value="all">All Actions</SelectItem>
               {ACTIONS.map((a) => (
                 <SelectItem key={a} value={a}>{a.replace(/_/g, " ")}</SelectItem>
@@ -472,10 +472,10 @@ export default function AuditLogs() {
           </Select>
           {/* Status */}
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#e2e8f0] h-9">
+            <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#f1f5f9] h-9">
               <SelectValue placeholder="All Status" />
             </SelectTrigger>
-            <SelectContent className="bg-[#1a2035] border-[#2a3550]">
+            <SelectContent className="bg-[rgba(15,21,36,0.95)] border-[rgba(255,255,255,0.06)]">
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="success">Success</SelectItem>
               <SelectItem value="failure">Failure</SelectItem>
@@ -486,10 +486,10 @@ export default function AuditLogs() {
         {/* Entity filter as separate row on small screens */}
         <div className="mt-3 flex gap-3">
           <Select value={filterEntity} onValueChange={setFilterEntity}>
-            <SelectTrigger className="w-full sm:w-48 bg-white/5 border-white/10 text-[#e2e8f0] h-9">
+            <SelectTrigger className="w-full sm:w-48 bg-white/5 border-white/10 text-[#f1f5f9] h-9">
               <SelectValue placeholder="All Entities" />
             </SelectTrigger>
-            <SelectContent className="bg-[#1a2035] border-[#2a3550]">
+            <SelectContent className="bg-[rgba(15,21,36,0.95)] border-[rgba(255,255,255,0.06)]">
               <SelectItem value="all">All Entities</SelectItem>
               {ENTITIES.map((e) => (
                 <SelectItem key={e} value={e}>{e}</SelectItem>
@@ -500,7 +500,7 @@ export default function AuditLogs() {
             <Button
               variant="ghost"
               size="sm"
-              className="text-[#64748b] hover:text-[#e2e8f0] gap-1"
+              className="text-[#5a657a] hover:text-[#f1f5f9] gap-1"
               onClick={() => { setFilterUser("all"); setFilterAction("all"); setFilterEntity("all"); setFilterStatus("all"); setFilterFrom(""); setFilterTo(""); setSearch(""); }}
             >
               <RefreshCw className="h-3 w-3" /> Clear Filters
@@ -516,17 +516,17 @@ export default function AuditLogs() {
         transition={{ delay: 0.4 }}
         className="flex items-center gap-2"
       >
-        <span className="text-[#64748b] text-xs mr-2">Export:</span>
-        <Button variant="outline" size="sm" className="gap-1.5 border-white/10 bg-white/5 hover:bg-white/10 text-[#94a3b8] hover:text-[#e2e8f0] text-xs rounded-lg" onClick={handleExportCSV}>
+        <span className="text-[#5a657a] text-xs mr-2">Export:</span>
+        <Button variant="outline" size="sm" className="gap-1.5 border-white/10 bg-white/5 hover:bg-white/10 text-[#8b97b0] hover:text-[#f1f5f9] text-xs rounded-lg" onClick={handleExportCSV}>
           <FileSpreadsheet className="h-3.5 w-3.5" /> CSV
         </Button>
-        <Button variant="outline" size="sm" className="gap-1.5 border-white/10 bg-white/5 hover:bg-white/10 text-[#94a3b8] hover:text-[#e2e8f0] text-xs rounded-lg" onClick={handleExportJSON}>
+        <Button variant="outline" size="sm" className="gap-1.5 border-white/10 bg-white/5 hover:bg-white/10 text-[#8b97b0] hover:text-[#f1f5f9] text-xs rounded-lg" onClick={handleExportJSON}>
           <FileJson className="h-3.5 w-3.5" /> JSON
         </Button>
-        <Button variant="outline" size="sm" className="gap-1.5 border-white/10 bg-white/5 hover:bg-white/10 text-[#94a3b8] hover:text-[#e2e8f0] text-xs rounded-lg" onClick={handlePrint}>
+        <Button variant="outline" size="sm" className="gap-1.5 border-white/10 bg-white/5 hover:bg-white/10 text-[#8b97b0] hover:text-[#f1f5f9] text-xs rounded-lg" onClick={handlePrint}>
           <Printer className="h-3.5 w-3.5" /> Print
         </Button>
-        <span className="text-[#4a5568] text-xs ml-2">
+        <span className="text-[#3d4659] text-xs ml-2">
           Showing {filteredLogs.length} of {localLogs.length} entries
         </span>
       </motion.div>
@@ -542,16 +542,16 @@ export default function AuditLogs() {
           <Table>
             <TableHeader>
               <TableRow className="border-white/10 hover:bg-transparent">
-                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Timestamp</TableHead>
-                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">User</TableHead>
-                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Role</TableHead>
-                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Action</TableHead>
-                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Entity</TableHead>
-                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Entity ID</TableHead>
-                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Old Value</TableHead>
-                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">New Value</TableHead>
-                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">IP</TableHead>
-                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Status</TableHead>
+                <TableHead className="text-[#5a657a] text-xs font-semibold uppercase tracking-wider">Timestamp</TableHead>
+                <TableHead className="text-[#5a657a] text-xs font-semibold uppercase tracking-wider">User</TableHead>
+                <TableHead className="text-[#5a657a] text-xs font-semibold uppercase tracking-wider">Role</TableHead>
+                <TableHead className="text-[#5a657a] text-xs font-semibold uppercase tracking-wider">Action</TableHead>
+                <TableHead className="text-[#5a657a] text-xs font-semibold uppercase tracking-wider">Entity</TableHead>
+                <TableHead className="text-[#5a657a] text-xs font-semibold uppercase tracking-wider">Entity ID</TableHead>
+                <TableHead className="text-[#5a657a] text-xs font-semibold uppercase tracking-wider">Old Value</TableHead>
+                <TableHead className="text-[#5a657a] text-xs font-semibold uppercase tracking-wider">New Value</TableHead>
+                <TableHead className="text-[#5a657a] text-xs font-semibold uppercase tracking-wider">IP</TableHead>
+                <TableHead className="text-[#5a657a] text-xs font-semibold uppercase tracking-wider">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -559,9 +559,9 @@ export default function AuditLogs() {
                 <TableRow className="border-white/5">
                   <TableCell colSpan={10} className="text-center py-16">
                     <div className="flex flex-col items-center gap-3">
-                      <Shield className="h-10 w-10 text-[#4a5568]" />
-                      <p className="text-[#64748b] text-sm">No audit logs match your filters</p>
-                      <Button variant="ghost" size="sm" className="text-[#64748b] hover:text-[#e2e8f0]"
+                      <Shield className="h-10 w-10 text-[#3d4659]" />
+                      <p className="text-[#5a657a] text-sm">No audit logs match your filters</p>
+                      <Button variant="ghost" size="sm" className="text-[#5a657a] hover:text-[#f1f5f9]"
                         onClick={() => { setFilterUser("all"); setFilterAction("all"); setFilterEntity("all"); setFilterStatus("all"); setFilterFrom(""); setFilterTo(""); setSearch(""); }}>
                         Clear all filters
                       </Button>
@@ -580,28 +580,28 @@ export default function AuditLogs() {
                       className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer"
                       onClick={() => openDetail(log)}
                     >
-                      <TableCell className="text-[#94a3b8] text-xs py-2.5">
+                      <TableCell className="text-[#8b97b0] text-xs py-2.5">
                         <div>
-                          <div className="text-[#e2e8f0] text-xs">{relativeTime(log.timestamp)}</div>
-                          <div className="text-[#4a5568] text-[10px] mt-0.5">{formatTimestamp(log.timestamp)}</div>
+                          <div className="text-[#f1f5f9] text-xs">{relativeTime(log.timestamp)}</div>
+                          <div className="text-[#3d4659] text-[10px] mt-0.5">{formatTimestamp(log.timestamp)}</div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-[#e2e8f0] text-xs font-medium py-2.5">{log.user}</TableCell>
+                      <TableCell className="text-[#f1f5f9] text-xs font-medium py-2.5">{log.user}</TableCell>
                       <TableCell className="py-2.5">
-                        <span className="text-[#64748b] text-xs bg-white/5 px-2 py-0.5 rounded-md">{log.role}</span>
+                        <span className="text-[#5a657a] text-xs bg-white/5 px-2 py-0.5 rounded-md">{log.role}</span>
                       </TableCell>
                       <TableCell className="py-2.5">
-                        <span className="text-blue-400 text-xs font-medium">{log.action.replace(/_/g, " ")}</span>
+                        <span className="text-[#22d3ee] text-xs font-medium">{log.action.replace(/_/g, " ")}</span>
                       </TableCell>
-                      <TableCell className="text-[#94a3b8] text-xs py-2.5">{log.entity}</TableCell>
-                      <TableCell className="text-[#94a3b8] text-xs font-mono py-2.5">{log.entityId}</TableCell>
-                      <TableCell className="text-[#64748b] text-xs py-2.5 max-w-[140px] truncate" title={log.oldValue}>
+                      <TableCell className="text-[#8b97b0] text-xs py-2.5">{log.entity}</TableCell>
+                      <TableCell className="text-[#8b97b0] text-xs font-mono py-2.5">{log.entityId}</TableCell>
+                      <TableCell className="text-[#5a657a] text-xs py-2.5 max-w-[140px] truncate" title={log.oldValue}>
                         {log.oldValue.length > 30 ? log.oldValue.slice(0, 30) + "..." : log.oldValue}
                       </TableCell>
-                      <TableCell className="text-[#64748b] text-xs py-2.5 max-w-[140px] truncate" title={log.newValue}>
+                      <TableCell className="text-[#5a657a] text-xs py-2.5 max-w-[140px] truncate" title={log.newValue}>
                         {log.newValue.length > 30 ? log.newValue.slice(0, 30) + "..." : log.newValue}
                       </TableCell>
-                      <TableCell className="text-[#4a5568] text-xs font-mono py-2.5">{log.ip}</TableCell>
+                      <TableCell className="text-[#3d4659] text-xs font-mono py-2.5">{log.ip}</TableCell>
                       <TableCell className="py-2.5">
                         <StatusBadge status={log.status} />
                       </TableCell>
@@ -616,11 +616,11 @@ export default function AuditLogs() {
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-5 py-3 border-t border-white/10">
-            <span className="text-[#64748b] text-xs">
+            <span className="text-[#5a657a] text-xs">
               Page {page} of {totalPages} &middot; {PER_PAGE} per page
             </span>
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="sm" className="text-[#64748b] hover:text-[#e2e8f0] h-8 w-8 p-0"
+              <Button variant="ghost" size="sm" className="text-[#5a657a] hover:text-[#f1f5f9] h-8 w-8 p-0"
                 disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -637,13 +637,13 @@ export default function AuditLogs() {
                 }
                 return (
                   <Button key={pageNum} variant={page === pageNum ? "default" : "ghost"} size="sm"
-                    className={`h-8 w-8 p-0 text-xs ${page === pageNum ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "text-[#64748b] hover:text-[#e2e8f0]"}`}
+                    className={`h-8 w-8 p-0 text-xs ${page === pageNum ? "bg-[#34d399] hover:bg-[#34d399] text-white" : "text-[#5a657a] hover:text-[#f1f5f9]"}`}
                     onClick={() => setPage(pageNum)}>
                     {pageNum}
                   </Button>
                 );
               })}
-              <Button variant="ghost" size="sm" className="text-[#64748b] hover:text-[#e2e8f0] h-8 w-8 p-0"
+              <Button variant="ghost" size="sm" className="text-[#5a657a] hover:text-[#f1f5f9] h-8 w-8 p-0"
                 disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -654,12 +654,12 @@ export default function AuditLogs() {
 
       {/* Detail Dialog */}
       <Dialog open={showDetail} onOpenChange={setShowDetail}>
-        <DialogContent className="bg-[#1a2035] border-[#2a3550] max-w-2xl max-h-[85vh] overflow-hidden">
+        <DialogContent className="bg-[rgba(15,21,36,0.95)] border-[rgba(255,255,255,0.06)] max-w-2xl max-h-[85vh] overflow-hidden">
           {selectedLog && (
             <>
               <DialogHeader>
-                <DialogTitle className="text-[#e2e8f0]">Audit Log Detail</DialogTitle>
-                <DialogDescription className="text-[#64748b]">
+                <DialogTitle className="text-[#f1f5f9]">Audit Log Detail</DialogTitle>
+                <DialogDescription className="text-[#5a657a]">
                   Full details for action {selectedLog.action} on {selectedLog.entity}
                 </DialogDescription>
               </DialogHeader>
@@ -678,11 +678,11 @@ export default function AuditLogs() {
                       { label: "Status", value: selectedLog.status.charAt(0).toUpperCase() + selectedLog.status.slice(1) },
                     ].map((item) => (
                       <div key={item.label} className="rounded-xl border border-white/10 bg-white/5 p-3">
-                        <span className="text-[#64748b] text-xs block mb-1">{item.label}</span>
+                        <span className="text-[#5a657a] text-xs block mb-1">{item.label}</span>
                         {item.label === "Status" ? (
                           <StatusBadge status={selectedLog.status} />
                         ) : (
-                          <span className="text-[#e2e8f0] text-sm font-medium">{item.value}</span>
+                          <span className="text-[#f1f5f9] text-sm font-medium">{item.value}</span>
                         )}
                       </div>
                     ))}
@@ -691,19 +691,19 @@ export default function AuditLogs() {
                   {/* Diff View */}
                   <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                     <div className="flex items-center gap-2 mb-3">
-                      <AlertTriangle className="h-4 w-4 text-amber-400" />
-                      <span className="text-[#e2e8f0] text-sm font-semibold">Value Change</span>
+                      <AlertTriangle className="h-4 w-4 text-[#fbbf24]" />
+                      <span className="text-[#f1f5f9] text-sm font-semibold">Value Change</span>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3">
-                        <span className="text-red-400 text-xs font-semibold block mb-2">Old Value</span>
-                        <pre className="text-[#94a3b8] text-xs whitespace-pre-wrap break-words font-mono">
+                      <div className="rounded-lg border border-red-500/20 bg-[#f87171]/5 p-3">
+                        <span className="text-[#f87171] text-xs font-semibold block mb-2">Old Value</span>
+                        <pre className="text-[#8b97b0] text-xs whitespace-pre-wrap break-words font-mono">
                           {selectedLog.oldValue || "—"}
                         </pre>
                       </div>
-                      <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3">
-                        <span className="text-emerald-400 text-xs font-semibold block mb-2">New Value</span>
-                        <pre className="text-[#94a3b8] text-xs whitespace-pre-wrap break-words font-mono">
+                      <div className="rounded-lg border border-[rgba(52,211,153,0.12)] bg-[#34d399]/5 p-3">
+                        <span className="text-[#34d399] text-xs font-semibold block mb-2">New Value</span>
+                        <pre className="text-[#8b97b0] text-xs whitespace-pre-wrap break-words font-mono">
                           {selectedLog.newValue || "—"}
                         </pre>
                       </div>

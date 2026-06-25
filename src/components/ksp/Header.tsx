@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAppStore } from "@/lib/store";
-import { Button } from "@/components/ui/button";
-import { Languages, Bell, X, Check } from "lucide-react";
+import { Languages, Bell, X, Check, Wifi, Activity } from "lucide-react";
 
 const VIEW_LABELS: Record<string, Record<string, string>> = {
   en: {
@@ -25,6 +25,9 @@ const VIEW_LABELS: Record<string, Record<string, string>> = {
     "dm-audit": "Audit Logs",
     "dm-ai-queue": "AI Processing Queue",
     "dm-settings": "Settings",
+    "dm-sociological": "Sociological Insights",
+    "dm-forecasting": "Crime Forecasting",
+    "dm-financial-network": "Financial Network",
   },
   kn: {
     dashboard: "ಮಿಷನ್ ಕಂಟ್ರೋಲ್",
@@ -45,14 +48,17 @@ const VIEW_LABELS: Record<string, Record<string, string>> = {
     "dm-audit": "ಆಡಿಟ್ ಲಾಗ್‌ಗಳು",
     "dm-ai-queue": "AI ಪ್ರಕ್ರಿಯೆ",
     "dm-settings": "ಸೆಟ್ಟಿಂಗ್‌ಗಳು",
+    "dm-sociological": "ಸಾಮಾಜಿಕ ಒಳನೋಟ",
+    "dm-forecasting": "ಅಪರಾಧ ಮುನ್ಸೂಚನೆ",
+    "dm-financial-network": "ಹಣಕಾಸು ನೆಟ್‌ವರ್ಕ್",
   },
 };
 
 const NOTIF_COLORS: Record<string, string> = {
-  info: "bg-blue-500",
-  warning: "bg-amber-500",
-  error: "bg-red-500",
-  success: "bg-emerald-500",
+  info: "#22d3ee",
+  warning: "#fbbf24",
+  error: "#f87171",
+  success: "#34d399",
 };
 
 export default function Header() {
@@ -61,6 +67,7 @@ export default function Header() {
   const toggleLang = useAppStore((s) => s.toggleLang);
   const notifications = useAppStore((s) => s.notifications);
   const markNotificationRead = useAppStore((s) => s.markNotificationRead);
+  const user = useAppStore((s) => s.user);
   const [clock, setClock] = useState("");
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -69,13 +76,10 @@ export default function Header() {
     const update = () => {
       setClock(
         new Date().toLocaleString("en-IN", {
-          weekday: "short",
-          year: "numeric",
-          month: "short",
-          day: "numeric",
           hour: "2-digit",
           minute: "2-digit",
           second: "2-digit",
+          hour12: false,
         })
       );
     };
@@ -97,99 +101,185 @@ export default function Header() {
   const labels = VIEW_LABELS[lang];
   const viewTitle = labels[currentView] || currentView;
   const unreadCount = notifications.filter((n) => !n.read).length;
+  const isDM = currentView.startsWith("dm-");
 
   const formatTime = (ts: string) => {
     const diff = Date.now() - new Date(ts).getTime();
     if (diff < 60000) return "Just now";
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`;
     return new Date(ts).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
   };
 
+  // Breadcrumb segments
+  const breadcrumbs = isDM
+    ? [{ label: "Data Management", view: "dm-dashboard" as const }, { label: viewTitle }]
+    : [{ label: viewTitle }];
+
   return (
-    <header className="h-14 bg-[#0d1326]/80 backdrop-blur-xl border-b border-[#2a3550] flex items-center justify-between px-6 sticky top-0 z-30">
-      <div className="flex items-center gap-3 lg:pl-0 pl-10">
-        <h1 className="text-lg font-semibold text-[#e2e8f0]">{viewTitle}</h1>
-        {currentView.startsWith("dm-") && (
-          <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-medium border border-emerald-500/30">
-            DATA MGMT
+    <header
+      className="h-12 flex items-center justify-between px-5 sticky top-0 z-30 border-b flex-shrink-0"
+      style={{
+        background: "rgba(5,8,16,0.8)",
+        backdropFilter: "blur(20px)",
+        borderBottom: "1px solid rgba(255,255,255,0.04)",
+      }}
+    >
+      {/* Left: Breadcrumbs */}
+      <div className="flex items-center gap-2 lg:pl-0 pl-10 min-w-0">
+        {breadcrumbs.map((crumb, i) => (
+          <div key={i} className="flex items-center gap-2 min-w-0">
+            {i > 0 && (
+              <span className="text-[10px]" style={{ color: "#3d4659" }}>/</span>
+            )}
+            <h1 className="text-[13px] font-semibold truncate" style={{ color: "#f1f5f9" }}>
+              {crumb.label}
+            </h1>
+          </div>
+        ))}
+        {isDM && (
+          <span className="hidden sm:inline-flex items-center text-[9px] px-2 py-0.5 rounded-full font-semibold tracking-wider uppercase flex-shrink-0"
+            style={{ background: "rgba(129,140,248,0.08)", color: "#818cf8", border: "1px solid rgba(129,140,248,0.12)" }}>
+            Data Mgmt
           </span>
         )}
       </div>
-      <div className="flex items-center gap-3">
-        <span className="text-xs text-[#94a3b8] hidden md:block font-mono">{clock}</span>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={toggleLang}
-          className="text-[#94a3b8] hover:text-blue-400 hover:bg-blue-500/10"
-        >
-          <Languages className="w-4 h-4 mr-1" />
-          <span className="hidden sm:inline">{lang === "en" ? "ಕನ್ನಡ" : "English"}</span>
-        </Button>
-        <div className="relative" ref={notifRef}>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setNotifOpen(!notifOpen)}
-            className="text-[#94a3b8] hover:text-blue-400 hover:bg-blue-500/10 relative"
-          >
-            <Bell className="w-4 h-4" />
-            {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold">
-                {unreadCount}
-              </span>
-            )}
-          </Button>
-          {notifOpen && (
-            <div className="absolute right-0 top-12 w-80 bg-[#0d1326] border border-[#2a3550] rounded-xl shadow-2xl shadow-black/50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-[#2a3550]">
-                <span className="text-sm font-semibold text-[#e2e8f0]">Notifications</span>
-                <button
-                  onClick={() => notifications.forEach((n) => markNotificationRead(n.id))}
-                  className="text-[10px] text-blue-400 hover:text-blue-300 flex items-center gap-1"
-                >
-                  <Check className="w-3 h-3" /> Mark all read
-                </button>
-              </div>
-              <div className="max-h-72 overflow-y-auto">
-                {notifications.length === 0 ? (
-                  <div className="p-6 text-center text-xs text-[#4a5568]">No notifications</div>
-                ) : (
-                  notifications.slice(0, 10).map((n) => (
-                    <div
-                      key={n.id}
-                      onClick={() => markNotificationRead(n.id)}
-                      className={`px-4 py-3 border-b border-[#2a3550]/50 hover:bg-[#1a2035] cursor-pointer transition-colors ${
-                        !n.read ? "bg-blue-500/5" : ""
-                      }`}
-                    >
-                      <div className="flex items-start gap-2">
-                        <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${NOTIF_COLORS[n.type]}`} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-[#e2e8f0] truncate">{n.title}</p>
-                          <p className="text-[11px] text-[#64748b] mt-0.5 line-clamp-2">{n.message}</p>
-                          <p className="text-[10px] text-[#4a5568] mt-1">{formatTime(n.timestamp)}</p>
-                        </div>
-                        {!n.read && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              markNotificationRead(n.id);
-                            }}
-                            className="text-[#4a5568] hover:text-[#94a3b8] flex-shrink-0"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
+
+      {/* Right: Controls */}
+      <div className="flex items-center gap-1.5">
+        {/* System Status */}
+        <div className="hidden md:flex items-center gap-2 mr-2 px-2.5 py-1 rounded-lg" style={{ background: "rgba(52,211,153,0.05)" }}>
+          <div className="flex items-center gap-1">
+            <Wifi className="w-3 h-3" style={{ color: "#34d399" }} />
+            <span className="text-[10px] font-medium" style={{ color: "#34d399" }}>Online</span>
+          </div>
+          <span className="text-[10px]" style={{ color: "#3d4659" }}>|</span>
+          <div className="flex items-center gap-1">
+            <Activity className="w-3 h-3" style={{ color: "#22d3ee" }} />
+            <span className="text-[10px] font-mono" style={{ color: "#5a657a" }}>{clock}</span>
+          </div>
         </div>
+
+        {/* Language Toggle */}
+        <button
+          onClick={toggleLang}
+          className="flex items-center justify-center w-8 h-8 rounded-lg cursor-pointer transition-all duration-200"
+          style={{ color: "#5a657a" }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = "#c8d0e0"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#5a657a"; }}
+          title={lang === "en" ? "Switch to Kannada" : "Switch to English"}
+        >
+          <Languages className="w-3.5 h-3.5" />
+        </button>
+
+        {/* Notification Bell */}
+        <div className="relative" ref={notifRef}>
+          <button
+            onClick={() => setNotifOpen(!notifOpen)}
+            className="flex items-center justify-center w-8 h-8 rounded-lg cursor-pointer transition-all duration-200 relative"
+            style={{ color: notifOpen ? "#c8d0e0" : "#5a657a" }}
+            onMouseEnter={(e) => { if (!notifOpen) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = "#c8d0e0"; }}
+            onMouseLeave={(e) => { if (!notifOpen) e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#5a657a"; }}
+          >
+            <Bell className="w-3.5 h-3.5" />
+            {unreadCount > 0 && (
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-bold"
+                style={{ background: "#f87171", color: "#050810" }}
+              >
+                {unreadCount}
+              </motion.span>
+            )}
+          </button>
+
+          <AnimatePresence>
+            {notifOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                transition={{ duration: 0.15 }}
+                className="absolute right-0 top-11 w-80 rounded-xl overflow-hidden border-glow"
+                style={{
+                  background: "rgba(15,21,36,0.95)",
+                  backdropFilter: "blur(32px)",
+                  boxShadow: "0 24px 48px -8px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)",
+                  zIndex: 100,
+                }}
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                  <span className="text-xs font-semibold" style={{ color: "#f1f5f9" }}>Notifications</span>
+                  {notifications.some((n) => !n.read) && (
+                    <button
+                      onClick={() => notifications.forEach((n) => markNotificationRead(n.id))}
+                      className="flex items-center gap-1 text-[10px] cursor-pointer transition-colors"
+                      style={{ color: "#22d3ee" }}
+                    >
+                      <Check className="w-3 h-3" /> Mark all read
+                    </button>
+                  )}
+                </div>
+
+                {/* List */}
+                <div className="max-h-72 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="py-8 text-center">
+                      <Bell className="w-5 h-5 mx-auto mb-2" style={{ color: "#3d4659" }} />
+                      <p className="text-[11px]" style={{ color: "#3d4659" }}>No notifications</p>
+                    </div>
+                  ) : (
+                    notifications.slice(0, 10).map((n) => (
+                      <motion.div
+                        key={n.id}
+                        initial={false}
+                        whileHover={{ background: "rgba(255,255,255,0.02)" }}
+                        onClick={() => markNotificationRead(n.id)}
+                        className="px-4 py-3 cursor-pointer transition-colors"
+                        style={{
+                          borderBottom: "1px solid rgba(255,255,255,0.03)",
+                          background: !n.read ? "rgba(34,211,238,0.02)" : "transparent",
+                        }}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: NOTIF_COLORS[n.type] || "#5a657a" }} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium truncate" style={{ color: "#c8d0e0" }}>{n.title}</p>
+                            <p className="text-[11px] mt-0.5 line-clamp-2" style={{ color: "#5a657a" }}>{n.message}</p>
+                            <p className="text-[10px] mt-1" style={{ color: "#3d4659" }}>{formatTime(n.timestamp)}</p>
+                          </div>
+                          {!n.read && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); markNotificationRead(n.id); }}
+                              className="cursor-pointer transition-colors flex-shrink-0"
+                              style={{ color: "#3d4659" }}
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* User Avatar */}
+        {user && (
+          <div className="hidden sm:flex items-center justify-center w-8 h-8 rounded-lg cursor-pointer transition-all duration-200"
+            style={{ background: "linear-gradient(135deg, rgba(34,211,238,0.12), rgba(129,140,248,0.08))", border: "1px solid rgba(34,211,238,0.1)" }}
+            title={`${user.username} (${user.role})`}
+          >
+            <span className="text-[10px] font-bold" style={{ color: "#22d3ee" }}>
+              {user.username.slice(0, 2).toUpperCase()}
+            </span>
+          </div>
+        )}
       </div>
     </header>
   );

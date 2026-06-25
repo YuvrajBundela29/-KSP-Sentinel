@@ -104,33 +104,33 @@ function StatCard({
       <div className="relative flex items-start justify-between p-5">
         <div className="flex-1">
           <div className="mb-1 flex items-center gap-2">
-            <span className="text-[#64748b] text-xs font-medium uppercase tracking-wider">
+            <span className="text-[#5a657a] text-xs font-medium uppercase tracking-wider">
               {label}
             </span>
           </div>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-[#e2e8f0] text-3xl font-bold tabular-nums">
+            <span className="text-[#f1f5f9] text-3xl font-bold tabular-nums">
               {isPercent ? `${animatedValue}%` : animatedValue.toLocaleString("en-IN")}
             </span>
             {suffix && (
-              <span className="text-[#64748b] text-sm">{suffix}</span>
+              <span className="text-[#5a657a] text-sm">{suffix}</span>
             )}
           </div>
           <div className="mt-2 flex items-center gap-1.5">
             {trend >= 0 ? (
-              <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
+              <TrendingUp className="h-3.5 w-3.5 text-[#34d399]" />
             ) : (
-              <TrendingDown className="h-3.5 w-3.5 text-red-400" />
+              <TrendingDown className="h-3.5 w-3.5 text-[#f87171]" />
             )}
             <span
               className={`text-xs font-medium ${
-                trend >= 0 ? "text-emerald-400" : "text-red-400"
+                trend >= 0 ? "text-[#34d399]" : "text-[#f87171]"
               }`}
             >
               {trend >= 0 ? "+" : ""}
               {trend}%
             </span>
-            <span className="text-[#4a5568] text-xs">vs last month</span>
+            <span className="text-[#3d4659] text-xs">vs last month</span>
           </div>
         </div>
         <div
@@ -159,10 +159,10 @@ interface ActivityItem {
 
 function ActivityTimeline({ items }: { items: ActivityItem[] }) {
   const statusColor: Record<string, string> = {
-    success: "bg-emerald-500",
-    warning: "bg-amber-500",
-    error: "bg-red-500",
-    info: "bg-blue-500",
+    success: "bg-[#34d399]",
+    warning: "bg-[#fbbf24]",
+    error: "bg-[#f87171]",
+    info: "bg-[#22d3ee]",
   };
 
   return (
@@ -179,7 +179,7 @@ function ActivityTimeline({ items }: { items: ActivityItem[] }) {
             <div
               className={`h-2.5 w-2.5 rounded-full ${
                 statusColor[item.status]
-              } ring-4 ring-[#0a0f1e]`}
+              } ring-4 ring-[rgba(15,21,36,0.45)]`}
             />
             {idx < items.length - 1 && (
               <div className="absolute left-1 top-3.5 h-full w-px bg-white/10" />
@@ -187,12 +187,12 @@ function ActivityTimeline({ items }: { items: ActivityItem[] }) {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[#e2e8f0] text-sm font-medium truncate">
+              <span className="text-[#f1f5f9] text-sm font-medium truncate">
                 {item.action}
               </span>
-              <span className="text-[#4a5568] text-xs shrink-0">{item.time}</span>
+              <span className="text-[#3d4659] text-xs shrink-0">{item.time}</span>
             </div>
-            <p className="text-[#64748b] text-xs mt-0.5 truncate">{item.detail}</p>
+            <p className="text-[#5a657a] text-xs mt-0.5 truncate">{item.detail}</p>
           </div>
         </motion.div>
       ))}
@@ -256,11 +256,11 @@ export default function DataManagementDashboard() {
         id: log.id,
         icon:
           log.status === "success" ? (
-            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+            <CheckCircle2 className="h-4 w-4 text-[#34d399]" />
           ) : log.status === "failure" ? (
-            <XCircle className="h-4 w-4 text-red-400" />
+            <XCircle className="h-4 w-4 text-[#f87171]" />
           ) : (
-            <AlertCircle className="h-4 w-4 text-amber-400" />
+            <AlertCircle className="h-4 w-4 text-[#fbbf24]" />
           ),
         action: `${log.action} — ${log.entity}`,
         detail: `by ${log.user} (${log.role})`,
@@ -275,7 +275,7 @@ export default function DataManagementDashboard() {
     return [
       {
         id: "a1",
-        icon: <CheckCircle2 className="h-4 w-4 text-emerald-400" />,
+        icon: <CheckCircle2 className="h-4 w-4 text-[#34d399]" />,
         action: "FIR-2024-KA-0042 processed by AI",
         detail: "Entity extraction completed with 94% confidence",
         time: "2 min ago",
@@ -283,7 +283,7 @@ export default function DataManagementDashboard() {
       },
       {
         id: "a2",
-        icon: <AlertCircle className="h-4 w-4 text-amber-400" />,
+        icon: <AlertCircle className="h-4 w-4 text-[#fbbf24]" />,
         action: "Duplicate case detected",
         detail: "FIR-2024-KA-0038 matches FIR-2024-KA-0015 (87%)",
         time: "8 min ago",
@@ -291,7 +291,7 @@ export default function DataManagementDashboard() {
       },
       {
         id: "a3",
-        icon: <Info className="h-4 w-4 text-blue-400" />,
+        icon: <Info className="h-4 w-4 text-[#22d3ee]" />,
         action: "Import job completed",
         detail: "crime_data_jan.csv — 1,247 rows processed",
         time: "23 min ago",
@@ -299,7 +299,7 @@ export default function DataManagementDashboard() {
       },
       {
         id: "a4",
-        icon: <Upload className="h-4 w-4 text-blue-400" />,
+        icon: <Upload className="h-4 w-4 text-[#22d3ee]" />,
         action: "Evidence uploaded",
         detail: "cctv_footage.mp4 (248 MB) linked to FIR-2024-KA-0040",
         time: "1 hr ago",
@@ -307,7 +307,7 @@ export default function DataManagementDashboard() {
       },
       {
         id: "a5",
-        icon: <XCircle className="h-4 w-4 text-red-400" />,
+        icon: <XCircle className="h-4 w-4 text-[#f87171]" />,
         action: "AI processing failed",
         detail: "OCR timeout on scanned_document_023.pdf",
         time: "2 hr ago",
@@ -338,17 +338,17 @@ export default function DataManagementDashboard() {
         className="flex items-center justify-between"
       >
         <div>
-          <h1 className="text-[#e2e8f0] text-2xl font-bold tracking-tight">
+          <h1 className="text-[#f1f5f9] text-2xl font-bold tracking-tight">
             Data Management
           </h1>
-          <p className="text-[#64748b] text-sm mt-1">
+          <p className="text-[#5a657a] text-sm mt-1">
             Executive overview of crime data pipeline, AI processing, and system health
           </p>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-xl">
-            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[#94a3b8] text-xs">System Online</span>
+            <div className="h-2 w-2 rounded-full bg-[#34d399] animate-pulse" />
+            <span className="text-[#8b97b0] text-xs">System Online</span>
           </div>
         </div>
       </motion.div>
@@ -360,7 +360,7 @@ export default function DataManagementDashboard() {
           label="Total FIRs"
           value={stats.totalFirs}
           trend={12.5}
-          gradientColor="#3b82f6"
+          gradientColor="#22d3ee"
           delay={0}
         />
         <StatCard
@@ -368,7 +368,7 @@ export default function DataManagementDashboard() {
           label="Today's FIRs"
           value={stats.todayFirs}
           trend={-8.3}
-          gradientColor="#10b981"
+          gradientColor="#34d399"
           delay={1}
         />
         <StatCard
@@ -376,7 +376,7 @@ export default function DataManagementDashboard() {
           label="Pending AI Processing"
           value={stats.pendingAI}
           trend={23.1}
-          gradientColor="#8b5cf6"
+          gradientColor="#818cf8"
           delay={2}
         />
         <StatCard
@@ -385,7 +385,7 @@ export default function DataManagementDashboard() {
           value={stats.totalEvidence}
           suffix="items"
           trend={15.7}
-          gradientColor="#f59e0b"
+          gradientColor="#fbbf24"
           delay={3}
         />
         <StatCard
@@ -393,7 +393,7 @@ export default function DataManagementDashboard() {
           label="Duplicate Cases"
           value={stats.duplicateCases}
           trend={-12.0}
-          gradientColor="#ef4444"
+          gradientColor="#f87171"
           delay={4}
         />
         <StatCard
@@ -417,7 +417,7 @@ export default function DataManagementDashboard() {
           label="Database Health"
           value={stats.dbHealth}
           trend={1.2}
-          gradientColor="#10b981"
+          gradientColor="#34d399"
           delay={7}
           isPercent
         />
@@ -426,7 +426,7 @@ export default function DataManagementDashboard() {
           label="AI Confidence"
           value={stats.aiConfidence}
           trend={3.8}
-          gradientColor="#3b82f6"
+          gradientColor="#22d3ee"
           delay={8}
           isPercent
         />
@@ -439,13 +439,13 @@ export default function DataManagementDashboard() {
         transition={{ delay: 0.4 }}
         className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5"
       >
-        <h2 className="text-[#e2e8f0] text-sm font-semibold uppercase tracking-wider mb-4">
+        <h2 className="text-[#f1f5f9] text-sm font-semibold uppercase tracking-wider mb-4">
           Quick Actions
         </h2>
         <div className="flex flex-wrap gap-3">
           <Button
             onClick={() => useAppStore.getState().setView("dm-fir")}
-            className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-0 rounded-xl px-5"
+            className="gap-2 bg-[#34d399] hover:bg-[#2bc48a] text-white border-0 rounded-xl px-5"
           >
             <Plus className="h-4 w-4" />
             New FIR
@@ -453,7 +453,7 @@ export default function DataManagementDashboard() {
           <Button
             onClick={() => useAppStore.getState().setView("dm-import")}
             variant="outline"
-            className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#e2e8f0] rounded-xl px-5"
+            className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#f1f5f9] rounded-xl px-5"
           >
             <FileUp className="h-4 w-4" />
             Import Data
@@ -461,7 +461,7 @@ export default function DataManagementDashboard() {
           <Button
             onClick={() => useAppStore.getState().setView("dm-ai-queue")}
             variant="outline"
-            className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#e2e8f0] rounded-xl px-5"
+            className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#f1f5f9] rounded-xl px-5"
           >
             <Play className="h-4 w-4" />
             Run AI Analysis
@@ -469,7 +469,7 @@ export default function DataManagementDashboard() {
           <Button
             onClick={() => useAppStore.getState().setView("report")}
             variant="outline"
-            className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#e2e8f0] rounded-xl px-5"
+            className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#f1f5f9] rounded-xl px-5"
           >
             <BarChart3 className="h-4 w-4" />
             View Reports
@@ -487,14 +487,14 @@ export default function DataManagementDashboard() {
           className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5"
         >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[#e2e8f0] text-sm font-semibold uppercase tracking-wider">
+            <h2 className="text-[#f1f5f9] text-sm font-semibold uppercase tracking-wider">
               Recent Activity
             </h2>
             <Button
               onClick={() => useAppStore.getState().setView("dm-audit")}
               variant="ghost"
               size="sm"
-              className="text-[#64748b] hover:text-[#e2e8f0] gap-1 text-xs"
+              className="text-[#5a657a] hover:text-[#f1f5f9] gap-1 text-xs"
             >
               View All
               <ArrowRight className="h-3 w-3" />
@@ -510,7 +510,7 @@ export default function DataManagementDashboard() {
           transition={{ delay: 0.65 }}
           className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5"
         >
-          <h2 className="text-[#e2e8f0] text-sm font-semibold uppercase tracking-wider mb-5">
+          <h2 className="text-[#f1f5f9] text-sm font-semibold uppercase tracking-wider mb-5">
             Storage & Health
           </h2>
           <div className="space-y-6">
@@ -518,18 +518,18 @@ export default function DataManagementDashboard() {
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Database className="h-4 w-4 text-emerald-400" />
-                  <span className="text-[#94a3b8] text-sm">Database Health</span>
+                  <Database className="h-4 w-4 text-[#34d399]" />
+                  <span className="text-[#8b97b0] text-sm">Database Health</span>
                 </div>
-                <span className="text-[#e2e8f0] text-sm font-semibold tabular-nums">
+                <span className="text-[#f1f5f9] text-sm font-semibold tabular-nums">
                   {stats.dbHealth}%
                 </span>
               </div>
               <Progress
                 value={stats.dbHealth}
-                className="h-2.5 bg-white/5 [&>div]:bg-emerald-500 [&>div]:rounded-full"
+                className="h-2.5 bg-white/5 [&>div]:bg-[#34d399] [&>div]:rounded-full"
               />
-              <div className="flex justify-between text-[#4a5568] text-xs">
+              <div className="flex justify-between text-[#3d4659] text-xs">
                 <span>Connected</span>
                 <span>Latency: 12ms</span>
               </div>
@@ -539,18 +539,18 @@ export default function DataManagementDashboard() {
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <HardDrive className="h-4 w-4 text-blue-400" />
-                  <span className="text-[#94a3b8] text-sm">Storage Usage</span>
+                  <HardDrive className="h-4 w-4 text-[#22d3ee]" />
+                  <span className="text-[#8b97b0] text-sm">Storage Usage</span>
                 </div>
-                <span className="text-[#e2e8f0] text-sm font-semibold tabular-nums">
+                <span className="text-[#f1f5f9] text-sm font-semibold tabular-nums">
                   {storageUsed} / {storageTotal} GB
                 </span>
               </div>
               <Progress
                 value={storagePercent}
-                className="h-2.5 bg-white/5 [&>div]:bg-blue-500 [&>div]:rounded-full"
+                className="h-2.5 bg-white/5 [&>div]:bg-[#22d3ee] [&>div]:rounded-full"
               />
-              <div className="flex justify-between text-[#4a5568] text-xs">
+              <div className="flex justify-between text-[#3d4659] text-xs">
                 <span>{storagePercent}% used</span>
                 <span>{(storageTotal - storageUsed).toFixed(1)} GB available</span>
               </div>
@@ -560,18 +560,18 @@ export default function DataManagementDashboard() {
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-violet-400" />
-                  <span className="text-[#94a3b8] text-sm">AI Pipeline</span>
+                  <Sparkles className="h-4 w-4 text-[#818cf8]" />
+                  <span className="text-[#8b97b0] text-sm">AI Pipeline</span>
                 </div>
-                <span className="text-[#e2e8f0] text-sm font-semibold tabular-nums">
+                <span className="text-[#f1f5f9] text-sm font-semibold tabular-nums">
                   {stats.aiConfidence}%
                 </span>
               </div>
               <Progress
                 value={stats.aiConfidence}
-                className="h-2.5 bg-white/5 [&>div]:bg-violet-500 [&>div]:rounded-full"
+                className="h-2.5 bg-white/5 [&>div]:bg-[#818cf8] [&>div]:rounded-full"
               />
-              <div className="flex justify-between text-[#4a5568] text-xs">
+              <div className="flex justify-between text-[#3d4659] text-xs">
                 <span>{stats.pendingAI} items in queue</span>
                 <span>Avg confidence: {stats.aiConfidence}%</span>
               </div>
@@ -580,12 +580,12 @@ export default function DataManagementDashboard() {
             {/* System Uptime */}
             <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-3.5">
               <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4 text-emerald-400" />
-                <span className="text-[#94a3b8] text-sm">System Uptime</span>
+                <Shield className="h-4 w-4 text-[#34d399]" />
+                <span className="text-[#8b97b0] text-sm">System Uptime</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-emerald-400 text-sm font-semibold">99.97%</span>
+                <div className="h-2 w-2 rounded-full bg-[#34d399] animate-pulse" />
+                <span className="text-[#34d399] text-sm font-semibold">99.97%</span>
               </div>
             </div>
           </div>

@@ -72,15 +72,15 @@ type SortDir = "asc" | "desc";
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 function getRiskColor(score: number): string {
-  if (score > 70) return "text-red-400";
-  if (score > 40) return "text-amber-400";
-  return "text-emerald-400";
+  if (score > 70) return "text-[#f87171]";
+  if (score > 40) return "text-[#fbbf24]";
+  return "text-[#34d399]";
 }
 
 function getRiskBarColor(score: number): string {
-  if (score > 70) return "[&>div]:bg-red-500";
-  if (score > 40) return "[&>div]:bg-amber-500";
-  return "[&>div]:bg-emerald-500";
+  if (score > 70) return "[&>div]:bg-[#f87171]";
+  if (score > 40) return "[&>div]:bg-[#fbbf24]";
+  return "[&>div]:bg-[#34d399]";
 }
 
 function getRiskLevel(score: number): string {
@@ -95,8 +95,8 @@ function getGangName(gangId: string | null, gangs: { id: string; name: string }[
 }
 
 function getGangBadgeStyle(gangId: string | null): string {
-  if (!gangId) return "bg-slate-500/20 text-slate-400 border-slate-500/30";
-  return "bg-violet-500/20 text-violet-400 border-violet-500/30";
+  if (!gangId) return "bg-[rgba(255,255,255,0.06)] text-[#8b97b0] border-[rgba(255,255,255,0.08)]";
+  return "bg-[rgba(129,140,248,0.12)] text-[#818cf8] border-[rgba(129,140,248,0.15)]";
 }
 
 // ─── Main Component ──────────────────────────────────────────────────
@@ -336,11 +336,11 @@ export default function CriminalsPage() {
 
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field)
-      return <ArrowUpDown className="ml-1 h-3 w-3 text-[#4a5568]" />;
+      return <ArrowUpDown className="ml-1 h-3 w-3 text-[#3d4659]" />;
     return sortDir === "asc" ? (
-      <ChevronUp className="ml-1 h-3 w-3 text-emerald-400" />
+      <ChevronUp className="ml-1 h-3 w-3 text-[#34d399]" />
     ) : (
-      <ChevronDown className="ml-1 h-3 w-3 text-emerald-400" />
+      <ChevronDown className="ml-1 h-3 w-3 text-[#34d399]" />
     );
   };
 
@@ -373,31 +373,31 @@ export default function CriminalsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#e2e8f0]">Criminals Database</h1>
-          <p className="mt-1 text-sm text-[#64748b]">
+          <h1 className="text-2xl font-bold text-[#f1f5f9]">Criminals Database</h1>
+          <p className="mt-1 text-sm text-[#5a657a]">
             Comprehensive registry of accused persons with risk profiling
           </p>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="border-white/10 bg-white/5 text-[#94a3b8] hover:bg-white/10 hover:text-[#e2e8f0]">
+            <Button variant="outline" size="sm" className="border-white/10 bg-white/5 text-[#8b97b0] hover:bg-white/10 hover:text-[#f1f5f9]">
               <FileDown className="mr-2 h-4 w-4" />
               Export
               <ChevronDown className="ml-2 h-3 w-3" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="border-[#2a3550] bg-[#1a2035]">
-            <DropdownMenuItem onClick={() => handleExport("csv")} className="text-[#94a3b8] focus:text-[#e2e8f0]">
+          <DropdownMenuContent className="border-[rgba(255,255,255,0.06)] bg-[rgba(15,21,36,0.45)]">
+            <DropdownMenuItem onClick={() => handleExport("csv")} className="text-[#8b97b0] focus:text-[#f1f5f9]">
               <FileDown className="mr-2 h-4 w-4" /> CSV
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleExport("json")} className="text-[#94a3b8] focus:text-[#e2e8f0]">
+            <DropdownMenuItem onClick={() => handleExport("json")} className="text-[#8b97b0] focus:text-[#f1f5f9]">
               <FileJson className="mr-2 h-4 w-4" /> JSON
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleExport("excel")} className="text-[#94a3b8] focus:text-[#e2e8f0]">
+            <DropdownMenuItem onClick={() => handleExport("excel")} className="text-[#8b97b0] focus:text-[#f1f5f9]">
               <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-white/10" />
-            <DropdownMenuItem onClick={() => handleExport("print")} className="text-[#94a3b8] focus:text-[#e2e8f0]">
+            <DropdownMenuItem onClick={() => handleExport("print")} className="text-[#8b97b0] focus:text-[#f1f5f9]">
               <Printer className="mr-2 h-4 w-4" /> Print
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -410,30 +410,30 @@ export default function CriminalsPage() {
           {
             label: "Total Criminals",
             value: stats.total,
-            icon: <Users className="h-5 w-5 text-blue-400" />,
-            accent: "border-blue-500/20",
-            valueColor: "text-blue-400",
+            icon: <Users className="h-5 w-5 text-[#22d3ee]" />,
+            accent: "border-[rgba(34,211,238,0.15)]",
+            valueColor: "text-[#22d3ee]",
           },
           {
             label: "High Risk (Risk > 70)",
             value: stats.highRisk,
-            icon: <ShieldAlert className="h-5 w-5 text-red-400" />,
-            accent: "border-red-500/20",
-            valueColor: "text-red-400",
+            icon: <ShieldAlert className="h-5 w-5 text-[#f87171]" />,
+            accent: "border-[rgba(248,113,113,0.15)]",
+            valueColor: "text-[#f87171]",
           },
           {
             label: "In Gangs",
             value: stats.inGangs,
-            icon: <UserPlus className="h-5 w-5 text-violet-400" />,
-            accent: "border-violet-500/20",
-            valueColor: "text-violet-400",
+            icon: <UserPlus className="h-5 w-5 text-[#818cf8]" />,
+            accent: "border-[rgba(129,140,248,0.15)]",
+            valueColor: "text-[#818cf8]",
           },
           {
             label: "Average Risk Score",
             value: stats.avgRisk,
-            icon: <BarChart3 className="h-5 w-5 text-emerald-400" />,
-            accent: "border-emerald-500/20",
-            valueColor: "text-emerald-400",
+            icon: <BarChart3 className="h-5 w-5 text-[#34d399]" />,
+            accent: "border-[rgba(52,211,153,0.15)]",
+            valueColor: "text-[#34d399]",
           },
         ].map((stat) => (
           <motion.div
@@ -443,7 +443,7 @@ export default function CriminalsPage() {
             className={`rounded-2xl border bg-white/5 backdrop-blur-xl p-4 ${stat.accent}`}
           >
             <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-[#64748b]">{stat.label}</p>
+              <p className="text-xs font-medium text-[#5a657a]">{stat.label}</p>
               {stat.icon}
             </div>
             <p className={`mt-2 text-2xl font-bold ${stat.valueColor}`}>
@@ -460,20 +460,20 @@ export default function CriminalsPage() {
         transition={{ delay: 0.1 }}
         className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5"
       >
-        <h3 className="mb-4 text-sm font-semibold text-[#e2e8f0]">Risk Distribution</h3>
+        <h3 className="mb-4 text-sm font-semibold text-[#f1f5f9]">Risk Distribution</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { label: "Critical (≥85)", count: stats.critical, color: "bg-red-500", textColor: "text-red-400" },
-            { label: "High (70–84)", count: stats.high, color: "bg-orange-500", textColor: "text-orange-400" },
-            { label: "Medium (40–69)", count: stats.medium, color: "bg-amber-500", textColor: "text-amber-400" },
-            { label: "Low (<40)", count: stats.low, color: "bg-emerald-500", textColor: "text-emerald-400" },
+            { label: "Critical (≥85)", count: stats.critical, color: "bg-[#f87171]", textColor: "text-[#f87171]" },
+            { label: "High (70–84)", count: stats.high, color: "bg-[#fbbf24]", textColor: "text-[#fbbf24]" },
+            { label: "Medium (40–69)", count: stats.medium, color: "bg-[#fbbf24]", textColor: "text-[#fbbf24]" },
+            { label: "Low (<40)", count: stats.low, color: "bg-[#34d399]", textColor: "text-[#34d399]" },
           ].map((item) => {
             const maxCount = Math.max(stats.critical, stats.high, stats.medium, stats.low, 1);
             const widthPct = (item.count / maxCount) * 100;
             return (
               <div key={item.label}>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <span className="text-xs text-[#94a3b8]">{item.label}</span>
+                  <span className="text-xs text-[#8b97b0]">{item.label}</span>
                   <span className={`text-sm font-bold ${item.textColor}`}>{item.count}</span>
                 </div>
                 <div className="h-2.5 w-full overflow-hidden rounded-full bg-white/10">
@@ -493,24 +493,24 @@ export default function CriminalsPage() {
       {/* Search & Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[240px]">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#4a5568]" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#3d4659]" />
           <Input
             placeholder="Search by name, ID, or gang..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="border-white/10 bg-white/5 pl-10 text-[#e2e8f0] placeholder-[#4a5568] focus:border-emerald-500/50"
+            className="border-white/10 bg-white/5 pl-10 text-[#f1f5f9] placeholder-[#3d4659] focus:border-[rgba(52,211,153,0.3)]"
           />
         </div>
         <Button
           variant="outline"
           size="sm"
           onClick={() => setShowFilters(!showFilters)}
-          className={`border-white/10 ${showFilters ? "bg-emerald-600/20 text-emerald-400 border-emerald-500/30" : "bg-white/5 text-[#94a3b8] hover:bg-white/10"}`}
+          className={`border-white/10 ${showFilters ? "bg-[rgba(52,211,153,0.12)] text-[#34d399] border-[rgba(52,211,153,0.15)]" : "bg-white/5 text-[#8b97b0] hover:bg-white/10"}`}
         >
           <SlidersHorizontal className="mr-2 h-4 w-4" />
           Filters
           {(filterGang !== "all" || filterRisk !== "all" || filterGender !== "all") && (
-            <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white">
+            <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#34d399] text-[10px] font-bold text-white">
               {[filterGang, filterRisk, filterGender].filter((f) => f !== "all").length}
             </span>
           )}
@@ -527,41 +527,41 @@ export default function CriminalsPage() {
           >
             <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
               <Select value={filterGang} onValueChange={setFilterGang}>
-                <SelectTrigger className="w-[180px] border-white/10 bg-white/5 text-[#94a3b8]">
+                <SelectTrigger className="w-[180px] border-white/10 bg-white/5 text-[#8b97b0]">
                   <SelectValue placeholder="Gang" />
                 </SelectTrigger>
-                <SelectContent className="border-[#2a3550] bg-[#1a2035]">
-                  <SelectItem value="all" className="text-[#94a3b8]">All Gangs</SelectItem>
-                  <SelectItem value="independent" className="text-[#94a3b8]">Independent</SelectItem>
+                <SelectContent className="border-[rgba(255,255,255,0.06)] bg-[rgba(15,21,36,0.45)]">
+                  <SelectItem value="all" className="text-[#8b97b0]">All Gangs</SelectItem>
+                  <SelectItem value="independent" className="text-[#8b97b0]">Independent</SelectItem>
                   {gangs.map((g) => (
-                    <SelectItem key={g.id} value={g.id} className="text-[#94a3b8]">
+                    <SelectItem key={g.id} value={g.id} className="text-[#8b97b0]">
                       {g.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <Select value={filterRisk} onValueChange={setFilterRisk}>
-                <SelectTrigger className="w-[140px] border-white/10 bg-white/5 text-[#94a3b8]">
+                <SelectTrigger className="w-[140px] border-white/10 bg-white/5 text-[#8b97b0]">
                   <SelectValue placeholder="Risk Level" />
                 </SelectTrigger>
-                <SelectContent className="border-[#2a3550] bg-[#1a2035]">
-                  <SelectItem value="all" className="text-[#94a3b8]">All Levels</SelectItem>
-                  <SelectItem value="High" className="text-[#94a3b8]">High</SelectItem>
-                  <SelectItem value="Medium" className="text-[#94a3b8]">Medium</SelectItem>
-                  <SelectItem value="Low" className="text-[#94a3b8]">Low</SelectItem>
+                <SelectContent className="border-[rgba(255,255,255,0.06)] bg-[rgba(15,21,36,0.45)]">
+                  <SelectItem value="all" className="text-[#8b97b0]">All Levels</SelectItem>
+                  <SelectItem value="High" className="text-[#8b97b0]">High</SelectItem>
+                  <SelectItem value="Medium" className="text-[#8b97b0]">Medium</SelectItem>
+                  <SelectItem value="Low" className="text-[#8b97b0]">Low</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={filterGender} onValueChange={setFilterGender}>
-                <SelectTrigger className="w-[130px] border-white/10 bg-white/5 text-[#94a3b8]">
+                <SelectTrigger className="w-[130px] border-white/10 bg-white/5 text-[#8b97b0]">
                   <SelectValue placeholder="Gender" />
                 </SelectTrigger>
-                <SelectContent className="border-[#2a3550] bg-[#1a2035]">
-                  <SelectItem value="all" className="text-[#94a3b8]">All Genders</SelectItem>
-                  <SelectItem value="Male" className="text-[#94a3b8]">Male</SelectItem>
-                  <SelectItem value="Female" className="text-[#94a3b8]">Female</SelectItem>
+                <SelectContent className="border-[rgba(255,255,255,0.06)] bg-[rgba(15,21,36,0.45)]">
+                  <SelectItem value="all" className="text-[#8b97b0]">All Genders</SelectItem>
+                  <SelectItem value="Male" className="text-[#8b97b0]">Male</SelectItem>
+                  <SelectItem value="Female" className="text-[#8b97b0]">Female</SelectItem>
                 </SelectContent>
               </Select>
-              <div className="ml-auto text-xs text-[#64748b]">
+              <div className="ml-auto text-xs text-[#5a657a]">
                 {filteredData.length} of {accused.length} criminals
               </div>
             </div>
@@ -578,9 +578,9 @@ export default function CriminalsPage() {
       >
         {filteredData.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <Users className="mb-4 h-12 w-12 text-[#4a5568]" />
-            <p className="text-sm font-medium text-[#94a3b8]">No criminals found</p>
-            <p className="mt-1 text-xs text-[#4a5568]">
+            <Users className="mb-4 h-12 w-12 text-[#3d4659]" />
+            <p className="text-sm font-medium text-[#8b97b0]">No criminals found</p>
+            <p className="mt-1 text-xs text-[#3d4659]">
               Try adjusting your search or filters
             </p>
           </div>
@@ -600,7 +600,7 @@ export default function CriminalsPage() {
                 ].map((col) => (
                   <TableHead
                     key={col.field}
-                    className="cursor-pointer select-none text-[11px] font-semibold uppercase tracking-wider text-[#64748b] hover:text-[#94a3b8]"
+                    className="cursor-pointer select-none text-[10px] font-semibold uppercase tracking-wider text-[#5a657a] hover:text-[#8b97b0]"
                     onClick={() => handleSort(col.field)}
                   >
                     <span className="flex items-center">
@@ -609,7 +609,7 @@ export default function CriminalsPage() {
                     </span>
                   </TableHead>
                 ))}
-                <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-[#64748b]">
+                <TableHead className="text-right text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">
                   Actions
                 </TableHead>
               </TableRow>
@@ -624,23 +624,23 @@ export default function CriminalsPage() {
                   className="cursor-pointer border-white/5 transition-colors hover:bg-white/5"
                   onClick={() => handleRowClick(acc.id)}
                 >
-                  <TableCell className="font-mono text-xs text-[#94a3b8]">{acc.id}</TableCell>
+                  <TableCell className="font-mono text-xs text-[#8b97b0]">{acc.id}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div
                         className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
                           acc.gender === "Male"
-                            ? "bg-blue-500/20 text-blue-400"
-                            : "bg-pink-500/20 text-pink-400"
+                            ? "bg-[rgba(34,211,238,0.12)] text-[#22d3ee]"
+                            : "bg-[rgba(248,113,113,0.12)] text-[#f87171]"
                         }`}
                       >
                         {acc.name.charAt(0)}
                       </div>
-                      <span className="text-sm font-medium text-[#e2e8f0]">{acc.name}</span>
+                      <span className="text-sm font-medium text-[#f1f5f9]">{acc.name}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm text-[#94a3b8]">{acc.age}</TableCell>
-                  <TableCell className="text-sm text-[#94a3b8]">{acc.gender}</TableCell>
+                  <TableCell className="text-sm text-[#8b97b0]">{acc.age}</TableCell>
+                  <TableCell className="text-sm text-[#8b97b0]">{acc.gender}</TableCell>
                   <TableCell>
                     <span
                       className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${getGangBadgeStyle(
@@ -663,15 +663,15 @@ export default function CriminalsPage() {
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm text-[#94a3b8]">{acc.prior_firs}</TableCell>
+                  <TableCell className="text-sm text-[#8b97b0]">{acc.prior_firs}</TableCell>
                   <TableCell>
                     <span
                       className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium ${
                         acc.risk > 70
-                          ? "bg-red-500/20 text-red-400 border-red-500/30"
+                          ? "bg-[rgba(248,113,113,0.12)] text-[#f87171] border-[rgba(248,113,113,0.15)]"
                           : acc.risk > 40
-                          ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
-                          : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                          ? "bg-[rgba(251,191,36,0.12)] text-[#fbbf24] border-[rgba(251,191,36,0.15)]"
+                          : "bg-[rgba(52,211,153,0.12)] text-[#34d399] border-[rgba(52,211,153,0.15)]"
                       }`}
                     >
                       {acc.risk > 70 ? (
@@ -689,7 +689,7 @@ export default function CriminalsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 px-2 text-[#64748b] hover:text-emerald-400"
+                        className="h-7 px-2 text-[#5a657a] hover:text-[#34d399]"
                         onClick={(e) => handleViewProfile(e, acc.id)}
                         title="View Profile"
                       >
@@ -698,7 +698,7 @@ export default function CriminalsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 px-2 text-[#64748b] hover:text-blue-400"
+                        className="h-7 px-2 text-[#5a657a] hover:text-[#22d3ee]"
                         onClick={(e) => handleViewFIRs(e, acc.id)}
                         title="View Linked FIRs"
                       >
@@ -707,7 +707,7 @@ export default function CriminalsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 px-2 text-[#64748b] hover:text-purple-400"
+                        className="h-7 px-2 text-[#5a657a] hover:text-[#818cf8]"
                         onClick={(e) => handleRiskAnalysis(e, acc)}
                         title="Risk Analysis"
                       >

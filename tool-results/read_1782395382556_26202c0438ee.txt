@@ -1,0 +1,837 @@
+     1→     1→"use client";
+     2→     2→
+     3→     3→import { useEffect, useState, useMemo, useCallback } from "react";
+     4→     4→import { motion } from "framer-motion";
+     5→     5→import {
+     6→     6→  Shield,
+     7→     7→  Palette,
+     8→     8→  Settings2,
+     9→     9→  Lock,
+    10→    10→  Unlock,
+    11→    11→  Save,
+    12→    12→  RotateCcw,
+    13→    13→  Globe,
+    14→    14→  Monitor,
+    15→    15→  Bell,
+    16→    16→  Volume2,
+    17→    17→  PanelLeftClose,
+    18→    18→  PanelLeftOpen,
+    19→    19→  Brain,
+    20→    20→  Cpu,
+    21→    21→  ScanLine,
+    22→    22→  HardDrive,
+    23→    23→  Database,
+    24→    24→  Info,
+    25→    25→  CheckCircle2,
+    26→    26→  Loader2,
+    27→    27→  AlertCircle,
+    28→    28→  Eye,
+    29→    29→  Pencil,
+    30→    30→  Trash2,
+    31→    31→  Download,
+    32→    32→  Upload,
+    33→    33→  BarChart3,
+    34→    34→  Users,
+    35→    35→  Sparkles,
+    36→    36→  FileSearch,
+    37→    37→  Layers,
+    38→    38→  type LucideIcon,
+    39→    39→} from "lucide-react";
+    40→    40→import { useAppStore } from "@/lib/store";
+    41→    41→import type { RoleName, RolePermission } from "@/lib/types";
+    42→    42→import { Button } from "@/components/ui/button";
+    43→    43→import { Switch } from "@/components/ui/switch";
+    44→    44→import { Slider } from "@/components/ui/slider";
+    45→    45→import { Input } from "@/components/ui/input";
+    46→    46→import { Label } from "@/components/ui/label";
+    47→    47→import { Badge } from "@/components/ui/badge";
+    48→    48→import { Separator } from "@/components/ui/separator";
+    49→    49→import {
+    50→    50→  Select,
+    51→    51→  SelectContent,
+    52→    52→  SelectItem,
+    53→    53→  SelectTrigger,
+    54→    54→  SelectValue,
+    55→    55→} from "@/components/ui/select";
+    56→    56→import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+    57→    57→import {
+    58→    58→  Card,
+    59→    59→  CardContent,
+    60→    60→  CardDescription,
+    61→    61→  CardHeader,
+    62→    62→  CardTitle,
+    63→    63→} from "@/components/ui/card";
+    64→    64→import LoadingSpinner from "@/components/ksp/LoadingSpinner";
+    65→    65→import { useToast } from "@/hooks/use-toast";
+    66→    66→
+    67→    67→// ─── Role Definitions ───────────────────────────────────────────────
+    68→    68→interface RoleDef {
+    69→    69→  key: RoleName;
+    70→    70→  label: string;
+    71→    71→  description: string;
+    72→    72→  locked?: boolean;
+    73→    73→}
+    74→    74→
+    75→    75→const ROLES: RoleDef[] = [
+    76→    76→  { key: "super_admin", label: "Super Admin", description: "Full system access", locked: true },
+    77→    77→  { key: "state_admin", label: "State Admin", description: "State-wide management" },
+    78→    78→  { key: "district_admin", label: "District Admin", description: "District-level operations" },
+    79→    79→  { key: "station_officer", label: "Station Officer", description: "Police station management" },
+    80→    80→  { key: "investigator", label: "Investigator", description: "Case investigation access" },
+    81→    81→  { key: "analyst", label: "Analyst", description: "Data analytics and AI tools" },
+    82→    82→  { key: "auditor", label: "Auditor", description: "Audit log and compliance" },
+    83→    83→  { key: "demo_user", label: "Demo User", description: "Limited read-only access" },
+    84→    84→];
+    85→    85→
+    86→    86→interface PermissionDef {
+    87→    87→  key: string;
+    88→    88→  label: string;
+    89→    89→  description: string;
+    90→    90→  icon: LucideIcon;
+    91→    91→}
+    92→    92→
+    93→    93→const PERMISSIONS: PermissionDef[] = [
+    94→    94→  { key: "create_fir", label: "Create FIR", description: "File new FIRs", icon: Pencil },
+    95→    95→  { key: "edit_fir", label: "Edit FIR", description: "Modify existing FIRs", icon: Pencil },
+    96→    96→  { key: "delete_fir", label: "Delete FIR", description: "Remove FIRs", icon: Trash2 },
+    97→    97→  { key: "view_fir", label: "View FIR", description: "Read FIR records", icon: Eye },
+    98→    98→  { key: "manage_evidence", label: "Manage Evidence", description: "Upload and manage evidence", icon: Layers },
+    99→    99→  { key: "import_data", label: "Import Data", description: "Bulk data import", icon: Upload },
+   100→   100→  { key: "export_data", label: "Export Data", description: "Download and export data", icon: Download },
+   101→   101→  { key: "view_analytics", label: "View Analytics", description: "Access analytics dashboards", icon: BarChart3 },
+   102→   102→  { key: "manage_users", label: "Manage Users", description: "User administration", icon: Users },
+   103→   103→  { key: "run_ai", label: "Run AI Analysis", description: "Execute AI processing", icon: Sparkles },
+   104→   104→  { key: "view_audit", label: "View Audit", description: "Access audit logs", icon: FileSearch },
+   105→   105→  { key: "manage_settings", label: "Manage Settings", description: "System configuration", icon: Settings2 },
+   106→   106→];
+   107→   107→
+   108→   108→// Default permission matrix
+   109→   109→function getDefaultPermissions(): Record<RoleName, Record<string, boolean>> {
+   110→   110→  return {
+   111→   111→    super_admin: Object.fromEntries(PERMISSIONS.map(p => [p.key, true])) as Record<string, boolean>,
+   112→   112→    state_admin: {
+   113→   113→      create_fir: true, edit_fir: true, delete_fir: true, view_fir: true,
+   114→   114→      manage_evidence: true, import_data: true, export_data: true, view_analytics: true,
+   115→   115→      manage_users: true, run_ai: true, view_audit: true, manage_settings: false,
+   116→   116→    },
+   117→   117→    district_admin: {
+   118→   118→      create_fir: true, edit_fir: true, delete_fir: false, view_fir: true,
+   119→   119→      manage_evidence: true, import_data: true, export_data: true, view_analytics: true,
+   120→   120→      manage_users: false, run_ai: true, view_audit: true, manage_settings: false,
+   121→   121→    },
+   122→   122→    station_officer: {
+   123→   123→      create_fir: true, edit_fir: true, delete_fir: false, view_fir: true,
+   124→   124→      manage_evidence: true, import_data: false, export_data: true, view_analytics: true,
+   125→   125→      manage_users: false, run_ai: true, view_audit: false, manage_settings: false,
+   126→   126→    },
+   127→   127→    investigator: {
+   128→   128→      create_fir: true, edit_fir: true, delete_fir: false, view_fir: true,
+   129→   129→      manage_evidence: true, import_data: false, export_data: true, view_analytics: true,
+   130→   130→      manage_users: false, run_ai: true, view_audit: false, manage_settings: false,
+   131→   131→    },
+   132→   132→    analyst: {
+   133→   133→      create_fir: false, edit_fir: false, delete_fir: false, view_fir: true,
+   134→   134→      manage_evidence: false, import_data: true, export_data: true, view_analytics: true,
+   135→   135→      manage_users: false, run_ai: true, view_audit: true, manage_settings: false,
+   136→   136→    },
+   137→   137→    auditor: {
+   138→   138→      create_fir: false, edit_fir: false, delete_fir: false, view_fir: true,
+   139→   139→      manage_evidence: false, import_data: false, export_data: true, view_analytics: true,
+   140→   140→      manage_users: false, run_ai: false, view_audit: true, manage_settings: false,
+   141→   141→    },
+   142→   142→    demo_user: {
+   143→   143→      create_fir: false, edit_fir: false, delete_fir: false, view_fir: true,
+   144→   144→      manage_evidence: false, import_data: false, export_data: false, view_analytics: true,
+   145→   145→      manage_users: false, run_ai: false, view_audit: false, manage_settings: false,
+   146→   146→    },
+   147→   147→  };
+   148→   148→}
+   149→   149→
+   150→   150→// ─── Settings State Types ────────────────────────────────────────────
+   151→   151→interface UIPrefs {
+   152→   152→  theme: "dark" | "light";
+   153→   153→  language: "en" | "kn";
+   154→   154→  pageSize: number;
+   155→   155→  autoRefresh: number;
+   156→   156→  compactMode: boolean;
+   157→   157→  animations: boolean;
+   158→   158→  notificationSound: boolean;
+   159→   159→  sidebarDefault: "expanded" | "collapsed";
+   160→   160→}
+   161→   161→
+   162→   162→interface SysConfig {
+   163→   163→  aiModel: string;
+   164→   164→  aiConfidence: number;
+   165→   165→  duplicateThreshold: number;
+   166→   166→  ocrLanguage: string;
+   167→   167→  maxUploadSize: number;
+   168→   168→  dbHost: string;
+   169→   169→  dbPort: string;
+   170→   170→  dbName: string;
+   171→   171→  dbUser: string;
+   172→   172→}
+   173→   173→
+   174→   174→const DEFAULT_UI_PREFS: UIPrefs = {
+   175→   175→  theme: "dark",
+   176→   176→  language: "en",
+   177→   177→  pageSize: 25,
+   178→   178→  autoRefresh: 60,
+   179→   179→  compactMode: false,
+   180→   180→  animations: true,
+   181→   181→  notificationSound: true,
+   182→   182→  sidebarDefault: "expanded",
+   183→   183→};
+   184→   184→
+   185→   185→const DEFAULT_SYS_CONFIG: SysConfig = {
+   186→   186→  aiModel: "claude-sonnet-4-6",
+   187→   187→  aiConfidence: 75,
+   188→   188→  duplicateThreshold: 85,
+   189→   189→  ocrLanguage: "eng+kan",
+   190→   190→  maxUploadSize: 50,
+   191→   191→  dbHost: "ksp-db.internal.karnataka.gov.in",
+   192→   192→  dbPort: "5432",
+   193→   193→  dbName: "ksp_sentinel_prod",
+   194→   194→  dbUser: "ksp_app_user",
+   195→   195→};
+   196→   196→
+   197→   197→// ─── Main Component ─────────────────────────────────────────────────
+   198→   198→export default function SettingsPage() {
+   199→   199→  const { user, toggleLang, addNotification } = useAppStore();
+   200→   200→  const { toast } = useToast();
+   201→   201→  const [loading, setLoading] = useState(true);
+   202→   202→  const [saving, setSaving] = useState(false);
+   203→   203→  const [testingConn, setTestingConn] = useState(false);
+   204→   204→  const [connStatus, setConnStatus] = useState<"idle" | "testing" | "success" | "failure">("idle");
+   205→   205→
+   206→   206→  // Role permissions state
+   207→   207→  const [permissions, setPermissions] = useState<Record<RoleName, Record<string, boolean>>>(getDefaultPermissions());
+   208→   208→
+   209→   209→  // UI Preferences state
+   210→   210→  const [uiPrefs, setUiPrefs] = useState<UIPrefs>(DEFAULT_UI_PREFS);
+   211→   211→
+   212→   212→  // System Config state
+   213→   213→  const [sysConfig, setSysConfig] = useState<SysConfig>(DEFAULT_SYS_CONFIG);
+   214→   214→
+   215→   215→  useEffect(() => {
+   216→   216→    const timer = setTimeout(() => setLoading(false), 400);
+   217→   217→    return () => clearTimeout(timer);
+   218→   218→  }, []);
+   219→   219→
+   220→   220→  // Toggle a permission
+   221→   221→  const togglePermission = (role: RoleName, permKey: string) => {
+   222→   222→    const roleDef = ROLES.find(r => r.key === role);
+   223→   223→    if (roleDef?.locked) return;
+   224→   224→    setPermissions(prev => ({
+   225→   225→      ...prev,
+   226→   226→      [role]: { ...prev[role], [permKey]: !prev[role][permKey] },
+   227→   227→    }));
+   228→   228→  };
+   229→   229→
+   230→   230→  // Save role permissions
+   231→   231→  const savePermissions = useCallback(() => {
+   232→   232→    setSaving(true);
+   233→   233→    setTimeout(() => {
+   234→   234→      setSaving(false);
+   235→   235→      toast({ title: "Permissions Saved", description: "Role permissions have been updated successfully.", variant: "default" });
+   236→   236→      addNotification({ title: "Permissions Updated", message: "Role permission matrix was modified.", type: "success", read: false });
+   237→   237→    }, 1000);
+   238→   238→  }, [toast, addNotification]);
+   239→   239→
+   240→   240→  // Reset UI prefs
+   241→   241→  const resetUIPrefs = useCallback(() => {
+   242→   242→    setUiPrefs(DEFAULT_UI_PREFS);
+   243→   243→    toast({ title: "Reset Complete", description: "UI preferences reset to defaults.", variant: "default" });
+   244→   244→  }, [toast]);
+   245→   245→
+   246→   246→  // Save UI prefs
+   247→   247→  const saveUIPrefs = useCallback(() => {
+   248→   248→    setSaving(true);
+   249→   249→    setTimeout(() => {
+   250→   250→      setSaving(false);
+   251→   251→      toast({ title: "Preferences Saved", description: "UI preferences have been updated.", variant: "default" });
+   252→   252→    }, 800);
+   253→   253→  }, [toast]);
+   254→   254→
+   255→   255→  // Save system config
+   256→   256→  const saveSysConfig = useCallback(() => {
+   257→   257→    setSaving(true);
+   258→   258→    setTimeout(() => {
+   259→   259→      setSaving(false);
+   260→   260→      toast({ title: "Configuration Saved", description: "System configuration has been updated.", variant: "default" });
+   261→   261→      addNotification({ title: "System Config Updated", message: "AI and system settings modified.", type: "info", read: false });
+   262→   262→    }, 1000);
+   263→   263→  }, [toast, addNotification]);
+   264→   264→
+   265→   265→  // Test connection
+   266→   266→  const testConnection = useCallback(() => {
+   267→   267→    setTestingConn(true);
+   268→   268→    setConnStatus("testing");
+   269→   269→    setTimeout(() => {
+   270→   270→      setTestingConn(false);
+   271→   271→      setConnStatus("success");
+   272→   272→      toast({ title: "Connection Successful", description: "Database connection test passed. Latency: 12ms", variant: "default" });
+   273→   273→      setTimeout(() => setConnStatus("idle"), 3000);
+   274→   274→    }, 2000);
+   275→   275→  }, [toast]);
+   276→   276→
+   277→   277→  // Current user role
+   278→   278→  const currentUserRole = (user?.role ?? "demo_user") as RoleName;
+   279→   279→
+   280→   280→  // System info
+   281→   281→  const systemInfo = useMemo(() => ({
+   282→   282→    version: "2.4.1",
+   283→   283→    build: "2024.12.28-a3f7b2c",
+   284→   284→    uptime: "14d 6h 23m",
+   285→   285→    activeSessions: 23,
+   286→   286→  }), []);
+   287→   287→
+   288→   288→  if (loading) {
+   289→   289→    return (
+   290→   290→      <div className="flex h-full items-center justify-center">
+   291→   291→        <LoadingSpinner />
+   292→   292→      </div>
+   293→   293→    );
+   294→   294→  }
+   295→   295→
+   296→   296→  return (
+   297→   297→    <div className="space-y-6 p-6">
+   298→   298→      {/* Header */}
+   299→   299→      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
+   300→   300→        <div>
+   301→   301→          <h1 className="text-[#e2e8f0] text-2xl font-bold tracking-tight">Settings</h1>
+   302→   302→          <p className="text-[#64748b] text-sm mt-1">Role permissions, UI preferences, and system configuration</p>
+   303→   303→        </div>
+   304→   304→        <div className="flex items-center gap-2">
+   305→   305→          <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-xl">
+   306→   306→            <Settings2 className="h-4 w-4 text-[#64748b]" />
+   307→   307→            <span className="text-[#94a3b8] text-xs">System Configuration</span>
+   308→   308→          </div>
+   309→   309→        </div>
+   310→   310→      </motion.div>
+   311→   311→
+   312→   312→      {/* Tabs */}
+   313→   313→      <Tabs defaultValue="permissions" className="space-y-6">
+   314→   314→        <TabsList className="bg-white/5 border border-white/10 rounded-xl p-1">
+   315→   315→          <TabsTrigger value="permissions" className="gap-2 rounded-lg text-[#94a3b8] data-[state=active]:bg-white/10 data-[state=active]:text-[#e2e8f0] data-[state=active]:shadow-sm px-5">
+   316→   316→            <Shield className="h-4 w-4" /> Role Permissions
+   317→   317→          </TabsTrigger>
+   318→   318→          <TabsTrigger value="preferences" className="gap-2 rounded-lg text-[#94a3b8] data-[state=active]:bg-white/10 data-[state=active]:text-[#e2e8f0] data-[state=active]:shadow-sm px-5">
+   319→   319→            <Palette className="h-4 w-4" /> UI Preferences
+   320→   320→          </TabsTrigger>
+   321→   321→          <TabsTrigger value="system" className="gap-2 rounded-lg text-[#94a3b8] data-[state=active]:bg-white/10 data-[state=active]:text-[#e2e8f0] data-[state=active]:shadow-sm px-5">
+   322→   322→            <Settings2 className="h-4 w-4" /> System Configuration
+   323→   323→          </TabsTrigger>
+   324→   324→        </TabsList>
+   325→   325→
+   326→   326→        {/* ─── Tab 1: Role Permissions ─── */}
+   327→   327→        <TabsContent value="permissions">
+   328→   328→          <motion.div
+   329→   329→            initial={{ opacity: 0, y: 15 }}
+   330→   330→            animate={{ opacity: 1, y: 0 }}
+   331→   331→            className="space-y-4"
+   332→   332→          >
+   333→   333→            {/* Legend */}
+   334→   334→            <div className="flex items-center gap-4 text-xs text-[#64748b]">
+   335→   335→              <div className="flex items-center gap-1.5">
+   336→   336→                <Lock className="h-3.5 w-3.5 text-amber-400" />
+   337→   337→                <span>Super Admin — all permissions locked</span>
+   338→   338→              </div>
+   339→   339→              <div className="flex items-center gap-1.5">
+   340→   340→                <div className="h-3.5 w-3.5 rounded bg-blue-500/20 border border-blue-500/40" />
+   341→   341→                <span>Your current role is highlighted</span>
+   342→   342→              </div>
+   343→   343→            </div>
+   344→   344→
+   345→   345→            {/* Permissions Grid */}
+   346→   346→            <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl overflow-hidden">
+   347→   347→              <div className="overflow-x-auto">
+   348→   348→                <table className="w-full">
+   349→   349→                  <thead>
+   350→   350→                    <tr className="border-b border-white/10">
+   351→   351→                      <th className="text-left text-[#64748b] text-xs font-semibold uppercase tracking-wider p-4 min-w-[200px]">
+   352→   352→                        Permission
+   353→   353→                      </th>
+   354→   354→                      {ROLES.map(role => (
+   355→   355→                        <th key={role.key} className="text-center p-4 min-w-[100px]">
+   356→   356→                          <div className="flex flex-col items-center gap-1">
+   357→   357→                            <span className={`text-xs font-semibold px-2 py-1 rounded-lg ${
+   358→   358→                              role.key === currentUserRole
+   359→   359→                                ? "bg-blue-500/15 text-blue-400 border border-blue-500/30"
+   360→   360→                                : role.locked
+   361→   361→                                  ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+   362→   362→                                  : "text-[#94a3b8]"
+   363→   363→                            }`}>
+   364→   364→                              {role.locked && <Lock className="h-3 w-3 inline mr-1" />}
+   365→   365→                              {role.label}
+   366→   366→                            </span>
+   367→   367→                            <span className="text-[10px] text-[#4a5568]">{role.description}</span>
+   368→   368→                          </div>
+   369→   369→                        </th>
+   370→   370→                      ))}
+   371→   371→                    </tr>
+   372→   372→                  </thead>
+   373→   373→                  <tbody>
+   374→   374→                    {PERMISSIONS.map((perm, permIdx) => {
+   375→   375→                      const Icon = perm.icon;
+   376→   376→                      return (
+   377→   377→                        <motion.tr
+   378→   378→                          key={perm.key}
+   379→   379→                          initial={{ opacity: 0, x: -10 }}
+   380→   380→                          animate={{ opacity: 1, x: 0 }}
+   381→   381→                          transition={{ delay: permIdx * 0.03 }}
+   382→   382→                          className="border-b border-white/5 hover:bg-white/5 transition-colors"
+   383→   383→                        >
+   384→   384→                          <td className="p-4">
+   385→   385→                            <div className="flex items-center gap-3">
+   386→   386→                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 text-[#64748b]">
+   387→   387→                                <Icon className="h-4 w-4" />
+   388→   388→                              </div>
+   389→   389→                              <div>
+   390→   390→                                <div className="text-[#e2e8f0] text-sm font-medium">{perm.label}</div>
+   391→   391→                                <div className="text-[#4a5568] text-xs">{perm.description}</div>
+   392→   392→                              </div>
+   393→   393→                            </div>
+   394→   394→                          </td>
+   395→   395→                          {ROLES.map(role => {
+   396→   396→                            const isOn = permissions[role.key]?.[perm.key] ?? false;
+   397→   397→                            const isLocked = role.locked;
+   398→   398→                            return (
+   399→   399→                              <td key={role.key} className="p-4 text-center">
+   400→   400→                                <div className="flex justify-center">
+   401→   401→                                  <Switch
+   402→   402→                                    checked={isOn}
+   403→   403→                                    disabled={isLocked}
+   404→   404→                                    onCheckedChange={() => togglePermission(role.key, perm.key)}
+   405→   405→                                    className={isOn ? "data-[state=checked]:bg-emerald-500" : ""}
+   406→   406→                                  />
+   407→   407→                                </div>
+   408→   408→                              </td>
+   409→   409→                            );
+   410→   410→                          })}
+   411→   411→                        </motion.tr>
+   412→   412→                      );
+   413→   413→                    })}
+   414→   414→                  </tbody>
+   415→   415→                </table>
+   416→   416→              </div>
+   417→   417→
+   418→   418→              {/* Save Button */}
+   419→   419→              <div className="flex items-center justify-end border-t border-white/10 p-4">
+   420→   420→                <Button
+   421→   421→                  onClick={savePermissions}
+   422→   422→                  disabled={saving}
+   423→   423→                  className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-0 rounded-xl px-6"
+   424→   424→                >
+   425→   425→                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+   426→   426→                  {saving ? "Saving..." : "Save Changes"}
+   427→   427→                </Button>
+   428→   428→              </div>
+   429→   429→            </div>
+   430→   430→          </motion.div>
+   431→   431→        </TabsContent>
+   432→   432→
+   433→   433→        {/* ─── Tab 2: UI Preferences ─── */}
+   434→   434→        <TabsContent value="preferences">
+   435→   435→          <motion.div
+   436→   436→            initial={{ opacity: 0, y: 15 }}
+   437→   437→            animate={{ opacity: 1, y: 0 }}
+   438→   438→            className="grid grid-cols-1 gap-6 lg:grid-cols-2"
+   439→   439→          >
+   440→   440→            {/* Theme */}
+   441→   441→            <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5 space-y-5">
+   442→   442→              <div className="flex items-center gap-3">
+   443→   443→                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/15 text-violet-400">
+   444→   444→                  <Monitor className="h-5 w-5" />
+   445→   445→                </div>
+   446→   446→                <div>
+   447→   447→                  <h3 className="text-[#e2e8f0] text-sm font-semibold">Appearance</h3>
+   448→   448→                  <p className="text-[#4a5568] text-xs">Customize the look and feel</p>
+   449→   449→                </div>
+   450→   450→              </div>
+   451→   451→
+   452→   452→              <Separator className="bg-white/10" />
+   453→   453→
+   454→   454→              {/* Theme Selection */}
+   455→   455→              <div className="space-y-2.5">
+   456→   456→                <Label className="text-[#94a3b8] text-xs font-medium">Theme</Label>
+   457→   457→                <div className="grid grid-cols-2 gap-3">
+   458→   458→                  <div
+   459→   459→                    className={`flex items-center gap-3 rounded-xl border-2 p-3.5 cursor-pointer transition-all ${
+   460→   460→                      uiPrefs.theme === "dark"
+   461→   461→                        ? "border-blue-500 bg-blue-500/10"
+   462→   462→                        : "border-white/10 bg-white/5 hover:border-white/20"
+   463→   463→                    }`}
+   464→   464→                    onClick={() => setUiPrefs(p => ({ ...p, theme: "dark" }))}
+   465→   465→                  >
+   466→   466→                    <div className="h-8 w-8 rounded-lg bg-[#0a0f1e] border border-white/20 flex items-center justify-center">
+   467→   467→                      <div className="h-2 w-2 rounded-full bg-blue-400" />
+   468→   468→                    </div>
+   469→   469→                    <div>
+   470→   470→                      <span className="text-[#e2e8f0] text-sm font-medium block">Dark</span>
+   471→   471→                      <span className="text-[#4a5568] text-[10px]">Active</span>
+   472→   472→                    </div>
+   473→   473→                  </div>
+   474→   474→                  <div className="flex items-center gap-3 rounded-xl border-2 border-white/10 bg-white/5 p-3.5 opacity-50 cursor-not-allowed">
+   475→   475→                    <div className="h-8 w-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center">
+   476→   476→                      <div className="h-2 w-2 rounded-full bg-gray-400" />
+   477→   477→                    </div>
+   478→   478→                    <div>
+   479→   479→                      <span className="text-[#e2e8f0] text-sm font-medium block">Light</span>
+   480→   480→                      <span className="text-amber-400 text-[10px]">Coming Soon</span>
+   481→   481→                    </div>
+   482→   482→                  </div>
+   483→   483→                </div>
+   484→   484→              </div>
+   485→   485→
+   486→   486→              {/* Language */}
+   487→   487→              <div className="space-y-2.5">
+   488→   488→                <Label className="text-[#94a3b8] text-xs font-medium">Language</Label>
+   489→   489→                <Select value={uiPrefs.language} onValueChange={(v) => {
+   490→   490→                  setUiPrefs(p => ({ ...p, language: v as "en" | "kn" }));
+   491→   491→                  if (v !== uiPrefs.language) toggleLang();
+   492→   492→                }}>
+   493→   493→                  <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#e2e8f0]">
+   494→   494→                    <SelectValue />
+   495→   495→                  </SelectTrigger>
+   496→   496→                  <SelectContent className="bg-[#1a2035] border-[#2a3550]">
+   497→   497→                    <SelectItem value="en">English</SelectItem>
+   498→   498→                    <SelectItem value="kn">ಕನ್ನಡ (Kannada)</SelectItem>
+   499→   499→                  </SelectContent>
+   500→   500→                </Select>
+   501→   501→              </div>
+   502→   502→
+   503→   503→              {/* Compact Mode */}
+   504→   504→              <div className="flex items-center justify-between">
+   505→   505→                <div className="space-y-0.5">
+   506→   506→                  <Label className="text-[#e2e8f0] text-sm">Compact Mode</Label>
+   507→   507→                  <p className="text-[#4a5568] text-xs">Reduce spacing for more content</p>
+   508→   508→                </div>
+   509→   509→                <Switch checked={uiPrefs.compactMode} onCheckedChange={(v) => setUiPrefs(p => ({ ...p, compactMode: v }))} />
+   510→   510→              </div>
+   511→   511→
+   512→   512→              {/* Animations */}
+   513→   513→              <div className="flex items-center justify-between">
+   514→   514→                <div className="space-y-0.5">
+   515→   515→                  <Label className="text-[#e2e8f0] text-sm">Animations</Label>
+   516→   516→                  <p className="text-[#4a5568] text-xs">Enable UI motion and transitions</p>
+   517→   517→                </div>
+   518→   518→                <Switch checked={uiPrefs.animations} onCheckedChange={(v) => setUiPrefs(p => ({ ...p, animations: v }))} />
+   519→   519→              </div>
+   520→   520→            </div>
+   521→   521→
+   522→   522→            {/* Data & Notifications */}
+   523→   523→            <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5 space-y-5">
+   524→   524→              <div className="flex items-center gap-3">
+   525→   525→                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
+   526→   526→                  <Settings2 className="h-5 w-5" />
+   527→   527→                </div>
+   528→   528→                <div>
+   529→   529→                  <h3 className="text-[#e2e8f0] text-sm font-semibold">Data & Notifications</h3>
+   530→   530→                  <p className="text-[#4a5568] text-xs">Pagination, refresh, and alert settings</p>
+   531→   531→                </div>
+   532→   532→              </div>
+   533→   533→
+   534→   534→              <Separator className="bg-white/10" />
+   535→   535→
+   536→   536→              {/* Page Size */}
+   537→   537→              <div className="space-y-2.5">
+   538→   538→                <Label className="text-[#94a3b8] text-xs font-medium">Default Page Size</Label>
+   539→   539→                <Select value={String(uiPrefs.pageSize)} onValueChange={(v) => setUiPrefs(p => ({ ...p, pageSize: Number(v) }))}>
+   540→   540→                  <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#e2e8f0]">
+   541→   541→                    <SelectValue />
+   542→   542→                  </SelectTrigger>
+   543→   543→                  <SelectContent className="bg-[#1a2035] border-[#2a3550]">
+   544→   544→                    <SelectItem value="10">10 rows</SelectItem>
+   545→   545→                    <SelectItem value="25">25 rows</SelectItem>
+   546→   546→                    <SelectItem value="50">50 rows</SelectItem>
+   547→   547→                    <SelectItem value="100">100 rows</SelectItem>
+   548→   548→                  </SelectContent>
+   549→   549→                </Select>
+   550→   550→              </div>
+   551→   551→
+   552→   552→              {/* Auto Refresh */}
+   553→   553→              <div className="space-y-2.5">
+   554→   554→                <Label className="text-[#94a3b8] text-xs font-medium">Auto-Refresh Interval</Label>
+   555→   555→                <Select value={String(uiPrefs.autoRefresh)} onValueChange={(v) => setUiPrefs(p => ({ ...p, autoRefresh: Number(v) }))}>
+   556→   556→                  <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#e2e8f0]">
+   557→   557→                    <SelectValue />
+   558→   558→                  </SelectTrigger>
+   559→   559→                  <SelectContent className="bg-[#1a2035] border-[#2a3550]">
+   560→   560→                    <SelectItem value="0">Off</SelectItem>
+   561→   561→                    <SelectItem value="30">Every 30 seconds</SelectItem>
+   562→   562→                    <SelectItem value="60">Every 60 seconds</SelectItem>
+   563→   563→                    <SelectItem value="120">Every 2 minutes</SelectItem>
+   564→   564→                  </SelectContent>
+   565→   565→                </Select>
+   566→   566→              </div>
+   567→   567→
+   568→   568→              {/* Notification Sound */}
+   569→   569→              <div className="flex items-center justify-between">
+   570→   570→                <div className="space-y-0.5 flex items-center gap-2">
+   571→   571→                  <Volume2 className="h-4 w-4 text-[#64748b]" />
+   572→   572→                  <div>
+   573→   573→                    <Label className="text-[#e2e8f0] text-sm">Notification Sound</Label>
+   574→   574→                    <p className="text-[#4a5568] text-xs">Play audio for alerts</p>
+   575→   575→                  </div>
+   576→   576→                </div>
+   577→   577→                <Switch checked={uiPrefs.notificationSound} onCheckedChange={(v) => setUiPrefs(p => ({ ...p, notificationSound: v }))} />
+   578→   578→              </div>
+   579→   579→
+   580→   580→              {/* Sidebar Default */}
+   581→   581→              <div className="space-y-2.5">
+   582→   582→                <Label className="text-[#94a3b8] text-xs font-medium">Sidebar Default State</Label>
+   583→   583→                <Select value={uiPrefs.sidebarDefault} onValueChange={(v) => setUiPrefs(p => ({ ...p, sidebarDefault: v as "expanded" | "collapsed" }))}>
+   584→   584→                  <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#e2e8f0]">
+   585→   585→                    <SelectValue />
+   586→   586→                  </SelectTrigger>
+   587→   587→                  <SelectContent className="bg-[#1a2035] border-[#2a3550]">
+   588→   588→                    <SelectItem value="expanded">Expanded</SelectItem>
+   589→   589→                    <SelectItem value="collapsed">Collapsed</SelectItem>
+   590→   590→                  </SelectContent>
+   591→   591→                </Select>
+   592→   592→              </div>
+   593→   593→            </div>
+   594→   594→
+   595→   595→            {/* Action Buttons */}
+   596→   596→            <div className="lg:col-span-2 flex items-center justify-end gap-3">
+   597→   597→              <Button
+   598→   598→                variant="outline"
+   599→   599→                onClick={resetUIPrefs}
+   600→   600→                className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#94a3b8] hover:text-[#e2e8f0] rounded-xl px-5"
+   601→   601→              >
+   602→   602→                <RotateCcw className="h-4 w-4" /> Reset to Defaults
+   603→   603→              </Button>
+   604→   604→              <Button
+   605→   605→                onClick={saveUIPrefs}
+   606→   606→                disabled={saving}
+   607→   607→                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-0 rounded-xl px-6"
+   608→   608→              >
+   609→   609→                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+   610→   610→                {saving ? "Saving..." : "Save Preferences"}
+   611→   611→              </Button>
+   612→   612→            </div>
+   613→   613→          </motion.div>
+   614→   614→        </TabsContent>
+   615→   615→
+   616→   616→        {/* ─── Tab 3: System Configuration ─── */}
+   617→   617→        <TabsContent value="system">
+   618→   618→          <motion.div
+   619→   619→            initial={{ opacity: 0, y: 15 }}
+   620→   620→            animate={{ opacity: 1, y: 0 }}
+   621→   621→            className="space-y-6"
+   622→   622→          >
+   623→   623→            {/* AI Configuration */}
+   624→   624→            <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5 space-y-5">
+   625→   625→              <div className="flex items-center gap-3">
+   626→   626→                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/15 text-violet-400">
+   627→   627→                  <Brain className="h-5 w-5" />
+   628→   628→                </div>
+   629→   629→                <div>
+   630→   630→                  <h3 className="text-[#e2e8f0] text-sm font-semibold">AI Configuration</h3>
+   631→   631→                  <p className="text-[#4a5568] text-xs">Model selection and confidence thresholds</p>
+   632→   632→                </div>
+   633→   633→              </div>
+   634→   634→
+   635→   635→              <Separator className="bg-white/10" />
+   636→   636→
+   637→   637→              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+   638→   638→                {/* AI Model */}
+   639→   639→                <div className="space-y-2.5">
+   640→   640→                  <Label className="text-[#94a3b8] text-xs font-medium">AI Model</Label>
+   641→   641→                  <Select value={sysConfig.aiModel} onValueChange={(v) => setSysConfig(c => ({ ...c, aiModel: v }))}>
+   642→   642→                    <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#e2e8f0]">
+   643→   643→                      <SelectValue />
+   644→   644→                    </SelectTrigger>
+   645→   645→                    <SelectContent className="bg-[#1a2035] border-[#2a3550]">
+   646→   646→                      <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6</SelectItem>
+   647→   647→                      <SelectItem value="claude-opus-4">Claude Opus 4</SelectItem>
+   648→   648→                      <SelectItem value="claude-haiku-3-5">Claude Haiku 3.5</SelectItem>
+   649→   649→                      <SelectItem value="claude-sonnet-3-5">Claude Sonnet 3.5</SelectItem>
+   650→   650→                    </SelectContent>
+   651→   651→                  </Select>
+   652→   652→                  <p className="text-[#4a5568] text-[10px]">Claude Sonnet 4.6 is recommended for optimal speed/quality balance</p>
+   653→   653→                </div>
+   654→   654→
+   655→   655→                {/* OCR Language */}
+   656→   656→                <div className="space-y-2.5">
+   657→   657→                  <Label className="text-[#94a3b8] text-xs font-medium">OCR Language</Label>
+   658→   658→                  <Select value={sysConfig.ocrLanguage} onValueChange={(v) => setSysConfig(c => ({ ...c, ocrLanguage: v }))}>
+   659→   659→                    <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#e2e8f0]">
+   660→   660→                      <SelectValue />
+   661→   661→                    </SelectTrigger>
+   662→   662→                    <SelectContent className="bg-[#1a2035] border-[#2a3550]">
+   663→   663→                      <SelectItem value="eng+kan">English + Kannada</SelectItem>
+   664→   664→                      <SelectItem value="eng">English Only</SelectItem>
+   665→   665→                      <SelectItem value="kan">Kannada Only</SelectItem>
+   666→   666→                      <SelectItem value="eng+hin">English + Hindi</SelectItem>
+   667→   667→                      <SelectItem value="eng+kan+hin">English + Kannada + Hindi</SelectItem>
+   668→   668→                    </SelectContent>
+   669→   669→                  </Select>
+   670→   670→                </div>
+   671→   671→
+   672→   672→                {/* AI Confidence Threshold */}
+   673→   673→                <div className="space-y-3">
+   674→   674→                  <div className="flex items-center justify-between">
+   675→   675→                    <Label className="text-[#94a3b8] text-xs font-medium">AI Confidence Threshold</Label>
+   676→   676→                    <span className="text-blue-400 text-sm font-bold tabular-nums">{sysConfig.aiConfidence}%</span>
+   677→   677→                  </div>
+   678→   678→                  <Slider
+   679→   679→                    value={[sysConfig.aiConfidence]}
+   680→   680→                    onValueChange={([v]) => setSysConfig(c => ({ ...c, aiConfidence: v }))}
+   681→   681→                    min={0}
+   682→   682→                    max={100}
+   683→   683→                    step={1}
+   684→   684→                    className="[&>div>div]:bg-blue-500"
+   685→   685→                  />
+   686→   686→                  <div className="flex justify-between text-[#4a5568] text-[10px]">
+   687→   687→                    <span>0% — Accept all</span>
+   688→   688→                    <span>100% — Only high confidence</span>
+   689→   689→                  </div>
+   690→   690→                </div>
+   691→   691→
+   692→   692→                {/* Duplicate Detection Threshold */}
+   693→   693→                <div className="space-y-3">
+   694→   694→                  <div className="flex items-center justify-between">
+   695→   695→                    <Label className="text-[#94a3b8] text-xs font-medium">Duplicate Detection Threshold</Label>
+   696→   696→                    <span className="text-amber-400 text-sm font-bold tabular-nums">{sysConfig.duplicateThreshold}%</span>
+   697→   697→                  </div>
+   698→   698→                  <Slider
+   699→   699→                    value={[sysConfig.duplicateThreshold]}
+   700→   700→                    onValueChange={([v]) => setSysConfig(c => ({ ...c, duplicateThreshold: v }))}
+   701→   701→                    min={0}
+   702→   702→                    max={100}
+   703→   703→                    step={1}
+   704→   704→                    className="[&>div>div]:bg-amber-500"
+   705→   705→                  />
+   706→   706→                  <div className="flex justify-between text-[#4a5568] text-[10px]">
+   707→   707→                    <span>0% — No detection</span>
+   708→   708→                    <span>100% — Exact matches only</span>
+   709→   709→                  </div>
+   710→   710→                </div>
+   711→   711→              </div>
+   712→   712→            </div>
+   713→   713→
+   714→   714→            {/* File Upload & Database */}
+   715→   715→            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+   716→   716→              {/* File Upload */}
+   717→   717→              <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5 space-y-5">
+   718→   718→                <div className="flex items-center gap-3">
+   719→   719→                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-400">
+   720→   720→                    <HardDrive className="h-5 w-5" />
+   721→   721→                  </div>
+   722→   722→                  <div>
+   723→   723→                    <h3 className="text-[#e2e8f0] text-sm font-semibold">File Upload</h3>
+   724→   724→                    <p className="text-[#4a5568] text-xs">Upload limits and storage</p>
+   725→   725→                  </div>
+   726→   726→                </div>
+   727→   727→                <Separator className="bg-white/10" />
+   728→   728→                <div className="space-y-2.5">
+   729→   729→                  <Label className="text-[#94a3b8] text-xs font-medium">Max File Upload Size (MB)</Label>
+   730→   730→                  <Input
+   731→   731→                    type="number"
+   732→   732→                    value={sysConfig.maxUploadSize}
+   733→   733→                    onChange={(e) => setSysConfig(c => ({ ...c, maxUploadSize: Number(e.target.value) }))}
+   734→   734→                    className="bg-white/5 border-white/10 text-[#e2e8f0]"
+   735→   735→                    min={1}
+   736→   736→                    max={500}
+   737→   737→                  />
+   738→   738→                  <p className="text-[#4a5568] text-[10px]">Maximum size per file upload. Recommended: 50MB</p>
+   739→   739→                </div>
+   740→   740→              </div>
+   741→   741→
+   742→   742→              {/* Database Connection */}
+   743→   743→              <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5 space-y-5">
+   744→   744→                <div className="flex items-center justify-between">
+   745→   745→                  <div className="flex items-center gap-3">
+   746→   746→                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
+   747→   747→                      <Database className="h-5 w-5" />
+   748→   748→                    </div>
+   749→   749→                    <div>
+   750→   750→                      <h3 className="text-[#e2e8f0] text-sm font-semibold">Database Connection</h3>
+   751→   751→                      <p className="text-[#4a5568] text-xs">Read-only connection details</p>
+   752→   752→                    </div>
+   753→   753→                  </div>
+   754→   754→                  <Button
+   755→   755→                    variant="outline"
+   756→   756→                    size="sm"
+   757→   757→                    onClick={testConnection}
+   758→   758→                    disabled={testingConn}
+   759→   759→                    className={`gap-1.5 border-white/10 text-xs rounded-lg px-3 h-8 ${
+   760→   760→                      connStatus === "success" ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/10" :
+   761→   761→                      connStatus === "failure" ? "border-red-500/30 text-red-400 bg-red-500/10" :
+   762→   762→                      "bg-white/5 text-[#94a3b8] hover:bg-white/10"
+   763→   763→                    }`}
+   764→   764→                  >
+   765→   765→                    {testingConn ? (
+   766→   766→                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+   767→   767→                    ) : connStatus === "success" ? (
+   768→   768→                      <CheckCircle2 className="h-3.5 w-3.5" />
+   769→   769→                    ) : connStatus === "failure" ? (
+   770→   770→                      <AlertCircle className="h-3.5 w-3.5" />
+   771→   771→                    ) : (
+   772→   772→                      <Cpu className="h-3.5 w-3.5" />
+   773→   773→                    )}
+   774→   774→                    {testingConn ? "Testing..." : connStatus === "success" ? "Connected" : "Test Connection"}
+   775→   775→                  </Button>
+   776→   776→                </div>
+   777→   777→                <Separator className="bg-white/10" />
+   778→   778→                <div className="space-y-3">
+   779→   779→                  {[
+   780→   780→                    { label: "Host", value: sysConfig.dbHost },
+   781→   781→                    { label: "Port", value: sysConfig.dbPort },
+   782→   782→                    { label: "Database", value: sysConfig.dbName },
+   783→   783→                    { label: "User", value: sysConfig.dbUser },
+   784→   784→                  ].map(field => (
+   785→   785→                    <div key={field.label} className="flex items-center justify-between">
+   786→   786→                      <span className="text-[#64748b] text-xs">{field.label}</span>
+   787→   787→                      <span className="text-[#e2e8f0] text-xs font-mono bg-white/5 px-2 py-1 rounded-md">{field.value}</span>
+   788→   788→                    </div>
+   789→   789→                  ))}
+   790→   790→                </div>
+   791→   791→              </div>
+   792→   792→            </div>
+   793→   793→
+   794→   794→            {/* System Info */}
+   795→   795→            <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5 space-y-4">
+   796→   796→              <div className="flex items-center gap-3">
+   797→   797→                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/15 text-blue-400">
+   798→   798→                  <Info className="h-5 w-5" />
+   799→   799→                </div>
+   800→   800→                <div>
+   801→   801→                  <h3 className="text-[#e2e8f0] text-sm font-semibold">System Information</h3>
+   802→   802→                  <p className="text-[#4a5568] text-xs">Runtime and version details</p>
+   803→   803→                </div>
+   804→   804→              </div>
+   805→   805→              <Separator className="bg-white/10" />
+   806→   806→              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+   807→   807→                {[
+   808→   808→                  { label: "Version", value: systemInfo.version, color: "text-blue-400" },
+   809→   809→                  { label: "Build", value: systemInfo.build, color: "text-violet-400" },
+   810→   810→                  { label: "Uptime", value: systemInfo.uptime, color: "text-emerald-400" },
+   811→   811→                  { label: "Active Sessions", value: String(systemInfo.activeSessions), color: "text-amber-400" },
+   812→   812→                ].map(info => (
+   813→   813→                  <div key={info.label} className="rounded-xl border border-white/10 bg-white/5 p-3.5">
+   814→   814→                    <span className="text-[#64748b] text-xs block mb-1">{info.label}</span>
+   815→   815→                    <span className={`${info.color} text-sm font-semibold font-mono`}>{info.value}</span>
+   816→   816→                  </div>
+   817→   817→                ))}
+   818→   818→              </div>
+   819→   819→            </div>
+   820→   820→
+   821→   821→            {/* Save Configuration */}
+   822→   822→            <div className="flex items-center justify-end gap-3">
+   823→   823→              <Button
+   824→   824→                onClick={saveSysConfig}
+   825→   825→                disabled={saving}
+   826→   826→                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-0 rounded-xl px-6"
+   827→   827→              >
+   828→   828→                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+   829→   829→                {saving ? "Saving..." : "Save Configuration"}
+   830→   830→              </Button>
+   831→   831→            </div>
+   832→   832→          </motion.div>
+   833→   833→        </TabsContent>
+   834→   834→      </Tabs>
+   835→   835→    </div>
+   836→   836→  );
+   837→   837→}

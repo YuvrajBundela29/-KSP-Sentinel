@@ -122,7 +122,10 @@ export type ViewType =
   | "dm-import"
   | "dm-audit"
   | "dm-ai-queue"
-  | "dm-settings";
+  | "dm-settings"
+  | "dm-sociological"
+  | "dm-forecasting"
+  | "dm-financial-network";
 
 // ─── Intelligence Types ───────────────────────────────────────────
 
@@ -155,11 +158,18 @@ export interface TimelineEvent {
   status: "completed" | "in_progress" | "pending" | "unknown";
 }
 
+export interface ReasoningStep {
+  step: number;
+  finding: string;
+  evidence: string[];
+}
+
 export interface ExplainableResponse {
   content: string;
   evidenceChain: { firId: string; relevance: string }[];
   confidenceScore: number;
   reasoningSummary: string;
+  reasoningSteps?: ReasoningStep[];
   alternativeExplanations?: string[];
 }
 

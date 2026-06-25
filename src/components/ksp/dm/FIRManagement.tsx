@@ -220,10 +220,10 @@ function simulateAIExtraction(text: string): AIExtraction | null {
 // ─── Severity Badge ────────────────────────────────────────────────
 function SeverityBadge({ severity }: { severity: string }) {
   const map: Record<string, string> = {
-    critical: "bg-red-500/20 text-red-400 border-red-500/30",
-    high: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-    medium: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-    low: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+    critical: "bg-[rgba(248,113,113,0.12)] text-[#f87171] border-[rgba(248,113,113,0.15)]",
+    high: "bg-[rgba(251,191,36,0.12)] text-[#fbbf24] border-[rgba(251,191,36,0.15)]",
+    medium: "bg-[rgba(34,211,238,0.12)] text-[#22d3ee] border-[rgba(34,211,238,0.15)]",
+    low: "bg-[rgba(52,211,153,0.12)] text-[#34d399] border-[rgba(52,211,153,0.15)]",
   };
   return (
     <span
@@ -239,12 +239,12 @@ function SeverityBadge({ severity }: { severity: string }) {
 // ─── Status Badge ──────────────────────────────────────────────────
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
-    "Under Investigation": "bg-blue-500/20 text-blue-400 border-blue-500/30",
-    "Closed": "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-    "Open": "bg-amber-500/20 text-amber-400 border-amber-500/30",
-    "Chargesheeted": "bg-violet-500/20 text-violet-400 border-violet-500/30",
-    "Pending": "bg-orange-500/20 text-orange-400 border-orange-500/30",
-    "Transferred": "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
+    "Under Investigation": "bg-[rgba(34,211,238,0.12)] text-[#22d3ee] border-[rgba(34,211,238,0.15)]",
+    "Closed": "bg-[rgba(52,211,153,0.12)] text-[#34d399] border-[rgba(52,211,153,0.15)]",
+    "Open": "bg-[rgba(251,191,36,0.12)] text-[#fbbf24] border-[rgba(251,191,36,0.15)]",
+    "Chargesheeted": "bg-[rgba(129,140,248,0.12)] text-[#818cf8] border-[rgba(129,140,248,0.15)]",
+    "Pending": "bg-[#fbbf24]/20 text-[#fbbf24] border-[rgba(251,191,36,0.15)]",
+    "Transferred": "bg-[rgba(34,211,238,0.12)] text-[#22d3ee] border-[rgba(34,211,238,0.15)]",
   };
   return (
     <span
@@ -261,10 +261,10 @@ function StatusBadge({ status }: { status: string }) {
 function AIScoreCell({ score }: { score: number }) {
   const color =
     score >= 80
-      ? "text-emerald-400"
+      ? "text-[#34d399]"
       : score >= 60
-      ? "text-amber-400"
-      : "text-red-400";
+      ? "text-[#fbbf24]"
+      : "text-[#f87171]";
   return (
     <div className="flex items-center gap-2">
       <div className="w-12">
@@ -272,10 +272,10 @@ function AIScoreCell({ score }: { score: number }) {
           value={score}
           className={`h-1.5 bg-white/10 [&>div]:rounded-full ${
             score >= 80
-              ? "[&>div]:bg-emerald-500"
+              ? "[&>div]:bg-[#34d399]"
               : score >= 60
-              ? "[&>div]:bg-amber-500"
-              : "[&>div]:bg-red-500"
+              ? "[&>div]:bg-[#fbbf24]"
+              : "[&>div]:bg-[#f87171]"
           }`}
         />
       </div>
@@ -732,11 +732,11 @@ export default function FIRManagement() {
   }, [filterCrimeType, filterDistrict, filterSeverity, filterStatus, filterDateFrom, filterDateTo]);
 
   const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ChevronsUpDown className="h-3.5 w-3.5 text-[#4a5568]" />;
+    if (sortField !== field) return <ChevronsUpDown className="h-3.5 w-3.5 text-[#3d4659]" />;
     return sortDir === "asc" ? (
-      <ChevronUp className="h-3.5 w-3.5 text-blue-400" />
+      <ChevronUp className="h-3.5 w-3.5 text-[#22d3ee]" />
     ) : (
-      <ChevronDown className="h-3.5 w-3.5 text-blue-400" />
+      <ChevronDown className="h-3.5 w-3.5 text-[#22d3ee]" />
     );
   };
 
@@ -761,17 +761,18 @@ export default function FIRManagement() {
       {/* ── Page Header ── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-[#e2e8f0] text-2xl font-bold tracking-tight">
+          <h1 className="text-[#f1f5f9] text-2xl font-bold tracking-tight">
             FIR Management
           </h1>
-          <p className="text-[#64748b] text-sm mt-1">
+          <p className="text-[#5a657a] text-sm mt-1">
             Search, filter, and manage all First Information Reports
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button
             onClick={() => setShowCreateDialog(true)}
-            className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-0 rounded-xl"
+            className="gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all duration-200 cursor-pointer"
+            style={{ background: "linear-gradient(135deg, #22d3ee, #06b6d4)", color: "#050810", boxShadow: "0 0 16px rgba(34,211,238,0.15)", border: "none" }}
           >
             <Plus className="h-4 w-4" />
             New FIR
@@ -780,13 +781,13 @@ export default function FIRManagement() {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#e2e8f0] rounded-xl"
+                className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#f1f5f9] rounded-xl"
               >
                 <FileDown className="h-4 w-4" />
                 Export
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="bg-[#1a2035] border-white/10 text-[#e2e8f0]">
+            <DropdownMenuContent className="bg-[rgba(15,21,36,0.45)] border-white/10 text-[#f1f5f9]">
               <DropdownMenuItem
                 onClick={() =>
                   exportToCSV(
@@ -854,14 +855,14 @@ export default function FIRManagement() {
         className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5"
       >
         <div className="flex items-center gap-2 mb-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/15">
-            <Brain className="h-4 w-4 text-violet-400" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#818cf8]/15">
+            <Brain className="h-4 w-4 text-[#818cf8]" />
           </div>
           <div>
-            <h2 className="text-[#e2e8f0] text-sm font-semibold">
+            <h2 className="text-[#f1f5f9] text-sm font-semibold">
               AI-Assisted FIR Entry
             </h2>
-            <p className="text-[#64748b] text-xs">
+            <p className="text-[#5a657a] text-xs">
               Describe the incident in plain text — AI will extract key fields
             </p>
           </div>
@@ -872,17 +873,17 @@ export default function FIRManagement() {
             onChange={(e) => setAiText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder='Describe the incident... e.g., "A woman reported chain snatching near Mysuru Bus Stand around 8 PM. Two suspects on a black motorcycle fled the scene."'
-            className="min-h-[80px] bg-white/5 border-white/10 text-[#e2e8f0] placeholder:text-[#4a5568] resize-none focus-visible:border-violet-500/50 focus-visible:ring-violet-500/20"
+            className="min-h-[80px] bg-white/5 border-white/10 text-[#f1f5f9] placeholder:text-[#3d4659] resize-none focus-visible:border-[rgba(129,140,248,0.3)] focus-visible:ring-[rgba(129,140,248,0.2)]"
             rows={3}
           />
           <div className="mt-2 flex items-center justify-between">
-            <span className="text-[#4a5568] text-xs">
-              Press <kbd className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-mono text-[#94a3b8]">Ctrl+Enter</kbd> to analyze
+            <span className="text-[#3d4659] text-xs">
+              Press <kbd className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-mono text-[#8b97b0]">Ctrl+Enter</kbd> to analyze
             </span>
             <Button
               onClick={handleAIExtract}
               disabled={extracting || !aiText.trim()}
-              className="gap-2 bg-violet-600 hover:bg-violet-700 text-white border-0 rounded-xl text-sm"
+              className="gap-2 bg-[#818cf8] hover:bg-[#6d7de8] text-white border-0 rounded-xl text-sm"
             >
               {extracting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -904,14 +905,14 @@ export default function FIRManagement() {
               transition={{ duration: 0.3 }}
               className="overflow-hidden"
             >
-              <div className="mt-4 rounded-xl border border-violet-500/20 bg-violet-500/5 p-4">
+              <div className="mt-4 rounded-xl border border-[rgba(129,140,248,0.15)] bg-[#818cf8]/5 p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                    <span className="text-[#e2e8f0] text-sm font-medium">
+                    <CheckCircle2 className="h-4 w-4 text-[#34d399]" />
+                    <span className="text-[#f1f5f9] text-sm font-medium">
                       AI Extraction Complete
                     </span>
-                    <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[10px]">
+                    <Badge className="bg-[#34d399]/15 text-[#34d399] border-[rgba(52,211,153,0.15)] text-[10px]">
                       {extraction.confidence}% confidence
                     </Badge>
                   </div>
@@ -919,7 +920,7 @@ export default function FIRManagement() {
                     size="sm"
                     variant="ghost"
                     onClick={() => setExtraction(null)}
-                    className="h-7 w-7 p-0 text-[#64748b] hover:text-[#e2e8f0]"
+                    className="h-7 w-7 p-0 text-[#5a657a] hover:text-[#f1f5f9]"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -938,17 +939,17 @@ export default function FIRManagement() {
                     },
                   ].map((item) => (
                     <div key={item.label}>
-                      <span className="text-[#64748b] text-xs font-medium uppercase tracking-wider">
+                      <span className="text-[#5a657a] text-xs font-medium uppercase tracking-wider">
                         {item.label}
                       </span>
-                      <p className="text-[#e2e8f0] text-sm mt-0.5">{item.value}</p>
+                      <p className="text-[#f1f5f9] text-sm mt-0.5">{item.value}</p>
                     </div>
                   ))}
                 </div>
 
                 {extraction.timeline.length > 0 && (
                   <div className="mt-3">
-                    <span className="text-[#64748b] text-xs font-medium uppercase tracking-wider">
+                    <span className="text-[#5a657a] text-xs font-medium uppercase tracking-wider">
                       Timeline
                     </span>
                     <div className="mt-1 flex items-center gap-2">
@@ -957,11 +958,11 @@ export default function FIRManagement() {
                           key={i}
                           className="flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-1.5"
                         >
-                          <Clock className="h-3 w-3 text-[#64748b]" />
-                          <span className="text-[#e2e8f0] text-xs">
+                          <Clock className="h-3 w-3 text-[#5a657a]" />
+                          <span className="text-[#f1f5f9] text-xs">
                             {t.event}
                           </span>
-                          <span className="text-[#4a5568] text-xs">
+                          <span className="text-[#3d4659] text-xs">
                             ({t.date})
                           </span>
                         </div>
@@ -973,7 +974,7 @@ export default function FIRManagement() {
                 <div className="mt-4 flex items-center gap-2">
                   <Button
                     onClick={handleUseAIForDialog}
-                    className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-0 rounded-xl text-sm"
+                    className="gap-2 bg-[#34d399] hover:bg-[#2bc48a] text-white border-0 rounded-xl text-sm"
                   >
                     <Plus className="h-4 w-4" />
                     Create FIR from Extraction
@@ -994,10 +995,10 @@ export default function FIRManagement() {
             exit={{ opacity: 0, y: -10, height: 0 }}
             className="overflow-hidden"
           >
-            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 backdrop-blur-xl">
+            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[rgba(52,211,153,0.15)] bg-[rgba(52,211,153,0.04)] px-4 py-3 backdrop-blur-xl">
               <div className="flex items-center gap-2">
-                <CheckSquare className="h-4 w-4 text-emerald-400" />
-                <span className="text-[#e2e8f0] text-sm font-medium">
+                <CheckSquare className="h-4 w-4 text-[#34d399]" />
+                <span className="text-[#f1f5f9] text-sm font-medium">
                   {selectedRows.size} selected
                 </span>
               </div>
@@ -1006,7 +1007,7 @@ export default function FIRManagement() {
                 size="sm"
                 variant="ghost"
                 onClick={handleBulkDelete}
-                className="gap-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 text-xs"
+                className="gap-1.5 text-[#f87171] hover:text-[#fca5a5] hover:bg-[rgba(248,113,113,0.08)] h-8 text-xs"
               >
                 <Trash2 className="h-3.5 w-3.5" /> Delete
               </Button>
@@ -1015,12 +1016,12 @@ export default function FIRManagement() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="gap-1.5 text-[#94a3b8] hover:text-[#e2e8f0] hover:bg-white/10 h-8 text-xs"
+                    className="gap-1.5 text-[#8b97b0] hover:text-[#f1f5f9] hover:bg-white/10 h-8 text-xs"
                   >
                     <FileDown className="h-3.5 w-3.5" /> Export Selected
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="bg-[#1a2035] border-white/10 text-[#e2e8f0]">
+                <DropdownMenuContent className="bg-[rgba(15,21,36,0.45)] border-white/10 text-[#f1f5f9]">
                   <DropdownMenuItem onClick={() => handleBulkExport("csv")}>
                     <FileDown className="mr-2 h-3.5 w-3.5" /> CSV
                   </DropdownMenuItem>
@@ -1036,7 +1037,7 @@ export default function FIRManagement() {
                 size="sm"
                 variant="ghost"
                 onClick={handleBulkAIReport}
-                className="gap-1.5 text-[#94a3b8] hover:text-[#e2e8f0] hover:bg-white/10 h-8 text-xs"
+                className="gap-1.5 text-[#8b97b0] hover:text-[#f1f5f9] hover:bg-white/10 h-8 text-xs"
               >
                 <Zap className="h-3.5 w-3.5" /> Generate AI Report
               </Button>
@@ -1051,7 +1052,7 @@ export default function FIRManagement() {
                     read: false,
                   });
                 }}
-                className="gap-1.5 text-[#94a3b8] hover:text-[#e2e8f0] hover:bg-white/10 h-8 text-xs"
+                className="gap-1.5 text-[#8b97b0] hover:text-[#f1f5f9] hover:bg-white/10 h-8 text-xs"
               >
                 <Network className="h-3.5 w-3.5" /> Analyze Network
               </Button>
@@ -1071,7 +1072,7 @@ export default function FIRManagement() {
                   });
                   setSelectedRows(new Set());
                 }}
-                className="gap-1.5 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-8 text-xs"
+                className="gap-1.5 text-[#34d399] hover:text-[#6ee7b7] hover:bg-[rgba(52,211,153,0.08)] h-8 text-xs"
               >
                 <CheckCircle2 className="h-3.5 w-3.5" /> Mark Reviewed
               </Button>
@@ -1085,12 +1086,12 @@ export default function FIRManagement() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           {/* Search */}
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#4a5568]" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#3d4659]" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search FIRs by number, crime type, district, location, victim, accused..."
-              className="pl-10 bg-white/5 border-white/10 text-[#e2e8f0] placeholder:text-[#4a5568] h-10 rounded-xl focus-visible:border-blue-500/50 focus-visible:ring-blue-500/20"
+              className="pl-10 bg-white/5 border-white/10 text-[#f1f5f9] placeholder:text-[#3d4659] h-10 rounded-xl focus-visible:border-[rgba(34,211,238,0.3)] focus-visible:ring-[rgba(34,211,238,0.2)]"
             />
           </div>
 
@@ -1100,14 +1101,14 @@ export default function FIRManagement() {
             onClick={() => setShowFilters(!showFilters)}
             className={`gap-2 border-white/10 rounded-xl h-10 ${
               showFilters || activeFilterCount > 0
-                ? "bg-blue-500/10 border-blue-500/30 text-blue-400"
-                : "bg-white/5 text-[#94a3b8] hover:bg-white/10"
+                ? "bg-[rgba(34,211,238,0.08)] border-[rgba(34,211,238,0.15)] text-[#22d3ee]"
+                : "bg-white/5 text-[#8b97b0] hover:bg-white/10"
             }`}
           >
             <Filter className="h-4 w-4" />
             Filters
             {activeFilterCount > 0 && (
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold text-white">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#22d3ee] text-[10px] font-bold text-white">
                 {activeFilterCount}
               </span>
             )}
@@ -1118,17 +1119,17 @@ export default function FIRManagement() {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="gap-2 border-white/10 bg-white/5 text-[#94a3b8] hover:bg-white/10 rounded-xl h-10"
+                className="gap-2 border-white/10 bg-white/5 text-[#8b97b0] hover:bg-white/10 rounded-xl h-10"
               >
                 <Columns3 className="h-4 w-4" />
                 Columns
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
-              className="bg-[#1a2035] border-white/10 text-[#e2e8f0] w-48"
+              className="bg-[rgba(15,21,36,0.45)] border-white/10 text-[#f1f5f9] w-48"
               align="end"
             >
-              <DropdownMenuLabel className="text-[#94a3b8]">
+              <DropdownMenuLabel className="text-[#8b97b0]">
                 Toggle Columns
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-white/10" />
@@ -1137,7 +1138,7 @@ export default function FIRManagement() {
                   key={col.key}
                   checked={col.visible}
                   onCheckedChange={() => toggleColumn(col.key)}
-                  className="text-[#e2e8f0] focus:bg-white/10"
+                  className="text-[#f1f5f9] focus:bg-white/10"
                 >
                   {col.label}
                 </DropdownMenuCheckboxItem>
@@ -1158,12 +1159,12 @@ export default function FIRManagement() {
             >
               <div className="flex flex-wrap items-end gap-3 rounded-xl border border-white/10 bg-white/5 p-4">
                 <div className="min-w-[160px] space-y-1.5">
-                  <Label className="text-[#94a3b8] text-xs">Crime Type</Label>
+                  <Label className="text-[#8b97b0] text-xs">Crime Type</Label>
                   <Select value={filterCrimeType} onValueChange={(v) => { setFilterCrimeType(v); setPage(1); }}>
-                    <SelectTrigger className="h-9 bg-white/5 border-white/10 text-[#e2e8f0] rounded-lg w-full">
+                    <SelectTrigger className="h-9 bg-white/5 border-white/10 text-[#f1f5f9] rounded-lg w-full">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#1a2035] border-white/10 text-[#e2e8f0]">
+                    <SelectContent className="bg-[rgba(15,21,36,0.45)] border-white/10 text-[#f1f5f9]">
                       <SelectItem value="all">All Types</SelectItem>
                       {uniqueCrimeTypes.map((ct) => (
                         <SelectItem key={ct} value={ct}>
@@ -1175,12 +1176,12 @@ export default function FIRManagement() {
                 </div>
 
                 <div className="min-w-[160px] space-y-1.5">
-                  <Label className="text-[#94a3b8] text-xs">District</Label>
+                  <Label className="text-[#8b97b0] text-xs">District</Label>
                   <Select value={filterDistrict} onValueChange={(v) => { setFilterDistrict(v); setPage(1); }}>
-                    <SelectTrigger className="h-9 bg-white/5 border-white/10 text-[#e2e8f0] rounded-lg w-full">
+                    <SelectTrigger className="h-9 bg-white/5 border-white/10 text-[#f1f5f9] rounded-lg w-full">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#1a2035] border-white/10 text-[#e2e8f0]">
+                    <SelectContent className="bg-[rgba(15,21,36,0.45)] border-white/10 text-[#f1f5f9]">
                       <SelectItem value="all">All Districts</SelectItem>
                       {uniqueDistricts.map((d) => (
                         <SelectItem key={d} value={d}>
@@ -1192,12 +1193,12 @@ export default function FIRManagement() {
                 </div>
 
                 <div className="min-w-[130px] space-y-1.5">
-                  <Label className="text-[#94a3b8] text-xs">Severity</Label>
+                  <Label className="text-[#8b97b0] text-xs">Severity</Label>
                   <Select value={filterSeverity} onValueChange={(v) => { setFilterSeverity(v); setPage(1); }}>
-                    <SelectTrigger className="h-9 bg-white/5 border-white/10 text-[#e2e8f0] rounded-lg w-full">
+                    <SelectTrigger className="h-9 bg-white/5 border-white/10 text-[#f1f5f9] rounded-lg w-full">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#1a2035] border-white/10 text-[#e2e8f0]">
+                    <SelectContent className="bg-[rgba(15,21,36,0.45)] border-white/10 text-[#f1f5f9]">
                       <SelectItem value="all">All</SelectItem>
                       <SelectItem value="critical">Critical</SelectItem>
                       <SelectItem value="high">High</SelectItem>
@@ -1208,12 +1209,12 @@ export default function FIRManagement() {
                 </div>
 
                 <div className="min-w-[160px] space-y-1.5">
-                  <Label className="text-[#94a3b8] text-xs">Status</Label>
+                  <Label className="text-[#8b97b0] text-xs">Status</Label>
                   <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v); setPage(1); }}>
-                    <SelectTrigger className="h-9 bg-white/5 border-white/10 text-[#e2e8f0] rounded-lg w-full">
+                    <SelectTrigger className="h-9 bg-white/5 border-white/10 text-[#f1f5f9] rounded-lg w-full">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#1a2035] border-white/10 text-[#e2e8f0]">
+                    <SelectContent className="bg-[rgba(15,21,36,0.45)] border-white/10 text-[#f1f5f9]">
                       <SelectItem value="all">All Statuses</SelectItem>
                       {uniqueStatuses.map((s) => (
                         <SelectItem key={s} value={s}>
@@ -1225,29 +1226,29 @@ export default function FIRManagement() {
                 </div>
 
                 <div className="min-w-[140px] space-y-1.5">
-                  <Label className="text-[#94a3b8] text-xs">Date From</Label>
+                  <Label className="text-[#8b97b0] text-xs">Date From</Label>
                   <Input
                     type="date"
                     value={filterDateFrom}
                     onChange={(e) => { setFilterDateFrom(e.target.value); setPage(1); }}
-                    className="h-9 bg-white/5 border-white/10 text-[#e2e8f0] rounded-lg [color-scheme:dark]"
+                    className="h-9 bg-white/5 border-white/10 text-[#f1f5f9] rounded-lg [color-scheme:dark]"
                   />
                 </div>
 
                 <div className="min-w-[140px] space-y-1.5">
-                  <Label className="text-[#94a3b8] text-xs">Date To</Label>
+                  <Label className="text-[#8b97b0] text-xs">Date To</Label>
                   <Input
                     type="date"
                     value={filterDateTo}
                     onChange={(e) => { setFilterDateTo(e.target.value); setPage(1); }}
-                    className="h-9 bg-white/5 border-white/10 text-[#e2e8f0] rounded-lg [color-scheme:dark]"
+                    className="h-9 bg-white/5 border-white/10 text-[#f1f5f9] rounded-lg [color-scheme:dark]"
                   />
                 </div>
 
                 <Button
                   variant="ghost"
                   onClick={clearFilters}
-                  className="gap-1.5 text-[#64748b] hover:text-[#e2e8f0] h-9 text-xs"
+                  className="gap-1.5 text-[#5a657a] hover:text-[#f1f5f9] h-9 text-xs"
                 >
                   <X className="h-3.5 w-3.5" /> Clear All
                 </Button>
@@ -1262,26 +1263,26 @@ export default function FIRManagement() {
         {/* Table header stats */}
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
           <div className="flex items-center gap-3">
-            <span className="text-[#94a3b8] text-sm">
+            <span className="text-[#8b97b0] text-sm">
               Showing{" "}
-              <span className="text-[#e2e8f0] font-medium">
+              <span className="text-[#f1f5f9] font-medium">
                 {filteredFirs.length}
               </span>{" "}
               of{" "}
-              <span className="text-[#e2e8f0] font-medium">{firs.length}</span>{" "}
+              <span className="text-[#f1f5f9] font-medium">{firs.length}</span>{" "}
               FIRs
             </span>
             {filteredFirs.length !== firs.length && (
               <Badge
                 variant="outline"
-                className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[10px]"
+                className="bg-[rgba(34,211,238,0.08)] text-[#22d3ee] border-[rgba(34,211,238,0.15)] text-[10px]"
               >
                 Filtered
               </Badge>
             )}
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[#64748b] text-xs">Rows:</span>
+            <span className="text-[#5a657a] text-xs">Rows:</span>
             <Select
               value={String(pageSize)}
               onValueChange={(v) => {
@@ -1289,10 +1290,10 @@ export default function FIRManagement() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="h-8 w-[70px] bg-white/5 border-white/10 text-[#e2e8f0] text-xs rounded-lg">
+              <SelectTrigger className="h-8 w-[70px] bg-white/5 border-white/10 text-[#f1f5f9] text-xs rounded-lg">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-[#1a2035] border-white/10 text-[#e2e8f0]">
+              <SelectContent className="bg-[rgba(15,21,36,0.45)] border-white/10 text-[#f1f5f9]">
                 <SelectItem value="10">10</SelectItem>
                 <SelectItem value="25">25</SelectItem>
                 <SelectItem value="50">50</SelectItem>
@@ -1314,7 +1315,7 @@ export default function FIRManagement() {
                       selectedRows.size === paginatedFirs.length
                     }
                     onCheckedChange={handleSelectAll}
-                    className="border-white/20 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+                    className="border-white/20 data-[state=checked]:bg-[#34d399] data-[state=checked]:border-[#2bc48a]"
                   />
                 </TableHead>
                 {columns
@@ -1322,8 +1323,8 @@ export default function FIRManagement() {
                   .map((col) => (
                     <TableHead
                       key={col.key}
-                      className={`text-[#94a3b8] text-xs font-medium uppercase tracking-wider ${
-                        col.sortable ? "cursor-pointer select-none hover:text-[#e2e8f0]" : ""
+                      className={`text-[10px] font-medium uppercase tracking-wider text-[#5a657a] ${
+                        col.sortable ? "cursor-pointer select-none hover:text-[#f1f5f9]" : ""
                       }`}
                       onClick={
                         col.sortable
@@ -1337,7 +1338,7 @@ export default function FIRManagement() {
                       </div>
                     </TableHead>
                   ))}
-                <TableHead className="text-[#94a3b8] text-xs font-medium uppercase tracking-wider text-right">
+                <TableHead className="text-[10px] font-medium uppercase tracking-wider text-[#5a657a] text-right">
                   Actions
                 </TableHead>
               </TableRow>
@@ -1350,9 +1351,9 @@ export default function FIRManagement() {
                     className="h-40 text-center"
                   >
                     <div className="flex flex-col items-center gap-2">
-                      <AlertTriangle className="h-8 w-8 text-[#4a5568]" />
-                      <p className="text-[#64748b] text-sm">No FIRs found</p>
-                      <p className="text-[#4a5568] text-xs">
+                      <AlertTriangle className="h-8 w-8 text-[#3d4659]" />
+                      <p className="text-[#5a657a] text-sm">No FIRs found</p>
+                      <p className="text-[#3d4659] text-xs">
                         Try adjusting your search or filters
                       </p>
                       {activeFilterCount > 0 && (
@@ -1360,7 +1361,7 @@ export default function FIRManagement() {
                           variant="ghost"
                           size="sm"
                           onClick={clearFilters}
-                          className="mt-2 text-blue-400 text-xs"
+                          className="mt-2 text-[#22d3ee] text-xs"
                         >
                           Clear filters
                         </Button>
@@ -1373,14 +1374,14 @@ export default function FIRManagement() {
                   <TableRow
                     key={fir.fir_id}
                     className={`border-white/5 hover:bg-white/5 transition-colors ${
-                      selectedRows.has(fir.fir_id) ? "bg-blue-500/5" : ""
+                      selectedRows.has(fir.fir_id) ? "bg-[#22d3ee]/5" : ""
                     }`}
                   >
                     <TableCell>
                       <Checkbox
                         checked={selectedRows.has(fir.fir_id)}
                         onCheckedChange={() => handleSelectRow(fir.fir_id)}
-                        className="border-white/20 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+                        className="border-white/20 data-[state=checked]:bg-[#34d399] data-[state=checked]:border-[#2bc48a]"
                       />
                     </TableCell>
                     {columns
@@ -1390,13 +1391,13 @@ export default function FIRManagement() {
                           {col.key === "fir_id" && (
                             <button
                               onClick={() => handleRowAction("View", fir)}
-                              className="text-blue-400 hover:text-blue-300 hover:underline font-mono text-xs"
+                              className="text-[#22d3ee] hover:text-[#67e8f9] hover:underline font-mono text-xs"
                             >
                               {fir.fir_id}
                             </button>
                           )}
                           {col.key === "crime_type" && (
-                            <span className="text-[#e2e8f0]">
+                            <span className="text-[#f1f5f9]">
                               {fir.crime_type}
                             </span>
                           )}
@@ -1404,12 +1405,12 @@ export default function FIRManagement() {
                             <StatusBadge status={fir.investigation_status} />
                           )}
                           {col.key === "district" && (
-                            <span className="text-[#94a3b8] text-xs">
+                            <span className="text-[#8b97b0] text-xs">
                               {fir.district}
                             </span>
                           )}
                           {col.key === "officer" && (
-                            <span className="text-[#94a3b8] text-xs font-mono">
+                            <span className="text-[#8b97b0] text-xs font-mono">
                               {fir.officer_id}
                             </span>
                           )}
@@ -1417,7 +1418,7 @@ export default function FIRManagement() {
                             <SeverityBadge severity={fir.severity} />
                           )}
                           {col.key === "date" && (
-                            <span className="text-[#94a3b8] text-xs">
+                            <span className="text-[#8b97b0] text-xs">
                               {new Date(fir.date).toLocaleDateString("en-IN", {
                                 day: "2-digit",
                                 month: "short",
@@ -1436,13 +1437,13 @@ export default function FIRManagement() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 w-8 p-0 text-[#64748b] hover:text-[#e2e8f0] hover:bg-white/10"
+                            className="h-8 w-8 p-0 text-[#5a657a] hover:text-[#f1f5f9] hover:bg-white/10"
                           >
                             <SlidersHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
-                          className="bg-[#1a2035] border-white/10 text-[#e2e8f0] w-48"
+                          className="bg-[rgba(15,21,36,0.45)] border-white/10 text-[#f1f5f9] w-48"
                           align="end"
                         >
                           <DropdownMenuItem
@@ -1519,14 +1520,14 @@ export default function FIRManagement() {
 
         {/* Pagination */}
         <div className="flex flex-col items-center justify-between gap-3 border-t border-white/10 px-5 py-3 sm:flex-row">
-          <span className="text-[#64748b] text-xs">
+          <span className="text-[#5a657a] text-xs">
             Page {page} of {totalPages} — {filteredFirs.length} total results
           </span>
           <div className="flex items-center gap-1">
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8 border-white/10 bg-white/5 text-[#94a3b8] hover:bg-white/10 hover:text-[#e2e8f0] rounded-lg disabled:opacity-30"
+              className="h-8 w-8 border-white/10 bg-white/5 text-[#8b97b0] hover:bg-white/10 hover:text-[#f1f5f9] rounded-lg disabled:opacity-30"
               disabled={page <= 1}
               onClick={() => setPage(1)}
             >
@@ -1536,7 +1537,7 @@ export default function FIRManagement() {
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8 border-white/10 bg-white/5 text-[#94a3b8] hover:bg-white/10 hover:text-[#e2e8f0] rounded-lg disabled:opacity-30"
+              className="h-8 w-8 border-white/10 bg-white/5 text-[#8b97b0] hover:bg-white/10 hover:text-[#f1f5f9] rounded-lg disabled:opacity-30"
               disabled={page <= 1}
               onClick={() => setPage((p) => p - 1)}
             >
@@ -1562,8 +1563,8 @@ export default function FIRManagement() {
                   size="icon"
                   className={`h-8 w-8 rounded-lg text-xs ${
                     page === pageNum
-                      ? "bg-emerald-600 hover:bg-emerald-700 text-white border-0"
-                      : "border-white/10 bg-white/5 text-[#94a3b8] hover:bg-white/10 hover:text-[#e2e8f0]"
+                      ? "bg-[#34d399] hover:bg-[#2bc48a] text-white border-0"
+                      : "border-white/10 bg-white/5 text-[#8b97b0] hover:bg-white/10 hover:text-[#f1f5f9]"
                   }`}
                   onClick={() => setPage(pageNum)}
                 >
@@ -1575,7 +1576,7 @@ export default function FIRManagement() {
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8 border-white/10 bg-white/5 text-[#94a3b8] hover:bg-white/10 hover:text-[#e2e8f0] rounded-lg disabled:opacity-30"
+              className="h-8 w-8 border-white/10 bg-white/5 text-[#8b97b0] hover:bg-white/10 hover:text-[#f1f5f9] rounded-lg disabled:opacity-30"
               disabled={page >= totalPages}
               onClick={() => setPage((p) => p + 1)}
             >
@@ -1584,7 +1585,7 @@ export default function FIRManagement() {
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8 border-white/10 bg-white/5 text-[#94a3b8] hover:bg-white/10 hover:text-[#e2e8f0] rounded-lg disabled:opacity-30"
+              className="h-8 w-8 border-white/10 bg-white/5 text-[#8b97b0] hover:bg-white/10 hover:text-[#f1f5f9] rounded-lg disabled:opacity-30"
               disabled={page >= totalPages}
               onClick={() => setPage(totalPages)}
             >
@@ -1597,38 +1598,38 @@ export default function FIRManagement() {
 
       {/* ── Create FIR Dialog ── */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="bg-[#1a2035] border-white/10 text-[#e2e8f0] max-w-lg rounded-2xl">
+        <DialogContent className="bg-[rgba(15,21,36,0.45)] border-white/10 text-[#f1f5f9] max-w-lg rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="text-[#e2e8f0]">Create New FIR</DialogTitle>
-            <DialogDescription className="text-[#64748b]">
+            <DialogTitle className="text-[#f1f5f9]">Create New FIR</DialogTitle>
+            <DialogDescription className="text-[#5a657a]">
               Fill in the essential details to create a new First Information
               Report.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label className="text-[#94a3b8] text-sm">Crime Type</Label>
+              <Label className="text-[#8b97b0] text-sm">Crime Type</Label>
               <Input
                 value={newFirForm.crime_type}
                 onChange={(e) =>
                   setNewFirForm((f) => ({ ...f, crime_type: e.target.value }))
                 }
                 placeholder="e.g., Theft, Murder, Chain Snatching"
-                className="bg-white/5 border-white/10 text-[#e2e8f0] placeholder:text-[#4a5568] rounded-xl focus-visible:border-emerald-500/50 focus-visible:ring-emerald-500/20"
+                className="bg-white/5 border-white/10 text-[#f1f5f9] placeholder:text-[#3d4659] rounded-xl focus-visible:border-[rgba(52,211,153,0.3)] focus-visible:ring-[rgba(52,211,153,0.2)]"
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[#94a3b8] text-sm">District</Label>
+              <Label className="text-[#8b97b0] text-sm">District</Label>
               <Select
                 value={newFirForm.district}
                 onValueChange={(v) =>
                   setNewFirForm((f) => ({ ...f, district: v }))
                 }
               >
-                <SelectTrigger className="bg-white/5 border-white/10 text-[#e2e8f0] rounded-xl w-full">
+                <SelectTrigger className="bg-white/5 border-white/10 text-[#f1f5f9] rounded-xl w-full">
                   <SelectValue placeholder="Select district" />
                 </SelectTrigger>
-                <SelectContent className="bg-[#0a0f1e] border-white/10 text-[#e2e8f0]">
+                <SelectContent className="bg-[rgba(15,21,36,0.45)] border-white/10 text-[#f1f5f9]">
                   {uniqueDistricts.map((d) => (
                     <SelectItem key={d} value={d}>
                       {d}
@@ -1638,20 +1639,20 @@ export default function FIRManagement() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[#94a3b8] text-sm">Description</Label>
+              <Label className="text-[#8b97b0] text-sm">Description</Label>
               <Textarea
                 value={newFirForm.description}
                 onChange={(e) =>
                   setNewFirForm((f) => ({ ...f, description: e.target.value }))
                 }
                 placeholder="Brief description of the incident..."
-                className="min-h-[80px] bg-white/5 border-white/10 text-[#e2e8f0] placeholder:text-[#4a5568] rounded-xl resize-none focus-visible:border-emerald-500/50 focus-visible:ring-emerald-500/20"
+                className="min-h-[80px] bg-white/5 border-white/10 text-[#f1f5f9] placeholder:text-[#3d4659] rounded-xl resize-none focus-visible:border-[rgba(52,211,153,0.3)] focus-visible:ring-[rgba(52,211,153,0.2)]"
               />
             </div>
             {extraction && (
-              <div className="flex items-center gap-2 rounded-lg bg-violet-500/10 border border-violet-500/20 px-3 py-2">
-                <Sparkles className="h-4 w-4 text-violet-400 shrink-0" />
-                <span className="text-violet-300 text-xs">
+              <div className="flex items-center gap-2 rounded-lg bg-[rgba(129,140,248,0.08)] border border-[rgba(129,140,248,0.15)] px-3 py-2">
+                <Sparkles className="h-4 w-4 text-[#818cf8] shrink-0" />
+                <span className="text-[#a5b4fc] text-xs">
                   Pre-filled from AI extraction ({extraction.confidence}%
                   confidence)
                 </span>
@@ -1662,7 +1663,7 @@ export default function FIRManagement() {
             <Button
               variant="outline"
               onClick={() => setShowCreateDialog(false)}
-              className="border-white/10 bg-white/5 text-[#94a3b8] hover:bg-white/10 hover:text-[#e2e8f0] rounded-xl"
+              className="border-white/10 bg-white/5 text-[#8b97b0] hover:bg-white/10 hover:text-[#f1f5f9] rounded-xl"
             >
               Cancel
             </Button>
@@ -1676,7 +1677,7 @@ export default function FIRManagement() {
                     description: `Location: ${extraction.location}, Time: ${extraction.time}, IPC: ${extraction.ipc_sections}`,
                   });
                 }}
-                className="border-violet-500/30 bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 rounded-xl gap-2"
+                className="border-[rgba(129,140,248,0.15)] bg-[rgba(129,140,248,0.08)] text-[#818cf8] hover:bg-[rgba(129,140,248,0.12)] rounded-xl gap-2"
               >
                 <Brain className="h-4 w-4" />
                 Re-fill from AI
@@ -1685,7 +1686,7 @@ export default function FIRManagement() {
             <Button
               onClick={handleCreateFIR}
               disabled={!newFirForm.crime_type.trim()}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 rounded-xl gap-2"
+              className="bg-[#34d399] hover:bg-[#2bc48a] text-white border-0 rounded-xl gap-2"
             >
               <Send className="h-4 w-4" />
               Create FIR

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { CrimeDataset, ExplainableResponse } from "@/lib/types";
+import type { CrimeDataset, ExplainableResponse, ReasoningStep } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -83,22 +83,118 @@ function buildExplainableResponse(content: string, dataset: any): ExplainableRes
   const uniqueIds = [...new Set(firIds)];
   const firs = dataset.firs || [];
 
+  // ── Evidence chain ────────────────────────────────────────────────
   const evidenceChain = uniqueIds.map(id => {
     const fir = firs.find((f: any) => f.fir_id === id);
     return { firId: id, relevance: fir ? `${fir.crime_type} in ${fir.district} (${fir.date})` : "Referenced in analysis" };
   });
 
-  let confidence = 50;
-  if (uniqueIds.length >= 3) confidence += 20;
-  else if (uniqueIds.length >= 1) confidence += 15;
-  if (content.includes("gang") || content.includes("Gang")) confidence += 10;
-  if (content.includes("pattern") || content.includes("Pattern")) confidence += 5;
-  if (uniqueIds.length === 0) confidence = 25;
-  confidence = Math.min(confidence, 96);
+  // ── Multi-factor confidence scoring ───────────────────────────────
+  const totalFirsInDB = Math.max(firs.length, 1);
 
+  // Factor 1: Evidence density — unique FIR IDs cited (0-30 pts, scaled by total FIRs)
+  const evidenceDensityRaw = Math.min(uniqueIds.length / totalFirsInDB, 1);
+  const evidenceDensity = Math.min(30, Math.round(evidenceDensityRaw * 300 + uniqueIds.length * 6));
+
+  // Factor 2: Specificity — contains specific data vs vague (0-20 pts)
+  const specificityPatterns = [
+    /\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}/g,           // dates
+    /₹[\d,.]+/g,                                    // INR amounts
+    /A\d{3,4}/g,                                    // accused IDs
+    /[A-Z][a-z]+ [A-Z][a-z]+/g,                    // proper names (2+ words)
+    /\d+%/g,                                        // percentages
+    /\b\d{2}:\d{2}\b/g,                             // times
+  ];
+  let specificityHits = 0;
+  for (const pat of specificityPatterns) {
+    const matches = content.match(pat);
+    if (matches) specificityHits += Math.min(matches.length, 3);
+  }
+  const specificity = Math.min(20, Math.round(specificityHits * 3.3));
+
+  // Factor 3: Reasoning depth — analytical patterns (0-20 pts)
+  const reasoningPatterns = [
+    /\b(compared?|compares|versus|vs\.?)\b/gi,
+    /\b(therefore|consequently|because|due to|as a result)\b/gi,
+    /\b(suggests?|indicates?|implies?|points to|reveals?)\b/gi,
+    /\b(correlat|associat|linked?|connect)\w*\b/gi,
+    /\b(increas|decreas|declin|rising|falling|trend)\w*\b/gi,
+    /\b(pattern|modus|method|approach)\w*\b/gi,
+    /\b(likely|unlikely|probability|probability)\b/gi,
+  ];
+  let reasoningHits = 0;
+  for (const pat of reasoningPatterns) {
+    const matches = content.match(pat);
+    if (matches) reasoningHits += Math.min(matches.length, 2);
+  }
+  const reasoningDepth = Math.min(20, Math.round(reasoningHits * 3));
+
+  // Factor 4: Source coverage — diversity of cited FIRs (0-15 pts)
+  const citedFirs = uniqueIds
+    .map(id => firs.find((f: any) => f.fir_id === id))
+    .filter(Boolean);
+  const uniqueCrimeTypes = new Set(citedFirs.map((f: any) => f.crime_type));
+  const uniqueDistricts = new Set(citedFirs.map((f: any) => f.district));
+  const sourceCoverage = Math.min(15, Math.round((uniqueCrimeTypes.size * 3) + (uniqueDistricts.size * 2)));
+
+  // Factor 5: Quantification — numbers, percentages, rankings (0-15 pts)
+  const quantPatterns = [
+    /\d+/g,              // any number
+    /\d+%/g,             // percentages
+    /\b(top|rank|score|rate|ratio|count|total|sum)\b/gi,
+  ];
+  let quantHits = 0;
+  for (const pat of quantPatterns) {
+    const matches = content.match(pat);
+    if (matches) quantHits += Math.min(matches.length, 3);
+  }
+  const quantification = Math.min(15, Math.round(quantHits * 2));
+
+  // Composite confidence (0-100), capped at 96
+  let confidence = evidenceDensity + specificity + reasoningDepth + sourceCoverage + quantification;
+  if (uniqueIds.length === 0) confidence = Math.min(confidence, 25);
+  confidence = Math.min(Math.max(confidence, 15), 96);
+
+  // ── Improved reasoningSummary ─────────────────────────────────────
   const lines = content.split("\n").filter((l: string) => l.trim().length > 0);
-  const reasoningSummary = lines.slice(0, 2).join(" ").slice(0, 200);
+  const analyticalKeywords = /\b(indicates?|suggests?|correlates?|%\s|increase|decrease|pattern|linked|reveals?|implies?|trend|associat|compared?|therefore|consequently|due to)\b/i;
+  const analyticalLines = lines.filter((l: string) => analyticalKeywords.test(l));
+  let reasoningSummary: string;
+  if (analyticalLines.length > 0) {
+    // Pick the longest analytical line as it's likely the most substantive
+    reasoningSummary = analyticalLines.reduce((best, line) => line.length > best.length ? line : best, analyticalLines[0]).trim().slice(0, 250);
+  } else {
+    reasoningSummary = lines.slice(0, 2).join(" ").trim().slice(0, 250);
+  }
 
+  // ── Extract reasoningSteps ────────────────────────────────────────
+  const reasoningStepPatterns = [
+    /\b(suggests?|indicates?|reveals?|shows?|demonstrat\w*)\b[^.]*\./gi,
+    /\b(therefore|consequently|as a result|this means)\b[^.]*\./gi,
+    /\b(correlat|link|associat|connect)\w*\b[^.]*\./gi,
+    /\b(increase|decrease|declin|rising|falling|trend)\w*\b[^.]*\./gi,
+    /\b(pattern|modus|consistent)\w*\b[^.]*\./gi,
+  ];
+  const stepSet = new Set<string>();
+  for (const pat of reasoningStepPatterns) {
+    const matches = content.match(pat);
+    if (matches) {
+      for (const m of matches) {
+        const cleaned = m.replace(/^[-•*]\s*/, "").trim().slice(0, 200);
+        if (cleaned.length > 15) stepSet.add(cleaned);
+      }
+    }
+  }
+  const uniqueSteps = [...stepSet].slice(0, 5);
+  const reasoningSteps: ReasoningStep[] = uniqueSteps.map((finding, i) => ({
+    step: i + 1,
+    finding,
+    evidence: uniqueIds.length > 0
+      ? uniqueIds.filter((_, idx) => idx % Math.max(1, Math.floor(uniqueIds.length / uniqueSteps.length)) === i).slice(0, 2)
+      : [],
+  }));
+
+  // ── Alternative explanations ──────────────────────────────────────
   const alternatives: string[] = [];
   if (confidence < 70) {
     alternatives.push("Data may be incomplete — additional FIR records could change the analysis.");
@@ -108,7 +204,14 @@ function buildExplainableResponse(content: string, dataset: any): ExplainableRes
     alternatives.push("Low evidence count — conclusions should be verified with additional intelligence sources.");
   }
 
-  return { content, evidenceChain, confidenceScore: confidence, reasoningSummary, alternativeExplanations: alternatives.length > 0 ? alternatives : undefined };
+  return {
+    content,
+    evidenceChain,
+    confidenceScore: confidence,
+    reasoningSummary,
+    reasoningSteps: reasoningSteps.length > 0 ? reasoningSteps : undefined,
+    alternativeExplanations: alternatives.length > 0 ? alternatives : undefined,
+  };
 }
 
 function generateFallbackResponse(

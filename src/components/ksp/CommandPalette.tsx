@@ -21,6 +21,9 @@ import {
   ScrollText,
   Cpu,
   Settings,
+  BarChart3,
+  TrendingUp,
+  GitBranch,
 } from "lucide-react";
 import type { ViewType } from "@/lib/types";
 
@@ -45,6 +48,9 @@ const DM_COMMANDS: { id: string; label: string; icon: React.ElementType; view: V
   { id: "dm-audit", label: "Audit Logs", icon: ScrollText, view: "dm-audit" },
   { id: "dm-ai-queue", label: "AI Processing Queue", icon: Cpu, view: "dm-ai-queue" },
   { id: "dm-settings", label: "Settings", icon: Settings, view: "dm-settings" },
+  { id: "dm-sociological", label: "Sociological Insights", icon: BarChart3, view: "dm-sociological" },
+  { id: "dm-forecasting", label: "Crime Forecasting", icon: TrendingUp, view: "dm-forecasting" },
+  { id: "dm-financial-network", label: "Financial Network", icon: GitBranch, view: "dm-financial-network" },
 ];
 
 export default function CommandPalette() {
@@ -91,17 +97,17 @@ export default function CommandPalette() {
     <div className="fixed inset-0 z-[9999]">
       <div className="cmdk-overlay fixed inset-0" onClick={() => setCommandPaletteOpen(false)} />
       <div className="fixed inset-0 flex items-start justify-center pt-[15vh]">
-        <Command className="cmdk w-full max-w-xl animate-scale-in rounded-xl border border-[#2a3550] bg-[#0d1326]/95 backdrop-blur-xl shadow-2xl shadow-black/60">
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-[#2a3550]">
-            <Search className="w-4 h-4 text-[#64748b] flex-shrink-0" />
+        <Command className="cmdk w-full max-w-xl animate-scale-in rounded-xl backdrop-blur-xl shadow-2xl shadow-black/60">
+          <div className="flex items-center gap-2 px-4 py-3 border-b">
+            <Search className="w-4 h-4 text-[#5a657a] flex-shrink-0" />
             <Command.Input
               placeholder="Search commands, navigate, find FIRs..."
-              className="cmdk-input flex-1 bg-transparent text-sm outline-none placeholder:text-[#64748b] py-1"
+              className="cmdk-input flex-1 bg-transparent text-sm outline-none py-1"
             />
             <kbd className="cmdk-shortcut text-[10px] px-1.5 py-0.5 font-mono">ESC</kbd>
           </div>
           <Command.List className="max-h-80 overflow-y-auto p-2">
-            <Command.Empty className="py-6 text-center text-sm text-[#64748b]">
+            <Command.Empty className="cmdk-empty py-6 text-center text-sm">
               No results found.
             </Command.Empty>
             <Command.Group heading="Intelligence" className="px-1 py-1.5">
@@ -111,7 +117,7 @@ export default function CommandPalette() {
                   onSelect={() => handleSelect(cmd.view)}
                   className="cmdk-item flex items-center gap-3 px-3 py-2.5 text-sm cursor-pointer rounded-lg"
                 >
-                  <cmd.icon className="w-4 h-4 text-[#64748b]" />
+                  <cmd.icon className="w-4 h-4 text-[#5a657a]" />
                   <span>{cmd.label}</span>
                   {cmd.shortcut && (
                     <span className="cmdk-shortcut ml-auto text-[10px] px-1.5 py-0.5 font-mono">{cmd.shortcut}</span>
@@ -126,16 +132,16 @@ export default function CommandPalette() {
                   onSelect={() => handleSelect(cmd.view)}
                   className="cmdk-item flex items-center gap-3 px-3 py-2.5 text-sm cursor-pointer rounded-lg"
                 >
-                  <cmd.icon className="w-4 h-4 text-emerald-500/70" />
+                  <cmd.icon className="w-4 h-4" style={{ color: "#818cf8" }} />
                   <span>{cmd.label}</span>
                 </Command.Item>
               ))}
             </Command.Group>
           </Command.List>
-          <div className="flex items-center gap-4 px-4 py-2 border-t border-[#2a3550] text-[10px] text-[#4a5568]">
-            <span><kbd className="font-mono bg-[#2a3550] px-1 rounded">↑↓</kbd> Navigate</span>
-            <span><kbd className="font-mono bg-[#2a3550] px-1 rounded">↵</kbd> Select</span>
-            <span><kbd className="font-mono bg-[#2a3550] px-1 rounded">Esc</kbd> Close</span>
+          <div className="flex items-center gap-4 px-4 py-2 border-t text-[10px] text-[#3d4659]">
+            <span><kbd className="font-mono px-1 rounded" style={{ backgroundColor: "rgba(255,255,255,0.04)" }}>↑↓</kbd> Navigate</span>
+            <span><kbd className="font-mono px-1 rounded" style={{ backgroundColor: "rgba(255,255,255,0.04)" }}>↵</kbd> Select</span>
+            <span><kbd className="font-mono px-1 rounded" style={{ backgroundColor: "rgba(255,255,255,0.04)" }}>Esc</kbd> Close</span>
           </div>
         </Command>
       </div>

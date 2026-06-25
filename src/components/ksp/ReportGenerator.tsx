@@ -46,7 +46,7 @@ function ConfidenceRing({ score }: { score: number }) {
   const c = 2 * Math.PI * r;
   const offset = c - (score / 100) * c;
   const color =
-    score >= 80 ? "#10b981" : score >= 60 ? "#f59e0b" : "#ef4444";
+    score >= 80 ? "#34d399" : score >= 60 ? "#fbbf24" : "#f87171";
 
   return (
     <svg width="100" height="100" className="confidence-ring">
@@ -55,7 +55,7 @@ function ConfidenceRing({ score }: { score: number }) {
         cy="50"
         r={r}
         fill="none"
-        stroke="#2a3550"
+        stroke="rgba(255,255,255,0.08)"
         strokeWidth="6"
       />
       <circle
@@ -75,7 +75,7 @@ function ConfidenceRing({ score }: { score: number }) {
         y="50"
         textAnchor="middle"
         dominantBaseline="central"
-        fill="#e2e8f0"
+        fill="#f1f5f9"
         fontSize="20"
         fontWeight="bold"
         className="!transform-none"
@@ -88,18 +88,20 @@ function ConfidenceRing({ score }: { score: number }) {
 
 // ─── Status Badge Helper ────────────────────────────────────────────
 function StatusBadge({ status }: { status: string }) {
-  const variant =
-    status === "completed"
-      ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-      : status === "in_progress"
-        ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
-        : status === "pending"
-          ? "bg-slate-500/20 text-slate-400 border-slate-500/30"
-          : "bg-red-500/20 text-red-400 border-red-500/30";
+  const styles: Record<string, React.CSSProperties> = {
+    completed: { background: "rgba(52,211,153,0.1)", color: "#34d399", borderColor: "rgba(52,211,153,0.15)" },
+    in_progress: { background: "rgba(251,191,36,0.1)", color: "#fbbf24", borderColor: "rgba(251,191,36,0.15)" },
+    pending: { background: "rgba(90,101,122,0.1)", color: "#8b97b0", borderColor: "rgba(255,255,255,0.08)" },
+  };
+  const s = styles[status] || { background: "rgba(248,113,113,0.1)", color: "#f87171", borderColor: "rgba(248,113,113,0.15)" };
 
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${variant}`}
+      style={{
+        display: "inline-flex", alignItems: "center", padding: "2px 10px",
+        borderRadius: "9999px", fontSize: "11px", fontWeight: 500,
+        border: `1px solid ${s.borderColor}`, ...s,
+      }}
     >
       {status.replace(/_/g, " ")}
     </span>
@@ -111,23 +113,23 @@ function TimelineIcon({ type }: { type: TimelineEvent["type"] }) {
   switch (type) {
     case "fir_filed":
     case "complaint":
-      return <FileText className="w-4 h-4 text-blue-400" />;
+      return <FileText className="w-4 h-4 text-[#22d3ee]" />;
     case "witness":
-      return <User className="w-4 h-4 text-purple-400" />;
+      return <User className="w-4 h-4 text-[#818cf8]" />;
     case "cctv":
-      return <Shield className="w-4 h-4 text-cyan-400" />;
+      return <Shield className="w-4 h-4 text-[#22d3ee]" />;
     case "phone":
-      return <Network className="w-4 h-4 text-green-400" />;
+      return <Network className="w-4 h-4 text-[#34d399]" />;
     case "vehicle":
-      return <Clock className="w-4 h-4 text-orange-400" />;
+      return <Clock className="w-4 h-4 text-[#fbbf24]" />;
     case "financial":
-      return <AlertTriangle className="w-4 h-4 text-yellow-400" />;
+      return <AlertTriangle className="w-4 h-4 text-[#fbbf24]" />;
     case "investigation":
-      return <CheckCircle2 className="w-4 h-4 text-teal-400" />;
+      return <CheckCircle2 className="w-4 h-4" style={{ color: "#2dd4bf" }} />;
     case "arrest":
-      return <XCircle className="w-4 h-4 text-red-400" />;
+      return <XCircle className="w-4 h-4 text-[#f87171]" />;
     default:
-      return <Clock className="w-4 h-4 text-slate-400" />;
+      return <Clock className="w-4 h-4 text-[#8b97b0]" />;
   }
 }
 
@@ -285,7 +287,7 @@ export default function ReportGenerator() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0f1e] text-[#e2e8f0] p-4 md:p-6 lg:p-8 space-y-6">
+    <div className="min-h-screen bg-[rgba(10,15,28,0.6)] text-[#f1f5f9] p-4 md:p-6 lg:p-8 space-y-6">
       {/* ─── Header ─────────────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: -12 }}
@@ -293,14 +295,14 @@ export default function ReportGenerator() {
         transition={{ duration: 0.4 }}
         className="flex items-center gap-3"
       >
-        <div className="p-2.5 rounded-lg bg-[#3b82f6]/10 border border-[#3b82f6]/20">
-          <FileText className="w-6 h-6 text-[#3b82f6]" />
+        <div className="p-2.5 rounded-lg bg-[#22d3ee]/10 border border-[#22d3ee]/20">
+          <FileText className="w-6 h-6 text-[#22d3ee]" />
         </div>
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
             INTELLIGENCE REPORT GENERATOR
           </h1>
-          <p className="text-sm text-[#94a3b8]">
+          <p className="text-sm text-[#8b97b0]">
             Generate professional investigation reports with AI analysis
           </p>
         </div>
@@ -311,24 +313,24 @@ export default function ReportGenerator() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
-        className="glass-card rounded-xl border border-[#2a3550] p-5 md:p-6 space-y-5"
+        className="glass-card rounded-xl border border-[rgba(255,255,255,0.08)] p-5 md:p-6 space-y-5"
       >
         <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Lock className="w-4 h-4 text-[#3b82f6]" />
+          <Lock className="w-4 h-4 text-[#22d3ee]" />
           Report Configuration
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* FIR Selector */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-[#94a3b8]">
+            <label className="text-sm font-medium text-[#8b97b0]">
               FIR Reference
             </label>
             <Select value={selectedFirId} onValueChange={setSelectedFirId}>
-              <SelectTrigger className="bg-[#111827] border-[#2a3550] text-[#e2e8f0]">
+              <SelectTrigger className="bg-[rgba(10,15,28,0.8)] border-[rgba(255,255,255,0.06)] text-[#f1f5f9]">
                 <SelectValue placeholder="Select an FIR…" />
               </SelectTrigger>
-              <SelectContent className="bg-[#111827] border-[#2a3550]">
+              <SelectContent className="bg-[rgba(15,21,36,0.85)] border-[rgba(255,255,255,0.06)]">
                 {firs.map((fir) => (
                   <SelectItem key={fir.fir_id} value={fir.fir_id}>
                     {fir.fir_id} — {fir.crime_type}
@@ -340,7 +342,7 @@ export default function ReportGenerator() {
 
           {/* Accused Focus */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-[#94a3b8]">
+            <label className="text-sm font-medium text-[#8b97b0]">
               Accused Focus{" "}
               <span className="text-xs opacity-50">(optional)</span>
             </label>
@@ -348,10 +350,10 @@ export default function ReportGenerator() {
               value={selectedAccusedId}
               onValueChange={setSelectedAccusedId}
             >
-              <SelectTrigger className="bg-[#111827] border-[#2a3550] text-[#e2e8f0]">
+              <SelectTrigger className="bg-[rgba(10,15,28,0.8)] border-[rgba(255,255,255,0.06)] text-[#f1f5f9]">
                 <SelectValue placeholder="Select an accused…" />
               </SelectTrigger>
-              <SelectContent className="bg-[#111827] border-[#2a3550]">
+              <SelectContent className="bg-[rgba(15,21,36,0.85)] border-[rgba(255,255,255,0.06)]">
                 {accusedList.map((a) => (
                   <SelectItem key={a.id} value={a.id}>
                     {a.name} (Risk: {a.risk})
@@ -363,14 +365,14 @@ export default function ReportGenerator() {
 
           {/* Report Type */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-[#94a3b8]">
+            <label className="text-sm font-medium text-[#8b97b0]">
               Report Type
             </label>
             <Select value={reportType} onValueChange={setReportType}>
-              <SelectTrigger className="bg-[#111827] border-[#2a3550] text-[#e2e8f0]">
+              <SelectTrigger className="bg-[rgba(10,15,28,0.8)] border-[rgba(255,255,255,0.06)] text-[#f1f5f9]">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-[#111827] border-[#2a3550]">
+              <SelectContent className="bg-[rgba(15,21,36,0.85)] border-[rgba(255,255,255,0.06)]">
                 <SelectItem value="full">Full Intelligence Brief</SelectItem>
                 <SelectItem value="similar">Similar Crimes Analysis</SelectItem>
                 <SelectItem value="timeline">
@@ -386,7 +388,12 @@ export default function ReportGenerator() {
           disabled={
             (!selectedFirId && !selectedAccusedId) || isGenerating
           }
-          className="bg-[#3b82f6] hover:bg-[#2563eb] text-white font-semibold px-8"
+          className="px-8 py-3 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer"
+          style={{
+            background: "linear-gradient(135deg, #22d3ee, #06b6d4)",
+            color: "#050810",
+            boxShadow: "0 0 24px rgba(34,211,238,0.2)",
+          }}
         >
           {isGenerating ? (
             <span className="flex items-center gap-2">
@@ -409,7 +416,12 @@ export default function ReportGenerator() {
           <div className="flex justify-end">
             <Button
               onClick={handleExportPDF}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer"
+              style={{
+                background: "rgba(52,211,153,0.12)",
+                color: "#34d399",
+                border: "1px solid rgba(52,211,153,0.2)",
+              }}
             >
               <Download className="w-4 h-4 mr-2" />
               Export PDF
@@ -421,46 +433,46 @@ export default function ReportGenerator() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35 }}
-            className="glass-card rounded-xl border border-[#2a3550] p-6"
+            className="glass-card rounded-xl border border-[rgba(255,255,255,0.08)] p-6"
           >
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
               <div className="space-y-1">
                 <h2 className="text-xl md:text-2xl font-bold tracking-wide">
                   KSP SENTINEL AI — INTELLIGENCE REPORT
                 </h2>
-                <p className="text-xs text-[#94a3b8]">
+                <p className="text-xs text-[#8b97b0]">
                   Karnataka State Police — Crime Intelligence Division
                 </p>
               </div>
-              <div className="flex flex-col items-start md:items-end gap-1 text-sm text-[#94a3b8]">
+              <div className="flex flex-col items-start md:items-end gap-1 text-sm text-[#8b97b0]">
                 <span>
                   Report ID:{" "}
-                  <span className="text-[#e2e8f0] font-mono">
+                  <span className="text-[#f1f5f9] font-mono">
                     RPT-{reportId}
                   </span>
                 </span>
                 <span>
                   Generated:{" "}
-                  <span className="text-[#e2e8f0]">
+                  <span className="text-[#f1f5f9]">
                     {new Date().toLocaleString("en-IN")}
                   </span>
                 </span>
                 <span>
                   Officer:{" "}
-                  <span className="text-[#e2e8f0]">
+                  <span className="text-[#f1f5f9]">
                     {user?.username ?? "Unknown"} ({user?.role ?? "N/A"})
                   </span>
                 </span>
               </div>
             </div>
             <div className="mt-4 flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-bold tracking-widest">
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-[#f87171]/15 border border-[rgba(248,113,113,0.15)] text-[#f87171] text-xs font-bold tracking-widest">
                 <Lock className="w-3 h-3" />
                 CLASSIFICATION: CONFIDENTIAL
               </span>
               <Badge
                 variant="outline"
-                className="border-[#3b82f6]/40 text-[#3b82f6]"
+                className="border-[#22d3ee]/40 text-[#22d3ee]"
               >
                 {reportType === "full"
                   ? "Full Intelligence Brief"
@@ -477,42 +489,42 @@ export default function ReportGenerator() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, delay: 0.08 }}
-              className="glass-card rounded-xl border border-[#2a3550] p-6"
+              className="glass-card rounded-xl border border-[rgba(255,255,255,0.08)] p-6"
             >
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Shield className="w-5 h-5 text-[#3b82f6]" />
+                <Shield className="w-5 h-5 text-[#22d3ee]" />
                 Executive Summary
               </h3>
               <div className="flex flex-col md:flex-row gap-6">
                 <div className="flex-1">
-                  <p className="text-sm text-[#94a3b8] leading-relaxed">
+                  <p className="text-sm text-[#8b97b0] leading-relaxed">
                     {brief.executiveSummary}
                   </p>
                   {selectedFir && (
                     <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                       <div>
-                        <span className="text-[#94a3b8]">FIR:</span>{" "}
-                        <span className="text-[#e2e8f0] font-medium">
+                        <span className="text-[#8b97b0]">FIR:</span>{" "}
+                        <span className="text-[#f1f5f9] font-medium">
                           {selectedFir.fir_id}
                         </span>
                       </div>
                       <div>
-                        <span className="text-[#94a3b8]">Crime:</span>{" "}
-                        <span className="text-[#e2e8f0]">
+                        <span className="text-[#8b97b0]">Crime:</span>{" "}
+                        <span className="text-[#f1f5f9]">
                           {selectedFir.crime_type}
                         </span>
                       </div>
                       <div>
-                        <span className="text-[#94a3b8]">District:</span>{" "}
-                        <span className="text-[#e2e8f0]">
+                        <span className="text-[#8b97b0]">District:</span>{" "}
+                        <span className="text-[#f1f5f9]">
                           {selectedFir.district}
                         </span>
                       </div>
                       <div>
-                        <span className="text-[#94a3b8]">Status:</span>{" "}
+                        <span className="text-[#8b97b0]">Status:</span>{" "}
                         <Badge
                           variant="outline"
-                          className="border-amber-500/40 text-amber-400 text-xs"
+                          className="border-amber-500/40 text-[#fbbf24] text-xs"
                         >
                           {selectedFir.investigation_status}
                         </Badge>
@@ -522,7 +534,7 @@ export default function ReportGenerator() {
                 </div>
                 <div className="flex flex-col items-center gap-1">
                   <ConfidenceRing score={brief.confidenceScore} />
-                  <span className="text-xs text-[#94a3b8] mt-1">
+                  <span className="text-xs text-[#8b97b0] mt-1">
                     Confidence
                   </span>
                 </div>
@@ -536,14 +548,14 @@ export default function ReportGenerator() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, delay: 0.16 }}
-              className="glass-card rounded-xl border border-[#2a3550] p-6"
+              className="glass-card rounded-xl border border-[rgba(255,255,255,0.08)] p-6"
             >
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Clock className="w-5 h-5 text-[#3b82f6]" />
+                <Clock className="w-5 h-5 text-[#22d3ee]" />
                 Investigation Timeline
                 <Badge
                   variant="outline"
-                  className="border-[#2a3550] text-[#94a3b8] text-xs ml-1"
+                  className="border-[rgba(255,255,255,0.08)] text-[#8b97b0] text-xs ml-1"
                 >
                   {timeline.length} events
                 </Badge>
@@ -552,23 +564,23 @@ export default function ReportGenerator() {
                 {timeline.map((event, idx) => (
                   <div
                     key={event.id}
-                    className="flex items-start gap-3 p-3 rounded-lg bg-[#111827]/50 border border-[#1e293b]"
+                    className="flex items-start gap-3 p-3 rounded-lg bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.06)]"
                   >
-                    <div className="mt-0.5 p-1.5 rounded-md bg-[#1e293b]">
+                    <div className="mt-0.5 p-1.5 rounded-md bg-[rgba(15,21,36,0.6)]">
                       <TimelineIcon type={event.type} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-medium text-[#e2e8f0]">
+                        <span className="text-sm font-medium text-[#f1f5f9]">
                           {event.title}
                         </span>
                         <StatusBadge status={event.status} />
                       </div>
-                      <p className="text-xs text-[#94a3b8] mt-1 line-clamp-2">
+                      <p className="text-xs text-[#8b97b0] mt-1 line-clamp-2">
                         {event.description}
                       </p>
                     </div>
-                    <span className="text-xs text-[#64748b] whitespace-nowrap">
+                    <span className="text-xs text-[#5a657a] whitespace-nowrap">
                       {event.timestamp}
                     </span>
                   </div>
@@ -583,44 +595,44 @@ export default function ReportGenerator() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, delay: 0.24 }}
-              className="glass-card rounded-xl border border-[#2a3550] p-6"
+              className="glass-card rounded-xl border border-[rgba(255,255,255,0.08)] p-6"
             >
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-amber-400" />
+                <AlertTriangle className="w-5 h-5 text-[#fbbf24]" />
                 Similar Crimes Analysis
               </h3>
               <div className="space-y-4">
                 {similarCrimes.map((result) => (
                   <div
                     key={result.fir.fir_id}
-                    className="p-4 rounded-lg bg-[#111827]/50 border border-[#1e293b] space-y-3"
+                    className="p-4 rounded-lg bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.06)] space-y-3"
                   >
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <div>
-                        <span className="font-mono text-sm font-bold text-[#3b82f6]">
+                        <span className="font-mono text-sm font-bold text-[#22d3ee]">
                           {result.fir.fir_id}
                         </span>
-                        <span className="text-sm text-[#94a3b8] ml-2">
+                        <span className="text-sm text-[#8b97b0] ml-2">
                           {result.fir.crime_type} — {result.fir.district}
                         </span>
                       </div>
-                      <span className="text-sm font-bold text-[#e2e8f0]">
+                      <span className="text-sm font-bold text-[#f1f5f9]">
                         {result.similarityScore}% match
                       </span>
                     </div>
 
                     {/* Similarity Bar */}
-                    <div className="w-full h-2 rounded-full bg-[#1e293b] overflow-hidden">
+                    <div className="w-full h-2 rounded-full bg-[rgba(15,21,36,0.6)] overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all duration-700"
                         style={{
                           width: `${result.similarityScore}%`,
                           backgroundColor:
                             result.similarityScore >= 75
-                              ? "#ef4444"
+                              ? "#f87171"
                               : result.similarityScore >= 50
-                                ? "#f59e0b"
-                                : "#10b981",
+                                ? "#fbbf24"
+                                : "#34d399",
                         }}
                       />
                     </div>
@@ -633,7 +645,7 @@ export default function ReportGenerator() {
                           <Badge
                             key={f.factor}
                             variant="outline"
-                            className="border-emerald-500/30 text-emerald-400 text-xs"
+                            className="border-[rgba(52,211,153,0.15)] text-[#34d399] text-xs"
                           >
                             <CheckCircle2 className="w-3 h-3 mr-1" />
                             {f.factor}
@@ -645,7 +657,7 @@ export default function ReportGenerator() {
                           <Badge
                             key={f.factor}
                             variant="outline"
-                            className="border-red-500/20 text-red-400/60 text-xs"
+                            className="border-red-500/20 text-[#f87171]/60 text-xs"
                           >
                             <XCircle className="w-3 h-3 mr-1" />
                             {f.factor}
@@ -653,7 +665,7 @@ export default function ReportGenerator() {
                         ))}
                     </div>
 
-                    <p className="text-xs text-[#94a3b8]">
+                    <p className="text-xs text-[#8b97b0]">
                       {result.explanation}
                     </p>
                   </div>
@@ -668,10 +680,10 @@ export default function ReportGenerator() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, delay: 0.32 }}
-              className="glass-card rounded-xl border border-[#2a3550] p-6"
+              className="glass-card rounded-xl border border-[rgba(255,255,255,0.08)] p-6"
             >
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Network className="w-5 h-5 text-purple-400" />
+                <Network className="w-5 h-5 text-[#818cf8]" />
                 Network Intelligence
               </h3>
 
@@ -679,22 +691,22 @@ export default function ReportGenerator() {
                 {/* Associated Gang Members */}
                 {brief.likelyAssociates.length > 0 && (
                   <div>
-                    <h4 className="text-sm font-medium text-[#94a3b8] mb-3">
+                    <h4 className="text-sm font-medium text-[#8b97b0] mb-3">
                       Likely Associates
                     </h4>
                     <div className="space-y-2 max-h-72 overflow-y-auto">
                       {brief.likelyAssociates.map((assoc) => (
                         <div
                           key={assoc.id}
-                          className="flex items-center justify-between p-2.5 rounded-lg bg-[#111827]/50 border border-[#1e293b]"
+                          className="flex items-center justify-between p-2.5 rounded-lg bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.06)]"
                         >
                           <div className="flex items-center gap-2">
-                            <User className="w-4 h-4 text-[#94a3b8]" />
+                            <User className="w-4 h-4 text-[#8b97b0]" />
                             <div>
-                              <span className="text-sm font-medium text-[#e2e8f0]">
+                              <span className="text-sm font-medium text-[#f1f5f9]">
                                 {assoc.name}
                               </span>
-                              <p className="text-xs text-[#94a3b8]">
+                              <p className="text-xs text-[#8b97b0]">
                                 {assoc.connection}
                               </p>
                             </div>
@@ -703,10 +715,10 @@ export default function ReportGenerator() {
                             variant="outline"
                             className={
                               assoc.strength === "strong"
-                                ? "border-red-500/30 text-red-400 text-xs"
+                                ? "border-[rgba(248,113,113,0.15)] text-[#f87171] text-xs"
                                 : assoc.strength === "moderate"
-                                  ? "border-amber-500/30 text-amber-400 text-xs"
-                                  : "border-slate-500/30 text-slate-400 text-xs"
+                                  ? "border-[rgba(251,191,36,0.15)] text-[#fbbf24] text-xs"
+                                  : "border-[rgba(255,255,255,0.08)] text-[#8b97b0] text-xs"
                             }
                           >
                             {assoc.strength}
@@ -721,20 +733,20 @@ export default function ReportGenerator() {
                 <div className="space-y-4">
                   {brief.relatedCases.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-medium text-[#94a3b8] mb-3">
+                      <h4 className="text-sm font-medium text-[#8b97b0] mb-3">
                         Linked Cases
                       </h4>
                       <div className="space-y-2 max-h-36 overflow-y-auto">
                         {brief.relatedCases.map((rc) => (
                           <div
                             key={rc.firId}
-                            className="flex items-center gap-2 p-2 rounded-lg bg-[#111827]/50 border border-[#1e293b] text-sm"
+                            className="flex items-center gap-2 p-2 rounded-lg bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.06)] text-sm"
                           >
-                            <FileText className="w-3.5 h-3.5 text-[#3b82f6] shrink-0" />
-                            <span className="font-mono text-xs text-[#3b82f6]">
+                            <FileText className="w-3.5 h-3.5 text-[#22d3ee] shrink-0" />
+                            <span className="font-mono text-xs text-[#22d3ee]">
                               {rc.firId}
                             </span>
-                            <span className="text-[#94a3b8] text-xs truncate">
+                            <span className="text-[#8b97b0] text-xs truncate">
                               {rc.crimeType} — {rc.relevance}
                             </span>
                           </div>
@@ -745,24 +757,24 @@ export default function ReportGenerator() {
 
                   {brief.financialLinks.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-medium text-[#94a3b8] mb-3">
+                      <h4 className="text-sm font-medium text-[#8b97b0] mb-3">
                         Financial Links
                       </h4>
                       <div className="space-y-2 max-h-36 overflow-y-auto">
                         {brief.financialLinks.map((fl, i) => (
                           <div
                             key={i}
-                            className="p-2 rounded-lg bg-[#111827]/50 border border-[#1e293b] text-xs"
+                            className="p-2 rounded-lg bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.06)] text-xs"
                           >
                             <div className="flex items-center justify-between">
-                              <span className="font-medium text-[#e2e8f0]">
+                              <span className="font-medium text-[#f1f5f9]">
                                 {fl.bank} — {fl.holder}
                               </span>
-                              <span className="text-emerald-400 font-mono">
+                              <span className="text-[#34d399] font-mono">
                                 ₹{fl.totalAmount.toLocaleString("en-IN")}
                               </span>
                             </div>
-                            <p className="text-[#94a3b8] mt-1">
+                            <p className="text-[#8b97b0] mt-1">
                               {fl.transactions} transactions — {fl.details}
                             </p>
                           </div>
@@ -781,10 +793,10 @@ export default function ReportGenerator() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, delay: 0.4 }}
-              className="glass-card rounded-xl border border-[#2a3550] p-6"
+              className="glass-card rounded-xl border border-[rgba(255,255,255,0.08)] p-6"
             >
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Shield className="w-5 h-5 text-cyan-400" />
+                <Shield className="w-5 h-5 text-[#22d3ee]" />
                 AI Findings &amp; Recommendations
               </h3>
 
@@ -792,29 +804,29 @@ export default function ReportGenerator() {
                 {/* Suggested Actions */}
                 {brief.suggestedActions.length > 0 && (
                   <div>
-                    <h4 className="text-sm font-medium text-[#94a3b8] mb-3">
+                    <h4 className="text-sm font-medium text-[#8b97b0] mb-3">
                       Suggested Actions
                     </h4>
                     <div className="space-y-2">
                       {brief.suggestedActions.map((sa, i) => (
                         <div
                           key={i}
-                          className="flex items-start gap-2 p-2.5 rounded-lg bg-[#111827]/50 border border-[#1e293b]"
+                          className="flex items-start gap-2 p-2.5 rounded-lg bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.06)]"
                         >
                           <div
                             className={`mt-1 w-2 h-2 rounded-full shrink-0 ${
                               sa.priority === "immediate"
-                                ? "bg-red-500"
+                                ? "bg-[#f87171]"
                                 : sa.priority === "short_term"
-                                  ? "bg-amber-500"
-                                  : "bg-blue-500"
+                                  ? "bg-[#fbbf24]"
+                                  : "bg-[#22d3ee]"
                             }`}
                           />
                           <div>
-                            <p className="text-sm text-[#e2e8f0]">
+                            <p className="text-sm text-[#f1f5f9]">
                               {sa.action}
                             </p>
-                            <p className="text-xs text-[#94a3b8]">
+                            <p className="text-xs text-[#8b97b0]">
                               {sa.rationale}
                             </p>
                           </div>
@@ -828,7 +840,7 @@ export default function ReportGenerator() {
                   {/* Missing Evidence */}
                   {brief.missingEvidence.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-medium text-[#94a3b8] mb-3">
+                      <h4 className="text-sm font-medium text-[#8b97b0] mb-3">
                         Missing Evidence
                       </h4>
                       <div className="space-y-2">
@@ -840,17 +852,17 @@ export default function ReportGenerator() {
                             <XCircle
                               className={`w-4 h-4 shrink-0 mt-0.5 ${
                                 me.priority === "high"
-                                  ? "text-red-400"
+                                  ? "text-[#f87171]"
                                   : me.priority === "medium"
-                                    ? "text-amber-400"
-                                    : "text-slate-400"
+                                    ? "text-[#fbbf24]"
+                                    : "text-[#8b97b0]"
                               }`}
                             />
                             <div>
-                              <span className="text-[#e2e8f0]">
+                              <span className="text-[#f1f5f9]">
                                 {me.type}
                               </span>
-                              <p className="text-xs text-[#94a3b8]">
+                              <p className="text-xs text-[#8b97b0]">
                                 {me.description}
                               </p>
                             </div>
@@ -863,27 +875,27 @@ export default function ReportGenerator() {
                   {/* Behavioral Analysis */}
                   {brief.behavioralAnalysis.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-medium text-[#94a3b8] mb-3">
+                      <h4 className="text-sm font-medium text-[#8b97b0] mb-3">
                         Behavioral Analysis
                       </h4>
                       <div className="space-y-2">
                         {brief.behavioralAnalysis.map((ba, i) => (
                           <div
                             key={i}
-                            className="p-2.5 rounded-lg bg-[#111827]/50 border border-[#1e293b] text-sm"
+                            className="p-2.5 rounded-lg bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.06)] text-sm"
                           >
                             <div className="flex items-center gap-2">
-                              <span className="font-medium text-[#e2e8f0]">
+                              <span className="font-medium text-[#f1f5f9]">
                                 {ba.pattern}
                               </span>
                               <Badge
                                 variant="outline"
-                                className="border-[#2a3550] text-[#94a3b8] text-xs"
+                                className="border-[rgba(255,255,255,0.08)] text-[#8b97b0] text-xs"
                               >
                                 {ba.frequency}
                               </Badge>
                             </div>
-                            <p className="text-xs text-[#94a3b8] mt-1">
+                            <p className="text-xs text-[#8b97b0] mt-1">
                               {ba.description}
                             </p>
                           </div>
@@ -902,24 +914,24 @@ export default function ReportGenerator() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, delay: 0.48 }}
-              className="glass-card rounded-xl border border-[#2a3550] p-6"
+              className="glass-card rounded-xl border border-[rgba(255,255,255,0.08)] p-6"
             >
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                <CheckCircle2 className="w-5 h-5 text-[#34d399]" />
                 Evidence Summary
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="p-4 rounded-lg bg-[#111827]/50 border border-[#1e293b] text-center">
-                  <p className="text-3xl font-bold text-[#3b82f6]">
+                <div className="p-4 rounded-lg bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.06)] text-center">
+                  <p className="text-3xl font-bold text-[#22d3ee]">
                     {brief.relatedCases.length}
                   </p>
-                  <p className="text-xs text-[#94a3b8] mt-1">
+                  <p className="text-xs text-[#8b97b0] mt-1">
                     FIRs Referenced
                   </p>
                 </div>
-                <div className="p-4 rounded-lg bg-[#111827]/50 border border-[#1e293b] text-center">
-                  <p className="text-3xl font-bold text-emerald-400">
+                <div className="p-4 rounded-lg bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.06)] text-center">
+                  <p className="text-3xl font-bold text-[#34d399]">
                     {brief.missingEvidence.length === 0
                       ? "Strong"
                       : brief.missingEvidence.filter((m) => m.priority === "high")
@@ -927,13 +939,13 @@ export default function ReportGenerator() {
                         ? "Moderate"
                         : "Weak"}
                   </p>
-                  <p className="text-xs text-[#94a3b8] mt-1">
+                  <p className="text-xs text-[#8b97b0] mt-1">
                     Evidence Chain
                   </p>
                 </div>
-                <div className="p-4 rounded-lg bg-[#111827]/50 border border-[#1e293b] flex flex-col items-center justify-center">
+                <div className="p-4 rounded-lg bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.06)] flex flex-col items-center justify-center">
                   <ConfidenceRing score={brief.confidenceScore} />
-                  <p className="text-xs text-[#94a3b8] mt-1">
+                  <p className="text-xs text-[#8b97b0] mt-1">
                     Overall Confidence
                   </p>
                 </div>
@@ -942,7 +954,7 @@ export default function ReportGenerator() {
               {/* Evidence Chain Items */}
               {brief.relatedCases.length > 0 && (
                 <div className="mt-4">
-                  <h4 className="text-sm font-medium text-[#94a3b8] mb-2">
+                  <h4 className="text-sm font-medium text-[#8b97b0] mb-2">
                     Evidence Chain
                   </h4>
                   <div className="flex flex-wrap gap-2">
@@ -950,7 +962,7 @@ export default function ReportGenerator() {
                       <Badge
                         key={rc.firId}
                         variant="outline"
-                        className="border-[#2a3550] text-[#e2e8f0] text-xs"
+                        className="border-[rgba(255,255,255,0.08)] text-[#f1f5f9] text-xs"
                       >
                         {rc.firId} — {rc.relevance}
                       </Badge>
@@ -966,30 +978,30 @@ export default function ReportGenerator() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: 0.56 }}
-            className="glass-card rounded-xl border border-[#2a3550] p-6"
+            className="glass-card rounded-xl border border-[rgba(255,255,255,0.08)] p-6"
           >
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex-1 text-center md:text-left">
-                <p className="text-sm text-[#94a3b8]">
+                <p className="text-sm text-[#8b97b0]">
                   This report was auto-generated by{" "}
-                  <span className="text-[#e2e8f0] font-medium">
+                  <span className="text-[#f1f5f9] font-medium">
                     KSP Sentinel AI
                   </span>
                 </p>
-                <p className="text-xs text-[#64748b] mt-1">
+                <p className="text-xs text-[#5a657a] mt-1">
                   Generated: {new Date().toLocaleString("en-IN")}
                 </p>
-                <p className="text-xs text-red-400/70 mt-2 font-medium tracking-wide">
+                <p className="text-xs text-[#f87171]/70 mt-2 font-medium tracking-wide">
                   CLASSIFICATION: CONFIDENTIAL — FOR AUTHORIZED PERSONNEL ONLY
                 </p>
               </div>
 
               {/* QR Code Placeholder */}
               <div className="flex flex-col items-center gap-1">
-                <div className="w-16 h-16 rounded-lg border-2 border-dashed border-[#2a3550] flex items-center justify-center bg-[#111827]/50">
-                  <span className="text-xs font-mono text-[#94a3b8]">QR</span>
+                <div className="bg-[rgba(15,21,36,0.5)] border-2 border-dashed border-[rgba(255,255,255,0.06)]">
+                  <span className="text-xs font-mono text-[#8b97b0]">QR</span>
                 </div>
-                <span className="text-[10px] text-[#64748b]">
+                <span className="text-[10px] text-[#5a657a]">
                   Verification Code
                 </span>
               </div>

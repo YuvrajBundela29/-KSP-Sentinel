@@ -67,10 +67,10 @@ function TimelineIcon({
 
 // ─── Status Colors ───────────────────────────────────────────────────
 const STATUS_COLORS: Record<TimelineEvent["status"], string> = {
-  completed: "#10b981",
-  in_progress: "#3b82f6",
+  completed: "#34d399",
+  in_progress: "#22d3ee",
   pending: "#eab308",
-  unknown: "#64748b",
+  unknown: "#5a657a",
 };
 
 const STATUS_LABELS: Record<TimelineEvent["status"], string> = {
@@ -81,17 +81,17 @@ const STATUS_LABELS: Record<TimelineEvent["status"], string> = {
 };
 
 const SEVERITY_COLORS: Record<string, string> = {
-  critical: "bg-red-500/20 text-red-400 border-red-500/30",
-  high: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-  medium: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-  low: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+  critical: "bg-[#f87171]/20 text-[#f87171] border-[rgba(248,113,113,0.15)]",
+  high: "bg-[#fbbf24]/20 text-[#fbbf24] border-[rgba(251,191,36,0.15)]",
+  medium: "bg-[#fbbf24]/20 text-[#fbbf24] border-[rgba(251,191,36,0.15)]",
+  low: "bg-[#34d399]/20 text-[#34d399] border-[rgba(52,211,153,0.15)]",
 };
 
 const SEVERITY_DOT_COLORS: Record<string, string> = {
-  critical: "#ef4444",
-  high: "#f97316",
+  critical: "#f87171",
+  high: "#fbbf24",
   medium: "#eab308",
-  low: "#10b981",
+  low: "#34d399",
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────
@@ -172,15 +172,15 @@ function EventCardContent({
             style={{ color }}
           />
         </span>
-        <h4 className="text-sm font-semibold text-[#e2e8f0] leading-tight">
+        <h4 className="text-sm font-semibold text-[#f1f5f9] leading-tight">
           {event.title}
         </h4>
       </div>
-      <p className="text-xs text-[#94a3b8] leading-relaxed">
+      <p className="text-xs text-[#8b97b0] leading-relaxed">
         {event.description}
       </p>
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <span className="text-[10px] text-[#64748b] flex items-center gap-1">
+        <span className="text-[10px] text-[#5a657a] flex items-center gap-1">
           <Clock className="w-3 h-3" />
           {formatTimestamp(event.timestamp)}
         </span>
@@ -301,39 +301,39 @@ function SummaryBar({ events }: { events: TimelineEvent[] }) {
     >
       <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
         <div className="flex items-center gap-5 text-xs">
-          <span className="text-[#94a3b8]">
+          <span className="text-[#8b97b0]">
             Total:{" "}
-            <span className="text-[#e2e8f0] font-semibold">{total}</span>
+            <span className="text-[#f1f5f9] font-semibold">{total}</span>
           </span>
-          <span className="flex items-center gap-1.5 text-[#94a3b8]">
-            <span className="w-2 h-2 rounded-full bg-[#10b981]" />
+          <span className="flex items-center gap-1.5 text-[#8b97b0]">
+            <span className="w-2 h-2 rounded-full bg-[#34d399]" />
             Completed:{" "}
-            <span className="text-[#10b981] font-semibold">{completed}</span>
+            <span className="text-[#34d399] font-semibold">{completed}</span>
           </span>
-          <span className="flex items-center gap-1.5 text-[#94a3b8]">
-            <span className="w-2 h-2 rounded-full bg-[#3b82f6]" />
+          <span className="flex items-center gap-1.5 text-[#8b97b0]">
+            <span className="w-2 h-2 rounded-full bg-[#22d3ee]" />
             In Progress:{" "}
-            <span className="text-[#3b82f6] font-semibold">{inProgress}</span>
+            <span className="text-[#22d3ee] font-semibold">{inProgress}</span>
           </span>
-          <span className="flex items-center gap-1.5 text-[#94a3b8]">
+          <span className="flex items-center gap-1.5 text-[#8b97b0]">
             <span className="w-2 h-2 rounded-full bg-[#eab308]" />
             Pending:{" "}
             <span className="text-[#eab308] font-semibold">{pending}</span>
           </span>
         </div>
-        <span className="text-xs text-[#94a3b8]">
+        <span className="text-xs text-[#8b97b0]">
           Investigation Progress:{" "}
-          <span className="text-[#e2e8f0] font-semibold">{pct}%</span>
+          <span className="text-[#f1f5f9] font-semibold">{pct}%</span>
         </span>
       </div>
-      <div className="w-full h-2 rounded-full bg-[#1e293b] overflow-hidden">
+      <div className="w-full h-2 rounded-full bg-[rgba(15,21,36,0.6)] overflow-hidden">
         <motion.div
           initial={{ width: 0 }}
           whileInView={{ width: `${pct}%` }}
           viewport={{ once: true }}
           transition={{ delay: 0.5, duration: 0.8, ease: "easeOut" }}
           className="h-full rounded-full"
-          style={{ background: "linear-gradient(90deg, #3b82f6, #8b5cf6)" }}
+          style={{ background: "linear-gradient(90deg, #22d3ee, #818cf8)" }}
         />
       </div>
     </motion.div>
@@ -355,13 +355,13 @@ function EmptyState({
       transition={{ duration: 0.5 }}
       className="flex flex-col items-center justify-center py-20 px-6 text-center"
     >
-      <div className="w-16 h-16 rounded-full bg-[#1e293b] flex items-center justify-center mb-6">
-        <Clock className="w-8 h-8 text-[#64748b]" />
+      <div className="w-16 h-16 rounded-full bg-[rgba(15,21,36,0.45)] flex items-center justify-center mb-6">
+        <Clock className="w-8 h-8 text-[#5a657a]" />
       </div>
-      <h3 className="text-lg font-semibold text-[#e2e8f0] mb-2">
+      <h3 className="text-lg font-semibold text-[#f1f5f9] mb-2">
         Select an FIR to view its investigation timeline
       </h3>
-      <p className="text-sm text-[#94a3b8] mb-8 max-w-md">
+      <p className="text-sm text-[#8b97b0] mb-8 max-w-md">
         Choose a First Information Report from the dropdown above or click one
         of the cases below to explore the chronological investigation events.
       </p>
@@ -374,13 +374,13 @@ function EmptyState({
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.06, duration: 0.3 }}
               onClick={() => onSelectFir(fir.fir_id)}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border border-[#2a3550] bg-[#1a2035] text-[#94a3b8] hover:text-[#e2e8f0] hover:border-[#3b82f6] hover:bg-[#3b82f6]/10 transition-all duration-200 cursor-pointer"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border border-[rgba(255,255,255,0.08)] bg-[rgba(15,21,36,0.45)] text-[#8b97b0] hover:text-[#f1f5f9] hover:border-[#22d3ee] hover:bg-[#22d3ee]/10 transition-all duration-200 cursor-pointer"
             >
               <span
                 className="w-1.5 h-1.5 rounded-full shrink-0"
                 style={{
                   backgroundColor:
-                    SEVERITY_DOT_COLORS[fir.severity] ?? "#64748b",
+                    SEVERITY_DOT_COLORS[fir.severity] ?? "#5a657a",
                 }}
               />
               {fir.fir_id}
@@ -432,7 +432,7 @@ export default function InvestigationTimeline() {
 
   if (!crimeData) {
     return (
-      <div className="flex items-center justify-center h-64 text-[#94a3b8] text-sm">
+      <div className="flex items-center justify-center h-64 text-[#8b97b0] text-sm">
         Loading crime data...
       </div>
     );
@@ -443,14 +443,14 @@ export default function InvestigationTimeline() {
       {/* ── Header ─────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#3b82f6]/15 flex items-center justify-center">
-            <Clock className="w-5 h-5 text-[#3b82f6]" />
+          <div className="w-10 h-10 rounded-xl bg-[#22d3ee]/15 flex items-center justify-center">
+            <Clock className="w-5 h-5 text-[#22d3ee]" />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-[#e2e8f0]">
+            <h1 className="text-xl font-bold tracking-tight text-[#f1f5f9]">
               INVESTIGATION TIMELINE
             </h1>
-            <p className="text-xs text-[#94a3b8] mt-0.5">
+            <p className="text-xs text-[#8b97b0] mt-0.5">
               Chronological view of investigation events
             </p>
           </div>
@@ -462,20 +462,20 @@ export default function InvestigationTimeline() {
               value={effectiveFirId || undefined}
               onValueChange={handleFirSelect}
             >
-              <SelectTrigger className="w-[240px] bg-[#1a2035] border-[#2a3550] text-[#e2e8f0] text-xs h-9">
+              <SelectTrigger className="w-[240px] bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.08)] text-[#f1f5f9] text-xs h-9">
                 <SelectValue placeholder="Select FIR..." />
               </SelectTrigger>
-              <SelectContent className="bg-[#1a2035] border-[#2a3550]">
+              <SelectContent className="bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.08)]">
                 {crimeData.firs.map((fir) => (
                   <SelectItem
                     key={fir.fir_id}
                     value={fir.fir_id}
-                    className="text-[#e2e8f0] text-xs focus:bg-[#3b82f6]/10 focus:text-[#3b82f6]"
+                    className="text-[#f1f5f9] text-xs focus:bg-[#22d3ee]/10 focus:text-[#22d3ee]"
                   >
                     <span className="flex items-center gap-2">
                       <span className="font-mono">{fir.fir_id}</span>
-                      <span className="text-[#64748b]">—</span>
-                      <span className="text-[#94a3b8]">{fir.crime_type}</span>
+                      <span className="text-[#5a657a]">—</span>
+                      <span className="text-[#8b97b0]">{fir.crime_type}</span>
                     </span>
                   </SelectItem>
                 ))}
@@ -493,7 +493,7 @@ export default function InvestigationTimeline() {
                 transition={{ duration: 0.2 }}
                 className="flex items-center gap-2"
               >
-                <span className="text-xs text-[#94a3b8] hidden sm:inline">
+                <span className="text-xs text-[#8b97b0] hidden sm:inline">
                   {currentFir.crime_type}
                 </span>
                 <Badge
@@ -517,8 +517,8 @@ export default function InvestigationTimeline() {
           animate={{ opacity: 1 }}
           className="flex flex-col items-center justify-center py-20 text-center"
         >
-          <AlertTriangle className="w-10 h-10 text-[#64748b] mb-4" />
-          <p className="text-sm text-[#94a3b8]">
+          <AlertTriangle className="w-10 h-10 text-[#5a657a] mb-4" />
+          <p className="text-sm text-[#8b97b0]">
             No timeline events found for this FIR.
           </p>
         </motion.div>
@@ -529,7 +529,7 @@ export default function InvestigationTimeline() {
             className="hidden md:block absolute left-1/2 top-0 bottom-0 w-0.5 -translate-x-1/2 z-0"
             style={{
               background:
-                "linear-gradient(to bottom, #3b82f6, #8b5cf6, #3b82f6)",
+                "linear-gradient(to bottom, #22d3ee, #818cf8, #22d3ee)",
               opacity: 0.4,
             }}
           />
@@ -539,7 +539,7 @@ export default function InvestigationTimeline() {
             className="md:hidden absolute left-5 top-0 bottom-0 w-0.5 z-0"
             style={{
               background:
-                "linear-gradient(to bottom, #3b82f6, #8b5cf6, #3b82f6)",
+                "linear-gradient(to bottom, #22d3ee, #818cf8, #22d3ee)",
               opacity: 0.4,
             }}
           />

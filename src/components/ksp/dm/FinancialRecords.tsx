@@ -151,17 +151,17 @@ function StatCard({ icon, label, value, suffix = "", color, delay, isCurrency = 
       />
       <div className="relative flex items-start justify-between p-5">
         <div className="flex-1">
-          <span className="text-[#64748b] text-xs font-medium uppercase tracking-wider">
+          <span className="text-[#5a657a] text-xs font-medium uppercase tracking-wider">
             {label}
           </span>
           <div className="flex items-baseline gap-1.5 mt-1">
             {isCurrency && (
-              <span className="text-[#e2e8f0] text-xl font-bold">₹</span>
+              <span className="text-[#f1f5f9] text-xl font-bold">₹</span>
             )}
-            <span className="text-[#e2e8f0] text-3xl font-bold tabular-nums">
+            <span className="text-[#f1f5f9] text-3xl font-bold tabular-nums">
               {isCurrency ? formatNumber(animatedValue) : animatedValue.toLocaleString("en-IN")}
             </span>
-            {suffix && <span className="text-[#64748b] text-sm">{suffix}</span>}
+            {suffix && <span className="text-[#5a657a] text-sm">{suffix}</span>}
           </div>
         </div>
         <div
@@ -315,11 +315,11 @@ export default function FinancialRecords() {
   }, [filterBank, filterAmountRange]);
 
   const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ChevronsUpDown className="h-3.5 w-3.5 text-[#4a5568]" />;
+    if (sortField !== field) return <ChevronsUpDown className="h-3.5 w-3.5 text-[#3d4659]" />;
     return sortDir === "asc" ? (
-      <ChevronUp className="h-3.5 w-3.5 text-blue-400" />
+      <ChevronUp className="h-3.5 w-3.5 text-[#22d3ee]" />
     ) : (
-      <ChevronDown className="h-3.5 w-3.5 text-blue-400" />
+      <ChevronDown className="h-3.5 w-3.5 text-[#22d3ee]" />
     );
   };
 
@@ -390,9 +390,9 @@ export default function FinancialRecords() {
 
   const statusColor = (s: AccountStatus) => {
     switch (s) {
-      case "Suspicious": return "bg-red-500/15 text-red-400 border-red-500/30";
-      case "Under Review": return "bg-amber-500/15 text-amber-400 border-amber-500/30";
-      case "Normal": return "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
+      case "Suspicious": return "bg-[#f87171]/15 text-[#f87171] border-[rgba(248,113,113,0.15)]";
+      case "Under Review": return "bg-[#fbbf24]/15 text-[#fbbf24] border-[rgba(251,191,36,0.15)]";
+      case "Normal": return "bg-[#34d399]/15 text-[#34d399] border-[rgba(52,211,153,0.15)]";
     }
   };
 
@@ -434,22 +434,22 @@ export default function FinancialRecords() {
       {/* ── Page Header ── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-[#e2e8f0] text-2xl font-bold tracking-tight">
+          <h1 className="text-[#f1f5f9] text-2xl font-bold tracking-tight">
             Financial Records
           </h1>
-          <p className="text-[#64748b] text-sm mt-1">
+          <p className="text-[#5a657a] text-sm mt-1">
             Monitor bank accounts linked to criminal investigations
           </p>
         </div>
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#e2e8f0] rounded-xl">
+              <Button variant="outline" className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#f1f5f9] rounded-xl">
                 <FileDown className="h-4 w-4" />
                 Export
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="bg-[#1a2035] border-white/10 text-[#e2e8f0]">
+            <DropdownMenuContent className="bg-[rgba(15,21,36,0.45)] border-white/10 text-[#f1f5f9]">
               <DropdownMenuItem onClick={() => exportToCSV(getExportData(), "financial_records_export")}>
                 <FileDown className="mr-2 h-4 w-4" /> Export CSV
               </DropdownMenuItem>
@@ -474,14 +474,14 @@ export default function FinancialRecords() {
           icon={<Building2 className="h-5 w-5" />}
           label="Total Accounts"
           value={stats.totalAccounts}
-          color="#3b82f6"
+          color="#22d3ee"
           delay={0}
         />
         <StatCard
           icon={<IndianRupee className="h-5 w-5" />}
           label="Total Amount"
           value={stats.totalAmount}
-          color="#10b981"
+          color="#34d399"
           delay={1}
           isCurrency
           suffix="INR"
@@ -490,14 +490,14 @@ export default function FinancialRecords() {
           icon={<Landmark className="h-5 w-5" />}
           label="Banks Involved"
           value={stats.banksInvolved}
-          color="#8b5cf6"
+          color="#818cf8"
           delay={2}
         />
         <StatCard
           icon={<TrendingUp className="h-5 w-5" />}
           label="High-Value Transactions"
           value={stats.highValueTxns}
-          color="#f59e0b"
+          color="#fbbf24"
           delay={3}
           suffix="(&gt;₹1L)"
         />
@@ -507,12 +507,12 @@ export default function FinancialRecords() {
       <div className="space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#4a5568]" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#3d4659]" />
             <Input
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
               placeholder="Search by account number, bank, or holder name..."
-              className="pl-10 bg-white/5 border-white/10 text-[#e2e8f0] placeholder:text-[#4a5568] h-10 rounded-xl focus-visible:border-blue-500/50 focus-visible:ring-blue-500/20"
+              className="pl-10 bg-white/5 border-white/10 text-[#f1f5f9] placeholder:text-[#3d4659] h-10 rounded-xl focus-visible:border-cyan-500/50 focus-visible:ring-cyan-500/20"
             />
           </div>
           <Button
@@ -520,14 +520,14 @@ export default function FinancialRecords() {
             onClick={() => setShowFilters(!showFilters)}
             className={`gap-2 border-white/10 rounded-xl h-10 ${
               showFilters || activeFilterCount > 0
-                ? "bg-blue-500/10 border-blue-500/30 text-blue-400"
-                : "bg-white/5 text-[#94a3b8] hover:bg-white/10"
+                ? "bg-[#22d3ee]/10 border-[rgba(34,211,238,0.15)] text-[#22d3ee]"
+                : "bg-white/5 text-[#8b97b0] hover:bg-white/10"
             }`}
           >
             <Filter className="h-4 w-4" />
             Filters
             {activeFilterCount > 0 && (
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold text-white">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#22d3ee] text-[10px] font-bold text-white">
                 {activeFilterCount}
               </span>
             )}
@@ -546,14 +546,14 @@ export default function FinancialRecords() {
             >
               <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-4">
                 <div className="space-y-1.5">
-                  <label className="text-[#64748b] text-xs font-medium uppercase tracking-wider">
+                  <label className="text-[#5a657a] text-xs font-medium uppercase tracking-wider">
                     Bank
                   </label>
                   <Select value={filterBank} onValueChange={(v) => { setFilterBank(v); setPage(1); }}>
-                    <SelectTrigger className="w-[200px] bg-white/5 border-white/10 text-[#e2e8f0] h-9 rounded-xl">
+                    <SelectTrigger className="w-[200px] bg-white/5 border-white/10 text-[#f1f5f9] h-9 rounded-xl">
                       <SelectValue placeholder="All Banks" />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#1a2035] border-white/10 text-[#e2e8f0]">
+                    <SelectContent className="bg-[rgba(15,21,36,0.45)] border-white/10 text-[#f1f5f9]">
                       <SelectItem value="all">All Banks</SelectItem>
                       {banks.map((b) => (
                         <SelectItem key={b} value={b}>{b}</SelectItem>
@@ -562,14 +562,14 @@ export default function FinancialRecords() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[#64748b] text-xs font-medium uppercase tracking-wider">
+                  <label className="text-[#5a657a] text-xs font-medium uppercase tracking-wider">
                     Amount Range
                   </label>
                   <Select value={filterAmountRange} onValueChange={(v) => { setFilterAmountRange(v); setPage(1); }}>
-                    <SelectTrigger className="w-[200px] bg-white/5 border-white/10 text-[#e2e8f0] h-9 rounded-xl">
+                    <SelectTrigger className="w-[200px] bg-white/5 border-white/10 text-[#f1f5f9] h-9 rounded-xl">
                       <SelectValue placeholder="All Ranges" />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#1a2035] border-white/10 text-[#e2e8f0]">
+                    <SelectContent className="bg-[rgba(15,21,36,0.45)] border-white/10 text-[#f1f5f9]">
                       <SelectItem value="all">All Ranges</SelectItem>
                       <SelectItem value="under-1l">Under ₹1,00,000</SelectItem>
                       <SelectItem value="1l-5l">₹1,00,000 – ₹5,00,000</SelectItem>
@@ -582,7 +582,7 @@ export default function FinancialRecords() {
                 <Button
                   variant="ghost"
                   onClick={clearFilters}
-                  className="text-[#94a3b8] hover:text-[#e2e8f0] hover:bg-white/10 h-9 text-xs"
+                  className="text-[#8b97b0] hover:text-[#f1f5f9] hover:bg-white/10 h-9 text-xs"
                 >
                   Clear All
                 </Button>
@@ -594,9 +594,9 @@ export default function FinancialRecords() {
 
       {/* ── Results Info ── */}
       <div className="flex items-center justify-between">
-        <p className="text-[#64748b] text-sm">
-          Showing <span className="text-[#e2e8f0] font-medium">{paged.length}</span> of{" "}
-          <span className="text-[#e2e8f0] font-medium">{filtered.length}</span> accounts
+        <p className="text-[#5a657a] text-sm">
+          Showing <span className="text-[#f1f5f9] font-medium">{paged.length}</span> of{" "}
+          <span className="text-[#f1f5f9] font-medium">{filtered.length}</span> accounts
         </p>
       </div>
 
@@ -608,16 +608,16 @@ export default function FinancialRecords() {
           className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl py-20"
         >
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5">
-            <Wallet className="h-8 w-8 text-[#4a5568]" />
+            <Wallet className="h-8 w-8 text-[#3d4659]" />
           </div>
           <div className="text-center">
-            <p className="text-[#e2e8f0] font-medium">No accounts found</p>
-            <p className="text-[#64748b] text-sm mt-1">
+            <p className="text-[#f1f5f9] font-medium">No accounts found</p>
+            <p className="text-[#5a657a] text-sm mt-1">
               Try adjusting your search or filters
             </p>
           </div>
           {activeFilterCount > 0 && (
-            <Button variant="ghost" onClick={clearFilters} className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10">
+            <Button variant="ghost" onClick={clearFilters} className="text-[#22d3ee] hover:text-cyan-300 hover:bg-[#22d3ee]/10">
               Clear Filters
             </Button>
           )}
@@ -633,42 +633,42 @@ export default function FinancialRecords() {
               <Table>
                 <TableHeader>
                   <TableRow className="border-white/5 hover:bg-transparent">
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">
-                      <button onClick={() => handleSort("acc")} className="flex items-center gap-1 hover:text-[#e2e8f0] transition-colors">
+                    <TableHead className="text-[#5a657a] font-semibold text-xs uppercase tracking-wider">
+                      <button onClick={() => handleSort("acc")} className="flex items-center gap-1 hover:text-[#f1f5f9] transition-colors">
                         Account Number <SortIcon field="acc" />
                       </button>
                     </TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">
-                      <button onClick={() => handleSort("bank")} className="flex items-center gap-1 hover:text-[#e2e8f0] transition-colors">
+                    <TableHead className="text-[#5a657a] font-semibold text-xs uppercase tracking-wider">
+                      <button onClick={() => handleSort("bank")} className="flex items-center gap-1 hover:text-[#f1f5f9] transition-colors">
                         Bank <SortIcon field="bank" />
                       </button>
                     </TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">
-                      <button onClick={() => handleSort("holder")} className="flex items-center gap-1 hover:text-[#e2e8f0] transition-colors">
+                    <TableHead className="text-[#5a657a] font-semibold text-xs uppercase tracking-wider">
+                      <button onClick={() => handleSort("holder")} className="flex items-center gap-1 hover:text-[#f1f5f9] transition-colors">
                         Account Holder <SortIcon field="holder" />
                       </button>
                     </TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">
-                      <button onClick={() => handleSort("linkedFirs")} className="flex items-center gap-1 hover:text-[#e2e8f0] transition-colors">
+                    <TableHead className="text-[#5a657a] font-semibold text-xs uppercase tracking-wider">
+                      <button onClick={() => handleSort("linkedFirs")} className="flex items-center gap-1 hover:text-[#f1f5f9] transition-colors">
                         Linked FIRs <SortIcon field="linkedFirs" />
                       </button>
                     </TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">
-                      <button onClick={() => handleSort("totalAmount")} className="flex items-center gap-1 hover:text-[#e2e8f0] transition-colors">
+                    <TableHead className="text-[#5a657a] font-semibold text-xs uppercase tracking-wider">
+                      <button onClick={() => handleSort("totalAmount")} className="flex items-center gap-1 hover:text-[#f1f5f9] transition-colors">
                         Total Amount (INR) <SortIcon field="totalAmount" />
                       </button>
                     </TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">
-                      <button onClick={() => handleSort("mode")} className="flex items-center gap-1 hover:text-[#e2e8f0] transition-colors">
+                    <TableHead className="text-[#5a657a] font-semibold text-xs uppercase tracking-wider">
+                      <button onClick={() => handleSort("mode")} className="flex items-center gap-1 hover:text-[#f1f5f9] transition-colors">
                         Transaction Mode <SortIcon field="mode" />
                       </button>
                     </TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">
-                      <button onClick={() => handleSort("status")} className="flex items-center gap-1 hover:text-[#e2e8f0] transition-colors">
+                    <TableHead className="text-[#5a657a] font-semibold text-xs uppercase tracking-wider">
+                      <button onClick={() => handleSort("status")} className="flex items-center gap-1 hover:text-[#f1f5f9] transition-colors">
                         Status <SortIcon field="status" />
                       </button>
                     </TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider text-right">
+                    <TableHead className="text-[#5a657a] font-semibold text-xs uppercase tracking-wider text-right">
                       Actions
                     </TableHead>
                   </TableRow>
@@ -681,24 +681,24 @@ export default function FinancialRecords() {
                       animate={{ opacity: 1 }}
                       transition={{ delay: idx * 0.02 }}
                       className={`border-white/5 hover:bg-white/5 cursor-pointer transition-colors group ${
-                        acc.status === "Suspicious" ? "bg-red-500/3" : ""
+                        acc.status === "Suspicious" ? "bg-[#f87171]/3" : ""
                       }`}
                       onClick={() => setSelectedAccount(acc)}
                     >
-                      <TableCell className="text-[#e2e8f0] font-mono text-sm font-medium">
+                      <TableCell className="text-[#f1f5f9] font-mono text-sm font-medium">
                         {acc.acc}
                       </TableCell>
-                      <TableCell className="text-[#94a3b8] text-sm">{acc.bank}</TableCell>
-                      <TableCell className="text-[#94a3b8] text-sm">{acc.holder}</TableCell>
+                      <TableCell className="text-[#8b97b0] text-sm">{acc.bank}</TableCell>
+                      <TableCell className="text-[#8b97b0] text-sm">{acc.holder}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <span className={`text-sm font-medium ${
-                            acc.linkedFirCount > 1 ? "text-red-400" : acc.linkedFirCount === 1 ? "text-amber-400" : "text-[#4a5568]"
+                            acc.linkedFirCount > 1 ? "text-[#f87171]" : acc.linkedFirCount === 1 ? "text-[#fbbf24]" : "text-[#3d4659]"
                           }`}>
                             {acc.linkedFirCount}
                           </span>
                           {acc.linkedFirCount > 1 && (
-                            <Badge className="bg-red-500/15 text-red-400 border-red-500/30 text-[10px]">
+                            <Badge className="bg-[#f87171]/15 text-[#f87171] border-[rgba(248,113,113,0.15)] text-[10px]">
                               {acc.linkedFirCount} FIRs
                             </Badge>
                           )}
@@ -706,24 +706,24 @@ export default function FinancialRecords() {
                       </TableCell>
                       <TableCell className="text-sm">
                         <span className={`font-semibold ${
-                          acc.totalAmount > 500000 ? "text-red-400" : acc.totalAmount > 100000 ? "text-amber-400" : "text-[#e2e8f0]"
+                          acc.totalAmount > 500000 ? "text-[#f87171]" : acc.totalAmount > 100000 ? "text-[#fbbf24]" : "text-[#f1f5f9]"
                         }`}>
                           {formatINR(acc.totalAmount)}
                         </span>
                         {acc.totalAmount > 100000 && (
                           <Badge className={`ml-2 text-[10px] ${
                             acc.totalAmount > 500000
-                              ? "bg-red-500/15 text-red-400 border-red-500/30"
-                              : "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                              ? "bg-[#f87171]/15 text-[#f87171] border-[rgba(248,113,113,0.15)]"
+                              : "bg-[#fbbf24]/15 text-[#fbbf24] border-[rgba(251,191,36,0.15)]"
                           }`}>
                             <ArrowUpRight className="h-2.5 w-2.5 mr-0.5" />
                             High Value
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-[#94a3b8] text-sm">
+                      <TableCell className="text-[#8b97b0] text-sm">
                         <div className="flex items-center gap-1.5">
-                          <CreditCard className="h-3.5 w-3.5 text-[#64748b]" />
+                          <CreditCard className="h-3.5 w-3.5 text-[#5a657a]" />
                           {acc.transactionMode}
                         </div>
                       </TableCell>
@@ -733,7 +733,7 @@ export default function FinancialRecords() {
                             {acc.status}
                           </Badge>
                           {acc.suspiciousIndicators.length >= 3 && (
-                            <AlertCircle className="h-4 w-4 text-red-400 animate-pulse" />
+                            <AlertCircle className="h-4 w-4 text-[#f87171] animate-pulse" />
                           )}
                         </div>
                       </TableCell>
@@ -743,7 +743,7 @@ export default function FinancialRecords() {
                             size="sm"
                             variant="ghost"
                             onClick={(e) => { e.stopPropagation(); handleAction("View Linked FIRs", acc); }}
-                            className="h-7 w-7 p-0 text-[#94a3b8] hover:text-blue-400 hover:bg-blue-500/10"
+                            className="h-7 w-7 p-0 text-[#8b97b0] hover:text-[#22d3ee] hover:bg-[#22d3ee]/10"
                             title="View Linked FIRs"
                           >
                             <Eye className="h-3.5 w-3.5" />
@@ -752,7 +752,7 @@ export default function FinancialRecords() {
                             size="sm"
                             variant="ghost"
                             onClick={(e) => { e.stopPropagation(); handleAction("View on Network", acc); }}
-                            className="h-7 w-7 p-0 text-[#94a3b8] hover:text-emerald-400 hover:bg-emerald-500/10"
+                            className="h-7 w-7 p-0 text-[#8b97b0] hover:text-[#34d399] hover:bg-[#34d399]/10"
                             title="View on Network"
                           >
                             <Network className="h-3.5 w-3.5" />
@@ -761,7 +761,7 @@ export default function FinancialRecords() {
                             size="sm"
                             variant="ghost"
                             onClick={(e) => { e.stopPropagation(); handleAction("Flag for Investigation", acc); }}
-                            className="h-7 w-7 p-0 text-[#94a3b8] hover:text-red-400 hover:bg-red-500/10"
+                            className="h-7 w-7 p-0 text-[#8b97b0] hover:text-[#f87171] hover:bg-[#f87171]/10"
                             title="Flag for Investigation"
                           >
                             <Flag className="h-3.5 w-3.5" />
@@ -778,7 +778,7 @@ export default function FinancialRecords() {
           {/* ── Pagination ── */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between">
-              <p className="text-[#64748b] text-sm">
+              <p className="text-[#5a657a] text-sm">
                 Page {page} of {totalPages}
               </p>
               <div className="flex items-center gap-2">
@@ -787,7 +787,7 @@ export default function FinancialRecords() {
                   size="sm"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="border-white/10 bg-white/5 text-[#94a3b8] hover:bg-white/10 rounded-lg h-8"
+                  className="border-white/10 bg-white/5 text-[#8b97b0] hover:bg-white/10 rounded-lg h-8"
                 >
                   Previous
                 </Button>
@@ -796,7 +796,7 @@ export default function FinancialRecords() {
                   size="sm"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  className="border-white/10 bg-white/5 text-[#94a3b8] hover:bg-white/10 rounded-lg h-8"
+                  className="border-white/10 bg-white/5 text-[#8b97b0] hover:bg-white/10 rounded-lg h-8"
                 >
                   Next
                 </Button>
@@ -814,22 +814,22 @@ export default function FinancialRecords() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 400 }}
             transition={{ type: "spring", damping: 25, stiffness: 250 }}
-            className="fixed right-0 top-0 bottom-0 z-40 w-[480px] border-l border-white/10 bg-[#0d1225]/95 backdrop-blur-xl shadow-2xl"
+            className="fixed right-0 top-0 bottom-0 z-40 w-[480px] border-l border-white/10 bg-[rgba(15,21,36,0.95)] backdrop-blur-xl "
           >
             <ScrollArea className="h-full">
               <div className="p-6 space-y-6">
                 {/* Header */}
                 <div className="flex items-start justify-between">
                   <div>
-                    <h2 className="text-[#e2e8f0] text-lg font-bold font-mono">{selectedAccount.acc}</h2>
-                    <p className="text-[#64748b] text-sm mt-0.5">
+                    <h2 className="text-[#f1f5f9] text-lg font-bold font-mono">{selectedAccount.acc}</h2>
+                    <p className="text-[#5a657a] text-sm mt-0.5">
                       {selectedAccount.bank} · {selectedAccount.holder}
                     </p>
                   </div>
                   <Button
                     variant="ghost"
                     onClick={() => setSelectedAccount(null)}
-                    className="h-8 w-8 p-0 text-[#64748b] hover:text-[#e2e8f0] hover:bg-white/10 rounded-lg"
+                    className="h-8 w-8 p-0 text-[#5a657a] hover:text-[#f1f5f9] hover:bg-white/10 rounded-lg"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -845,8 +845,8 @@ export default function FinancialRecords() {
                       key={ind}
                       className={`text-xs border ${
                         ind.includes("Multiple") || ind.includes("Frequent") || ind.includes("High transaction")
-                          ? "bg-red-500/15 text-red-400 border-red-500/30"
-                          : "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                          ? "bg-[#f87171]/15 text-[#f87171] border-[rgba(248,113,113,0.15)]"
+                          : "bg-[#fbbf24]/15 text-[#fbbf24] border-[rgba(251,191,36,0.15)]"
                       }`}
                     >
                       <AlertTriangle className="h-3 w-3 mr-1" />
@@ -857,7 +857,7 @@ export default function FinancialRecords() {
 
                 {/* Account Details */}
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
-                  <h3 className="text-[#e2e8f0] text-sm font-semibold">Account Details</h3>
+                  <h3 className="text-[#f1f5f9] text-sm font-semibold">Account Details</h3>
                   {[
                     { label: "Account Number", value: selectedAccount.acc },
                     { label: "Bank", value: selectedAccount.bank },
@@ -868,11 +868,11 @@ export default function FinancialRecords() {
                     { label: "Linked FIRs", value: String(selectedAccount.linkedFirCount) },
                   ].map((item) => (
                     <div key={item.label} className="flex justify-between">
-                      <span className="text-[#64748b] text-sm">{item.label}</span>
+                      <span className="text-[#5a657a] text-sm">{item.label}</span>
                       <span className={`text-sm font-medium ${
                         item.label === "Total Amount" && selectedAccount.totalAmount > 100000
-                          ? "text-amber-400"
-                          : "text-[#e2e8f0]"
+                          ? "text-[#fbbf24]"
+                          : "text-[#f1f5f9]"
                       }`}>
                         {item.value}
                       </span>
@@ -884,19 +884,19 @@ export default function FinancialRecords() {
                 <div className="flex flex-wrap gap-2">
                   <Button
                     onClick={() => handleAction("View Linked FIRs", selectedAccount)}
-                    className="gap-2 bg-blue-600 hover:bg-blue-700 text-white border-0 rounded-xl text-sm flex-1"
+                    className="gap-2 bg-[#22d3ee] hover:bg-cyan-700 text-white border-0 rounded-xl text-sm flex-1"
                   >
                     <Eye className="h-4 w-4" /> View Linked FIRs
                   </Button>
                   <Button
                     onClick={() => handleAction("View on Network", selectedAccount)}
-                    className="gap-2 bg-white/5 hover:bg-white/10 text-[#e2e8f0] border border-white/10 rounded-xl text-sm flex-1"
+                    className="gap-2 bg-white/5 hover:bg-white/10 text-[#f1f5f9] border border-white/10 rounded-xl text-sm flex-1"
                   >
                     <Network className="h-4 w-4" /> View on Network
                   </Button>
                   <Button
                     onClick={() => setShowFlagDialog(true)}
-                    className="gap-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 rounded-xl text-sm flex-1"
+                    className="gap-2 bg-[#f87171]/20 hover:bg-[#f87171]/30 text-[#f87171] border border-[rgba(248,113,113,0.15)] rounded-xl text-sm flex-1"
                   >
                     <Flag className="h-4 w-4" /> Flag for Investigation
                   </Button>
@@ -905,8 +905,8 @@ export default function FinancialRecords() {
                 {/* Linked FIRs with amounts */}
                 {selectedAccount.linkedFirs.length > 0 && (
                   <div className="space-y-3">
-                    <h3 className="text-[#e2e8f0] text-sm font-semibold flex items-center gap-2">
-                      <Wallet className="h-4 w-4 text-emerald-400" />
+                    <h3 className="text-[#f1f5f9] text-sm font-semibold flex items-center gap-2">
+                      <Wallet className="h-4 w-4 text-[#34d399]" />
                       Linked FIRs with Transactions ({selectedAccount.linkedFirs.length})
                     </h3>
                     <div className="space-y-2">
@@ -926,24 +926,24 @@ export default function FinancialRecords() {
                             }}
                           >
                             <div className="flex items-center justify-between">
-                              <span className="text-[#e2e8f0] text-sm font-mono font-medium">
+                              <span className="text-[#f1f5f9] text-sm font-mono font-medium">
                                 {fir.fir_id}
                               </span>
-                              <Badge className="text-[10px] bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
+                              <Badge className="text-[10px] bg-[#34d399]/15 text-[#34d399] border-[rgba(52,211,153,0.15)]">
                                 {formatINR(fir.financial_transaction?.amount_inr ?? 0)}
                               </Badge>
                             </div>
                             <div className="flex items-center justify-between mt-1.5">
-                              <Badge className="text-[10px] bg-blue-500/15 text-blue-400 border-blue-500/30">
+                              <Badge className="text-[10px] bg-[#22d3ee]/15 text-[#22d3ee] border-[rgba(34,211,238,0.15)]">
                                 {fir.crime_type}
                               </Badge>
-                              <span className="text-[#94a3b8] text-xs flex items-center gap-1">
+                              <span className="text-[#8b97b0] text-xs flex items-center gap-1">
                                 <CreditCard className="h-3 w-3" />
                                 {fir.financial_transaction?.mode}
                               </span>
                             </div>
                             <div className="flex items-center gap-3 mt-1.5">
-                              <span className="text-[#94a3b8] text-xs flex items-center gap-1">
+                              <span className="text-[#8b97b0] text-xs flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
                                 {new Date(fir.date).toLocaleDateString("en-IN", {
                                   day: "2-digit",
@@ -951,13 +951,13 @@ export default function FinancialRecords() {
                                   year: "numeric",
                                 })}
                               </span>
-                              <span className="text-[#94a3b8] text-xs flex items-center gap-1">
+                              <span className="text-[#8b97b0] text-xs flex items-center gap-1">
                                 <MapPin className="h-3 w-3" />
                                 {fir.district}
                               </span>
                             </div>
                             {fir.financial_transaction?.note && (
-                              <p className="text-[#64748b] text-xs mt-1.5 italic">
+                              <p className="text-[#5a657a] text-xs mt-1.5 italic">
                                 &quot;{fir.financial_transaction.note}&quot;
                               </p>
                             )}
@@ -970,8 +970,8 @@ export default function FinancialRecords() {
                 {/* Transaction Timeline */}
                 {selectedAccount.linkedFirs.length > 1 && (
                   <div className="space-y-3">
-                    <h3 className="text-[#e2e8f0] text-sm font-semibold flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-amber-400" />
+                    <h3 className="text-[#f1f5f9] text-sm font-semibold flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-[#fbbf24]" />
                       Transaction Timeline
                     </h3>
                     <div className="relative pl-6 space-y-4">
@@ -986,24 +986,24 @@ export default function FinancialRecords() {
                               <div
                                 className="absolute -left-[18px] top-1.5 h-3 w-3 rounded-full border-2"
                                 style={{
-                                  borderColor: isHighValue ? "#ef4444" : "#10b981",
-                                  backgroundColor: isHighValue ? "#ef4444" : "#10b981",
+                                  borderColor: isHighValue ? "#f87171" : "#34d399",
+                                  backgroundColor: isHighValue ? "#f87171" : "#34d399",
                                 }}
                               />
                               <div className="rounded-lg border border-white/10 bg-white/5 p-3">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-[#e2e8f0] text-sm font-medium">
+                                  <span className="text-[#f1f5f9] text-sm font-medium">
                                     {fir.crime_type}
                                   </span>
-                                  <span className={`text-sm font-semibold ${isHighValue ? "text-red-400" : "text-emerald-400"}`}>
+                                  <span className={`text-sm font-semibold ${isHighValue ? "text-[#f87171]" : "text-[#34d399]"}`}>
                                     {formatINR(amt)}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between mt-1">
-                                  <span className="text-[#64748b] text-xs">
+                                  <span className="text-[#5a657a] text-xs">
                                     {new Date(fir.date).toLocaleDateString("en-IN")}
                                   </span>
-                                  <span className="text-[#64748b] text-xs">
+                                  <span className="text-[#5a657a] text-xs">
                                     {fir.financial_transaction?.mode}
                                   </span>
                                 </div>
@@ -1035,14 +1035,14 @@ export default function FinancialRecords() {
 
       {/* ── Flag Dialog ── */}
       <Dialog open={showFlagDialog} onOpenChange={setShowFlagDialog}>
-        <DialogContent className="bg-[#1a2035] border-white/10 text-[#e2e8f0] sm:max-w-md">
+        <DialogContent className="bg-[rgba(15,21,36,0.45)] border-white/10 text-[#f1f5f9] sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Flag className="h-5 w-5 text-red-400" />
+              <Flag className="h-5 w-5 text-[#f87171]" />
               Flag for Investigation
             </DialogTitle>
-            <DialogDescription className="text-[#64748b]">
-              Account: <span className="font-mono text-[#e2e8f0]">{selectedAccount?.acc}</span> — {selectedAccount?.bank}
+            <DialogDescription className="text-[#5a657a]">
+              Account: <span className="font-mono text-[#f1f5f9]">{selectedAccount?.acc}</span> — {selectedAccount?.bank}
             </DialogDescription>
           </DialogHeader>
           <Textarea
@@ -1050,20 +1050,20 @@ export default function FinancialRecords() {
             onChange={(e) => setFlagReason(e.target.value)}
             placeholder="Enter reason for flagging this account..."
             rows={4}
-            className="bg-white/5 border-white/10 text-[#e2e8f0] placeholder:text-[#4a5568] focus-visible:border-red-500/50 focus-visible:ring-red-500/20 rounded-xl"
+            className="bg-white/5 border-white/10 text-[#f1f5f9] placeholder:text-[#3d4659] focus-visible:border-red-500/50 focus-visible:ring-[rgba(248,113,113,0.2)] rounded-xl"
           />
           <DialogFooter>
             <Button
               variant="ghost"
               onClick={() => { setShowFlagDialog(false); setFlagReason(""); }}
-              className="text-[#94a3b8] hover:text-[#e2e8f0] hover:bg-white/10 rounded-xl"
+              className="text-[#8b97b0] hover:text-[#f1f5f9] hover:bg-white/10 rounded-xl"
             >
               Cancel
             </Button>
             <Button
               onClick={handleFlagForInvestigation}
               disabled={!flagReason.trim()}
-              className="bg-red-600 hover:bg-red-700 text-white border-0 rounded-xl"
+              className="bg-[#f87171] hover:bg-red-700 text-white border-0 rounded-xl"
             >
               <Flag className="h-4 w-4 mr-2" />
               Flag Account

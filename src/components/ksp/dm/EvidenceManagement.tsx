@@ -102,40 +102,40 @@ import {
 const EVIDENCE_TYPE_COLORS: Record<EvidenceItem["type"], { bg: string; icon: React.ReactNode; label: string }> = {
   photo: {
     bg: "from-blue-600/40 to-blue-800/20",
-    icon: <FileImage className="h-6 w-6 text-blue-400" />,
+    icon: <FileImage className="h-6 w-6 text-[#22d3ee]" />,
     label: "Photo",
   },
   video: {
     bg: "from-purple-600/40 to-purple-800/20",
-    icon: <FileVideo className="h-6 w-6 text-purple-400" />,
+    icon: <FileVideo className="h-6 w-6 text-[#818cf8]" />,
     label: "Video",
   },
   audio: {
     bg: "from-orange-600/40 to-orange-800/20",
-    icon: <FileAudio className="h-6 w-6 text-orange-400" />,
+    icon: <FileAudio className="h-6 w-6 text-[#fbbf24]" />,
     label: "Audio",
   },
   pdf: {
     bg: "from-red-600/40 to-red-800/20",
-    icon: <FileText className="h-6 w-6 text-red-400" />,
+    icon: <FileText className="h-6 w-6 text-[#f87171]" />,
     label: "PDF",
   },
   cctv: {
     bg: "from-emerald-600/40 to-emerald-800/20",
-    icon: <Camera className="h-6 w-6 text-emerald-400" />,
+    icon: <Camera className="h-6 w-6 text-[#34d399]" />,
     label: "CCTV",
   },
   document: {
     bg: "from-cyan-600/40 to-cyan-800/20",
-    icon: <File className="h-6 w-6 text-cyan-400" />,
+    icon: <File className="h-6 w-6 text-[#22d3ee]" />,
     label: "Document",
   },
 };
 
 const STATUS_STYLES: Record<EvidenceItem["status"], string> = {
-  processing: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-  ready: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-  archived: "bg-slate-500/20 text-slate-400 border-slate-500/30",
+  processing: "bg-[rgba(251,191,36,0.12)] text-[#fbbf24] border-[rgba(251,191,36,0.15)]",
+  ready: "bg-[rgba(52,211,153,0.12)] text-[#34d399] border-[rgba(52,211,153,0.15)]",
+  archived: "bg-[rgba(255,255,255,0.06)] text-[#8b97b0] border-[rgba(255,255,255,0.08)]",
 };
 
 const ACCEPTED_TYPES = [
@@ -335,7 +335,7 @@ function simulateOCR(): OCRExtractionResult {
 function EvidenceTypeBadge({ type }: { type: EvidenceItem["type"] }) {
   const info = EVIDENCE_TYPE_COLORS[type];
   return (
-    <span className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-xs font-medium text-[#94a3b8]">
+    <span className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-xs font-medium text-[#8b97b0]">
       {info.icon}
       {info.label}
     </span>
@@ -669,10 +669,10 @@ export default function EvidenceManagement() {
       <div className="rounded-xl bg-white/5 p-3">
         <div className="mb-2 flex items-center gap-2">
           <span className={color}>{icon}</span>
-          <span className="text-xs font-semibold uppercase tracking-wider text-[#64748b]">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#5a657a]">
             {label}
           </span>
-          <Badge variant="outline" className="ml-auto border-white/10 text-[10px] text-[#94a3b8]">
+          <Badge variant="outline" className="ml-auto border-white/10 text-[10px] text-[#8b97b0]">
             {items.length}
           </Badge>
         </div>
@@ -680,13 +680,13 @@ export default function EvidenceManagement() {
           {items.map((item, i) => (
             <span
               key={i}
-              className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-[#e2e8f0]"
+              className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-[#f1f5f9]"
             >
               {item}
             </span>
           ))}
           {items.length === 0 && (
-            <span className="text-xs text-[#4a5568] italic">None detected</span>
+            <span className="text-xs text-[#3d4659] italic">None detected</span>
           )}
         </div>
       </div>
@@ -699,39 +699,39 @@ export default function EvidenceManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#e2e8f0]">Evidence Management</h1>
-          <p className="mt-1 text-sm text-[#64748b]">
+          <h1 className="text-2xl font-bold text-[#f1f5f9]">Evidence Management</h1>
+          <p className="mt-1 text-sm text-[#5a657a]">
             Upload, process, and manage digital evidence linked to FIRs
           </p>
         </div>
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="border-white/10 bg-white/5 text-[#94a3b8] hover:bg-white/10 hover:text-[#e2e8f0]">
+              <Button variant="outline" size="sm" className="border-white/10 bg-white/5 text-[#8b97b0] hover:bg-white/10 hover:text-[#f1f5f9]">
                 <FileDown className="mr-2 h-4 w-4" />
                 Export
                 <ChevronDown className="ml-2 h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="border-[#2a3550] bg-[#1a2035]">
-              <DropdownMenuItem onClick={() => handleExport("csv")} className="text-[#94a3b8] focus:text-[#e2e8f0]">
+            <DropdownMenuContent className="border-[rgba(255,255,255,0.06)] bg-[rgba(15,21,36,0.45)]">
+              <DropdownMenuItem onClick={() => handleExport("csv")} className="text-[#8b97b0] focus:text-[#f1f5f9]">
                 <FileDown className="mr-2 h-4 w-4" /> CSV
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport("json")} className="text-[#94a3b8] focus:text-[#e2e8f0]">
+              <DropdownMenuItem onClick={() => handleExport("json")} className="text-[#8b97b0] focus:text-[#f1f5f9]">
                 <FileJson className="mr-2 h-4 w-4" /> JSON
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport("excel")} className="text-[#94a3b8] focus:text-[#e2e8f0]">
+              <DropdownMenuItem onClick={() => handleExport("excel")} className="text-[#8b97b0] focus:text-[#f1f5f9]">
                 <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-white/10" />
-              <DropdownMenuItem onClick={() => handleExport("print")} className="text-[#94a3b8] focus:text-[#e2e8f0]">
+              <DropdownMenuItem onClick={() => handleExport("print")} className="text-[#8b97b0] focus:text-[#f1f5f9]">
                 <Printer className="mr-2 h-4 w-4" /> Print
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           <Button
             size="sm"
-            className="bg-emerald-600 text-white hover:bg-emerald-700"
+            className="bg-[#34d399] text-white hover:bg-[#2bc48a]"
             onClick={() => setShowOCRDialog(true)}
           >
             <Brain className="mr-2 h-4 w-4" />
@@ -757,18 +757,18 @@ export default function EvidenceManagement() {
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/20"
+              className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[rgba(52,211,153,0.12)]"
             >
               {uploadingType && EVIDENCE_TYPE_COLORS[uploadingType]?.icon}
             </motion.div>
             <div className="w-full max-w-md">
               <div className="mb-2 flex items-center justify-between text-sm">
-                <span className="text-[#e2e8f0]">Uploading {uploadingType}...</span>
-                <span className="text-emerald-400 font-medium">{Math.min(Math.round(uploadProgress), 100)}%</span>
+                <span className="text-[#f1f5f9]">Uploading {uploadingType}...</span>
+                <span className="text-[#34d399] font-medium">{Math.min(Math.round(uploadProgress), 100)}%</span>
               </div>
               <Progress
                 value={Math.min(uploadProgress, 100)}
-                className="h-2 bg-white/10 [&>div]:rounded-full [&>div]:bg-emerald-500"
+                className="h-2 bg-white/10 [&>div]:rounded-full [&>div]:bg-[#34d399]"
               />
             </div>
           </div>
@@ -776,17 +776,17 @@ export default function EvidenceManagement() {
           <div className="flex flex-col items-center gap-4">
             <motion.div
               className={`flex h-16 w-16 items-center justify-center rounded-2xl transition-colors ${
-                isDragOver ? "bg-emerald-500/30" : "bg-white/5"
+                isDragOver ? "bg-[#34d399]/30" : "bg-white/5"
               }`}
               whileHover={{ scale: 1.05 }}
             >
-              <Upload className={`h-8 w-8 ${isDragOver ? "text-emerald-400" : "text-[#4a5568]"}`} />
+              <Upload className={`h-8 w-8 ${isDragOver ? "text-[#34d399]" : "text-[#3d4659]"}`} />
             </motion.div>
             <div className="text-center">
-              <p className="text-sm font-medium text-[#e2e8f0]">
+              <p className="text-sm font-medium text-[#f1f5f9]">
                 Drag & drop evidence files here
               </p>
-              <p className="mt-1 text-xs text-[#64748b]">
+              <p className="mt-1 text-xs text-[#5a657a]">
                 or click to browse • Max 500MB per file
               </p>
             </div>
@@ -805,11 +805,11 @@ export default function EvidenceManagement() {
                     };
                     simulateUpload(typeMap[t.label]);
                   }}
-                  className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-[#94a3b8] transition-colors hover:border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-400"
+                  className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-[#8b97b0] transition-colors hover:border-[rgba(52,211,153,0.15)] hover:bg-[rgba(52,211,153,0.08)] hover:text-[#34d399]"
                 >
                   {t.icon}
                   <span>{t.label}</span>
-                  <span className="text-[10px] text-[#4a5568]">{t.ext}</span>
+                  <span className="text-[10px] text-[#3d4659]">{t.ext}</span>
                 </button>
               ))}
             </div>
@@ -820,55 +820,55 @@ export default function EvidenceManagement() {
       {/* Search, Filter, View Mode */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[240px]">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#4a5568]" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#3d4659]" />
           <Input
             placeholder="Search by filename, tag, FIR ID..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="border-white/10 bg-white/5 pl-10 text-[#e2e8f0] placeholder-[#4a5568] focus:border-emerald-500/50"
+            className="border-white/10 bg-white/5 pl-10 text-[#f1f5f9] placeholder-[#3d4659] focus:border-[rgba(52,211,153,0.3)]"
           />
         </div>
         <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-[140px] border-white/10 bg-white/5 text-[#94a3b8]">
+          <SelectTrigger className="w-[140px] border-white/10 bg-white/5 text-[#8b97b0]">
             <SelectValue placeholder="Type" />
           </SelectTrigger>
-          <SelectContent className="border-[#2a3550] bg-[#1a2035]">
-            <SelectItem value="all" className="text-[#94a3b8]">All Types</SelectItem>
+          <SelectContent className="border-[rgba(255,255,255,0.06)] bg-[rgba(15,21,36,0.45)]">
+            <SelectItem value="all" className="text-[#8b97b0]">All Types</SelectItem>
             {Object.entries(EVIDENCE_TYPE_COLORS).map(([key, val]) => (
-              <SelectItem key={key} value={key} className="text-[#94a3b8]">
+              <SelectItem key={key} value={key} className="text-[#8b97b0]">
                 {val.label}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[140px] border-white/10 bg-white/5 text-[#94a3b8]">
+          <SelectTrigger className="w-[140px] border-white/10 bg-white/5 text-[#8b97b0]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
-          <SelectContent className="border-[#2a3550] bg-[#1a2035]">
-            <SelectItem value="all" className="text-[#94a3b8]">All Status</SelectItem>
-            <SelectItem value="processing" className="text-[#94a3b8]">Processing</SelectItem>
-            <SelectItem value="ready" className="text-[#94a3b8]">Ready</SelectItem>
-            <SelectItem value="archived" className="text-[#94a3b8]">Archived</SelectItem>
+          <SelectContent className="border-[rgba(255,255,255,0.06)] bg-[rgba(15,21,36,0.45)]">
+            <SelectItem value="all" className="text-[#8b97b0]">All Status</SelectItem>
+            <SelectItem value="processing" className="text-[#8b97b0]">Processing</SelectItem>
+            <SelectItem value="ready" className="text-[#8b97b0]">Ready</SelectItem>
+            <SelectItem value="archived" className="text-[#8b97b0]">Archived</SelectItem>
           </SelectContent>
         </Select>
         <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as EvidenceViewMode)}>
           <TabsList className="border-white/10 bg-white/5">
-            <TabsTrigger value="grid" className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 text-[#64748b]">
+            <TabsTrigger value="grid" className="data-[state=active]:bg-[rgba(52,211,153,0.12)] data-[state=active]:text-[#34d399] text-[#5a657a]">
               <Grid3X3 className="h-4 w-4" />
             </TabsTrigger>
-            <TabsTrigger value="card" className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 text-[#64748b]">
+            <TabsTrigger value="card" className="data-[state=active]:bg-[rgba(52,211,153,0.12)] data-[state=active]:text-[#34d399] text-[#5a657a]">
               <LayoutList className="h-4 w-4" />
             </TabsTrigger>
-            <TabsTrigger value="table" className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 text-[#64748b]">
+            <TabsTrigger value="table" className="data-[state=active]:bg-[rgba(52,211,153,0.12)] data-[state=active]:text-[#34d399] text-[#5a657a]">
               <TableIcon className="h-4 w-4" />
             </TabsTrigger>
-            <TabsTrigger value="timeline" className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 text-[#64748b]">
+            <TabsTrigger value="timeline" className="data-[state=active]:bg-[rgba(52,211,153,0.12)] data-[state=active]:text-[#34d399] text-[#5a657a]">
               <Clock className="h-4 w-4" />
             </TabsTrigger>
           </TabsList>
         </Tabs>
-        <div className="ml-auto text-xs text-[#4a5568]">
+        <div className="ml-auto text-xs text-[#3d4659]">
           {filteredEvidence.length} item{filteredEvidence.length !== 1 ? "s" : ""}
         </div>
       </div>
@@ -883,9 +883,9 @@ export default function EvidenceManagement() {
             exit={{ opacity: 0 }}
             className="flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/5 py-16"
           >
-            <File className="mb-4 h-12 w-12 text-[#4a5568]" />
-            <p className="text-sm font-medium text-[#94a3b8]">No evidence found</p>
-            <p className="mt-1 text-xs text-[#4a5568]">
+            <File className="mb-4 h-12 w-12 text-[#3d4659]" />
+            <p className="text-sm font-medium text-[#8b97b0]">No evidence found</p>
+            <p className="mt-1 text-xs text-[#3d4659]">
               Try adjusting your search or filters
             </p>
           </motion.div>
@@ -923,12 +923,12 @@ export default function EvidenceManagement() {
                   {/* Content */}
                   <div className="space-y-3 p-4">
                     <div>
-                      <p className="truncate text-sm font-medium text-[#e2e8f0]" title={item.filename}>
+                      <p className="truncate text-sm font-medium text-[#f1f5f9]" title={item.filename}>
                         {item.filename}
                       </p>
                       <button
                         onClick={() => handleLinkFIR(item.firId)}
-                        className="mt-1 text-xs text-emerald-400 hover:text-emerald-300 hover:underline"
+                        className="mt-1 text-xs text-[#34d399] hover:text-[#6ee7b7] hover:underline"
                       >
                         {item.firId}
                       </button>
@@ -940,20 +940,20 @@ export default function EvidenceManagement() {
                         <Badge
                           key={tag}
                           variant="outline"
-                          className="border-white/10 text-[10px] text-[#94a3b8]"
+                          className="border-white/10 text-[10px] text-[#8b97b0]"
                         >
                           {tag}
                         </Badge>
                       ))}
                       {item.tags.length > 3 && (
-                        <Badge variant="outline" className="border-white/10 text-[10px] text-[#4a5568]">
+                        <Badge variant="outline" className="border-white/10 text-[10px] text-[#3d4659]">
                           +{item.tags.length - 3}
                         </Badge>
                       )}
                     </div>
 
                     {/* AI Summary */}
-                    <p className="line-clamp-2 text-xs leading-relaxed text-[#64748b]">
+                    <p className="line-clamp-2 text-xs leading-relaxed text-[#5a657a]">
                       {item.aiSummary}
                     </p>
 
@@ -962,7 +962,7 @@ export default function EvidenceManagement() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 px-2 text-[#64748b] hover:text-emerald-400"
+                        className="h-7 px-2 text-[#5a657a] hover:text-[#34d399]"
                         onClick={() => handleViewEvidence(item)}
                       >
                         <Eye className="mr-1 h-3.5 w-3.5" />
@@ -971,7 +971,7 @@ export default function EvidenceManagement() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 px-2 text-[#64748b] hover:text-blue-400"
+                        className="h-7 px-2 text-[#5a657a] hover:text-[#22d3ee]"
                         onClick={() => handleLinkFIR(item.firId)}
                       >
                         <Link2 className="mr-1 h-3.5 w-3.5" />
@@ -980,7 +980,7 @@ export default function EvidenceManagement() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="ml-auto h-7 px-2 text-[#64748b] hover:text-red-400"
+                        className="ml-auto h-7 px-2 text-[#5a657a] hover:text-[#f87171]"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
@@ -1020,7 +1020,7 @@ export default function EvidenceManagement() {
                     <div className="flex-1 p-4">
                       <div className="mb-2 flex items-start justify-between">
                         <div>
-                          <p className="text-sm font-semibold text-[#e2e8f0]" title={item.filename}>
+                          <p className="text-sm font-semibold text-[#f1f5f9]" title={item.filename}>
                             {item.filename}
                           </p>
                           <div className="mt-1 flex items-center gap-2">
@@ -1028,7 +1028,7 @@ export default function EvidenceManagement() {
                             <StatusBadge status={item.status} />
                           </div>
                         </div>
-                        <span className="text-xs text-[#4a5568]">{formatBytes(item.size)}</span>
+                        <span className="text-xs text-[#3d4659]">{formatBytes(item.size)}</span>
                       </div>
 
                       <div className="mb-2 flex flex-wrap gap-1">
@@ -1036,42 +1036,42 @@ export default function EvidenceManagement() {
                           <Badge
                             key={tag}
                             variant="outline"
-                            className="border-white/10 text-[10px] text-[#94a3b8]"
+                            className="border-white/10 text-[10px] text-[#8b97b0]"
                           >
                             {tag}
                           </Badge>
                         ))}
                       </div>
 
-                      <p className="mb-3 line-clamp-3 text-xs leading-relaxed text-[#64748b]">
+                      <p className="mb-3 line-clamp-3 text-xs leading-relaxed text-[#5a657a]">
                         {item.aiSummary}
                       </p>
 
                       {/* Linked entities */}
                       <div className="mb-3 grid grid-cols-3 gap-2 text-[11px]">
                         <div>
-                          <span className="text-[#4a5568]">FIR</span>
+                          <span className="text-[#3d4659]">FIR</span>
                           <button
                             onClick={() => handleLinkFIR(item.firId)}
-                            className="block truncate text-emerald-400 hover:underline"
+                            className="block truncate text-[#34d399] hover:underline"
                           >
                             {item.firId}
                           </button>
                         </div>
                         <div>
-                          <span className="text-[#4a5568]">Accused</span>
-                          <p className="truncate text-[#94a3b8]">{item.linkedAccused.join(", ") || "—"}</p>
+                          <span className="text-[#3d4659]">Accused</span>
+                          <p className="truncate text-[#8b97b0]">{item.linkedAccused.join(", ") || "—"}</p>
                         </div>
                         <div>
-                          <span className="text-[#4a5568]">Victim</span>
-                          <p className="truncate text-[#94a3b8]">{item.linkedVictim || "—"}</p>
+                          <span className="text-[#3d4659]">Victim</span>
+                          <p className="truncate text-[#8b97b0]">{item.linkedVictim || "—"}</p>
                         </div>
                       </div>
 
                       {item.linkedVehicle && (
                         <div className="mb-3 text-[11px]">
-                          <span className="text-[#4a5568]">Vehicle: </span>
-                          <span className="text-[#94a3b8]">{item.linkedVehicle}</span>
+                          <span className="text-[#3d4659]">Vehicle: </span>
+                          <span className="text-[#8b97b0]">{item.linkedVehicle}</span>
                         </div>
                       )}
 
@@ -1079,7 +1079,7 @@ export default function EvidenceManagement() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 px-2 text-[#64748b] hover:text-emerald-400"
+                          className="h-7 px-2 text-[#5a657a] hover:text-[#34d399]"
                           onClick={() => handleViewEvidence(item)}
                         >
                           <Eye className="mr-1 h-3.5 w-3.5" />
@@ -1088,13 +1088,13 @@ export default function EvidenceManagement() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 px-2 text-[#64748b] hover:text-blue-400"
+                          className="h-7 px-2 text-[#5a657a] hover:text-[#22d3ee]"
                           onClick={() => handleLinkFIR(item.firId)}
                         >
                           <Link2 className="mr-1 h-3.5 w-3.5" />
                           Link FIR
                         </Button>
-                        <span className="ml-auto text-[10px] text-[#4a5568]">
+                        <span className="ml-auto text-[10px] text-[#3d4659]">
                           {new Date(item.uploadedAt).toLocaleDateString("en-IN")}
                         </span>
                       </div>
@@ -1115,15 +1115,15 @@ export default function EvidenceManagement() {
             <Table>
               <TableHeader>
                 <TableRow className="border-white/10 hover:bg-transparent">
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-[#64748b]">ID</TableHead>
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-[#64748b]">Filename</TableHead>
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-[#64748b]">Type</TableHead>
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-[#64748b]">FIR</TableHead>
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-[#64748b]">Size</TableHead>
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-[#64748b]">Uploaded</TableHead>
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-[#64748b]">Tags</TableHead>
-                  <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-[#64748b]">Status</TableHead>
-                  <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-[#64748b]">Actions</TableHead>
+                  <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">ID</TableHead>
+                  <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">Filename</TableHead>
+                  <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">Type</TableHead>
+                  <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">FIR</TableHead>
+                  <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">Size</TableHead>
+                  <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">Uploaded</TableHead>
+                  <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">Tags</TableHead>
+                  <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">Status</TableHead>
+                  <TableHead className="text-right text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1132,9 +1132,9 @@ export default function EvidenceManagement() {
                     key={item.id}
                     className="border-white/5 transition-colors hover:bg-white/5"
                   >
-                    <TableCell className="font-mono text-xs text-[#94a3b8]">{item.id}</TableCell>
+                    <TableCell className="font-mono text-xs text-[#8b97b0]">{item.id}</TableCell>
                     <TableCell className="max-w-[200px]">
-                      <p className="truncate text-sm text-[#e2e8f0]" title={item.filename}>
+                      <p className="truncate text-sm text-[#f1f5f9]" title={item.filename}>
                         {item.filename}
                       </p>
                     </TableCell>
@@ -1144,24 +1144,24 @@ export default function EvidenceManagement() {
                     <TableCell>
                       <button
                         onClick={() => handleLinkFIR(item.firId)}
-                        className="font-mono text-xs text-emerald-400 hover:underline"
+                        className="font-mono text-xs text-[#34d399] hover:underline"
                       >
                         {item.firId}
                       </button>
                     </TableCell>
-                    <TableCell className="text-xs text-[#94a3b8]">{formatBytes(item.size)}</TableCell>
-                    <TableCell className="text-xs text-[#94a3b8]">
+                    <TableCell className="text-xs text-[#8b97b0]">{formatBytes(item.size)}</TableCell>
+                    <TableCell className="text-xs text-[#8b97b0]">
                       {new Date(item.uploadedAt).toLocaleDateString("en-IN")}
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {item.tags.slice(0, 2).map((t) => (
-                          <Badge key={t} variant="outline" className="border-white/10 text-[10px] text-[#64748b]">
+                          <Badge key={t} variant="outline" className="border-white/10 text-[10px] text-[#5a657a]">
                             {t}
                           </Badge>
                         ))}
                         {item.tags.length > 2 && (
-                          <span className="text-[10px] text-[#4a5568]">+{item.tags.length - 2}</span>
+                          <span className="text-[10px] text-[#3d4659]">+{item.tags.length - 2}</span>
                         )}
                       </div>
                     </TableCell>
@@ -1173,7 +1173,7 @@ export default function EvidenceManagement() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 w-7 p-0 text-[#64748b] hover:text-emerald-400"
+                          className="h-7 w-7 p-0 text-[#5a657a] hover:text-[#34d399]"
                           onClick={() => handleViewEvidence(item)}
                         >
                           <Eye className="h-3.5 w-3.5" />
@@ -1181,7 +1181,7 @@ export default function EvidenceManagement() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 w-7 p-0 text-[#64748b] hover:text-blue-400"
+                          className="h-7 w-7 p-0 text-[#5a657a] hover:text-[#22d3ee]"
                           onClick={() => handleLinkFIR(item.firId)}
                         >
                           <Link2 className="h-3.5 w-3.5" />
@@ -1189,7 +1189,7 @@ export default function EvidenceManagement() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 w-7 p-0 text-[#64748b] hover:text-red-400"
+                          className="h-7 w-7 p-0 text-[#5a657a] hover:text-[#f87171]"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -1225,15 +1225,15 @@ export default function EvidenceManagement() {
                     className="relative pb-8"
                   >
                     {/* Dot */}
-                    <div className={`absolute -left-5 top-2 flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#0a0f1e] bg-gradient-to-br ${typeInfo.bg}`}>
-                      <div className="h-2 w-2 rounded-full bg-emerald-400" />
+                    <div className={`absolute -left-5 top-2 flex h-6 w-6 items-center justify-center rounded-full border-2 border-[rgba(15,21,36,0.45)] bg-gradient-to-br ${typeInfo.bg}`}>
+                      <div className="h-2 w-2 rounded-full bg-[#34d399]" />
                     </div>
 
                     <div className="rounded-2xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20 hover:bg-white/[0.07]">
                       <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs text-[#4a5568]">
+                            <span className="text-xs text-[#3d4659]">
                               {new Date(item.uploadedAt).toLocaleDateString("en-IN", {
                                 day: "numeric",
                                 month: "short",
@@ -1245,13 +1245,13 @@ export default function EvidenceManagement() {
                             <EvidenceTypeBadge type={item.type} />
                             <StatusBadge status={item.status} />
                           </div>
-                          <p className="mt-1 text-sm font-medium text-[#e2e8f0]">{item.filename}</p>
+                          <p className="mt-1 text-sm font-medium text-[#f1f5f9]">{item.filename}</p>
                         </div>
                         <div className="flex items-center gap-1">
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-7 px-2 text-[#64748b] hover:text-emerald-400"
+                            className="h-7 px-2 text-[#5a657a] hover:text-[#34d399]"
                             onClick={() => handleViewEvidence(item)}
                           >
                             <Eye className="mr-1 h-3.5 w-3.5" />
@@ -1260,7 +1260,7 @@ export default function EvidenceManagement() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-7 px-2 text-[#64748b] hover:text-blue-400"
+                            className="h-7 px-2 text-[#5a657a] hover:text-[#22d3ee]"
                             onClick={() => handleLinkFIR(item.firId)}
                           >
                             <Link2 className="mr-1 h-3.5 w-3.5" />
@@ -1269,22 +1269,22 @@ export default function EvidenceManagement() {
                         </div>
                       </div>
 
-                      <p className="mb-3 text-xs leading-relaxed text-[#64748b]">{item.aiSummary}</p>
+                      <p className="mb-3 text-xs leading-relaxed text-[#5a657a]">{item.aiSummary}</p>
 
                       <div className="flex flex-wrap gap-1.5">
                         {item.tags.map((tag) => (
-                          <Badge key={tag} variant="outline" className="border-white/10 text-[10px] text-[#64748b]">
+                          <Badge key={tag} variant="outline" className="border-white/10 text-[10px] text-[#5a657a]">
                             {tag}
                           </Badge>
                         ))}
                       </div>
 
-                      <div className="mt-3 flex items-center gap-4 text-[11px] text-[#4a5568]">
+                      <div className="mt-3 flex items-center gap-4 text-[11px] text-[#3d4659]">
                         <span>
                           FIR:{" "}
                           <button
                             onClick={() => handleLinkFIR(item.firId)}
-                            className="text-emerald-400 hover:underline"
+                            className="text-[#34d399] hover:underline"
                           >
                             {item.firId}
                           </button>
@@ -1313,13 +1313,13 @@ export default function EvidenceManagement() {
         }
         setShowOCRDialog(open);
       }}>
-        <DialogContent className="max-w-3xl border-[#2a3550] bg-[#1a2035] p-0">
+        <DialogContent className="max-w-3xl border-[rgba(255,255,255,0.06)] bg-[rgba(15,21,36,0.45)] p-0">
           <DialogHeader className="border-b border-white/10 px-6 py-4">
-            <DialogTitle className="flex items-center gap-2 text-[#e2e8f0]">
-              <Brain className="h-5 w-5 text-emerald-400" />
+            <DialogTitle className="flex items-center gap-2 text-[#f1f5f9]">
+              <Brain className="h-5 w-5 text-[#34d399]" />
               OCR Document Ingestion
             </DialogTitle>
-            <DialogDescription className="text-[#64748b]">
+            <DialogDescription className="text-[#5a657a]">
               Upload a document for AI-powered OCR extraction and entity recognition
             </DialogDescription>
           </DialogHeader>
@@ -1331,24 +1331,24 @@ export default function EvidenceManagement() {
                 <div
                   className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 transition-colors ${
                     ocrFileSelected
-                      ? "border-emerald-500/50 bg-emerald-500/5"
+                      ? "border-[rgba(52,211,153,0.3)] bg-[rgba(52,211,153,0.04)]"
                       : "border-white/10 bg-white/[0.02] hover:border-white/20"
                   }`}
                   onClick={() => ocrFileInputRef.current?.click()}
                 >
                   {ocrFileSelected ? (
                     <>
-                      <CheckCircle2 className="mb-2 h-10 w-10 text-emerald-400" />
-                      <p className="text-sm font-medium text-emerald-400">Document Selected</p>
-                      <p className="mt-1 text-xs text-[#64748b]">FIR_Complaint_2024.pdf • 2.4 MB</p>
+                      <CheckCircle2 className="mb-2 h-10 w-10 text-[#34d399]" />
+                      <p className="text-sm font-medium text-[#34d399]">Document Selected</p>
+                      <p className="mt-1 text-xs text-[#5a657a]">FIR_Complaint_2024.pdf • 2.4 MB</p>
                     </>
                   ) : (
                     <>
-                      <Upload className="mb-2 h-10 w-10 text-[#4a5568]" />
-                      <p className="text-sm font-medium text-[#94a3b8]">
+                      <Upload className="mb-2 h-10 w-10 text-[#3d4659]" />
+                      <p className="text-sm font-medium text-[#8b97b0]">
                         Click to upload document for OCR
                       </p>
-                      <p className="mt-1 text-xs text-[#4a5568]">
+                      <p className="mt-1 text-xs text-[#3d4659]">
                         PDF, Images, Scanned Documents • Max 50MB
                       </p>
                     </>
@@ -1370,9 +1370,9 @@ export default function EvidenceManagement() {
                     className="space-y-3 rounded-xl bg-white/5 p-4"
                   >
                     <div className="flex items-center gap-3">
-                      <Loader2 className="h-5 w-5 animate-spin text-emerald-400" />
+                      <Loader2 className="h-5 w-5 animate-spin text-[#34d399]" />
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-[#e2e8f0]">
+                        <p className="text-sm font-medium text-[#f1f5f9]">
                           {ocrProgress < 30
                             ? "Scanning document pages..."
                             : ocrProgress < 60
@@ -1383,10 +1383,10 @@ export default function EvidenceManagement() {
                         </p>
                         <Progress
                           value={ocrProgress}
-                          className="mt-2 h-1.5 bg-white/10 [&>div]:rounded-full [&>div]:bg-emerald-500"
+                          className="mt-2 h-1.5 bg-white/10 [&>div]:rounded-full [&>div]:bg-[#34d399]"
                         />
                       </div>
-                      <span className="text-sm font-medium text-emerald-400">
+                      <span className="text-sm font-medium text-[#34d399]">
                         {Math.round(ocrProgress)}%
                       </span>
                     </div>
@@ -1396,7 +1396,7 @@ export default function EvidenceManagement() {
                 {/* Process button */}
                 {ocrFileSelected && !ocrProcessing && (
                   <Button
-                    className="w-full bg-emerald-600 py-6 text-white hover:bg-emerald-700"
+                    className="w-full bg-[#34d399] py-6 text-white hover:bg-[#2bc48a]"
                     onClick={handleOCRProcess}
                   >
                     <Sparkles className="mr-2 h-5 w-5" />
@@ -1412,21 +1412,21 @@ export default function EvidenceManagement() {
                 className="space-y-4"
               >
                 {/* Confidence */}
-                <div className="flex items-center justify-between rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3">
+                <div className="flex items-center justify-between rounded-xl bg-[rgba(52,211,153,0.08)] border border-[rgba(52,211,153,0.15)] p-3">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-emerald-400" />
-                    <span className="text-sm font-medium text-emerald-400">OCR Confidence Score</span>
+                    <Sparkles className="h-4 w-4 text-[#34d399]" />
+                    <span className="text-sm font-medium text-[#34d399]">OCR Confidence Score</span>
                   </div>
-                  <span className="text-lg font-bold text-emerald-400">{ocrResult.confidence}%</span>
+                  <span className="text-lg font-bold text-[#34d399]">{ocrResult.confidence}%</span>
                 </div>
 
                 {/* Extracted text preview */}
                 <div className="rounded-xl bg-white/5 p-3">
-                  <h4 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#64748b]">
+                  <h4 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#5a657a]">
                     <Type className="h-3.5 w-3.5" />
                     Extracted Text (Preview)
                   </h4>
-                  <p className="max-h-32 overflow-y-auto whitespace-pre-wrap text-xs leading-relaxed text-[#94a3b8]">
+                  <p className="max-h-32 overflow-y-auto whitespace-pre-wrap text-xs leading-relaxed text-[#8b97b0]">
                     {ocrResult.text.slice(0, 500)}...
                   </p>
                 </div>
@@ -1437,78 +1437,78 @@ export default function EvidenceManagement() {
                     icon={<Type className="h-4 w-4" />}
                     label="Names"
                     items={ocrResult.entities.names}
-                    color="text-blue-400"
+                    color="text-[#22d3ee]"
                   />
                   <EntitySection
                     icon={<MapPin className="h-4 w-4" />}
                     label="Addresses"
                     items={ocrResult.entities.addresses}
-                    color="text-purple-400"
+                    color="text-[#818cf8]"
                   />
                   <EntitySection
                     icon={<Phone className="h-4 w-4" />}
                     label="Phones"
                     items={ocrResult.entities.phones}
-                    color="text-emerald-400"
+                    color="text-[#34d399]"
                   />
                   <EntitySection
                     icon={<Car className="h-4 w-4" />}
                     label="Vehicles"
                     items={ocrResult.entities.vehicles}
-                    color="text-orange-400"
+                    color="text-[#fbbf24]"
                   />
                   <EntitySection
                     icon={<Landmark className="h-4 w-4" />}
                     label="Accounts"
                     items={ocrResult.entities.accounts}
-                    color="text-cyan-400"
+                    color="text-[#22d3ee]"
                   />
                   <EntitySection
                     icon={<Shield className="h-4 w-4" />}
                     label="IPC Sections"
                     items={ocrResult.entities.ipcSections}
-                    color="text-red-400"
+                    color="text-[#f87171]"
                   />
                   <EntitySection
                     icon={<Calendar className="h-4 w-4" />}
                     label="Dates"
                     items={ocrResult.entities.dates}
-                    color="text-amber-400"
+                    color="text-[#fbbf24]"
                   />
                   <EntitySection
                     icon={<MapPin className="h-4 w-4" />}
                     label="Locations"
                     items={ocrResult.entities.locations}
-                    color="text-pink-400"
+                    color="text-[#f87171]"
                   />
                   <EntitySection
                     icon={<Sword className="h-4 w-4" />}
                     label="Weapons"
                     items={ocrResult.entities.weapons}
-                    color="text-red-400"
+                    color="text-[#f87171]"
                   />
                   <EntitySection
                     icon={<Box className="h-4 w-4" />}
                     label="Evidence"
                     items={ocrResult.entities.evidence}
-                    color="text-violet-400"
+                    color="text-[#818cf8]"
                   />
                 </div>
 
                 {/* Timeline */}
                 {ocrResult.entities.timeline.length > 0 && (
                   <div className="rounded-xl bg-white/5 p-3">
-                    <h4 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#64748b]">
+                    <h4 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#5a657a]">
                       <Clock className="h-3.5 w-3.5" />
                       Extracted Timeline
                     </h4>
                     <div className="relative space-y-0 pl-6">
-                      <div className="absolute bottom-0 left-2 top-0 w-px bg-emerald-500/30" />
+                      <div className="absolute bottom-0 left-2 top-0 w-px bg-[#34d399]/30" />
                       {ocrResult.entities.timeline.map((event, i) => (
                         <div key={i} className="relative pb-3">
-                          <div className="absolute -left-4 top-1 h-2 w-2 rounded-full bg-emerald-400" />
-                          <p className="text-xs text-[#e2e8f0]">{event.event}</p>
-                          <p className="text-[10px] text-[#4a5568]">{event.date}</p>
+                          <div className="absolute -left-4 top-1 h-2 w-2 rounded-full bg-[#34d399]" />
+                          <p className="text-xs text-[#f1f5f9]">{event.event}</p>
+                          <p className="text-[10px] text-[#3d4659]">{event.date}</p>
                         </div>
                       ))}
                     </div>
@@ -1522,14 +1522,14 @@ export default function EvidenceManagement() {
             <DialogFooter className="border-t border-white/10 px-6 py-4">
               <Button
                 variant="outline"
-                className="border-white/10 bg-white/5 text-[#94a3b8] hover:bg-white/10"
+                className="border-white/10 bg-white/5 text-[#8b97b0] hover:bg-white/10"
                 onClick={handleOCRReject}
               >
                 <XCircle className="mr-2 h-4 w-4" />
                 Reject
               </Button>
               <Button
-                className="bg-emerald-600 text-white hover:bg-emerald-700"
+                className="bg-[#34d399] text-white hover:bg-[#2bc48a]"
                 onClick={handleOCRApprove}
               >
                 <CheckCircle2 className="mr-2 h-4 w-4" />

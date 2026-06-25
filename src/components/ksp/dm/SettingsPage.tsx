@@ -298,13 +298,13 @@ export default function SettingsPage() {
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
-          <h1 className="text-[#e2e8f0] text-2xl font-bold tracking-tight">Settings</h1>
-          <p className="text-[#64748b] text-sm mt-1">Role permissions, UI preferences, and system configuration</p>
+          <h1 className="text-[#f1f5f9] text-2xl font-bold tracking-tight">Settings</h1>
+          <p className="text-[#5a657a] text-sm mt-1">Role permissions, UI preferences, and system configuration</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-xl">
-            <Settings2 className="h-4 w-4 text-[#64748b]" />
-            <span className="text-[#94a3b8] text-xs">System Configuration</span>
+            <Settings2 className="h-4 w-4 text-[#5a657a]" />
+            <span className="text-[#8b97b0] text-xs">System Configuration</span>
           </div>
         </div>
       </motion.div>
@@ -312,13 +312,13 @@ export default function SettingsPage() {
       {/* Tabs */}
       <Tabs defaultValue="permissions" className="space-y-6">
         <TabsList className="bg-white/5 border border-white/10 rounded-xl p-1">
-          <TabsTrigger value="permissions" className="gap-2 rounded-lg text-[#94a3b8] data-[state=active]:bg-white/10 data-[state=active]:text-[#e2e8f0] data-[state=active]:shadow-sm px-5">
+          <TabsTrigger value="permissions" className="gap-2 rounded-lg text-[#8b97b0] data-[state=active]:bg-white/10 data-[state=active]:text-[#f1f5f9] data-[state=active]:shadow-sm px-5">
             <Shield className="h-4 w-4" /> Role Permissions
           </TabsTrigger>
-          <TabsTrigger value="preferences" className="gap-2 rounded-lg text-[#94a3b8] data-[state=active]:bg-white/10 data-[state=active]:text-[#e2e8f0] data-[state=active]:shadow-sm px-5">
+          <TabsTrigger value="preferences" className="gap-2 rounded-lg text-[#8b97b0] data-[state=active]:bg-white/10 data-[state=active]:text-[#f1f5f9] data-[state=active]:shadow-sm px-5">
             <Palette className="h-4 w-4" /> UI Preferences
           </TabsTrigger>
-          <TabsTrigger value="system" className="gap-2 rounded-lg text-[#94a3b8] data-[state=active]:bg-white/10 data-[state=active]:text-[#e2e8f0] data-[state=active]:shadow-sm px-5">
+          <TabsTrigger value="system" className="gap-2 rounded-lg text-[#8b97b0] data-[state=active]:bg-white/10 data-[state=active]:text-[#f1f5f9] data-[state=active]:shadow-sm px-5">
             <Settings2 className="h-4 w-4" /> System Configuration
           </TabsTrigger>
         </TabsList>
@@ -331,13 +331,13 @@ export default function SettingsPage() {
             className="space-y-4"
           >
             {/* Legend */}
-            <div className="flex items-center gap-4 text-xs text-[#64748b]">
+            <div className="flex items-center gap-4 text-xs text-[#5a657a]">
               <div className="flex items-center gap-1.5">
-                <Lock className="h-3.5 w-3.5 text-amber-400" />
+                <Lock className="h-3.5 w-3.5 text-[#fbbf24]" />
                 <span>Super Admin — all permissions locked</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="h-3.5 w-3.5 rounded bg-blue-500/20 border border-blue-500/40" />
+                <div className="h-3.5 w-3.5 rounded bg-[#22d3ee]/20 border border-[rgba(34,211,238,0.2)]" />
                 <span>Your current role is highlighted</span>
               </div>
             </div>
@@ -348,7 +348,7 @@ export default function SettingsPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-white/10">
-                      <th className="text-left text-[#64748b] text-xs font-semibold uppercase tracking-wider p-4 min-w-[200px]">
+                      <th className="text-left text-[#5a657a] text-xs font-semibold uppercase tracking-wider p-4 min-w-[200px]">
                         Permission
                       </th>
                       {ROLES.map(role => (
@@ -356,15 +356,15 @@ export default function SettingsPage() {
                           <div className="flex flex-col items-center gap-1">
                             <span className={`text-xs font-semibold px-2 py-1 rounded-lg ${
                               role.key === currentUserRole
-                                ? "bg-blue-500/15 text-blue-400 border border-blue-500/30"
+                                ? "bg-[#22d3ee]/15 text-[#22d3ee] border border-[rgba(34,211,238,0.15)]"
                                 : role.locked
-                                  ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                                  : "text-[#94a3b8]"
+                                  ? "bg-[#fbbf24]/10 text-[#fbbf24] border border-amber-500/20"
+                                  : "text-[#8b97b0]"
                             }`}>
                               {role.locked && <Lock className="h-3 w-3 inline mr-1" />}
                               {role.label}
                             </span>
-                            <span className="text-[10px] text-[#4a5568]">{role.description}</span>
+                            <span className="text-[10px] text-[#3d4659]">{role.description}</span>
                           </div>
                         </th>
                       ))}
@@ -383,12 +383,12 @@ export default function SettingsPage() {
                         >
                           <td className="p-4">
                             <div className="flex items-center gap-3">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 text-[#64748b]">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 text-[#5a657a]">
                                 <Icon className="h-4 w-4" />
                               </div>
                               <div>
-                                <div className="text-[#e2e8f0] text-sm font-medium">{perm.label}</div>
-                                <div className="text-[#4a5568] text-xs">{perm.description}</div>
+                                <div className="text-[#f1f5f9] text-sm font-medium">{perm.label}</div>
+                                <div className="text-[#3d4659] text-xs">{perm.description}</div>
                               </div>
                             </div>
                           </td>
@@ -402,7 +402,7 @@ export default function SettingsPage() {
                                     checked={isOn}
                                     disabled={isLocked}
                                     onCheckedChange={() => togglePermission(role.key, perm.key)}
-                                    className={isOn ? "data-[state=checked]:bg-emerald-500" : ""}
+                                    className={isOn ? "data-[state=checked]:bg-[#34d399]" : ""}
                                   />
                                 </div>
                               </td>
@@ -420,7 +420,7 @@ export default function SettingsPage() {
                 <Button
                   onClick={savePermissions}
                   disabled={saving}
-                  className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-0 rounded-xl px-6"
+                  className="gap-2 bg-[#34d399] hover:bg-[#2bc48a] text-white border-0 rounded-xl px-6"
                 >
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   {saving ? "Saving..." : "Save Changes"}
@@ -440,12 +440,12 @@ export default function SettingsPage() {
             {/* Theme */}
             <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5 space-y-5">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/15 text-violet-400">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#818cf8]/15 text-[#818cf8]">
                   <Monitor className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-[#e2e8f0] text-sm font-semibold">Appearance</h3>
-                  <p className="text-[#4a5568] text-xs">Customize the look and feel</p>
+                  <h3 className="text-[#f1f5f9] text-sm font-semibold">Appearance</h3>
+                  <p className="text-[#3d4659] text-xs">Customize the look and feel</p>
                 </div>
               </div>
 
@@ -453,22 +453,22 @@ export default function SettingsPage() {
 
               {/* Theme Selection */}
               <div className="space-y-2.5">
-                <Label className="text-[#94a3b8] text-xs font-medium">Theme</Label>
+                <Label className="text-[#8b97b0] text-xs font-medium">Theme</Label>
                 <div className="grid grid-cols-2 gap-3">
                   <div
                     className={`flex items-center gap-3 rounded-xl border-2 p-3.5 cursor-pointer transition-all ${
                       uiPrefs.theme === "dark"
-                        ? "border-blue-500 bg-blue-500/10"
+                        ? "border-blue-500 bg-[#22d3ee]/10"
                         : "border-white/10 bg-white/5 hover:border-white/20"
                     }`}
                     onClick={() => setUiPrefs(p => ({ ...p, theme: "dark" }))}
                   >
-                    <div className="h-8 w-8 rounded-lg bg-[#0a0f1e] border border-white/20 flex items-center justify-center">
+                    <div className="h-8 w-8 rounded-lg bg-[rgba(10,15,28,0.6)] border border-white/20 flex items-center justify-center">
                       <div className="h-2 w-2 rounded-full bg-blue-400" />
                     </div>
                     <div>
-                      <span className="text-[#e2e8f0] text-sm font-medium block">Dark</span>
-                      <span className="text-[#4a5568] text-[10px]">Active</span>
+                      <span className="text-[#f1f5f9] text-sm font-medium block">Dark</span>
+                      <span className="text-[#3d4659] text-[10px]">Active</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 rounded-xl border-2 border-white/10 bg-white/5 p-3.5 opacity-50 cursor-not-allowed">
@@ -476,8 +476,8 @@ export default function SettingsPage() {
                       <div className="h-2 w-2 rounded-full bg-gray-400" />
                     </div>
                     <div>
-                      <span className="text-[#e2e8f0] text-sm font-medium block">Light</span>
-                      <span className="text-amber-400 text-[10px]">Coming Soon</span>
+                      <span className="text-[#f1f5f9] text-sm font-medium block">Light</span>
+                      <span className="text-[#fbbf24] text-[10px]">Coming Soon</span>
                     </div>
                   </div>
                 </div>
@@ -485,15 +485,15 @@ export default function SettingsPage() {
 
               {/* Language */}
               <div className="space-y-2.5">
-                <Label className="text-[#94a3b8] text-xs font-medium">Language</Label>
+                <Label className="text-[#8b97b0] text-xs font-medium">Language</Label>
                 <Select value={uiPrefs.language} onValueChange={(v) => {
                   setUiPrefs(p => ({ ...p, language: v as "en" | "kn" }));
                   if (v !== uiPrefs.language) toggleLang();
                 }}>
-                  <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#e2e8f0]">
+                  <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#f1f5f9]">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#1a2035] border-[#2a3550]">
+                  <SelectContent className="bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.08)]">
                     <SelectItem value="en">English</SelectItem>
                     <SelectItem value="kn">ಕನ್ನಡ (Kannada)</SelectItem>
                   </SelectContent>
@@ -503,8 +503,8 @@ export default function SettingsPage() {
               {/* Compact Mode */}
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label className="text-[#e2e8f0] text-sm">Compact Mode</Label>
-                  <p className="text-[#4a5568] text-xs">Reduce spacing for more content</p>
+                  <Label className="text-[#f1f5f9] text-sm">Compact Mode</Label>
+                  <p className="text-[#3d4659] text-xs">Reduce spacing for more content</p>
                 </div>
                 <Switch checked={uiPrefs.compactMode} onCheckedChange={(v) => setUiPrefs(p => ({ ...p, compactMode: v }))} />
               </div>
@@ -512,8 +512,8 @@ export default function SettingsPage() {
               {/* Animations */}
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label className="text-[#e2e8f0] text-sm">Animations</Label>
-                  <p className="text-[#4a5568] text-xs">Enable UI motion and transitions</p>
+                  <Label className="text-[#f1f5f9] text-sm">Animations</Label>
+                  <p className="text-[#3d4659] text-xs">Enable UI motion and transitions</p>
                 </div>
                 <Switch checked={uiPrefs.animations} onCheckedChange={(v) => setUiPrefs(p => ({ ...p, animations: v }))} />
               </div>
@@ -522,12 +522,12 @@ export default function SettingsPage() {
             {/* Data & Notifications */}
             <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5 space-y-5">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#34d399]/15 text-[#34d399]">
                   <Settings2 className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-[#e2e8f0] text-sm font-semibold">Data & Notifications</h3>
-                  <p className="text-[#4a5568] text-xs">Pagination, refresh, and alert settings</p>
+                  <h3 className="text-[#f1f5f9] text-sm font-semibold">Data & Notifications</h3>
+                  <p className="text-[#3d4659] text-xs">Pagination, refresh, and alert settings</p>
                 </div>
               </div>
 
@@ -535,12 +535,12 @@ export default function SettingsPage() {
 
               {/* Page Size */}
               <div className="space-y-2.5">
-                <Label className="text-[#94a3b8] text-xs font-medium">Default Page Size</Label>
+                <Label className="text-[#8b97b0] text-xs font-medium">Default Page Size</Label>
                 <Select value={String(uiPrefs.pageSize)} onValueChange={(v) => setUiPrefs(p => ({ ...p, pageSize: Number(v) }))}>
-                  <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#e2e8f0]">
+                  <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#f1f5f9]">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#1a2035] border-[#2a3550]">
+                  <SelectContent className="bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.08)]">
                     <SelectItem value="10">10 rows</SelectItem>
                     <SelectItem value="25">25 rows</SelectItem>
                     <SelectItem value="50">50 rows</SelectItem>
@@ -551,12 +551,12 @@ export default function SettingsPage() {
 
               {/* Auto Refresh */}
               <div className="space-y-2.5">
-                <Label className="text-[#94a3b8] text-xs font-medium">Auto-Refresh Interval</Label>
+                <Label className="text-[#8b97b0] text-xs font-medium">Auto-Refresh Interval</Label>
                 <Select value={String(uiPrefs.autoRefresh)} onValueChange={(v) => setUiPrefs(p => ({ ...p, autoRefresh: Number(v) }))}>
-                  <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#e2e8f0]">
+                  <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#f1f5f9]">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#1a2035] border-[#2a3550]">
+                  <SelectContent className="bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.08)]">
                     <SelectItem value="0">Off</SelectItem>
                     <SelectItem value="30">Every 30 seconds</SelectItem>
                     <SelectItem value="60">Every 60 seconds</SelectItem>
@@ -568,10 +568,10 @@ export default function SettingsPage() {
               {/* Notification Sound */}
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5 flex items-center gap-2">
-                  <Volume2 className="h-4 w-4 text-[#64748b]" />
+                  <Volume2 className="h-4 w-4 text-[#5a657a]" />
                   <div>
-                    <Label className="text-[#e2e8f0] text-sm">Notification Sound</Label>
-                    <p className="text-[#4a5568] text-xs">Play audio for alerts</p>
+                    <Label className="text-[#f1f5f9] text-sm">Notification Sound</Label>
+                    <p className="text-[#3d4659] text-xs">Play audio for alerts</p>
                   </div>
                 </div>
                 <Switch checked={uiPrefs.notificationSound} onCheckedChange={(v) => setUiPrefs(p => ({ ...p, notificationSound: v }))} />
@@ -579,12 +579,12 @@ export default function SettingsPage() {
 
               {/* Sidebar Default */}
               <div className="space-y-2.5">
-                <Label className="text-[#94a3b8] text-xs font-medium">Sidebar Default State</Label>
+                <Label className="text-[#8b97b0] text-xs font-medium">Sidebar Default State</Label>
                 <Select value={uiPrefs.sidebarDefault} onValueChange={(v) => setUiPrefs(p => ({ ...p, sidebarDefault: v as "expanded" | "collapsed" }))}>
-                  <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#e2e8f0]">
+                  <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#f1f5f9]">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#1a2035] border-[#2a3550]">
+                  <SelectContent className="bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.08)]">
                     <SelectItem value="expanded">Expanded</SelectItem>
                     <SelectItem value="collapsed">Collapsed</SelectItem>
                   </SelectContent>
@@ -597,14 +597,14 @@ export default function SettingsPage() {
               <Button
                 variant="outline"
                 onClick={resetUIPrefs}
-                className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#94a3b8] hover:text-[#e2e8f0] rounded-xl px-5"
+                className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#8b97b0] hover:text-[#f1f5f9] rounded-xl px-5"
               >
                 <RotateCcw className="h-4 w-4" /> Reset to Defaults
               </Button>
               <Button
                 onClick={saveUIPrefs}
                 disabled={saving}
-                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-0 rounded-xl px-6"
+                className="gap-2 bg-[#34d399] hover:bg-[#2bc48a] text-white border-0 rounded-xl px-6"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 {saving ? "Saving..." : "Save Preferences"}
@@ -623,12 +623,12 @@ export default function SettingsPage() {
             {/* AI Configuration */}
             <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5 space-y-5">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/15 text-violet-400">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#818cf8]/15 text-[#818cf8]">
                   <Brain className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-[#e2e8f0] text-sm font-semibold">AI Configuration</h3>
-                  <p className="text-[#4a5568] text-xs">Model selection and confidence thresholds</p>
+                  <h3 className="text-[#f1f5f9] text-sm font-semibold">AI Configuration</h3>
+                  <p className="text-[#3d4659] text-xs">Model selection and confidence thresholds</p>
                 </div>
               </div>
 
@@ -637,29 +637,29 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 {/* AI Model */}
                 <div className="space-y-2.5">
-                  <Label className="text-[#94a3b8] text-xs font-medium">AI Model</Label>
+                  <Label className="text-[#8b97b0] text-xs font-medium">AI Model</Label>
                   <Select value={sysConfig.aiModel} onValueChange={(v) => setSysConfig(c => ({ ...c, aiModel: v }))}>
-                    <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#e2e8f0]">
+                    <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#f1f5f9]">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#1a2035] border-[#2a3550]">
+                    <SelectContent className="bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.08)]">
                       <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6</SelectItem>
                       <SelectItem value="claude-opus-4">Claude Opus 4</SelectItem>
                       <SelectItem value="claude-haiku-3-5">Claude Haiku 3.5</SelectItem>
                       <SelectItem value="claude-sonnet-3-5">Claude Sonnet 3.5</SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-[#4a5568] text-[10px]">Claude Sonnet 4.6 is recommended for optimal speed/quality balance</p>
+                  <p className="text-[#3d4659] text-[10px]">Claude Sonnet 4.6 is recommended for optimal speed/quality balance</p>
                 </div>
 
                 {/* OCR Language */}
                 <div className="space-y-2.5">
-                  <Label className="text-[#94a3b8] text-xs font-medium">OCR Language</Label>
+                  <Label className="text-[#8b97b0] text-xs font-medium">OCR Language</Label>
                   <Select value={sysConfig.ocrLanguage} onValueChange={(v) => setSysConfig(c => ({ ...c, ocrLanguage: v }))}>
-                    <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#e2e8f0]">
+                    <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#f1f5f9]">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#1a2035] border-[#2a3550]">
+                    <SelectContent className="bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.08)]">
                       <SelectItem value="eng+kan">English + Kannada</SelectItem>
                       <SelectItem value="eng">English Only</SelectItem>
                       <SelectItem value="kan">Kannada Only</SelectItem>
@@ -672,8 +672,8 @@ export default function SettingsPage() {
                 {/* AI Confidence Threshold */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <Label className="text-[#94a3b8] text-xs font-medium">AI Confidence Threshold</Label>
-                    <span className="text-blue-400 text-sm font-bold tabular-nums">{sysConfig.aiConfidence}%</span>
+                    <Label className="text-[#8b97b0] text-xs font-medium">AI Confidence Threshold</Label>
+                    <span className="text-[#22d3ee] text-sm font-bold tabular-nums">{sysConfig.aiConfidence}%</span>
                   </div>
                   <Slider
                     value={[sysConfig.aiConfidence]}
@@ -681,9 +681,9 @@ export default function SettingsPage() {
                     min={0}
                     max={100}
                     step={1}
-                    className="[&>div>div]:bg-blue-500"
+                    className="[&>div>div]:bg-[#22d3ee]"
                   />
-                  <div className="flex justify-between text-[#4a5568] text-[10px]">
+                  <div className="flex justify-between text-[#3d4659] text-[10px]">
                     <span>0% — Accept all</span>
                     <span>100% — Only high confidence</span>
                   </div>
@@ -692,8 +692,8 @@ export default function SettingsPage() {
                 {/* Duplicate Detection Threshold */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <Label className="text-[#94a3b8] text-xs font-medium">Duplicate Detection Threshold</Label>
-                    <span className="text-amber-400 text-sm font-bold tabular-nums">{sysConfig.duplicateThreshold}%</span>
+                    <Label className="text-[#8b97b0] text-xs font-medium">Duplicate Detection Threshold</Label>
+                    <span className="text-[#fbbf24] text-sm font-bold tabular-nums">{sysConfig.duplicateThreshold}%</span>
                   </div>
                   <Slider
                     value={[sysConfig.duplicateThreshold]}
@@ -701,9 +701,9 @@ export default function SettingsPage() {
                     min={0}
                     max={100}
                     step={1}
-                    className="[&>div>div]:bg-amber-500"
+                    className="[&>div>div]:bg-[#fbbf24]"
                   />
-                  <div className="flex justify-between text-[#4a5568] text-[10px]">
+                  <div className="flex justify-between text-[#3d4659] text-[10px]">
                     <span>0% — No detection</span>
                     <span>100% — Exact matches only</span>
                   </div>
@@ -716,26 +716,26 @@ export default function SettingsPage() {
               {/* File Upload */}
               <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5 space-y-5">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-400">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#22d3ee]/15 text-[#22d3ee]">
                     <HardDrive className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-[#e2e8f0] text-sm font-semibold">File Upload</h3>
-                    <p className="text-[#4a5568] text-xs">Upload limits and storage</p>
+                    <h3 className="text-[#f1f5f9] text-sm font-semibold">File Upload</h3>
+                    <p className="text-[#3d4659] text-xs">Upload limits and storage</p>
                   </div>
                 </div>
                 <Separator className="bg-white/10" />
                 <div className="space-y-2.5">
-                  <Label className="text-[#94a3b8] text-xs font-medium">Max File Upload Size (MB)</Label>
+                  <Label className="text-[#8b97b0] text-xs font-medium">Max File Upload Size (MB)</Label>
                   <Input
                     type="number"
                     value={sysConfig.maxUploadSize}
                     onChange={(e) => setSysConfig(c => ({ ...c, maxUploadSize: Number(e.target.value) }))}
-                    className="bg-white/5 border-white/10 text-[#e2e8f0]"
+                    className="bg-white/5 border-white/10 text-[#f1f5f9]"
                     min={1}
                     max={500}
                   />
-                  <p className="text-[#4a5568] text-[10px]">Maximum size per file upload. Recommended: 50MB</p>
+                  <p className="text-[#3d4659] text-[10px]">Maximum size per file upload. Recommended: 50MB</p>
                 </div>
               </div>
 
@@ -743,12 +743,12 @@ export default function SettingsPage() {
               <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5 space-y-5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#34d399]/15 text-[#34d399]">
                       <Database className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="text-[#e2e8f0] text-sm font-semibold">Database Connection</h3>
-                      <p className="text-[#4a5568] text-xs">Read-only connection details</p>
+                      <h3 className="text-[#f1f5f9] text-sm font-semibold">Database Connection</h3>
+                      <p className="text-[#3d4659] text-xs">Read-only connection details</p>
                     </div>
                   </div>
                   <Button
@@ -757,9 +757,9 @@ export default function SettingsPage() {
                     onClick={testConnection}
                     disabled={testingConn}
                     className={`gap-1.5 border-white/10 text-xs rounded-lg px-3 h-8 ${
-                      connStatus === "success" ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/10" :
-                      connStatus === "failure" ? "border-red-500/30 text-red-400 bg-red-500/10" :
-                      "bg-white/5 text-[#94a3b8] hover:bg-white/10"
+                      connStatus === "success" ? "border-[rgba(52,211,153,0.15)] text-[#34d399] bg-[#34d399]/10" :
+                      connStatus === "failure" ? "border-[rgba(248,113,113,0.15)] text-[#f87171] bg-[#f87171]/10" :
+                      "bg-white/5 text-[#8b97b0] hover:bg-white/10"
                     }`}
                   >
                     {testingConn ? (
@@ -783,8 +783,8 @@ export default function SettingsPage() {
                     { label: "User", value: sysConfig.dbUser },
                   ].map(field => (
                     <div key={field.label} className="flex items-center justify-between">
-                      <span className="text-[#64748b] text-xs">{field.label}</span>
-                      <span className="text-[#e2e8f0] text-xs font-mono bg-white/5 px-2 py-1 rounded-md">{field.value}</span>
+                      <span className="text-[#5a657a] text-xs">{field.label}</span>
+                      <span className="text-[#f1f5f9] text-xs font-mono bg-white/5 px-2 py-1 rounded-md">{field.value}</span>
                     </div>
                   ))}
                 </div>
@@ -794,24 +794,24 @@ export default function SettingsPage() {
             {/* System Info */}
             <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5 space-y-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/15 text-blue-400">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#22d3ee]/15 text-[#22d3ee]">
                   <Info className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-[#e2e8f0] text-sm font-semibold">System Information</h3>
-                  <p className="text-[#4a5568] text-xs">Runtime and version details</p>
+                  <h3 className="text-[#f1f5f9] text-sm font-semibold">System Information</h3>
+                  <p className="text-[#3d4659] text-xs">Runtime and version details</p>
                 </div>
               </div>
               <Separator className="bg-white/10" />
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 {[
-                  { label: "Version", value: systemInfo.version, color: "text-blue-400" },
-                  { label: "Build", value: systemInfo.build, color: "text-violet-400" },
-                  { label: "Uptime", value: systemInfo.uptime, color: "text-emerald-400" },
-                  { label: "Active Sessions", value: String(systemInfo.activeSessions), color: "text-amber-400" },
+                  { label: "Version", value: systemInfo.version, color: "text-[#22d3ee]" },
+                  { label: "Build", value: systemInfo.build, color: "text-[#818cf8]" },
+                  { label: "Uptime", value: systemInfo.uptime, color: "text-[#34d399]" },
+                  { label: "Active Sessions", value: String(systemInfo.activeSessions), color: "text-[#fbbf24]" },
                 ].map(info => (
                   <div key={info.label} className="rounded-xl border border-white/10 bg-white/5 p-3.5">
-                    <span className="text-[#64748b] text-xs block mb-1">{info.label}</span>
+                    <span className="text-[#5a657a] text-xs block mb-1">{info.label}</span>
                     <span className={`${info.color} text-sm font-semibold font-mono`}>{info.value}</span>
                   </div>
                 ))}
@@ -823,7 +823,7 @@ export default function SettingsPage() {
               <Button
                 onClick={saveSysConfig}
                 disabled={saving}
-                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-0 rounded-xl px-6"
+                className="gap-2 bg-[#34d399] hover:bg-[#2bc48a] text-white border-0 rounded-xl px-6"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 {saving ? "Saving..." : "Save Configuration"}

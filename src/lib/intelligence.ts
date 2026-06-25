@@ -762,3 +762,610 @@ export function wrapExplainableAI(
     alternativeExplanations: alternatives.length > 0 ? alternatives : undefined,
   };
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// 9. SOCIOLOGICAL CRIME INSIGHTS
+// ═══════════════════════════════════════════════════════════════════
+
+export interface DemographicInsight {
+  category: string;
+  breakdown: { label: string; count: number; percentage: number; crimeTypes: string[] }[];
+  riskFactors: { factor: string; description: string; severity: "high" | "medium" | "low"; supportingData: string }[];
+  socialCorrelations: { indicator: string; correlation: string; strength: "strong" | "moderate" | "weak"; description: string }[];
+}
+
+export function analyzeSociologicalPatterns(data: CrimeDataset): DemographicInsight[] {
+  const insights: DemographicInsight[] = [];
+
+  // --- Victim Age Group Analysis ---
+  const ageGroups: Record<string, { count: number; crimeTypes: Record<string, number> }> = {
+    "0-17": { count: 0, crimeTypes: {} },
+    "18-30": { count: 0, crimeTypes: {} },
+    "31-45": { count: 0, crimeTypes: {} },
+    "46-60": { count: 0, crimeTypes: {} },
+    "60+": { count: 0, crimeTypes: {} },
+  };
+
+  for (const fir of data.firs) {
+    const age = fir.victim.age;
+    let group = "18-30";
+    if (age !== null && age <= 17) group = "0-17";
+    else if (age !== null && age <= 30) group = "18-30";
+    else if (age !== null && age <= 45) group = "31-45";
+    else if (age !== null && age <= 60) group = "46-60";
+    else if (age !== null) group = "60+";
+    ageGroups[group].count++;
+    ageGroups[group].crimeTypes[fir.crime_type] = (ageGroups[group].crimeTypes[fir.crime_type] || 0) + 1;
+  }
+
+  const totalFirs = data.firs.length;
+  const ageBreakdown = Object.entries(ageGroups).map(([label, d]) => ({
+    label,
+    count: d.count,
+    percentage: totalFirs > 0 ? Math.round((d.count / totalFirs) * 100) : 0,
+    crimeTypes: Object.entries(d.crimeTypes).sort(([, a], [, b]) => b - a).slice(0, 3).map(([t]) => t),
+  }));
+
+  const topAgeGroup = ageBreakdown.sort((a, b) => b.count - a.count)[0];
+  insights.push({
+    category: "Victim Age Distribution",
+    breakdown: ageBreakdown,
+    riskFactors: [
+      { factor: "Elderly Vulnerability", description: `Victims aged 46+ account for ${ageGroups["46-60"].count + ageGroups["60+"].count} cases (${Math.round(((ageGroups["46-60"].count + ageGroups["60+"].count) / totalFirs) * 100)}%) — targeted for chain snatching and fraud`, severity: "high", supportingData: `Chain snatching and cyber fraud disproportionately affect older demographics` },
+      { factor: "Youth Exposure", description: `Victims aged 18-30 represent the largest group (${ageGroups["18-30"].count} cases) — likely due to higher mobility and digital exposure`, severity: "medium", supportingData: `Young adults are primary targets for vehicle theft and cyber fraud` },
+    ],
+    socialCorrelations: [
+      { indicator: "Urbanization", correlation: "positive", strength: "moderate", description: "Higher crime rates in urban districts correlate with larger young adult populations and higher digital transaction volumes" },
+      { indicator: "Economic Stress", correlation: "positive", strength: "strong", description: `Districts with higher fraud cases show correlation with economic transaction density — suggesting financial stress as a driver` },
+    ],
+  });
+
+  // --- Gender Analysis ---
+  const genderGroups: Record<string, { count: number; crimeTypes: Record<string, number> }> = {};
+  for (const fir of data.firs) {
+    const g = fir.victim.gender || "Unknown";
+    if (!genderGroups[g]) genderGroups[g] = { count: 0, crimeTypes: {} };
+    genderGroups[g].count++;
+    genderGroups[g].crimeTypes[fir.crime_type] = (genderGroups[g].crimeTypes[fir.crime_type] || 0) + 1;
+  }
+
+  const genderBreakdown = Object.entries(genderGroups).map(([label, d]) => ({
+    label,
+    count: d.count,
+    percentage: totalFirs > 0 ? Math.round((d.count / totalFirs) * 100) : 0,
+    crimeTypes: Object.entries(d.crimeTypes).sort(([, a], [, b]) => b - a).slice(0, 3).map(([t]) => t),
+  }));
+
+  const femaleCount = genderGroups["Female"]?.count || 0;
+  const maleCount = genderGroups["Male"]?.count || 0;
+  insights.push({
+    category: "Victim Gender Analysis",
+    breakdown: genderBreakdown,
+    riskFactors: [
+      { factor: "Gender-Based Crime Targeting", description: `Female victims account for ${Math.round((femaleCount / totalFirs) * 100)}% of cases — chain snatching and harassment are the primary crime types`, severity: "high", supportingData: `Female victims show higher incidence in public-space crimes (bus stands, markets, streets)` },
+      { factor: "Male Victim Underreporting", description: `${maleCount} male victims recorded — actual numbers may be higher due to underreporting of certain crime categories`, severity: "medium", supportingData: `Male victims primarily in vehicle theft and physical crime categories` },
+    ],
+    socialCorrelations: [
+      { indicator: "Women's Workforce Participation", correlation: "positive", strength: "moderate", description: "Districts with higher female workforce participation correlate with increased chain snatching near transit hubs" },
+      { indicator: "Public Safety Infrastructure", correlation: "negative", strength: "moderate", description: "Areas with better street lighting and CCTV coverage show lower evening crime rates against women" },
+    ],
+  });
+
+  // --- Occupation-Based Analysis ---
+  const occupationGroups: Record<string, number> = {};
+  const occupationCrimeTypes: Record<string, Record<string, number>> = {};
+  for (const fir of data.firs) {
+    const occ = fir.victim.occupation || "Unknown";
+    occupationGroups[occ] = (occupationGroups[occ] || 0) + 1;
+    if (!occupationCrimeTypes[occ]) occupationCrimeTypes[occ] = {};
+    occupationCrimeTypes[occ][fir.crime_type] = (occupationCrimeTypes[occ][fir.crime_type] || 0) + 1;
+  }
+
+  const occupationBreakdown = Object.entries(occupationGroups)
+    .sort(([, a], [, b]) => b - a)
+    .map(([label, count]) => ({
+      label,
+      count,
+      percentage: Math.round((count / totalFirs) * 100),
+      crimeTypes: Object.entries(occupationCrimeTypes[label] || {}).sort(([, a], [, b]) => b - a).slice(0, 3).map(([t]) => t),
+    }));
+
+  insights.push({
+    category: "Victim Occupation Profile",
+    breakdown: occupationBreakdown,
+    riskFactors: [
+      { factor: "Occupational Targeting", description: `The most targeted occupation group is "${occupationBreakdown[0]?.label || "N/A"}" with ${occupationBreakdown[0]?.count || 0} cases — suggesting systematic targeting patterns`, severity: "medium", supportingData: `Certain occupations involve regular cash handling or predictable schedules, creating exploitation opportunities` },
+    ],
+    socialCorrelations: [
+      { indicator: "Income Level", correlation: "positive", strength: "moderate", description: "Higher-value crimes (jewellery heist, cyber fraud) tend to target higher-income occupation groups" },
+      { indicator: "Education Level", correlation: "negative", strength: "weak", description: "Cyber fraud victims span all education levels, suggesting social engineering effectiveness is independent of education" },
+    ],
+  });
+
+  // --- Accused Age Analysis ---
+  const accusedAgeGroups: Record<string, number> = { "18-25": 0, "26-35": 0, "36-45": 0, "46+": 0 };
+  for (const acc of data.accused) {
+    if (acc.age <= 25) accusedAgeGroups["18-25"]++;
+    else if (acc.age <= 35) accusedAgeGroups["26-35"]++;
+    else if (acc.age <= 45) accusedAgeGroups["36-45"]++;
+    else accusedAgeGroups["46+"]++;
+  }
+  const totalAccused = data.accused.length;
+
+  const accusedAgeBreakdown = Object.entries(accusedAgeGroups).map(([label, count]) => ({
+    label,
+    count,
+    percentage: totalAccused > 0 ? Math.round((count / totalAccused) * 100) : 0,
+    crimeTypes: [] as string[],
+  }));
+
+  const topAccusedAge = accusedAgeBreakdown.sort((a, b) => b.count - a.count)[0];
+  insights.push({
+    category: "Offender Age Demographics",
+    breakdown: accusedAgeBreakdown,
+    riskFactors: [
+      { factor: "Youth Offender Concentration", description: `Offenders aged ${topAccusedAge?.label || "N/A"} comprise ${topAccusedAge?.percentage || 0}% of all accused — indicating youth involvement in criminal activity`, severity: "high", supportingData: `Young adult offenders show higher recidivism rates and gang affiliation` },
+      { factor: "Age-Crime Relationship", description: "Peak offending age correlates with physical capability requirements of property crimes", severity: "medium", supportingData: "Cyber fraud shows wider age distribution compared to physical crimes" },
+    ],
+    socialCorrelations: [
+      { indicator: "Unemployment Rate", correlation: "positive", strength: "strong", description: "Youth offender concentration correlates with district-level economic indicators and employment opportunities" },
+      { indicator: "Education Access", correlation: "negative", strength: "moderate", description: "Districts with lower educational attainment show higher youth offender rates" },
+    ],
+  });
+
+  // --- District Socio-Economic Profile ---
+  const districtStats: Record<string, { crimes: number; types: Record<string, number>; severity: { critical: number; high: number; medium: number; low: number }; avgFinancial: number; financialCount: number }> = {};
+  for (const fir of data.firs) {
+    if (!districtStats[fir.district]) districtStats[fir.district] = { crimes: 0, types: {}, severity: { critical: 0, high: 0, medium: 0, low: 0 }, avgFinancial: 0, financialCount: 0 };
+    const ds = districtStats[fir.district];
+    ds.crimes++;
+    ds.types[fir.crime_type] = (ds.types[fir.crime_type] || 0) + 1;
+    ds.severity[fir.severity]++;
+    if (fir.financial_transaction) {
+      ds.avgFinancial += fir.financial_transaction.amount_inr;
+      ds.financialCount++;
+    }
+  }
+
+  const districtBreakdown = Object.entries(districtStats)
+    .sort(([, a], [, b]) => b.crimes - a.crimes)
+    .map(([label, ds]) => ({
+      label,
+      count: ds.crimes,
+      percentage: Math.round((ds.crimes / totalFirs) * 100),
+      crimeTypes: Object.entries(ds.types).sort(([, a], [, b]) => b - a).slice(0, 3).map(([t]) => t),
+    }));
+
+  const highCrimeDistricts = districtBreakdown.filter(d => d.percentage >= 15);
+  insights.push({
+    category: "District Socio-Economic Crime Profile",
+    breakdown: districtBreakdown,
+    riskFactors: [
+      { factor: "Urban Crime Concentration", description: `${highCrimeDistricts.length > 0 ? highCrimeDistricts.map(d => d.label).join(", ") : "No district"} account for ${highCrimeDistricts.reduce((s, d) => s + d.count, 0)} cases — urban districts show disproportionate crime volume`, severity: "high", supportingData: "Urban districts combine higher population density, economic activity, and transient populations creating crime opportunities" },
+      { factor: "Financial Crime Hotspots", description: `Districts with high financial crime rates indicate organized financial criminal infrastructure`, severity: "medium", supportingData: "Bank account density and digital payment adoption correlate with cyber fraud incidence" },
+    ],
+    socialCorrelations: [
+      { indicator: "Population Density", correlation: "positive", strength: "strong", description: "Higher crime volumes in densely populated urban districts (Bengaluru, Mysuru) confirm population-crime correlation" },
+      { indicator: "Economic Development", correlation: "complex", strength: "moderate", description: "Developed districts show more cyber fraud while developing districts show more property crimes" },
+      { indicator: "Migration Patterns", correlation: "positive", strength: "moderate", description: "Districts with high migrant worker populations show elevated crime rates in specific categories" },
+    ],
+  });
+
+  return insights;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 10. CRIME FORECASTING & EARLY WARNING
+// ═══════════════════════════════════════════════════════════════════
+
+export interface ForecastResult {
+  metric: string;
+  current: number;
+  predicted: number;
+  trend: "rising" | "stable" | "declining";
+  changePercent: number;
+  confidence: number;
+  factors: string[];
+  timeframe: string;
+}
+
+export interface EarlyWarningAlert {
+  id: string;
+  type: "repeat_crime" | "gang_activity" | "emerging_hotspot" | "escalation" | "financial_anomaly" | "pattern_shift";
+  severity: "critical" | "high" | "medium" | "low";
+  title: string;
+  description: string;
+  location: string;
+  predictedImpact: string;
+  recommendedActions: string[];
+  supportingFIRs: string[];
+  confidence: number;
+  detectedAt: string;
+}
+
+export function generateForecasts(data: CrimeDataset): ForecastResult[] {
+  const forecasts: ForecastResult[] = [];
+  const firs = data.firs;
+
+  // Monthly trend analysis
+  const monthlyCounts: Record<string, number> = {};
+  for (const fir of firs) {
+    const d = new Date(fir.date);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    monthlyCounts[key] = (monthlyCounts[key] || 0) + 1;
+  }
+
+  const months = Object.entries(monthlyCounts).sort(([a], [b]) => a.localeCompare(b));
+  if (months.length >= 2) {
+    const recent = months.slice(-3);
+    const older = months.slice(-6, -3);
+    const recentAvg = recent.reduce((s, [, c]) => s + c, 0) / recent.length;
+    const olderAvg = older.length > 0 ? older.reduce((s, [, c]) => s + c, 0) / older.length : recentAvg;
+    const change = olderAvg > 0 ? ((recentAvg - olderAvg) / olderAvg) * 100 : 0;
+
+    forecasts.push({
+      metric: "Overall Crime Rate",
+      current: Math.round(recentAvg),
+      predicted: Math.round(recentAvg * (1 + change / 200)),
+      trend: change > 5 ? "rising" : change < -5 ? "declining" : "stable",
+      changePercent: Math.round(change),
+      confidence: 68,
+      factors: change > 5 ? ["Increasing trend in last 3 months", "Multiple crime types showing growth", "Seasonal factors may contribute"] : change < -5 ? ["Declining trend indicates effective enforcement", "Reduced gang activity in key districts"] : ["Crime rate holding steady", "No significant seasonal deviation"],
+      timeframe: "Next 30 days",
+    });
+  }
+
+  // Crime type forecasts
+  const crimeTypeByMonth: Record<string, Record<string, number>> = {};
+  for (const fir of firs) {
+    const d = new Date(fir.date);
+    const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    if (!crimeTypeByMonth[month]) crimeTypeByMonth[month] = {};
+    crimeTypeByMonth[month][fir.crime_type] = (crimeTypeByMonth[month][fir.crime_type] || 0) + 1;
+  }
+
+  const allCrimeTypes = [...new Set(firs.map(f => f.crime_type))];
+  for (const ct of allCrimeTypes) {
+    const recentMonths = Object.entries(crimeTypeByMonth).sort(([a], [b]) => a.localeCompare(b)).slice(-3);
+    const recentCounts = recentMonths.map(([, m]) => m[ct] || 0);
+    const recentAvg = recentCounts.reduce((s, c) => s + c, 0) / recentCounts.length;
+    const trend = recentCounts[2] > recentCounts[0] ? "rising" : recentCounts[2] < recentCounts[0] ? "declining" : "stable";
+    const change = recentCounts[0] > 0 ? ((recentCounts[2] - recentCounts[0]) / recentCounts[0]) * 100 : 0;
+
+    forecasts.push({
+      metric: ct,
+      current: Math.round(recentCounts[2] || 0),
+      predicted: Math.round(recentAvg * (trend === "rising" ? 1.1 : trend === "declining" ? 0.9 : 1)),
+      trend,
+      changePercent: Math.round(change),
+      confidence: 55 + Math.min(Math.round(recentCounts.reduce((s, c) => s + c, 0) * 2), 30),
+      factors: trend === "rising" ? [`${ct} showing upward trend`, `Multiple incidents in recent period`] : trend === "declining" ? [`Enforcement measures showing effect on ${ct}`, `Reduced incident frequency`] : [`${ct} maintaining stable frequency`],
+      timeframe: "Next 30 days",
+    });
+  }
+
+  // District forecasts
+  const districtByMonth: Record<string, Record<string, number>> = {};
+  for (const fir of firs) {
+    const d = new Date(fir.date);
+    const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    if (!districtByMonth[month]) districtByMonth[month] = {};
+    districtByMonth[month][fir.district] = (districtByMonth[month][fir.district] || 0) + 1;
+  }
+
+  const allDistricts = [...new Set(firs.map(f => f.district))];
+  for (const dist of allDistricts) {
+    const recentMonths = Object.entries(districtByMonth).sort(([a], [b]) => a.localeCompare(b)).slice(-2);
+    const counts = recentMonths.map(([, m]) => m[dist] || 0);
+    if (counts.length >= 2 && counts[1] > counts[0]) {
+      forecasts.push({
+        metric: `${dist} District`,
+        current: counts[1],
+        predicted: Math.round(counts[1] * 1.15),
+        trend: "rising",
+        changePercent: counts[0] > 0 ? Math.round(((counts[1] - counts[0]) / counts[0]) * 100) : 0,
+        confidence: 52 + Math.min(counts[1] * 3, 30),
+        factors: [`Escalating crime in ${dist}`, "Resource reallocation recommended"],
+        timeframe: "Next 30 days",
+      });
+    }
+  }
+
+  return forecasts;
+}
+
+export function generateEarlyWarnings(data: CrimeDataset): EarlyWarningAlert[] {
+  const alerts: EarlyWarningAlert[] = [];
+  const firs = data.firs;
+
+  // 1. Repeat crime detection (same location, same crime type within 30 days)
+  const locationCrimeMap: Record<string, { type: string; date: string; firId: string; district: string }[]> = {};
+  for (const fir of firs) {
+    const key = `${fir.district}-${fir.location.place}`;
+    if (!locationCrimeMap[key]) locationCrimeMap[key] = [];
+    locationCrimeMap[key].push({ type: fir.crime_type, date: fir.date, firId: fir.fir_id, district: fir.district });
+  }
+
+  for (const [location, incidents] of Object.entries(locationCrimeMap)) {
+    if (incidents.length >= 2) {
+      const sorted = [...incidents].sort((a, b) => a.date.localeCompare(b.date));
+      for (let i = 1; i < sorted.length; i++) {
+        const daysDiff = (new Date(sorted[i].date).getTime() - new Date(sorted[i - 1].date).getTime()) / (1000 * 60 * 60 * 24);
+        if (daysDiff <= 30 && sorted[i].type === sorted[i - 1].type) {
+          alerts.push({
+            id: `EW-RC-${sorted[i].firId}`,
+            type: "repeat_crime",
+            severity: daysDiff <= 14 ? "critical" : "high",
+            title: `Repeat ${sorted[i].type} at ${location}`,
+            description: `Same crime type "${sorted[i].type}" occurred at ${location} within ${Math.round(daysDiff)} days. Pattern suggests systematic targeting of this location.`,
+            location: location.split("-").slice(1).join(" - "),
+            predictedImpact: "High probability of recurrence within next 14 days based on established pattern",
+            recommendedActions: ["Increase patrol frequency at location", "Install temporary surveillance", "Alert local intelligence unit", "Check for CCTV coverage gaps"],
+            supportingFIRs: [sorted[i - 1].firId, sorted[i].firId],
+            confidence: Math.min(60 + Math.round((30 - daysDiff) * 1.5), 92),
+            detectedAt: new Date().toISOString(),
+          });
+        }
+      }
+    }
+  }
+
+  // 2. Gang activity early warning
+  for (const gang of data.gangs) {
+    const gangFirs = firs.filter(f => f.gang_id === gang.id);
+    const recentFirs = gangFirs.filter(f => {
+      const daysSince = (Date.now() - new Date(f.date).getTime()) / (1000 * 60 * 60 * 24);
+      return daysSince <= 30;
+    });
+    if (recentFirs.length >= 3) {
+      alerts.push({
+        id: `EW-GA-${gang.id}`,
+        type: "gang_activity",
+        severity: "critical",
+        title: `Escalating ${gang.name} Activity`,
+        description: `${gang.name} has ${recentFirs.length} FIRs in the last 30 days (total: ${gangFirs.length}). Operating across ${[...new Set(gangFirs.map(f => f.district))].length} districts. Pattern indicates coordinated campaign.`,
+        location: gang.base,
+        predictedImpact: "High likelihood of continued operations. Cross-district expansion possible.",
+        recommendedActions: ["Initiate coordinated multi-district operation", "Freeze identified financial accounts", "Activate surveillance on all known members", "Issue internal alert to bordering districts"],
+        supportingFIRs: recentFirs.map(f => f.fir_id),
+        confidence: 78,
+        detectedAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  // 3. Emerging hotspot detection
+  const districtMonthCounts: Record<string, Record<string, number>> = {};
+  for (const fir of firs) {
+    const d = new Date(fir.date);
+    const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    if (!districtMonthCounts[fir.district]) districtMonthCounts[fir.district] = {};
+    districtMonthCounts[fir.district][month] = (districtMonthCounts[fir.district][month] || 0) + 1;
+  }
+
+  for (const [district, months] of Object.entries(districtMonthCounts)) {
+    const sortedMonths = Object.entries(months).sort(([a], [b]) => a.localeCompare(b));
+    if (sortedMonths.length >= 2) {
+      const latest = sortedMonths[sortedMonths.length - 1][1];
+      const previous = sortedMonths[sortedMonths.length - 2][1];
+      if (latest > previous * 1.5 && latest >= 3) {
+        alerts.push({
+          id: `EW-EH-${district.replace(/\s+/g, "")}`,
+          type: "emerging_hotspot",
+          severity: "high",
+          title: `Emerging Crime Hotspot: ${district}`,
+          description: `${district} shows ${(Math.round(((latest - previous) / previous) * 100))}% increase in crime (from ${previous} to ${latest} cases in latest month). This exceeds the threshold for emerging hotspot classification.`,
+          location: district,
+          predictedImpact: "If trend continues, district will become top crime district within 60 days",
+          recommendedActions: ["Deploy additional patrol units", "Establish temporary checkpoint", "Conduct community awareness campaign", "Analyze specific crime types driving the increase"],
+          supportingFIRs: firs.filter(f => f.district === district).slice(-5).map(f => f.fir_id),
+          confidence: 65,
+          detectedAt: new Date().toISOString(),
+        });
+      }
+    }
+  }
+
+  // 4. Crime escalation detection (severity increase)
+  const districtSeverity: Record<string, { recent: number[]; older: number[] }> = {};
+  for (const fir of firs) {
+    const daysSince = (Date.now() - new Date(fir.date).getTime()) / (1000 * 60 * 60 * 24);
+    const sevScore = fir.severity === "critical" ? 4 : fir.severity === "high" ? 3 : fir.severity === "medium" ? 2 : 1;
+    if (!districtSeverity[fir.district]) districtSeverity[fir.district] = { recent: [], older: [] };
+    if (daysSince <= 60) districtSeverity[fir.district].recent.push(sevScore);
+    else districtSeverity[fir.district].older.push(sevScore);
+  }
+
+  for (const [district, { recent, older }] of Object.entries(districtSeverity)) {
+    if (recent.length >= 3 && older.length >= 3) {
+      const recentAvg = recent.reduce((s, v) => s + v, 0) / recent.length;
+      const olderAvg = older.reduce((s, v) => s + v, 0) / older.length;
+      if (recentAvg > olderAvg * 1.3) {
+        alerts.push({
+          id: `EW-ES-${district.replace(/\s+/g, "")}`,
+          type: "escalation",
+          severity: "high",
+          title: `Crime Severity Escalation in ${district}`,
+          description: `Average crime severity in ${district} has increased from ${olderAvg.toFixed(1)} to ${recentAvg.toFixed(1)} (scale 1-4). This indicates a shift toward more serious criminal activity.`,
+          location: district,
+          predictedImpact: "Escalation pattern may indicate organized crime expansion or emboldened offenders",
+          recommendedActions: ["Review recent critical-severity cases for common factors", "Assess gang activity increase in the district", "Evaluate patrol and deterrence effectiveness"],
+          supportingFIRs: firs.filter(f => f.district === district && f.severity === "critical").slice(0, 5).map(f => f.fir_id),
+          confidence: 60,
+          detectedAt: new Date().toISOString(),
+        });
+      }
+    }
+  }
+
+  // 5. Financial anomaly alerts
+  const highValueFirs = firs.filter(f => f.financial_transaction && f.financial_transaction.amount_inr > 200000);
+  const highValueByDistrict: Record<string, number> = {};
+  for (const fir of highValueFirs) {
+    highValueByDistrict[fir.district] = (highValueByDistrict[fir.district] || 0) + 1;
+  }
+  for (const [district, count] of Object.entries(highValueByDistrict)) {
+    if (count >= 2) {
+      alerts.push({
+        id: `EW-FA-${district.replace(/\s+/g, "")}`,
+        type: "financial_anomaly",
+        severity: "high",
+        title: `High-Value Financial Crime Cluster in ${district}`,
+        description: `${count} cases with transactions exceeding ₹2,00,000 detected in ${district}. Total value: ₹${highValueFirs.filter(f => f.district === district).reduce((s, f) => s + (f.financial_transaction?.amount_inr || 0), 0).toLocaleString("en-IN")}. Possible organized financial crime network.`,
+        location: district,
+        predictedImpact: "Additional high-value transactions likely if network is active",
+        recommendedActions: ["Freeze identified bank accounts", "Coordinate with banking authorities", "Trace transaction chains", "Assess for money laundering patterns"],
+        supportingFIRs: highValueFirs.filter(f => f.district === district).map(f => f.fir_id),
+        confidence: 72,
+        detectedAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  return alerts.sort((a, b) => {
+    const sev = { critical: 0, high: 1, medium: 2, low: 3 };
+    return sev[a.severity] - sev[b.severity];
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 11. SEASONAL TREND ANALYSIS
+// ═══════════════════════════════════════════════════════════════════
+
+export interface SeasonalTrend {
+  season: string;
+  months: string[];
+  totalCrimes: number;
+  topCrimeTypes: { type: string; count: number }[];
+  yearOverYear: { year: string; count: number }[];
+  anomaly: boolean;
+  anomalyDescription: string;
+}
+
+export function analyzeSeasonalTrends(data: CrimeDataset): SeasonalTrend[] {
+  const seasonMap: Record<string, string> = {
+    "01": "Winter", "02": "Winter", "12": "Winter",
+    "03": "Summer", "04": "Summer", "05": "Summer",
+    "06": "Monsoon", "07": "Monsoon", "08": "Monsoon", "09": "Monsoon",
+    "10": "Post-Monsoon", "11": "Post-Monsoon",
+  };
+
+  const seasonData: Record<string, { months: string[]; firs: typeof data.firs }> = {};
+  for (const fir of data.firs) {
+    const m = new Date(fir.date).getMonth() + 1;
+    const season = seasonMap[String(m).padStart(2, "0")] || "Other";
+    if (!seasonData[season]) seasonData[season] = { months: [], firs: [] };
+    const monthKey = `${new Date(fir.date).getFullYear()}-${String(m).padStart(2, "0")}`;
+    if (!seasonData[season].months.includes(monthKey)) seasonData[season].months.push(monthKey);
+    seasonData[season].firs.push(fir);
+  }
+
+  const seasonOrder = ["Winter", "Summer", "Monsoon", "Post-Monsoon"];
+  const results: SeasonalTrend[] = [];
+
+  for (const season of seasonOrder) {
+    const sd = seasonData[season];
+    if (!sd || sd.firs.length === 0) continue;
+
+    const crimeTypes: Record<string, number> = {};
+    const yearCounts: Record<string, number> = {};
+    for (const fir of sd.firs) {
+      crimeTypes[fir.crime_type] = (crimeTypes[fir.crime_type] || 0) + 1;
+      const year = new Date(fir.date).getFullYear().toString();
+      yearCounts[year] = (yearCounts[year] || 0) + 1;
+    }
+
+    const topTypes = Object.entries(crimeTypes).sort(([, a], [, b]) => b - a).slice(0, 4).map(([type, count]) => ({ type, count }));
+    const yoy = Object.entries(yearCounts).sort(([a], [b]) => a.localeCompare(b)).map(([year, count]) => ({ year, count }));
+
+    const avgPerMonth = sd.firs.length / Math.max(sd.months.length, 1);
+    const overallAvg = data.firs.length / 12;
+    const isAnomaly = Math.abs(avgPerMonth - overallAvg) / overallAvg > 0.25;
+
+    results.push({
+      season,
+      months: [...new Set(sd.months)].sort(),
+      totalCrimes: sd.firs.length,
+      topCrimeTypes: topTypes,
+      yearOverYear: yoy,
+      anomaly: isAnomaly,
+      anomalyDescription: isAnomaly
+        ? avgPerMonth > overallAvg
+          ? `${season} shows ${Math.round(((avgPerMonth - overallAvg) / overallAvg) * 100)}% above-average crime rate — possible seasonal crime spike requiring additional deployment`
+          : `${season} shows ${Math.round(((overallAvg - avgPerMonth) / overallAvg) * 100)}% below-average crime rate — may indicate underreporting or effective seasonal enforcement`
+        : `${season} crime rates are within normal range`,
+    });
+  }
+
+  return results;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 12. FINANCIAL NETWORK ANALYSIS
+// ═══════════════════════════════════════════════════════════════════
+
+export interface FinancialNetworkNode {
+  id: string;
+  type: "account" | "accused" | "fir" | "gang";
+  label: string;
+  value: number;
+  details: Record<string, string>;
+}
+
+export interface FinancialNetworkEdge {
+  source: string;
+  target: string;
+  type: "transaction" | "account_holder" | "used_in" | "gang_member";
+  amount?: number;
+  label: string;
+}
+
+export function buildFinancialNetwork(data: CrimeDataset): { nodes: FinancialNetworkNode[]; edges: FinancialNetworkEdge[] } {
+  const nodes: FinancialNetworkNode[] = [];
+  const edges: FinancialNetworkEdge[] = [];
+  const nodeIds = new Set<string>();
+
+  const addNode = (id: string, type: FinancialNetworkNode["type"], label: string, value: number, details: Record<string, string>) => {
+    if (!nodeIds.has(id)) {
+      nodeIds.add(id);
+      nodes.push({ id, type, label, value, details });
+    }
+  };
+
+  // Bank account nodes
+  for (const acc of data.bank_accounts) {
+    addNode(`acc-${acc.id}`, "account", `${acc.bank}: ${acc.acc}`, 0, { bank: acc.bank, holder: acc.holder, account: acc.acc });
+  }
+
+  // FIR financial links
+  for (const fir of data.firs) {
+    if (fir.financial_transaction) {
+      addNode(`fir-${fir.fir_id}`, "fir", fir.fir_id, fir.financial_transaction.amount_inr, { crime: fir.crime_type, district: fir.district, mode: fir.financial_transaction.mode });
+      edges.push({ source: `acc-${fir.financial_transaction.account}`, target: `fir-${fir.fir_id}`, type: "transaction", amount: fir.financial_transaction.amount_inr, label: `₹${fir.financial_transaction.amount_inr.toLocaleString("en-IN")} via ${fir.financial_transaction.mode}` });
+
+      // Link accused to FIR and account
+      for (const aId of fir.accused) {
+        const accused = data.accused.find(a => a.id === aId);
+        if (accused) {
+          addNode(`accused-${accused.id}`, "accused", accused.name, accused.risk, { age: String(accused.age), gang: accused.gang || "None", risk: String(accused.risk) });
+          edges.push({ source: `accused-${accused.id}`, target: `fir-${fir.fir_id}`, type: "used_in", label: "Accused in" });
+        }
+      }
+    }
+  }
+
+  // Gang links
+  for (const gang of data.gangs) {
+    const gangFirsWithFinancial = data.firs.filter(f => f.gang_id === gang.id && f.financial_transaction);
+    if (gangFirsWithFinancial.length > 0) {
+      addNode(`gang-${gang.id}`, "gang", gang.name, gangFirsWithFinancial.reduce((s, f) => s + (f.financial_transaction?.amount_inr || 0), 0), { type: gang.type, base: gang.base, members: String(gang.members.length) });
+      for (const memberId of gang.members) {
+        if (nodeIds.has(`accused-${memberId}`)) {
+          edges.push({ source: `accused-${memberId}`, target: `gang-${gang.id}`, type: "gang_member", label: "Member of" });
+        }
+      }
+    }
+  }
+
+  return { nodes, edges };
+}

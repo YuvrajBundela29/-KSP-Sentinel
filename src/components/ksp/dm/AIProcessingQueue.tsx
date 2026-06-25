@@ -46,14 +46,14 @@ import LoadingSpinner from "@/components/ksp/LoadingSpinner";
 
 // ─── Pipeline Stages ────────────────────────────────────────────────
 const PIPELINE_STAGES = [
-  { key: "queued", label: "Queued", icon: Inbox, color: "#64748b" },
+  { key: "queued", label: "Queued", icon: Inbox, color: "#5a657a" },
   { key: "ocr", label: "OCR", icon: ScanLine, color: "#06b6d4" },
-  { key: "entity_extraction", label: "Entity Extraction", icon: FileSearch, color: "#8b5cf6" },
+  { key: "entity_extraction", label: "Entity Extraction", icon: FileSearch, color: "#818cf8" },
   { key: "relationship_detection", label: "Relationship Detection", icon: GitBranch, color: "#ec4899" },
-  { key: "risk_scoring", label: "Risk Scoring", icon: BarChart3, color: "#f59e0b" },
-  { key: "network_update", label: "Network Update", icon: Network, color: "#3b82f6" },
-  { key: "embedding", label: "Embedding", icon: Cpu, color: "#10b981" },
-  { key: "completed", label: "Completed", icon: CheckCircle2, color: "#10b981" },
+  { key: "risk_scoring", label: "Risk Scoring", icon: BarChart3, color: "#fbbf24" },
+  { key: "network_update", label: "Network Update", icon: Network, color: "#22d3ee" },
+  { key: "embedding", label: "Embedding", icon: Cpu, color: "#34d399" },
+  { key: "completed", label: "Completed", icon: CheckCircle2, color: "#34d399" },
 ] as const;
 
 type StageKey = AIQueueItem["stage"];
@@ -228,9 +228,9 @@ function PipelineNode({
 }) {
   const Icon = stage.icon;
   let nodeColor: string = stage.color;
-  if (isFailed) nodeColor = "#ef4444";
-  else if (isCompleted) nodeColor = "#10b981";
-  else if (!isActive) nodeColor = "#4a5568";
+  if (isFailed) nodeColor = "#f87171";
+  else if (isCompleted) nodeColor = "#34d399";
+  else if (!isActive) nodeColor = "#3d4659";
 
   return (
     <motion.div
@@ -241,7 +241,7 @@ function PipelineNode({
     >
       <motion.div
         className={`relative flex h-14 w-14 items-center justify-center rounded-2xl border-2 transition-colors ${
-          isActive ? "border-transparent" : isCompleted ? "border-emerald-500/30" : isFailed ? "border-red-500/30" : "border-white/10"
+          isActive ? "border-transparent" : isCompleted ? "border-[rgba(52,211,153,0.15)]" : isFailed ? "border-[rgba(248,113,113,0.15)]" : "border-white/10"
         }`}
         style={{ backgroundColor: `${nodeColor}15` }}
         animate={isActive ? { boxShadow: [`0 0 0px ${nodeColor}40`, `0 0 20px ${nodeColor}40`, `0 0 0px ${nodeColor}40`] } : {}}
@@ -250,15 +250,15 @@ function PipelineNode({
         <Icon className="h-6 w-6" style={{ color: nodeColor }} />
         {isActive && (
           <motion.div
-            className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-emerald-500"
+            className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-[#34d399]"
             animate={{ scale: [1, 1.4, 1] }}
             transition={{ duration: 1.5, repeat: Infinity }}
           />
         )}
-        {isCompleted && <CheckCircle2 className="absolute -bottom-1 -right-1 h-4 w-4 text-emerald-400" />}
-        {isFailed && <XCircle className="absolute -bottom-1 -right-1 h-4 w-4 text-red-400" />}
+        {isCompleted && <CheckCircle2 className="absolute -bottom-1 -right-1 h-4 w-4 text-[#34d399]" />}
+        {isFailed && <XCircle className="absolute -bottom-1 -right-1 h-4 w-4 text-[#f87171]" />}
       </motion.div>
-      <span className="text-[10px] text-[#94a3b8] font-medium text-center max-w-[80px] leading-tight">{stage.label}</span>
+      <span className="text-[10px] text-[#8b97b0] font-medium text-center max-w-[80px] leading-tight">{stage.label}</span>
     </motion.div>
   );
 }
@@ -278,13 +278,13 @@ function PipelineConnector({
       {(isCompleted || isActive) && (
         <motion.div
           className="absolute top-0 left-0 h-full w-3 rounded-full"
-          style={{ backgroundColor: isCompleted ? "#10b981" : "#3b82f6" }}
+          style={{ backgroundColor: isCompleted ? "#34d399" : "#22d3ee" }}
           initial={{ left: "-12px" }}
           animate={{ left: "calc(100% + 0px)" }}
           transition={{ duration: 1.5, repeat: Infinity, ease: "linear", delay: index * 0.3 }}
         />
       )}
-      {isCompleted && <div className="absolute inset-0 bg-emerald-500/50" />}
+      {isCompleted && <div className="absolute inset-0 bg-[#34d399]/50" />}
     </div>
   );
 }
@@ -292,15 +292,15 @@ function PipelineConnector({
 // ─── Stage Badge ────────────────────────────────────────────────────
 function StageBadge({ stage }: { stage: StageKey }) {
   const stageConfig: Record<string, { bg: string }> = {
-    queued: { bg: "bg-slate-500/15 text-slate-400 border-slate-500/30" },
-    ocr: { bg: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30" },
-    entity_extraction: { bg: "bg-violet-500/15 text-violet-400 border-violet-500/30" },
-    relationship_detection: { bg: "bg-pink-500/15 text-pink-400 border-pink-500/30" },
-    risk_scoring: { bg: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
-    network_update: { bg: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
-    embedding: { bg: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
-    completed: { bg: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
-    failed: { bg: "bg-red-500/15 text-red-400 border-red-500/30" },
+    queued: { bg: "bg-[#5a657a]/15 text-[#8b97b0] border-[rgba(255,255,255,0.08)]" },
+    ocr: { bg: "bg-[#22d3ee]/15 text-[#22d3ee] border-[rgba(34,211,238,0.15)]" },
+    entity_extraction: { bg: "bg-[#818cf8]/15 text-[#818cf8] border-[rgba(129,140,248,0.15)]" },
+    relationship_detection: { bg: "bg-[#f87171]/15 text-[#f87171] border-pink-500/30" },
+    risk_scoring: { bg: "bg-[#fbbf24]/15 text-[#fbbf24] border-[rgba(251,191,36,0.15)]" },
+    network_update: { bg: "bg-[#22d3ee]/15 text-[#22d3ee] border-[rgba(34,211,238,0.15)]" },
+    embedding: { bg: "bg-[#34d399]/15 text-[#34d399] border-[rgba(52,211,153,0.15)]" },
+    completed: { bg: "bg-[#34d399]/15 text-[#34d399] border-[rgba(52,211,153,0.15)]" },
+    failed: { bg: "bg-[#f87171]/15 text-[#f87171] border-[rgba(248,113,113,0.15)]" },
   };
   const c = stageConfig[stage] || stageConfig.queued;
   const label = PIPELINE_STAGES.find(s => s.key === stage)?.label ?? stage;
@@ -485,11 +485,11 @@ export default function AIProcessingQueue() {
   }
 
   const statCards = [
-    { label: "Total in Queue", value: animTotal, icon: <Layers className="h-5 w-5" />, color: "#3b82f6", delay: 0 },
-    { label: "Processing Now", value: animProcessing, icon: <Loader2 className="h-5 w-5" />, color: "#f59e0b", delay: 1 },
-    { label: "Completed Today", value: animCompleted, icon: <CheckCircle2 className="h-5 w-5" />, color: "#10b981", delay: 2 },
-    { label: "Failed", value: animFailed, icon: <XCircle className="h-5 w-5" />, color: "#ef4444", delay: 3 },
-    { label: "Avg Process Time", value: stats.avgTime, suffix: "s", icon: <Timer className="h-5 w-5" />, color: "#8b5cf6", delay: 4, isRaw: true },
+    { label: "Total in Queue", value: animTotal, icon: <Layers className="h-5 w-5" />, color: "#22d3ee", delay: 0 },
+    { label: "Processing Now", value: animProcessing, icon: <Loader2 className="h-5 w-5" />, color: "#fbbf24", delay: 1 },
+    { label: "Completed Today", value: animCompleted, icon: <CheckCircle2 className="h-5 w-5" />, color: "#34d399", delay: 2 },
+    { label: "Failed", value: animFailed, icon: <XCircle className="h-5 w-5" />, color: "#f87171", delay: 3 },
+    { label: "Avg Process Time", value: stats.avgTime, suffix: "s", icon: <Timer className="h-5 w-5" />, color: "#818cf8", delay: 4, isRaw: true },
   ];
 
   if (loading) {
@@ -505,17 +505,17 @@ export default function AIProcessingQueue() {
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
-          <h1 className="text-[#e2e8f0] text-2xl font-bold tracking-tight">AI Processing Queue</h1>
-          <p className="text-[#64748b] text-sm mt-1">8-stage intelligence pipeline with real-time progress tracking</p>
+          <h1 className="text-[#f1f5f9] text-2xl font-bold tracking-tight">AI Processing Queue</h1>
+          <p className="text-[#5a657a] text-sm mt-1">8-stage intelligence pipeline with real-time progress tracking</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={addTestItem} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-0 rounded-xl px-5">
+          <Button onClick={addTestItem} className="gap-2 bg-[#34d399] hover:bg-[#2bc48a] text-white border-0 rounded-xl px-5">
             <Plus className="h-4 w-4" /> Add Test Item
           </Button>
-          <Button variant="outline" onClick={clearCompleted} className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#94a3b8] hover:text-[#e2e8f0] rounded-xl px-4">
+          <Button variant="outline" onClick={clearCompleted} className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#8b97b0] hover:text-[#f1f5f9] rounded-xl px-4">
             <Trash2 className="h-4 w-4" /> Clear Completed
           </Button>
-          <Button variant="outline" onClick={retryFailed} className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#94a3b8] hover:text-[#e2e8f0] rounded-xl px-4">
+          <Button variant="outline" onClick={retryFailed} className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#8b97b0] hover:text-[#f1f5f9] rounded-xl px-4">
             <RotateCcw className="h-4 w-4" /> Retry Failed
           </Button>
         </div>
@@ -534,12 +534,12 @@ export default function AIProcessingQueue() {
           >
             <div className="relative flex items-start justify-between p-4">
               <div>
-                <span className="text-[#64748b] text-[10px] font-medium uppercase tracking-wider">{sc.label}</span>
+                <span className="text-[#5a657a] text-[10px] font-medium uppercase tracking-wider">{sc.label}</span>
                 <div className="flex items-baseline gap-1 mt-1">
-                  <span className="text-[#e2e8f0] text-2xl font-bold tabular-nums">
+                  <span className="text-[#f1f5f9] text-2xl font-bold tabular-nums">
                     {sc.isRaw ? sc.value : sc.value}
                   </span>
-                  {sc.suffix && <span className="text-[#64748b] text-sm">{sc.suffix}</span>}
+                  {sc.suffix && <span className="text-[#5a657a] text-sm">{sc.suffix}</span>}
                 </div>
               </div>
               <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: `${sc.color}15`, color: sc.color }}>
@@ -558,16 +558,16 @@ export default function AIProcessingQueue() {
         className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-6"
       >
         <div className="flex items-center gap-2 mb-6">
-          <Brain className="h-5 w-5 text-blue-400" />
-          <h2 className="text-[#e2e8f0] text-sm font-semibold uppercase tracking-wider">Processing Pipeline</h2>
+          <Brain className="h-5 w-5 text-[#22d3ee]" />
+          <h2 className="text-[#f1f5f9] text-sm font-semibold uppercase tracking-wider">Processing Pipeline</h2>
           {highestActiveStage && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="ml-2 flex items-center gap-1.5 rounded-full bg-blue-500/15 border border-blue-500/30 px-3 py-1"
+              className="ml-2 flex items-center gap-1.5 rounded-full bg-[#22d3ee]/15 border border-[rgba(34,211,238,0.15)] px-3 py-1"
             >
-              <motion.div className="h-1.5 w-1.5 rounded-full bg-blue-400" animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }} />
-              <span className="text-blue-400 text-xs font-medium">
+              <motion.div className="h-1.5 w-1.5 rounded-full bg-cyan-400" animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }} />
+              <span className="text-[#22d3ee] text-xs font-medium">
                 Active: {PIPELINE_STAGES.find(s => s.key === highestActiveStage)?.label}
               </span>
             </motion.div>
@@ -602,17 +602,17 @@ export default function AIProcessingQueue() {
       >
         <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Activity className="h-4 w-4 text-[#64748b]" />
-            <span className="text-[#e2e8f0] text-sm font-semibold">Queue Items</span>
-            <Badge variant="outline" className="border-white/10 text-[#64748b] text-xs ml-1">{localQueue.length}</Badge>
+            <Activity className="h-4 w-4 text-[#5a657a]" />
+            <span className="text-[#f1f5f9] text-sm font-semibold">Queue Items</span>
+            <Badge variant="outline" className="border-white/10 text-[#5a657a] text-xs ml-1">{localQueue.length}</Badge>
           </div>
         </div>
 
         {localQueue.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <Inbox className="h-12 w-12 text-[#4a5568]" />
-            <p className="text-[#64748b] text-sm">No items in the queue</p>
-            <Button onClick={addTestItem} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl">
+            <Inbox className="h-12 w-12 text-[#3d4659]" />
+            <p className="text-[#5a657a] text-sm">No items in the queue</p>
+            <Button onClick={addTestItem} className="gap-2 bg-[#34d399] hover:bg-[#2bc48a] text-white rounded-xl">
               <Plus className="h-4 w-4" /> Add Test Item
             </Button>
           </div>
@@ -620,14 +620,14 @@ export default function AIProcessingQueue() {
           <Table>
             <TableHeader>
               <TableRow className="border-white/10 hover:bg-transparent">
-                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">FIR ID</TableHead>
-                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Current Stage</TableHead>
-                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Progress</TableHead>
-                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Started</TableHead>
-                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Duration</TableHead>
-                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Status</TableHead>
-                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Error</TableHead>
-                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Actions</TableHead>
+                <TableHead className="text-[#5a657a] text-xs font-semibold uppercase tracking-wider">FIR ID</TableHead>
+                <TableHead className="text-[#5a657a] text-xs font-semibold uppercase tracking-wider">Current Stage</TableHead>
+                <TableHead className="text-[#5a657a] text-xs font-semibold uppercase tracking-wider">Progress</TableHead>
+                <TableHead className="text-[#5a657a] text-xs font-semibold uppercase tracking-wider">Started</TableHead>
+                <TableHead className="text-[#5a657a] text-xs font-semibold uppercase tracking-wider">Duration</TableHead>
+                <TableHead className="text-[#5a657a] text-xs font-semibold uppercase tracking-wider">Status</TableHead>
+                <TableHead className="text-[#5a657a] text-xs font-semibold uppercase tracking-wider">Error</TableHead>
+                <TableHead className="text-[#5a657a] text-xs font-semibold uppercase tracking-wider">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -641,7 +641,7 @@ export default function AIProcessingQueue() {
                     transition={{ duration: 0.25 }}
                     className="border-b border-white/5 hover:bg-white/5 transition-colors"
                   >
-                    <TableCell className="text-[#e2e8f0] text-xs font-mono font-medium py-2.5">
+                    <TableCell className="text-[#f1f5f9] text-xs font-mono font-medium py-2.5">
                       {item.firId}
                     </TableCell>
                     <TableCell className="py-2.5">
@@ -652,46 +652,46 @@ export default function AIProcessingQueue() {
                         <Progress
                           value={item.progress}
                           className={`h-2 w-20 bg-white/5 ${
-                            item.stage === "failed" ? "[&>div]:bg-red-500" :
-                            item.stage === "completed" ? "[&>div]:bg-emerald-500" : "[&>div]:bg-blue-500"
+                            item.stage === "failed" ? "[&>div]:bg-[#f87171]" :
+                            item.stage === "completed" ? "[&>div]:bg-[#34d399]" : "[&>div]:bg-[#22d3ee]"
                           } [&>div]:rounded-full`}
                         />
-                        <span className="text-[#94a3b8] text-xs tabular-nums w-8">{item.progress}%</span>
+                        <span className="text-[#8b97b0] text-xs tabular-nums w-8">{item.progress}%</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-[#94a3b8] text-xs py-2.5">
+                    <TableCell className="text-[#8b97b0] text-xs py-2.5">
                       {new Date(item.startedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}
                     </TableCell>
-                    <TableCell className="text-[#94a3b8] text-xs tabular-nums py-2.5">
+                    <TableCell className="text-[#8b97b0] text-xs tabular-nums py-2.5">
                       {getDuration(item)}
                     </TableCell>
                     <TableCell className="py-2.5">
                       {item.stage === "completed" && (
-                        <span className="inline-flex items-center gap-1 text-emerald-400 text-xs font-medium">
+                        <span className="inline-flex items-center gap-1 text-[#34d399] text-xs font-medium">
                           <CheckCircle2 className="h-3.5 w-3.5" /> Done
                         </span>
                       )}
                       {item.stage === "failed" && (
-                        <span className="inline-flex items-center gap-1 text-red-400 text-xs font-medium">
+                        <span className="inline-flex items-center gap-1 text-[#f87171] text-xs font-medium">
                           <XCircle className="h-3.5 w-3.5" /> Failed
                         </span>
                       )}
                       {(item.stage !== "completed" && item.stage !== "failed") && (
-                        <span className="inline-flex items-center gap-1 text-blue-400 text-xs font-medium">
-                          <motion.div className="h-2 w-2 rounded-full bg-blue-400" animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }} />
+                        <span className="inline-flex items-center gap-1 text-[#22d3ee] text-xs font-medium">
+                          <motion.div className="h-2 w-2 rounded-full bg-cyan-400" animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }} />
                           Active
                         </span>
                       )}
                     </TableCell>
                     <TableCell className="text-xs py-2.5 max-w-[200px]">
                       {item.error ? (
-                        <span className="text-red-400 truncate block" title={item.error}>{item.error}</span>
+                        <span className="text-[#f87171] truncate block" title={item.error}>{item.error}</span>
                       ) : (
-                        <span className="text-[#4a5568]">—</span>
+                        <span className="text-[#3d4659]">—</span>
                       )}
                     </TableCell>
                     <TableCell className="py-2.5">
-                      <Button variant="ghost" size="sm" className="text-[#64748b] hover:text-[#e2e8f0] h-8 gap-1 text-xs"
+                      <Button variant="ghost" size="sm" className="text-[#5a657a] hover:text-[#f1f5f9] h-8 gap-1 text-xs"
                         onClick={() => { setSelectedItem(item); setShowDetail(true); }}>
                         <Eye className="h-3.5 w-3.5" /> Details
                       </Button>
@@ -706,15 +706,15 @@ export default function AIProcessingQueue() {
 
       {/* Detail Dialog */}
       <Dialog open={showDetail} onOpenChange={setShowDetail}>
-        <DialogContent className="bg-[#1a2035] border-[#2a3550] max-w-lg max-h-[85vh] overflow-hidden">
+        <DialogContent className="bg-[rgba(15,21,36,0.95)] border-[rgba(255,255,255,0.06)] max-w-lg max-h-[85vh] overflow-hidden">
           {selectedItem && (
             <>
               <DialogHeader>
-                <DialogTitle className="text-[#e2e8f0] flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-blue-400" />
+                <DialogTitle className="text-[#f1f5f9] flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-[#22d3ee]" />
                   {selectedItem.firId}
                 </DialogTitle>
-                <DialogDescription className="text-[#64748b]">
+                <DialogDescription className="text-[#5a657a]">
                   Stage history and processing details
                 </DialogDescription>
               </DialogHeader>
@@ -723,20 +723,20 @@ export default function AIProcessingQueue() {
                   {/* Summary */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                      <span className="text-[#64748b] text-xs block mb-1">Current Stage</span>
+                      <span className="text-[#5a657a] text-xs block mb-1">Current Stage</span>
                       <StageBadge stage={selectedItem.stage} />
                     </div>
                     <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                      <span className="text-[#64748b] text-xs block mb-1">Duration</span>
-                      <span className="text-[#e2e8f0] text-sm font-medium">{getDuration(selectedItem)}</span>
+                      <span className="text-[#5a657a] text-xs block mb-1">Duration</span>
+                      <span className="text-[#f1f5f9] text-sm font-medium">{getDuration(selectedItem)}</span>
                     </div>
                     <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                      <span className="text-[#64748b] text-xs block mb-1">Progress</span>
-                      <span className="text-[#e2e8f0] text-sm font-medium tabular-nums">{selectedItem.progress}%</span>
+                      <span className="text-[#5a657a] text-xs block mb-1">Progress</span>
+                      <span className="text-[#f1f5f9] text-sm font-medium tabular-nums">{selectedItem.progress}%</span>
                     </div>
                     <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                      <span className="text-[#64748b] text-xs block mb-1">Started</span>
-                      <span className="text-[#e2e8f0] text-sm font-medium">
+                      <span className="text-[#5a657a] text-xs block mb-1">Started</span>
+                      <span className="text-[#f1f5f9] text-sm font-medium">
                         {new Date(selectedItem.startedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}
                       </span>
                     </div>
@@ -744,18 +744,18 @@ export default function AIProcessingQueue() {
 
                   {/* Error */}
                   {selectedItem.error && (
-                    <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+                    <div className="rounded-xl border border-red-500/20 bg-[#f87171]/5 p-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <XCircle className="h-4 w-4 text-red-400" />
-                        <span className="text-red-400 text-sm font-semibold">Error</span>
+                        <XCircle className="h-4 w-4 text-[#f87171]" />
+                        <span className="text-[#f87171] text-sm font-semibold">Error</span>
                       </div>
-                      <p className="text-[#94a3b8] text-xs">{selectedItem.error}</p>
+                      <p className="text-[#8b97b0] text-xs">{selectedItem.error}</p>
                     </div>
                   )}
 
                   {/* Stage History Timeline */}
                   <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                    <h3 className="text-[#e2e8f0] text-sm font-semibold mb-4">Stage History</h3>
+                    <h3 className="text-[#f1f5f9] text-sm font-semibold mb-4">Stage History</h3>
                     <div className="space-y-0">
                       {selectedItem.stageHistory.map((entry, idx) => {
                         const stageInfo = PIPELINE_STAGES.find(s => s.key === entry.stage);
@@ -764,10 +764,10 @@ export default function AIProcessingQueue() {
                         const isCurrentStage = entry.stage === selectedItem.stage;
                         const isCompletedStage = !!entry.exitedAt;
 
-                        let dotColor = "#4a5568";
-                        if (isCompletedStage) dotColor = "#10b981";
+                        let dotColor = "#3d4659";
+                        if (isCompletedStage) dotColor = "#34d399";
                         if (isCurrentStage && !isCompletedStage) {
-                          dotColor = selectedItem.stage === "failed" ? "#ef4444" : "#3b82f6";
+                          dotColor = selectedItem.stage === "failed" ? "#f87171" : "#22d3ee";
                         }
 
                         return (
@@ -788,7 +788,7 @@ export default function AIProcessingQueue() {
                             </div>
                             <div className="flex-1 pb-6 min-w-0">
                               <div className="flex items-center justify-between gap-2">
-                                <span className="text-[#e2e8f0] text-sm font-medium">
+                                <span className="text-[#f1f5f9] text-sm font-medium">
                                   {stageInfo?.label ?? entry.stage}
                                 </span>
                                 {isCurrentStage && !isCompletedStage && (
@@ -797,14 +797,14 @@ export default function AIProcessingQueue() {
                                   />
                                 )}
                               </div>
-                              <div className="text-[#4a5568] text-xs mt-0.5">
+                              <div className="text-[#3d4659] text-xs mt-0.5">
                                 Entered: {new Date(entry.enteredAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}
                                 {entry.exitedAt && (
                                   <> &middot; Exited: {new Date(entry.exitedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}</>
                                 )}
                               </div>
                               {isCompletedStage && (
-                                <div className="text-[#64748b] text-[10px] mt-0.5">
+                                <div className="text-[#5a657a] text-[10px] mt-0.5">
                                   Duration: {Math.round((new Date(entry.exitedAt!).getTime() - new Date(entry.enteredAt).getTime()) / 1000)}s
                                 </div>
                               )}

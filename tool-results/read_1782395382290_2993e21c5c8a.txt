@@ -1,0 +1,1046 @@
+     1→     1→"use client";
+     2→     2→
+     3→     3→import React, {
+     4→     4→  useEffect,
+     5→     5→  useState,
+     6→     6→  useMemo,
+     7→     7→  useCallback,
+     8→     8→  useRef,
+     9→     9→} from "react";
+    10→    10→import { motion, AnimatePresence } from "framer-motion";
+    11→    11→import {
+    12→    12→  Search,
+    13→    13→  Truck,
+    14→    14→  Link2,
+    15→    15→  ShieldAlert,
+    16→    16→  Eye,
+    17→    17→  Network,
+    18→    18→  StickyNote,
+    19→    19→  FileDown,
+    20→    20→  FileSpreadsheet,
+    21→    21→  FileJson,
+    22→    22→  Printer,
+    23→    23→  X,
+    24→    24→  ChevronUp,
+    25→    25→  ChevronDown,
+    26→    26→  ChevronsUpDown,
+    27→    27→  Filter,
+    28→    28→  Clock,
+    29→    29→  MapPin,
+    30→    30→  Car,
+    31→    31→  Calendar,
+    32→    32→  ArrowUpDown,
+    33→    33→  AlertTriangle,
+    34→    34→  CheckCircle2,
+    35→    35→  Loader2,
+    36→    36→} from "lucide-react";
+    37→    37→import { useAppStore } from "@/lib/store";
+    38→    38→import { loadCrimeData } from "@/lib/data";
+    39→    39→import type { Vehicle, FIR, CrimeDataset } from "@/lib/types";
+    40→    40→import {
+    41→    41→  exportToCSV,
+    42→    42→  exportToJSON,
+    43→    43→  exportToExcel,
+    44→    44→  exportToPrint,
+    45→    45→  formatNumber,
+    46→    46→} from "@/lib/export-utils";
+    47→    47→
+    48→    48→import { Button } from "@/components/ui/button";
+    49→    49→import { Input } from "@/components/ui/input";
+    50→    50→import { Badge } from "@/components/ui/badge";
+    51→    51→import { Skeleton } from "@/components/ui/skeleton";
+    52→    52→import { Separator } from "@/components/ui/separator";
+    53→    53→import { ScrollArea } from "@/components/ui/scroll-area";
+    54→    54→import {
+    55→    55→  Table,
+    56→    56→  TableHeader,
+    57→    57→  TableBody,
+    58→    58→  TableHead,
+    59→    59→  TableRow,
+    60→    60→  TableCell,
+    61→    61→} from "@/components/ui/table";
+    62→    62→import {
+    63→    63→  Select,
+    64→    64→  SelectContent,
+    65→    65→  SelectItem,
+    66→    66→  SelectTrigger,
+    67→    67→  SelectValue,
+    68→    68→} from "@/components/ui/select";
+    69→    69→import {
+    70→    70→  DropdownMenu,
+    71→    71→  DropdownMenuContent,
+    72→    72→  DropdownMenuItem,
+    73→    73→  DropdownMenuSeparator,
+    74→    74→  DropdownMenuTrigger,
+    75→    75→} from "@/components/ui/dropdown-menu";
+    76→    76→import { Textarea } from "@/components/ui/textarea";
+    77→    77→import {
+    78→    78→  Dialog,
+    79→    79→  DialogContent,
+    80→    80→  DialogHeader,
+    81→    81→  DialogTitle,
+    82→    82→  DialogDescription,
+    83→    83→  DialogFooter,
+    84→    84→} from "@/components/ui/dialog";
+    85→    85→
+    86→    86→// ─── Types ──────────────────────────────────────────────────────────
+    87→    87→type VehicleStatus = "Active" | "Under Investigation" | "Cleared";
+    88→    88→type SortField = "reg" | "type" | "make" | "color" | "linkedCrimes" | "lastCrimeDate" | "status";
+    89→    89→type SortDir = "asc" | "desc";
+    90→    90→
+    91→    91→interface VehicleWithMeta extends Vehicle {
+    92→    92→  linkedFirs: FIR[];
+    93→    93→  linkedCrimeCount: number;
+    94→    94→  districtsUsed: string[];
+    95→    95→  lastCrimeDate: string | null;
+    96→    96→  status: VehicleStatus;
+    97→    97→  isStolen: boolean;
+    98→    98→  underSurveillance: boolean;
+    99→    99→}
+   100→   100→
+   101→   101→// ─── Animated Counter ───────────────────────────────────────────────
+   102→   102→function useAnimatedCounter(target: number, duration = 1200) {
+   103→   103→  const [count, setCount] = useState(0);
+   104→   104→  useEffect(() => {
+   105→   105→    let start = 0;
+   106→   106→    const step = target / (duration / 16);
+   107→   107→    const timer = setInterval(() => {
+   108→   108→      start += step;
+   109→   109→      if (start >= target) {
+   110→   110→        setCount(target);
+   111→   111→        clearInterval(timer);
+   112→   112→      } else {
+   113→   113→        setCount(Math.floor(start));
+   114→   114→      }
+   115→   115→    }, 16);
+   116→   116→    return () => clearInterval(timer);
+   117→   117→  }, [target, duration]);
+   118→   118→  return count;
+   119→   119→}
+   120→   120→
+   121→   121→// ─── Stat Card ──────────────────────────────────────────────────────
+   122→   122→interface StatCardProps {
+   123→   123→  icon: React.ReactNode;
+   124→   124→  label: string;
+   125→   125→  value: number;
+   126→   126→  suffix?: string;
+   127→   127→  color: string;
+   128→   128→  delay: number;
+   129→   129→}
+   130→   130→
+   131→   131→function StatCard({ icon, label, value, suffix = "", color, delay }: StatCardProps) {
+   132→   132→  const animatedValue = useAnimatedCounter(value, 1400);
+   133→   133→  return (
+   134→   134→    <motion.div
+   135→   135→      initial={{ opacity: 0, y: 20 }}
+   136→   136→      animate={{ opacity: 1, y: 0 }}
+   137→   137→      transition={{ duration: 0.5, delay: delay * 0.08 }}
+   138→   138→      whileHover={{ scale: 1.03, boxShadow: `0 0 30px ${color}20` }}
+   139→   139→      className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl transition-all duration-300"
+   140→   140→      style={{ borderLeft: `3px solid ${color}` }}
+   141→   141→    >
+   142→   142→      <div
+   143→   143→        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+   144→   144→        style={{ background: `linear-gradient(135deg, ${color}08 0%, transparent 60%)` }}
+   145→   145→      />
+   146→   146→      <div className="relative flex items-start justify-between p-5">
+   147→   147→        <div className="flex-1">
+   148→   148→          <span className="text-[#64748b] text-xs font-medium uppercase tracking-wider">
+   149→   149→            {label}
+   150→   150→          </span>
+   151→   151→          <div className="flex items-baseline gap-1.5 mt-1">
+   152→   152→            <span className="text-[#e2e8f0] text-3xl font-bold tabular-nums">
+   153→   153→              {animatedValue.toLocaleString("en-IN")}
+   154→   154→            </span>
+   155→   155→            {suffix && <span className="text-[#64748b] text-sm">{suffix}</span>}
+   156→   156→          </div>
+   157→   157→        </div>
+   158→   158→        <div
+   159→   159→          className="flex h-11 w-11 items-center justify-center rounded-xl"
+   160→   160→          style={{ backgroundColor: `${color}15`, color }}
+   161→   161→        >
+   162→   162→          {icon}
+   163→   163→        </div>
+   164→   164→      </div>
+   165→   165→    </motion.div>
+   166→   166→  );
+   167→   167→}
+   168→   168→
+   169→   169→// ─── Main Component ─────────────────────────────────────────────────
+   170→   170→export default function VehiclesPage() {
+   171→   171→  const { addAuditLog, addNotification, setView } = useAppStore();
+   172→   172→  const [data, setData] = useState<CrimeDataset | null>(null);
+   173→   173→  const [loading, setLoading] = useState(true);
+   174→   174→  const [searchQuery, setSearchQuery] = useState("");
+   175→   175→  const [debouncedSearch, setDebouncedSearch] = useState("");
+   176→   176→  const [filterType, setFilterType] = useState("all");
+   177→   177→  const [filterColor, setFilterColor] = useState("all");
+   178→   178→  const [filterStatus, setFilterStatus] = useState("all");
+   179→   179→  const [showFilters, setShowFilters] = useState(false);
+   180→   180→  const [selectedVehicle, setSelectedVehicle] = useState<VehicleWithMeta | null>(null);
+   181→   181→  const [noteText, setNoteText] = useState("");
+   182→   182→  const [showNoteDialog, setShowNoteDialog] = useState(false);
+   183→   183→  const [sortField, setSortField] = useState<SortField>("linkedCrimes");
+   184→   184→  const [sortDir, setSortDir] = useState<SortDir>("desc");
+   185→   185→  const [page, setPage] = useState(1);
+   186→   186→  const pageSize = 15;
+   187→   187→
+   188→   188→  // Debounce search
+   189→   189→  useEffect(() => {
+   190→   190→    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 250);
+   191→   191→    return () => clearTimeout(timer);
+   192→   192→  }, [searchQuery]);
+   193→   193→
+   194→   194→  // Load data
+   195→   195→  useEffect(() => {
+   196→   196→    loadCrimeData()
+   197→   197→      .then(setData)
+   198→   198→      .catch(console.error)
+   199→   199→      .finally(() => setLoading(false));
+   200→   200→  }, []);
+   201→   201→
+   202→   202→  // Derive vehicle metadata
+   203→   203→  const vehiclesWithMeta = useMemo<VehicleWithMeta[]>(() => {
+   204→   204→    if (!data) return [];
+   205→   205→    return data.vehicles.map((v) => {
+   206→   206→      const linkedFirs = data.firs.filter((f) => f.vehicle_used === v.id);
+   207→   207→      const districtsUsed = [...new Set(linkedFirs.map((f) => f.district))];
+   208→   208→      const dates = linkedFirs.map((f) => f.date).sort().reverse();
+   209→   209→      const lastCrimeDate = dates[0] || null;
+   210→   210→
+   211→   211→      // Determine status
+   212→   212→      let status: VehicleStatus = "Cleared";
+   213→   213→      if (linkedFirs.length > 1) {
+   214→   214→        status = "Active";
+   215→   215→      } else if (linkedFirs.length === 1 && lastCrimeDate) {
+   216→   216→        const daysSince = Math.floor(
+   217→   217→          (Date.now() - new Date(lastCrimeDate).getTime()) / (1000 * 60 * 60 * 24)
+   218→   218→        );
+   219→   219→        if (daysSince <= 90) status = "Under Investigation";
+   220→   220→      }
+   221→   221→
+   222→   222→      const isStolen = linkedFirs.some(
+   223→   223→        (f) => f.crime_type === "Vehicle Theft" || f.items_stolen.some((i) => i.toLowerCase().includes("vehicle") || i.toLowerCase().includes("bike") || i.toLowerCase().includes("car"))
+   224→   224→      );
+   225→   225→      const underSurveillance = status === "Active" && linkedFirs.length >= 2;
+   226→   226→
+   227→   227→      return {
+   228→   228→        ...v,
+   229→   229→        linkedFirs,
+   230→   230→        linkedCrimeCount: linkedFirs.length,
+   231→   231→        districtsUsed,
+   232→   232→        lastCrimeDate,
+   233→   233→        status,
+   234→   234→        isStolen,
+   235→   235→        underSurveillance,
+   236→   236→      };
+   237→   237→    });
+   238→   238→  }, [data]);
+   239→   239→
+   240→   240→  // Stats
+   241→   241→  const stats = useMemo(() => {
+   242→   242→    const total = vehiclesWithMeta.length;
+   243→   243→    const linked = vehiclesWithMeta.filter((v) => v.linkedCrimeCount > 0).length;
+   244→   244→    const stolen = vehiclesWithMeta.filter((v) => v.isStolen).length;
+   245→   245→    const surveillance = vehiclesWithMeta.filter((v) => v.underSurveillance).length;
+   246→   246→    return { total, linked, stolen, surveillance };
+   247→   247→  }, [vehiclesWithMeta]);
+   248→   248→
+   249→   249→  // Unique filter values
+   250→   250→  const vehicleTypes = useMemo(() => [...new Set(vehiclesWithMeta.map((v) => v.type))].sort(), [vehiclesWithMeta]);
+   251→   251→  const vehicleColors = useMemo(() => [...new Set(vehiclesWithMeta.map((v) => v.color))].sort(), [vehiclesWithMeta]);
+   252→   252→
+   253→   253→  // Filtered + sorted
+   254→   254→  const filtered = useMemo(() => {
+   255→   255→    let result = vehiclesWithMeta;
+   256→   256→    if (debouncedSearch) {
+   257→   257→      const q = debouncedSearch.toLowerCase();
+   258→   258→      result = result.filter(
+   259→   259→        (v) =>
+   260→   260→          v.reg.toLowerCase().includes(q) ||
+   261→   261→          v.make.toLowerCase().includes(q) ||
+   262→   262→          v.type.toLowerCase().includes(q)
+   263→   263→      );
+   264→   264→    }
+   265→   265→    if (filterType !== "all") result = result.filter((v) => v.type === filterType);
+   266→   266→    if (filterColor !== "all") result = result.filter((v) => v.color === filterColor);
+   267→   267→    if (filterStatus !== "all") result = result.filter((v) => v.status === filterStatus);
+   268→   268→
+   269→   269→    result = [...result].sort((a, b) => {
+   270→   270→      const dir = sortDir === "asc" ? 1 : -1;
+   271→   271→      switch (sortField) {
+   272→   272→        case "reg": return dir * a.reg.localeCompare(b.reg);
+   273→   273→        case "type": return dir * a.type.localeCompare(b.type);
+   274→   274→        case "make": return dir * a.make.localeCompare(b.make);
+   275→   275→        case "color": return dir * a.color.localeCompare(b.color);
+   276→   276→        case "linkedCrimes": return dir * (a.linkedCrimeCount - b.linkedCrimeCount);
+   277→   277→        case "lastCrimeDate": {
+   278→   278→          const da = a.lastCrimeDate ? new Date(a.lastCrimeDate).getTime() : 0;
+   279→   279→          const db = b.lastCrimeDate ? new Date(b.lastCrimeDate).getTime() : 0;
+   280→   280→          return dir * (da - db);
+   281→   281→        }
+   282→   282→        case "status": return dir * a.status.localeCompare(b.status);
+   283→   283→        default: return 0;
+   284→   284→      }
+   285→   285→    });
+   286→   286→
+   287→   287→    return result;
+   288→   288→  }, [vehiclesWithMeta, debouncedSearch, filterType, filterColor, filterStatus, sortField, sortDir]);
+   289→   289→
+   290→   290→  const totalPages = Math.ceil(filtered.length / pageSize);
+   291→   291→  const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
+   292→   292→
+   293→   293→  const activeFilterCount = useMemo(() => {
+   294→   294→    let count = 0;
+   295→   295→    if (filterType !== "all") count++;
+   296→   296→    if (filterColor !== "all") count++;
+   297→   297→    if (filterStatus !== "all") count++;
+   298→   298→    return count;
+   299→   299→  }, [filterType, filterColor, filterStatus]);
+   300→   300→
+   301→   301→  const SortIcon = ({ field }: { field: SortField }) => {
+   302→   302→    if (sortField !== field) return <ChevronsUpDown className="h-3.5 w-3.5 text-[#4a5568]" />;
+   303→   303→    return sortDir === "asc" ? (
+   304→   304→      <ChevronUp className="h-3.5 w-3.5 text-blue-400" />
+   305→   305→    ) : (
+   306→   306→      <ChevronDown className="h-3.5 w-3.5 text-blue-400" />
+   307→   307→    );
+   308→   308→  };
+   309→   309→
+   310→   310→  const handleSort = useCallback((field: SortField) => {
+   311→   311→    if (sortField === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+   312→   312→    else { setSortField(field); setSortDir("desc"); }
+   313→   313→  }, [sortField]);
+   314→   314→
+   315→   315→  const clearFilters = useCallback(() => {
+   316→   316→    setFilterType("all");
+   317→   317→    setFilterColor("all");
+   318→   318→    setFilterStatus("all");
+   319→   319→    setSearchQuery("");
+   320→   320→    setDebouncedSearch("");
+   321→   321→    setPage(1);
+   322→   322→  }, []);
+   323→   323→
+   324→   324→  const handleAddNote = useCallback(() => {
+   325→   325→    if (!noteText.trim() || !selectedVehicle) return;
+   326→   326→    addAuditLog({
+   327→   327→      user: "Current User",
+   328→   328→      role: "investigator",
+   329→   329→      action: "Added note to vehicle",
+   330→   330→      entity: "Vehicle",
+   331→   331→      entityId: selectedVehicle.reg,
+   332→   332→      oldValue: "",
+   333→   333→      newValue: noteText.trim(),
+   334→   334→      status: "success",
+   335→   335→    });
+   336→   336→    addNotification({
+   337→   337→      title: "Note Added",
+   338→   338→      message: `Note added to vehicle ${selectedVehicle.reg}`,
+   339→   339→      type: "success",
+   340→   340→      read: false,
+   341→   341→    });
+   342→   342→    setNoteText("");
+   343→   343→    setShowNoteDialog(false);
+   344→   344→  }, [noteText, selectedVehicle, addAuditLog, addNotification]);
+   345→   345→
+   346→   346→  const handleAction = useCallback(
+   347→   347→    (action: string, v: VehicleWithMeta) => {
+   348→   348→      addAuditLog({
+   349→   349→        user: "Current User",
+   350→   350→        role: "investigator",
+   351→   351→        action,
+   352→   352→        entity: "Vehicle",
+   353→   353→        entityId: v.reg,
+   354→   354→        oldValue: "",
+   355→   355→        newValue: action,
+   356→   356→        status: "success",
+   357→   357→      });
+   358→   358→      if (action === "View Linked FIRs") {
+   359→   359→        setSelectedVehicle(v);
+   360→   360→      } else if (action === "View on Network") {
+   361→   361→        addNotification({
+   362→   362→          title: "Network View",
+   363→   363→          message: `Opening network graph for vehicle ${v.reg}`,
+   364→   364→          type: "info",
+   365→   365→          read: false,
+   366→   366→        });
+   367→   367→        setView("network");
+   368→   368→      } else if (action === "Add Note") {
+   369→   369→        setSelectedVehicle(v);
+   370→   370→        setShowNoteDialog(true);
+   371→   371→      }
+   372→   372→    },
+   373→   373→    [addAuditLog, addNotification, setView]
+   374→   374→  );
+   375→   375→
+   376→   376→  const statusColor = (s: VehicleStatus) => {
+   377→   377→    switch (s) {
+   378→   378→      case "Active": return "bg-red-500/15 text-red-400 border-red-500/30";
+   379→   379→      case "Under Investigation": return "bg-amber-500/15 text-amber-400 border-amber-500/30";
+   380→   380→      case "Cleared": return "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
+   381→   381→    }
+   382→   382→  };
+   383→   383→
+   384→   384→  const getExportData = useCallback(() =>
+   385→   385→    filtered.map((v) => ({
+   386→   386→      registration: v.reg,
+   387→   387→      type: v.type,
+   388→   388→      make: v.make,
+   389→   389→      color: v.color,
+   390→   390→      linked_crimes: v.linkedCrimeCount,
+   391→   391→      districts_used: v.districtsUsed.join("; "),
+   392→   392→      last_crime_date: v.lastCrimeDate || "N/A",
+   393→   393→      status: v.status,
+   394→   394→    })),
+   395→   395→  [filtered]);
+   396→   396→
+   397→   397→  // ── Render: Loading ──
+   398→   398→  if (loading) {
+   399→   399→    return (
+   400→   400→      <div className="space-y-4 p-6">
+   401→   401→        <Skeleton className="h-8 w-56" />
+   402→   402→        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+   403→   403→          {Array.from({ length: 4 }).map((_, i) => (
+   404→   404→            <Skeleton key={i} className="h-28 rounded-2xl" />
+   405→   405→          ))}
+   406→   406→        </div>
+   407→   407→        <Skeleton className="h-12 w-full rounded-xl" />
+   408→   408→        <div className="space-y-2">
+   409→   409→          {Array.from({ length: 8 }).map((_, i) => (
+   410→   410→            <Skeleton key={i} className="h-12 w-full rounded-lg" />
+   411→   411→          ))}
+   412→   412→        </div>
+   413→   413→      </div>
+   414→   414→    );
+   415→   415→  }
+   416→   416→
+   417→   417→  // ── Render: Main ──
+   418→   418→  return (
+   419→   419→    <div className="space-y-5 p-6">
+   420→   420→      {/* ── Page Header ── */}
+   421→   421→      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+   422→   422→        <div>
+   423→   423→          <h1 className="text-[#e2e8f0] text-2xl font-bold tracking-tight">
+   424→   424→            Vehicle Records
+   425→   425→          </h1>
+   426→   426→          <p className="text-[#64748b] text-sm mt-1">
+   427→   427→            Track vehicles linked to criminal activities across districts
+   428→   428→          </p>
+   429→   429→        </div>
+   430→   430→        <div className="flex items-center gap-2">
+   431→   431→          <DropdownMenu>
+   432→   432→            <DropdownMenuTrigger asChild>
+   433→   433→              <Button variant="outline" className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#e2e8f0] rounded-xl">
+   434→   434→                <FileDown className="h-4 w-4" />
+   435→   435→                Export
+   436→   436→              </Button>
+   437→   437→            </DropdownMenuTrigger>
+   438→   438→            <DropdownMenuContent className="bg-[#1a2035] border-white/10 text-[#e2e8f0]">
+   439→   439→              <DropdownMenuItem onClick={() => exportToCSV(getExportData(), "vehicles_export")}>
+   440→   440→                <FileDown className="mr-2 h-4 w-4" /> Export CSV
+   441→   441→              </DropdownMenuItem>
+   442→   442→              <DropdownMenuItem onClick={() => exportToExcel(getExportData(), "vehicles_export")}>
+   443→   443→                <FileSpreadsheet className="mr-2 h-4 w-4" /> Export Excel
+   444→   444→              </DropdownMenuItem>
+   445→   445→              <DropdownMenuItem onClick={() => exportToJSON(getExportData(), "vehicles_export")}>
+   446→   446→                <FileJson className="mr-2 h-4 w-4" /> Export JSON
+   447→   447→              </DropdownMenuItem>
+   448→   448→              <DropdownMenuSeparator className="bg-white/10" />
+   449→   449→              <DropdownMenuItem onClick={() => exportToPrint("vehicle-table")}>
+   450→   450→                <Printer className="mr-2 h-4 w-4" /> Print
+   451→   451→              </DropdownMenuItem>
+   452→   452→            </DropdownMenuContent>
+   453→   453→          </DropdownMenu>
+   454→   454→        </div>
+   455→   455→      </div>
+   456→   456→
+   457→   457→      {/* ── Stats Row ── */}
+   458→   458→      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+   459→   459→        <StatCard
+   460→   460→          icon={<Car className="h-5 w-5" />}
+   461→   461→          label="Total Vehicles"
+   462→   462→          value={stats.total}
+   463→   463→          color="#3b82f6"
+   464→   464→          delay={0}
+   465→   465→        />
+   466→   466→        <StatCard
+   467→   467→          icon={<Link2 className="h-5 w-5" />}
+   468→   468→          label="Linked to Crimes"
+   469→   469→          value={stats.linked}
+   470→   470→          color="#10b981"
+   471→   471→          delay={1}
+   472→   472→        />
+   473→   473→        <StatCard
+   474→   474→          icon={<ShieldAlert className="h-5 w-5" />}
+   475→   475→          label="Stolen"
+   476→   476→          value={stats.stolen}
+   477→   477→          color="#ef4444"
+   478→   478→          delay={2}
+   479→   479→        />
+   480→   480→        <StatCard
+   481→   481→          icon={<Eye className="h-5 w-5" />}
+   482→   482→          label="Under Surveillance"
+   483→   483→          value={stats.surveillance}
+   484→   484→          color="#f59e0b"
+   485→   485→          delay={3}
+   486→   486→        />
+   487→   487→      </div>
+   488→   488→
+   489→   489→      {/* ── Search + Filter Controls ── */}
+   490→   490→      <div className="space-y-3">
+   491→   491→        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+   492→   492→          <div className="relative flex-1">
+   493→   493→            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#4a5568]" />
+   494→   494→            <Input
+   495→   495→              value={searchQuery}
+   496→   496→              onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+   497→   497→              placeholder="Search by registration, make, type..."
+   498→   498→              className="pl-10 bg-white/5 border-white/10 text-[#e2e8f0] placeholder:text-[#4a5568] h-10 rounded-xl focus-visible:border-blue-500/50 focus-visible:ring-blue-500/20"
+   499→   499→            />
+   500→   500→          </div>
+   501→   501→          <Button
+   502→   502→            variant="outline"
+   503→   503→            onClick={() => setShowFilters(!showFilters)}
+   504→   504→            className={`gap-2 border-white/10 rounded-xl h-10 ${
+   505→   505→              showFilters || activeFilterCount > 0
+   506→   506→                ? "bg-blue-500/10 border-blue-500/30 text-blue-400"
+   507→   507→                : "bg-white/5 text-[#94a3b8] hover:bg-white/10"
+   508→   508→            }`}
+   509→   509→          >
+   510→   510→            <Filter className="h-4 w-4" />
+   511→   511→            Filters
+   512→   512→            {activeFilterCount > 0 && (
+   513→   513→              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold text-white">
+   514→   514→                {activeFilterCount}
+   515→   515→              </span>
+   516→   516→            )}
+   517→   517→          </Button>
+   518→   518→        </div>
+   519→   519→
+   520→   520→        {/* Advanced Filters */}
+   521→   521→        <AnimatePresence>
+   522→   522→          {showFilters && (
+   523→   523→            <motion.div
+   524→   524→              initial={{ opacity: 0, height: 0 }}
+   525→   525→              animate={{ opacity: 1, height: "auto" }}
+   526→   526→              exit={{ opacity: 0, height: 0 }}
+   527→   527→              transition={{ duration: 0.3 }}
+   528→   528→              className="overflow-hidden"
+   529→   529→            >
+   530→   530→              <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-4">
+   531→   531→                <div className="space-y-1.5">
+   532→   532→                  <label className="text-[#64748b] text-xs font-medium uppercase tracking-wider">
+   533→   533→                    Vehicle Type
+   534→   534→                  </label>
+   535→   535→                  <Select value={filterType} onValueChange={(v) => { setFilterType(v); setPage(1); }}>
+   536→   536→                    <SelectTrigger className="w-[180px] bg-white/5 border-white/10 text-[#e2e8f0] h-9 rounded-xl">
+   537→   537→                      <SelectValue placeholder="All Types" />
+   538→   538→                    </SelectTrigger>
+   539→   539→                    <SelectContent className="bg-[#1a2035] border-white/10 text-[#e2e8f0]">
+   540→   540→                      <SelectItem value="all">All Types</SelectItem>
+   541→   541→                      {vehicleTypes.map((t) => (
+   542→   542→                        <SelectItem key={t} value={t}>{t}</SelectItem>
+   543→   543→                      ))}
+   544→   544→                    </SelectContent>
+   545→   545→                  </Select>
+   546→   546→                </div>
+   547→   547→                <div className="space-y-1.5">
+   548→   548→                  <label className="text-[#64748b] text-xs font-medium uppercase tracking-wider">
+   549→   549→                    Color
+   550→   550→                  </label>
+   551→   551→                  <Select value={filterColor} onValueChange={(v) => { setFilterColor(v); setPage(1); }}>
+   552→   552→                    <SelectTrigger className="w-[160px] bg-white/5 border-white/10 text-[#e2e8f0] h-9 rounded-xl">
+   553→   553→                      <SelectValue placeholder="All Colors" />
+   554→   554→                    </SelectTrigger>
+   555→   555→                    <SelectContent className="bg-[#1a2035] border-white/10 text-[#e2e8f0]">
+   556→   556→                      <SelectItem value="all">All Colors</SelectItem>
+   557→   557→                      {vehicleColors.map((c) => (
+   558→   558→                        <SelectItem key={c} value={c}>{c}</SelectItem>
+   559→   559→                      ))}
+   560→   560→                    </SelectContent>
+   561→   561→                  </Select>
+   562→   562→                </div>
+   563→   563→                <div className="space-y-1.5">
+   564→   564→                  <label className="text-[#64748b] text-xs font-medium uppercase tracking-wider">
+   565→   565→                    Status
+   566→   566→                  </label>
+   567→   567→                  <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v); setPage(1); }}>
+   568→   568→                    <SelectTrigger className="w-[180px] bg-white/5 border-white/10 text-[#e2e8f0] h-9 rounded-xl">
+   569→   569→                      <SelectValue placeholder="All Statuses" />
+   570→   570→                    </SelectTrigger>
+   571→   571→                    <SelectContent className="bg-[#1a2035] border-white/10 text-[#e2e8f0]">
+   572→   572→                      <SelectItem value="all">All Statuses</SelectItem>
+   573→   573→                      <SelectItem value="Active">Active</SelectItem>
+   574→   574→                      <SelectItem value="Under Investigation">Under Investigation</SelectItem>
+   575→   575→                      <SelectItem value="Cleared">Cleared</SelectItem>
+   576→   576→                    </SelectContent>
+   577→   577→                  </Select>
+   578→   578→                </div>
+   579→   579→                <Button
+   580→   580→                  variant="ghost"
+   581→   581→                  onClick={clearFilters}
+   582→   582→                  className="text-[#94a3b8] hover:text-[#e2e8f0] hover:bg-white/10 h-9 text-xs"
+   583→   583→                >
+   584→   584→                  Clear All
+   585→   585→                </Button>
+   586→   586→              </div>
+   587→   587→            </motion.div>
+   588→   588→          )}
+   589→   589→        </AnimatePresence>
+   590→   590→      </div>
+   591→   591→
+   592→   592→      {/* ── Results Info ── */}
+   593→   593→      <div className="flex items-center justify-between">
+   594→   594→        <p className="text-[#64748b] text-sm">
+   595→   595→          Showing <span className="text-[#e2e8f0] font-medium">{paged.length}</span> of{" "}
+   596→   596→          <span className="text-[#e2e8f0] font-medium">{filtered.length}</span> vehicles
+   597→   597→        </p>
+   598→   598→      </div>
+   599→   599→
+   600→   600→      {/* ── Table ── */}
+   601→   601→      {filtered.length === 0 ? (
+   602→   602→        <motion.div
+   603→   603→          initial={{ opacity: 0, y: 10 }}
+   604→   604→          animate={{ opacity: 1, y: 0 }}
+   605→   605→          className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl py-20"
+   606→   606→        >
+   607→   607→          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5">
+   608→   608→            <Truck className="h-8 w-8 text-[#4a5568]" />
+   609→   609→          </div>
+   610→   610→          <div className="text-center">
+   611→   611→            <p className="text-[#e2e8f0] font-medium">No vehicles found</p>
+   612→   612→            <p className="text-[#64748b] text-sm mt-1">
+   613→   613→              Try adjusting your search or filters
+   614→   614→            </p>
+   615→   615→          </div>
+   616→   616→          {activeFilterCount > 0 && (
+   617→   617→            <Button variant="ghost" onClick={clearFilters} className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10">
+   618→   618→              Clear Filters
+   619→   619→            </Button>
+   620→   620→          )}
+   621→   621→        </motion.div>
+   622→   622→      ) : (
+   623→   623→        <div id="vehicle-table">
+   624→   624→          <motion.div
+   625→   625→            initial={{ opacity: 0, y: 10 }}
+   626→   626→            animate={{ opacity: 1, y: 0 }}
+   627→   627→            className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl overflow-hidden"
+   628→   628→          >
+   629→   629→            <ScrollArea className="w-full">
+   630→   630→              <Table>
+   631→   631→                <TableHeader>
+   632→   632→                  <TableRow className="border-white/5 hover:bg-transparent">
+   633→   633→                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">
+   634→   634→                      <button onClick={() => handleSort("reg")} className="flex items-center gap-1 hover:text-[#e2e8f0] transition-colors">
+   635→   635→                        Registration <SortIcon field="reg" />
+   636→   636→                      </button>
+   637→   637→                    </TableHead>
+   638→   638→                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">
+   639→   639→                      <button onClick={() => handleSort("type")} className="flex items-center gap-1 hover:text-[#e2e8f0] transition-colors">
+   640→   640→                        Type <SortIcon field="type" />
+   641→   641→                      </button>
+   642→   642→                    </TableHead>
+   643→   643→                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">
+   644→   644→                      <button onClick={() => handleSort("make")} className="flex items-center gap-1 hover:text-[#e2e8f0] transition-colors">
+   645→   645→                        Make <SortIcon field="make" />
+   646→   646→                      </button>
+   647→   647→                    </TableHead>
+   648→   648→                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">
+   649→   649→                      <button onClick={() => handleSort("color")} className="flex items-center gap-1 hover:text-[#e2e8f0] transition-colors">
+   650→   650→                        Color <SortIcon field="color" />
+   651→   651→                      </button>
+   652→   652→                    </TableHead>
+   653→   653→                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">
+   654→   654→                      <button onClick={() => handleSort("linkedCrimes")} className="flex items-center gap-1 hover:text-[#e2e8f0] transition-colors">
+   655→   655→                        Linked Crimes <SortIcon field="linkedCrimes" />
+   656→   656→                      </button>
+   657→   657→                    </TableHead>
+   658→   658→                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">
+   659→   659→                      Districts Used
+   660→   660→                    </TableHead>
+   661→   661→                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">
+   662→   662→                      <button onClick={() => handleSort("lastCrimeDate")} className="flex items-center gap-1 hover:text-[#e2e8f0] transition-colors">
+   663→   663→                        Last Crime Date <SortIcon field="lastCrimeDate" />
+   664→   664→                      </button>
+   665→   665→                    </TableHead>
+   666→   666→                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">
+   667→   667→                      <button onClick={() => handleSort("status")} className="flex items-center gap-1 hover:text-[#e2e8f0] transition-colors">
+   668→   668→                        Status <SortIcon field="status" />
+   669→   669→                      </button>
+   670→   670→                    </TableHead>
+   671→   671→                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider text-right">
+   672→   672→                      Actions
+   673→   673→                    </TableHead>
+   674→   674→                  </TableRow>
+   675→   675→                </TableHeader>
+   676→   676→                <TableBody>
+   677→   677→                  {paged.map((v, idx) => (
+   678→   678→                    <motion.tr
+   679→   679→                      key={v.id}
+   680→   680→                      initial={{ opacity: 0 }}
+   681→   681→                      animate={{ opacity: 1 }}
+   682→   682→                      transition={{ delay: idx * 0.02 }}
+   683→   683→                      className="border-white/5 hover:bg-white/5 cursor-pointer transition-colors group"
+   684→   684→                      onClick={() => setSelectedVehicle(v)}
+   685→   685→                    >
+   686→   686→                      <TableCell className="text-[#e2e8f0] font-mono text-sm font-medium">
+   687→   687→                        {v.reg}
+   688→   688→                      </TableCell>
+   689→   689→                      <TableCell className="text-[#94a3b8] text-sm">{v.type}</TableCell>
+   690→   690→                      <TableCell className="text-[#94a3b8] text-sm">{v.make}</TableCell>
+   691→   691→                      <TableCell className="text-[#94a3b8] text-sm">
+   692→   692→                        <div className="flex items-center gap-2">
+   693→   693→                          <span
+   694→   694→                            className="inline-block h-3 w-3 rounded-full border border-white/20"
+   695→   695→                            style={{ backgroundColor: v.color.toLowerCase() }}
+   696→   696→                          />
+   697→   697→                          {v.color}
+   698→   698→                        </div>
+   699→   699→                      </TableCell>
+   700→   700→                      <TableCell className="text-[#e2e8f0] text-sm font-medium">
+   701→   701→                        {v.linkedCrimeCount > 0 ? (
+   702→   702→                          <Badge className="bg-blue-500/15 text-blue-400 border-blue-500/30 text-[10px]">
+   703→   703→                            {v.linkedCrimeCount} FIR{v.linkedCrimeCount !== 1 ? "s" : ""}
+   704→   704→                          </Badge>
+   705→   705→                        ) : (
+   706→   706→                          <span className="text-[#4a5568]">—</span>
+   707→   707→                        )}
+   708→   708→                      </TableCell>
+   709→   709→                      <TableCell className="text-[#94a3b8] text-sm">
+   710→   710→                        {v.districtsUsed.length > 0 ? (
+   711→   711→                          <div className="flex flex-wrap gap-1">
+   712→   712→                            {v.districtsUsed.map((d) => (
+   713→   713→                              <Badge key={d} variant="outline" className="text-[10px] border-white/10 text-[#94a3b8]">
+   714→   714→                                {d}
+   715→   715→                              </Badge>
+   716→   716→                            ))}
+   717→   717→                          </div>
+   718→   718→                        ) : (
+   719→   719→                          <span className="text-[#4a5568]">—</span>
+   720→   720→                        )}
+   721→   721→                      </TableCell>
+   722→   722→                      <TableCell className="text-[#94a3b8] text-sm">
+   723→   723→                        {v.lastCrimeDate
+   724→   724→                          ? new Date(v.lastCrimeDate).toLocaleDateString("en-IN", {
+   725→   725→                              day: "2-digit",
+   726→   726→                              month: "short",
+   727→   727→                              year: "numeric",
+   728→   728→                            })
+   729→   729→                          : <span className="text-[#4a5568]">—</span>}
+   730→   730→                      </TableCell>
+   731→   731→                      <TableCell>
+   732→   732→                        <Badge className={`text-[10px] border ${statusColor(v.status)}`}>
+   733→   733→                          {v.status}
+   734→   734→                        </Badge>
+   735→   735→                      </TableCell>
+   736→   736→                      <TableCell className="text-right">
+   737→   737→                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+   738→   738→                          <Button
+   739→   739→                            size="sm"
+   740→   740→                            variant="ghost"
+   741→   741→                            onClick={(e) => { e.stopPropagation(); handleAction("View Linked FIRs", v); }}
+   742→   742→                            className="h-7 w-7 p-0 text-[#94a3b8] hover:text-blue-400 hover:bg-blue-500/10"
+   743→   743→                            title="View Linked FIRs"
+   744→   744→                          >
+   745→   745→                            <Eye className="h-3.5 w-3.5" />
+   746→   746→                          </Button>
+   747→   747→                          <Button
+   748→   748→                            size="sm"
+   749→   749→                            variant="ghost"
+   750→   750→                            onClick={(e) => { e.stopPropagation(); handleAction("View on Network", v); }}
+   751→   751→                            className="h-7 w-7 p-0 text-[#94a3b8] hover:text-emerald-400 hover:bg-emerald-500/10"
+   752→   752→                            title="View on Network"
+   753→   753→                          >
+   754→   754→                            <Network className="h-3.5 w-3.5" />
+   755→   755→                          </Button>
+   756→   756→                          <Button
+   757→   757→                            size="sm"
+   758→   758→                            variant="ghost"
+   759→   759→                            onClick={(e) => { e.stopPropagation(); handleAction("Add Note", v); }}
+   760→   760→                            className="h-7 w-7 p-0 text-[#94a3b8] hover:text-amber-400 hover:bg-amber-500/10"
+   761→   761→                            title="Add Note"
+   762→   762→                          >
+   763→   763→                            <StickyNote className="h-3.5 w-3.5" />
+   764→   764→                          </Button>
+   765→   765→                        </div>
+   766→   766→                      </TableCell>
+   767→   767→                    </motion.tr>
+   768→   768→                  ))}
+   769→   769→                </TableBody>
+   770→   770→              </Table>
+   771→   771→            </ScrollArea>
+   772→   772→          </motion.div>
+   773→   773→
+   774→   774→          {/* ── Pagination ── */}
+   775→   775→          {totalPages > 1 && (
+   776→   776→            <div className="flex items-center justify-between">
+   777→   777→              <p className="text-[#64748b] text-sm">
+   778→   778→                Page {page} of {totalPages}
+   779→   779→              </p>
+   780→   780→              <div className="flex items-center gap-2">
+   781→   781→                <Button
+   782→   782→                  variant="outline"
+   783→   783→                  size="sm"
+   784→   784→                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+   785→   785→                  disabled={page === 1}
+   786→   786→                  className="border-white/10 bg-white/5 text-[#94a3b8] hover:bg-white/10 rounded-lg h-8"
+   787→   787→                >
+   788→   788→                  Previous
+   789→   789→                </Button>
+   790→   790→                <Button
+   791→   791→                  variant="outline"
+   792→   792→                  size="sm"
+   793→   793→                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+   794→   794→                  disabled={page === totalPages}
+   795→   795→                  className="border-white/10 bg-white/5 text-[#94a3b8] hover:bg-white/10 rounded-lg h-8"
+   796→   796→                >
+   797→   797→                  Next
+   798→   798→                </Button>
+   799→   799→              </div>
+   800→   800→            </div>
+   801→   801→          )}
+   802→   802→        </div>
+   803→   803→      )}
+   804→   804→
+   805→   805→      {/* ── Detail Panel (Side Sheet) ── */}
+   806→   806→      <AnimatePresence>
+   807→   807→        {selectedVehicle && (
+   808→   808→          <motion.div
+   809→   809→            initial={{ opacity: 0, x: 400 }}
+   810→   810→            animate={{ opacity: 1, x: 0 }}
+   811→   811→            exit={{ opacity: 0, x: 400 }}
+   812→   812→            transition={{ type: "spring", damping: 25, stiffness: 250 }}
+   813→   813→            className="fixed right-0 top-0 bottom-0 z-40 w-[480px] border-l border-white/10 bg-[#0d1225]/95 backdrop-blur-xl shadow-2xl"
+   814→   814→          >
+   815→   815→            <ScrollArea className="h-full">
+   816→   816→              <div className="p-6 space-y-6">
+   817→   817→                {/* Header */}
+   818→   818→                <div className="flex items-start justify-between">
+   819→   819→                  <div>
+   820→   820→                    <h2 className="text-[#e2e8f0] text-lg font-bold">{selectedVehicle.reg}</h2>
+   821→   821→                    <p className="text-[#64748b] text-sm mt-0.5">
+   822→   822→                      {selectedVehicle.make} · {selectedVehicle.type} · {selectedVehicle.color}
+   823→   823→                    </p>
+   824→   824→                  </div>
+   825→   825→                  <Button
+   826→   826→                    variant="ghost"
+   827→   827→                    onClick={() => setSelectedVehicle(null)}
+   828→   828→                    className="h-8 w-8 p-0 text-[#64748b] hover:text-[#e2e8f0] hover:bg-white/10 rounded-lg"
+   829→   829→                  >
+   830→   830→                    <X className="h-4 w-4" />
+   831→   831→                  </Button>
+   832→   832→                </div>
+   833→   833→
+   834→   834→                {/* Status & Flags */}
+   835→   835→                <div className="flex flex-wrap gap-2">
+   836→   836→                  <Badge className={`text-xs border ${statusColor(selectedVehicle.status)}`}>
+   837→   837→                    {selectedVehicle.status}
+   838→   838→                  </Badge>
+   839→   839→                  {selectedVehicle.isStolen && (
+   840→   840→                    <Badge className="bg-red-500/15 text-red-400 border-red-500/30 text-xs">
+   841→   841→                      <ShieldAlert className="h-3 w-3 mr-1" /> Stolen
+   842→   842→                    </Badge>
+   843→   843→                  )}
+   844→   844→                  {selectedVehicle.underSurveillance && (
+   845→   845→                    <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30 text-xs animate-pulse">
+   846→   846→                      <Eye className="h-3 w-3 mr-1" /> Under Surveillance
+   847→   847→                    </Badge>
+   848→   848→                  )}
+   849→   849→                </div>
+   850→   850→
+   851→   851→                {/* Vehicle Details Grid */}
+   852→   852→                <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
+   853→   853→                  <h3 className="text-[#e2e8f0] text-sm font-semibold">Vehicle Details</h3>
+   854→   854→                  {[
+   855→   855→                    { label: "Registration", value: selectedVehicle.reg },
+   856→   856→                    { label: "Type", value: selectedVehicle.type },
+   857→   857→                    { label: "Make", value: selectedVehicle.make },
+   858→   858→                    { label: "Color", value: selectedVehicle.color },
+   859→   859→                    { label: "ID", value: selectedVehicle.id },
+   860→   860→                    { label: "Linked FIRs", value: String(selectedVehicle.linkedCrimeCount) },
+   861→   861→                    { label: "Districts Used", value: selectedVehicle.districtsUsed.join(", ") || "N/A" },
+   862→   862→                    {
+   863→   863→                      label: "Last Crime Date",
+   864→   864→                      value: selectedVehicle.lastCrimeDate
+   865→   865→                        ? new Date(selectedVehicle.lastCrimeDate).toLocaleDateString("en-IN", {
+   866→   866→                            day: "2-digit",
+   867→   867→                            month: "long",
+   868→   868→                            year: "numeric",
+   869→   869→                          })
+   870→   870→                        : "N/A",
+   871→   871→                    },
+   872→   872→                  ].map((item) => (
+   873→   873→                    <div key={item.label} className="flex justify-between">
+   874→   874→                      <span className="text-[#64748b] text-sm">{item.label}</span>
+   875→   875→                      <span className="text-[#e2e8f0] text-sm font-medium">{item.value}</span>
+   876→   876→                    </div>
+   877→   877→                  ))}
+   878→   878→                </div>
+   879→   879→
+   880→   880→                {/* Actions */}
+   881→   881→                <div className="flex flex-wrap gap-2">
+   882→   882→                  <Button
+   883→   883→                    onClick={() => handleAction("View Linked FIRs", selectedVehicle)}
+   884→   884→                    className="gap-2 bg-blue-600 hover:bg-blue-700 text-white border-0 rounded-xl text-sm flex-1"
+   885→   885→                  >
+   886→   886→                    <Eye className="h-4 w-4" /> View Linked FIRs
+   887→   887→                  </Button>
+   888→   888→                  <Button
+   889→   889→                    onClick={() => handleAction("View on Network", selectedVehicle)}
+   890→   890→                    className="gap-2 bg-white/5 hover:bg-white/10 text-[#e2e8f0] border border-white/10 rounded-xl text-sm flex-1"
+   891→   891→                  >
+   892→   892→                    <Network className="h-4 w-4" /> View on Network
+   893→   893→                  </Button>
+   894→   894→                  <Button
+   895→   895→                    onClick={() => setShowNoteDialog(true)}
+   896→   896→                    className="gap-2 bg-white/5 hover:bg-white/10 text-[#e2e8f0] border border-white/10 rounded-xl text-sm flex-1"
+   897→   897→                  >
+   898→   898→                    <StickyNote className="h-4 w-4" /> Add Note
+   899→   899→                  </Button>
+   900→   900→                </div>
+   901→   901→
+   902→   902→                {/* Linked FIRs */}
+   903→   903→                {selectedVehicle.linkedFirs.length > 0 && (
+   904→   904→                  <div className="space-y-3">
+   905→   905→                    <h3 className="text-[#e2e8f0] text-sm font-semibold flex items-center gap-2">
+   906→   906→                      <Link2 className="h-4 w-4 text-blue-400" />
+   907→   907→                      Linked FIRs ({selectedVehicle.linkedFirs.length})
+   908→   908→                    </h3>
+   909→   909→                    <div className="space-y-2">
+   910→   910→                      {selectedVehicle.linkedFirs
+   911→   911→                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+   912→   912→                        .map((fir) => (
+   913→   913→                          <div
+   914→   914→                            key={fir.fir_id}
+   915→   915→                            className="rounded-xl border border-white/10 bg-white/5 p-3 hover:bg-white/8 transition-colors cursor-pointer"
+   916→   916→                            onClick={() => {
+   917→   917→                              useAppStore.getState().setSelectedFirId(fir.fir_id);
+   918→   918→                              setSelectedVehicle(null);
+   919→   919→                            }}
+   920→   920→                          >
+   921→   921→                            <div className="flex items-center justify-between">
+   922→   922→                              <span className="text-[#e2e8f0] text-sm font-mono font-medium">
+   923→   923→                                {fir.fir_id}
+   924→   924→                              </span>
+   925→   925→                              <Badge className="text-[10px] bg-blue-500/15 text-blue-400 border-blue-500/30">
+   926→   926→                                {fir.crime_type}
+   927→   927→                              </Badge>
+   928→   928→                            </div>
+   929→   929→                            <div className="flex items-center gap-3 mt-1.5">
+   930→   930→                              <span className="text-[#94a3b8] text-xs flex items-center gap-1">
+   931→   931→                                <Calendar className="h-3 w-3" />
+   932→   932→                                {new Date(fir.date).toLocaleDateString("en-IN", {
+   933→   933→                                  day: "2-digit",
+   934→   934→                                  month: "short",
+   935→   935→                                  year: "numeric",
+   936→   936→                                })}
+   937→   937→                              </span>
+   938→   938→                              <span className="text-[#94a3b8] text-xs flex items-center gap-1">
+   939→   939→                                <MapPin className="h-3 w-3" />
+   940→   940→                                {fir.district}
+   941→   941→                              </span>
+   942→   942→                              <span className="text-[#94a3b8] text-xs flex items-center gap-1">
+   943→   943→                                <ShieldAlert className="h-3 w-3" />
+   944→   944→                                {fir.severity}
+   945→   945→                              </span>
+   946→   946→                            </div>
+   947→   947→                          </div>
+   948→   948→                        ))}
+   949→   949→                    </div>
+   950→   950→                  </div>
+   951→   951→                )}
+   952→   952→
+   953→   953→                {/* Usage Timeline */}
+   954→   954→                {selectedVehicle.linkedFirs.length > 1 && (
+   955→   955→                  <div className="space-y-3">
+   956→   956→                    <h3 className="text-[#e2e8f0] text-sm font-semibold flex items-center gap-2">
+   957→   957→                      <Clock className="h-4 w-4 text-amber-400" />
+   958→   958→                      Usage Timeline
+   959→   959→                    </h3>
+   960→   960→                    <div className="relative pl-6 space-y-4">
+   961→   961→                      <div className="absolute left-2 top-2 bottom-2 w-px bg-gradient-to-b from-blue-500/50 via-amber-500/50 to-transparent" />
+   962→   962→                      {selectedVehicle.linkedFirs
+   963→   963→                        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+   964→   964→                        .map((fir, i) => (
+   965→   965→                          <div key={fir.fir_id} className="relative">
+   966→   966→                            <div
+   967→   967→                              className="absolute -left-[18px] top-1.5 h-3 w-3 rounded-full border-2"
+   968→   968→                              style={{
+   969→   969→                                borderColor: i === 0 ? "#3b82f6" : "#f59e0b",
+   970→   970→                                backgroundColor: i === 0 ? "#3b82f6" : "#f59e0b",
+   971→   971→                              }}
+   972→   972→                            />
+   973→   973→                            <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+   974→   974→                              <div className="flex items-center justify-between">
+   975→   975→                                <span className="text-[#e2e8f0] text-sm font-medium">
+   976→   976→                                  {fir.crime_type}
+   977→   977→                                </span>
+   978→   978→                                <span className="text-[#64748b] text-xs">
+   979→   979→                                  {new Date(fir.date).toLocaleDateString("en-IN")}
+   980→   980→                                </span>
+   981→   981→                              </div>
+   982→   982→                              <p className="text-[#94a3b8] text-xs mt-1">
+   983→   983→                                {fir.district} · {fir.location.place}
+   984→   984→                              </p>
+   985→   985→                            </div>
+   986→   986→                          </div>
+   987→   987→                        ))}
+   988→   988→                    </div>
+   989→   989→                  </div>
+   990→   990→                )}
+   991→   991→              </div>
+   992→   992→            </ScrollArea>
+   993→   993→          </motion.div>
+   994→   994→        )}
+   995→   995→      </AnimatePresence>
+   996→   996→
+   997→   997→      {/* ── Backdrop for detail panel ── */}
+   998→   998→      <AnimatePresence>
+   999→   999→        {selectedVehicle && (
+  1000→  1000→          <motion.div
+  1001→  1001→            initial={{ opacity: 0 }}
+  1002→  1002→            animate={{ opacity: 1 }}
+  1003→  1003→            exit={{ opacity: 0 }}
+  1004→  1004→            onClick={() => setSelectedVehicle(null)}
+  1005→  1005→            className="fixed inset-0 z-30 bg-black/40"
+  1006→  1006→          />
+  1007→  1007→        )}
+  1008→  1008→      </AnimatePresence>
+  1009→  1009→
+  1010→  1010→      {/* ── Note Dialog ── */}
+  1011→  1011→      <Dialog open={showNoteDialog} onOpenChange={setShowNoteDialog}>
+  1012→  1012→        <DialogContent className="bg-[#1a2035] border-white/10 text-[#e2e8f0] sm:max-w-md">
+  1013→  1013→          <DialogHeader>
+  1014→  1014→            <DialogTitle>Add Note — {selectedVehicle?.reg}</DialogTitle>
+  1015→  1015→            <DialogDescription className="text-[#64748b]">
+  1016→  1016→              Add an investigative note to this vehicle record
+  1017→  1017→            </DialogDescription>
+  1018→  1018→          </DialogHeader>
+  1019→  1019→          <Textarea
+  1020→  1020→            value={noteText}
+  1021→  1021→            onChange={(e) => setNoteText(e.target.value)}
+  1022→  1022→            placeholder="Enter your note here..."
+  1023→  1023→            rows={4}
+  1024→  1024→            className="bg-white/5 border-white/10 text-[#e2e8f0] placeholder:text-[#4a5568] focus-visible:border-blue-500/50 focus-visible:ring-blue-500/20 rounded-xl"
+  1025→  1025→          />
+  1026→  1026→          <DialogFooter>
+  1027→  1027→            <Button
+  1028→  1028→              variant="ghost"
+  1029→  1029→              onClick={() => { setShowNoteDialog(false); setNoteText(""); }}
+  1030→  1030→              className="text-[#94a3b8] hover:text-[#e2e8f0] hover:bg-white/10 rounded-xl"
+  1031→  1031→            >
+  1032→  1032→              Cancel
+  1033→  1033→            </Button>
+  1034→  1034→            <Button
+  1035→  1035→              onClick={handleAddNote}
+  1036→  1036→              disabled={!noteText.trim()}
+  1037→  1037→              className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 rounded-xl"
+  1038→  1038→            >
+  1039→  1039→              Save Note
+  1040→  1040→            </Button>
+  1041→  1041→          </DialogFooter>
+  1042→  1042→        </DialogContent>
+  1043→  1043→      </Dialog>
+  1044→  1044→    </div>
+  1045→  1045→  );
+  1046→  1046→}

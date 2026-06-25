@@ -337,31 +337,31 @@ export default function VictimsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#e2e8f0]">Victims Registry</h1>
-          <p className="mt-1 text-sm text-[#64748b]">
+          <h1 className="text-2xl font-bold text-[#f1f5f9]">Victims Registry</h1>
+          <p className="mt-1 text-sm text-[#5a657a]">
             Aggregated victim data across all FIRs with cross-case analysis
           </p>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="border-white/10 bg-white/5 text-[#94a3b8] hover:bg-white/10 hover:text-[#e2e8f0]">
+            <Button variant="outline" size="sm" className="border-white/10 bg-white/5 text-[#8b97b0] hover:bg-white/10 hover:text-[#f1f5f9]">
               <FileDown className="mr-2 h-4 w-4" />
               Export
               <ChevronDown className="ml-2 h-3 w-3" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="border-[#2a3550] bg-[#1a2035]">
-            <DropdownMenuItem onClick={() => handleExport("csv")} className="text-[#94a3b8] focus:text-[#e2e8f0]">
+          <DropdownMenuContent className="border-[rgba(255,255,255,0.06)] bg-[rgba(15,21,36,0.45)]">
+            <DropdownMenuItem onClick={() => handleExport("csv")} className="text-[#8b97b0] focus:text-[#f1f5f9]">
               <FileDown className="mr-2 h-4 w-4" /> CSV
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleExport("json")} className="text-[#94a3b8] focus:text-[#e2e8f0]">
+            <DropdownMenuItem onClick={() => handleExport("json")} className="text-[#8b97b0] focus:text-[#f1f5f9]">
               <FileJson className="mr-2 h-4 w-4" /> JSON
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleExport("excel")} className="text-[#94a3b8] focus:text-[#e2e8f0]">
+            <DropdownMenuItem onClick={() => handleExport("excel")} className="text-[#8b97b0] focus:text-[#f1f5f9]">
               <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-white/10" />
-            <DropdownMenuItem onClick={() => handleExport("print")} className="text-[#94a3b8] focus:text-[#e2e8f0]">
+            <DropdownMenuItem onClick={() => handleExport("print")} className="text-[#8b97b0] focus:text-[#f1f5f9]">
               <Printer className="mr-2 h-4 w-4" /> Print
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -374,23 +374,23 @@ export default function VictimsPage() {
           {
             label: "Total Unique Victims",
             value: stats.totalVictims,
-            icon: <Users className="h-5 w-5 text-emerald-400" />,
-            accent: "border-emerald-500/20",
-            valueColor: "text-emerald-400",
+            icon: <Users className="h-5 w-5 text-[#34d399]" />,
+            accent: "border-[rgba(52,211,153,0.15)]",
+            valueColor: "text-[#34d399]",
           },
           {
             label: "Unique Districts Affected",
             value: stats.uniqueDistricts,
-            icon: <Building2 className="h-5 w-5 text-blue-400" />,
-            accent: "border-blue-500/20",
-            valueColor: "text-blue-400",
+            icon: <Building2 className="h-5 w-5 text-[#22d3ee]" />,
+            accent: "border-[rgba(34,211,238,0.15)]",
+            valueColor: "text-[#22d3ee]",
           },
           {
             label: "Most Common Crime Type",
             value: stats.mostCommonCrime,
-            icon: <Target className="h-5 w-5 text-amber-400" />,
-            accent: "border-amber-500/20",
-            valueColor: "text-amber-400",
+            icon: <Target className="h-5 w-5 text-[#fbbf24]" />,
+            accent: "border-[rgba(251,191,36,0.15)]",
+            valueColor: "text-[#fbbf24]",
             isText: true,
           },
         ].map((stat) => (
@@ -401,7 +401,7 @@ export default function VictimsPage() {
             className={`rounded-2xl border bg-white/5 backdrop-blur-xl p-4 ${stat.accent}`}
           >
             <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-[#64748b]">{stat.label}</p>
+              <p className="text-xs font-medium text-[#5a657a]">{stat.label}</p>
               {stat.icon}
             </div>
             <p
@@ -418,12 +418,12 @@ export default function VictimsPage() {
       {/* Search & Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[240px]">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#4a5568]" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#3d4659]" />
           <Input
             placeholder="Search by victim name..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="border-white/10 bg-white/5 pl-10 text-[#e2e8f0] placeholder-[#4a5568] focus:border-emerald-500/50"
+            className="border-white/10 bg-white/5 pl-10 text-[#f1f5f9] placeholder-[#3d4659] focus:border-[rgba(52,211,153,0.3)]"
           />
         </div>
         <Button
@@ -432,14 +432,14 @@ export default function VictimsPage() {
           onClick={() => setShowFilters(!showFilters)}
           className={`border-white/10 ${
             showFilters
-              ? "bg-emerald-600/20 text-emerald-400 border-emerald-500/30"
-              : "bg-white/5 text-[#94a3b8] hover:bg-white/10"
+              ? "bg-[rgba(52,211,153,0.12)] text-[#34d399] border-[rgba(52,211,153,0.15)]"
+              : "bg-white/5 text-[#8b97b0] hover:bg-white/10"
           }`}
         >
           <SlidersHorizontal className="mr-2 h-4 w-4" />
           Filters
           {(filterGender !== "all" || filterDistrict !== "all" || filterCrimeType !== "all") && (
-            <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white">
+            <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#34d399] text-[10px] font-bold text-white">
               {[filterGender, filterDistrict, filterCrimeType].filter((f) => f !== "all").length}
             </span>
           )}
@@ -456,42 +456,42 @@ export default function VictimsPage() {
           >
             <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
               <Select value={filterGender} onValueChange={setFilterGender}>
-                <SelectTrigger className="w-[150px] border-white/10 bg-white/5 text-[#94a3b8]">
+                <SelectTrigger className="w-[150px] border-white/10 bg-white/5 text-[#8b97b0]">
                   <SelectValue placeholder="Gender" />
                 </SelectTrigger>
-                <SelectContent className="border-[#2a3550] bg-[#1a2035]">
-                  <SelectItem value="all" className="text-[#94a3b8]">All Genders</SelectItem>
-                  <SelectItem value="Male" className="text-[#94a3b8]">Male</SelectItem>
-                  <SelectItem value="Female" className="text-[#94a3b8]">Female</SelectItem>
+                <SelectContent className="border-[rgba(255,255,255,0.06)] bg-[rgba(15,21,36,0.45)]">
+                  <SelectItem value="all" className="text-[#8b97b0]">All Genders</SelectItem>
+                  <SelectItem value="Male" className="text-[#8b97b0]">Male</SelectItem>
+                  <SelectItem value="Female" className="text-[#8b97b0]">Female</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={filterDistrict} onValueChange={setFilterDistrict}>
-                <SelectTrigger className="w-[200px] border-white/10 bg-white/5 text-[#94a3b8]">
+                <SelectTrigger className="w-[200px] border-white/10 bg-white/5 text-[#8b97b0]">
                   <SelectValue placeholder="District" />
                 </SelectTrigger>
-                <SelectContent className="border-[#2a3550] bg-[#1a2035]">
-                  <SelectItem value="all" className="text-[#94a3b8]">All Districts</SelectItem>
+                <SelectContent className="border-[rgba(255,255,255,0.06)] bg-[rgba(15,21,36,0.45)]">
+                  <SelectItem value="all" className="text-[#8b97b0]">All Districts</SelectItem>
                   {allDistricts.map((d) => (
-                    <SelectItem key={d} value={d} className="text-[#94a3b8]">
+                    <SelectItem key={d} value={d} className="text-[#8b97b0]">
                       {d}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <Select value={filterCrimeType} onValueChange={setFilterCrimeType}>
-                <SelectTrigger className="w-[180px] border-white/10 bg-white/5 text-[#94a3b8]">
+                <SelectTrigger className="w-[180px] border-white/10 bg-white/5 text-[#8b97b0]">
                   <SelectValue placeholder="Crime Type" />
                 </SelectTrigger>
-                <SelectContent className="border-[#2a3550] bg-[#1a2035]">
-                  <SelectItem value="all" className="text-[#94a3b8]">All Crime Types</SelectItem>
+                <SelectContent className="border-[rgba(255,255,255,0.06)] bg-[rgba(15,21,36,0.45)]">
+                  <SelectItem value="all" className="text-[#8b97b0]">All Crime Types</SelectItem>
                   {allCrimeTypes.map((ct) => (
-                    <SelectItem key={ct} value={ct} className="text-[#94a3b8]">
+                    <SelectItem key={ct} value={ct} className="text-[#8b97b0]">
                       {ct}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <div className="ml-auto text-xs text-[#64748b]">
+              <div className="ml-auto text-xs text-[#5a657a]">
                 {filteredData.length} of {aggregatedVictims.length} victims
               </div>
             </div>
@@ -508,9 +508,9 @@ export default function VictimsPage() {
       >
         {filteredData.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <Users className="mb-4 h-12 w-12 text-[#4a5568]" />
-            <p className="text-sm font-medium text-[#94a3b8]">No victims found</p>
-            <p className="mt-1 text-xs text-[#4a5568]">
+            <Users className="mb-4 h-12 w-12 text-[#3d4659]" />
+            <p className="text-sm font-medium text-[#8b97b0]">No victims found</p>
+            <p className="mt-1 text-xs text-[#3d4659]">
               Try adjusting your search or filters
             </p>
           </div>
@@ -518,31 +518,31 @@ export default function VictimsPage() {
           <Table>
             <TableHeader>
               <TableRow className="border-white/10 hover:bg-transparent">
-                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-[#64748b]">
+                <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">
                   Name
                 </TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-[#64748b]">
+                <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">
                   Age
                 </TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-[#64748b]">
+                <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">
                   Gender
                 </TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-[#64748b]">
+                <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">
                   Occupation
                 </TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-[#64748b]">
+                <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">
                   Crimes Against
                 </TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-[#64748b]">
+                <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">
                   Districts
                 </TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-[#64748b]">
+                <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">
                   Last Incident
                 </TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-[#64748b]">
+                <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">
                   Linked FIRs
                 </TableHead>
-                <TableHead className="text-right text-[11px] font-semibold uppercase tracking-wider text-[#64748b]">
+                <TableHead className="text-right text-[10px] font-semibold uppercase tracking-wider text-[#5a657a]">
                   Actions
                 </TableHead>
               </TableRow>
@@ -561,26 +561,26 @@ export default function VictimsPage() {
                       <div
                         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
                           getDisplayGender(victim.genders) === "Female"
-                            ? "bg-pink-500/20 text-pink-400"
-                            : "bg-blue-500/20 text-blue-400"
+                            ? "bg-[rgba(248,113,113,0.12)] text-[#f87171]"
+                            : "bg-[rgba(34,211,238,0.12)] text-[#22d3ee]"
                         }`}
                       >
                         {victim.name.charAt(0)}
                       </div>
-                      <span className="max-w-[200px] truncate text-sm font-medium text-[#e2e8f0]" title={victim.name}>
+                      <span className="max-w-[200px] truncate text-sm font-medium text-[#f1f5f9]" title={victim.name}>
                         {victim.name}
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm text-[#94a3b8]">
+                  <TableCell className="text-sm text-[#8b97b0]">
                     {getDisplayAge(victim.ages)}
                   </TableCell>
                   <TableCell>
                     <span
                       className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${
                         getDisplayGender(victim.genders) === "Female"
-                          ? "bg-pink-500/20 text-pink-400 border-pink-500/30"
-                          : "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                          ? "bg-[rgba(248,113,113,0.12)] text-[#f87171] border-[rgba(248,113,113,0.15)]"
+                          : "bg-[rgba(34,211,238,0.12)] text-[#22d3ee] border-[rgba(34,211,238,0.15)]"
                       }`}
                     >
                       {getDisplayGender(victim.genders)}
@@ -592,7 +592,7 @@ export default function VictimsPage() {
                         <Badge
                           key={occ}
                           variant="outline"
-                          className="border-white/10 text-[10px] text-[#94a3b8]"
+                          className="border-white/10 text-[10px] text-[#8b97b0]"
                         >
                           {occ}
                         </Badge>
@@ -601,8 +601,8 @@ export default function VictimsPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <span className="text-lg font-bold text-emerald-400">{victim.firs.length}</span>
-                      <span className="text-xs text-[#4a5568]">case{victim.firs.length !== 1 ? "s" : ""}</span>
+                      <span className="text-lg font-bold text-[#34d399]">{victim.firs.length}</span>
+                      <span className="text-xs text-[#3d4659]">case{victim.firs.length !== 1 ? "s" : ""}</span>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -610,17 +610,17 @@ export default function VictimsPage() {
                       {victim.districts.map((d) => (
                         <span
                           key={d}
-                          className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5 text-[10px] text-[#94a3b8]"
+                          className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5 text-[10px] text-[#8b97b0]"
                         >
-                          <MapPin className="h-2.5 w-2.5 text-[#4a5568]" />
+                          <MapPin className="h-2.5 w-2.5 text-[#3d4659]" />
                           {d}
                         </span>
                       ))}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1.5 text-xs text-[#94a3b8]">
-                      <Calendar className="h-3 w-3 text-[#4a5568]" />
+                    <div className="flex items-center gap-1.5 text-xs text-[#8b97b0]">
+                      <Calendar className="h-3 w-3 text-[#3d4659]" />
                       {new Date(victim.lastIncidentDate).toLocaleDateString("en-IN", {
                         day: "numeric",
                         month: "short",
@@ -638,7 +638,7 @@ export default function VictimsPage() {
                             setSelectedFirId(fir.fir_id);
                             setView("dm-fir");
                           }}
-                          className="font-mono text-[10px] text-emerald-400 hover:text-emerald-300 hover:underline"
+                          className="font-mono text-[10px] text-[#34d399] hover:text-[#6ee7b7] hover:underline"
                         >
                           {fir.fir_id}
                         </button>
@@ -650,7 +650,7 @@ export default function VictimsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 px-2 text-[#64748b] hover:text-emerald-400"
+                        className="h-7 px-2 text-[#5a657a] hover:text-[#34d399]"
                         onClick={(e) => handleViewFIRs(e, victim.name)}
                         title="View Linked FIRs"
                       >
@@ -659,7 +659,7 @@ export default function VictimsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 px-2 text-[#64748b] hover:text-blue-400"
+                        className="h-7 px-2 text-[#5a657a] hover:text-[#22d3ee]"
                         onClick={(e) => handleViewOnMap(e, victim.name)}
                         title="View on Map"
                       >

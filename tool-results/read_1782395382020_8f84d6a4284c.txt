@@ -1,0 +1,825 @@
+     1→     1→"use client";
+     2→     2→
+     3→     3→import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+     4→     4→import { motion, AnimatePresence } from "framer-motion";
+     5→     5→import {
+     6→     6→  Brain,
+     7→     7→  ScanLine,
+     8→     8→  GitBranch,
+     9→     9→  Network,
+    10→    10→  BarChart3,
+    11→    11→  Globe,
+    12→    12→  Cpu,
+    13→    13→  CheckCircle2,
+    14→    14→  XCircle,
+    15→    15→  Clock,
+    16→    16→  AlertTriangle,
+    17→    17→  Plus,
+    18→    18→  Trash2,
+    19→    19→  RotateCcw,
+    20→    20→  ChevronRight,
+    21→    21→  Loader2,
+    22→    22→  Zap,
+    23→    23→  Timer,
+    24→    24→  Layers,
+    25→    25→  Activity,
+    26→    26→  Eye,
+    27→    27→  Inbox,
+    28→    28→  FileSearch,
+    29→    29→  Sparkles,
+    30→    30→} from "lucide-react";
+    31→    31→import { useAppStore } from "@/lib/store";
+    32→    32→import { loadCrimeData } from "@/lib/data";
+    33→    33→import { generateId } from "@/lib/export-utils";
+    34→    34→import type { AIQueueItem, CrimeDataset } from "@/lib/types";
+    35→    35→import { Button } from "@/components/ui/button";
+    36→    36→import { Badge } from "@/components/ui/badge";
+    37→    37→import { Progress } from "@/components/ui/progress";
+    38→    38→import {
+    39→    39→  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+    40→    40→} from "@/components/ui/table";
+    41→    41→import {
+    42→    42→  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
+    43→    43→} from "@/components/ui/dialog";
+    44→    44→import { ScrollArea } from "@/components/ui/scroll-area";
+    45→    45→import LoadingSpinner from "@/components/ksp/LoadingSpinner";
+    46→    46→
+    47→    47→// ─── Pipeline Stages ────────────────────────────────────────────────
+    48→    48→const PIPELINE_STAGES = [
+    49→    49→  { key: "queued", label: "Queued", icon: Inbox, color: "#64748b" },
+    50→    50→  { key: "ocr", label: "OCR", icon: ScanLine, color: "#06b6d4" },
+    51→    51→  { key: "entity_extraction", label: "Entity Extraction", icon: FileSearch, color: "#8b5cf6" },
+    52→    52→  { key: "relationship_detection", label: "Relationship Detection", icon: GitBranch, color: "#ec4899" },
+    53→    53→  { key: "risk_scoring", label: "Risk Scoring", icon: BarChart3, color: "#f59e0b" },
+    54→    54→  { key: "network_update", label: "Network Update", icon: Network, color: "#3b82f6" },
+    55→    55→  { key: "embedding", label: "Embedding", icon: Cpu, color: "#10b981" },
+    56→    56→  { key: "completed", label: "Completed", icon: CheckCircle2, color: "#10b981" },
+    57→    57→] as const;
+    58→    58→
+    59→    59→type StageKey = AIQueueItem["stage"];
+    60→    60→type HistoryStageKey = StageKey | "completed";
+    61→    61→
+    62→    62→const STAGE_ORDER: StageKey[] = [
+    63→    63→  "queued", "ocr", "entity_extraction", "relationship_detection",
+    64→    64→  "risk_scoring", "network_update", "embedding", "completed",
+    65→    65→];
+    66→    66→
+    67→    67→function getStageIndex(stage: StageKey): number {
+    68→    68→  return STAGE_ORDER.indexOf(stage);
+    69→    69→}
+    70→    70→
+    71→    71→function getStageProgress(stage: StageKey): number {
+    72→    72→  const idx = getStageIndex(stage);
+    73→    73→  if (stage === "failed") return 0;
+    74→    74→  if (stage === "completed") return 100;
+    75→    75→  return Math.round((idx / (STAGE_ORDER.length - 1)) * 100);
+    76→    76→}
+    77→    77→
+    78→    78→// ─── Stage History Entry ────────────────────────────────────────────
+    79→    79→interface StageHistoryEntry {
+    80→    80→  stage: HistoryStageKey;
+    81→    81→  enteredAt: string;
+    82→    82→  exitedAt: string | null;
+    83→    83→}
+    84→    84→
+    85→    85→// ─── Initial Mock Queue ─────────────────────────────────────────────
+    86→    86→function generateInitialQueue(crimeData: CrimeDataset | null): Array<AIQueueItem & { stageHistory: StageHistoryEntry[] }> {
+    87→    87→  const now = Date.now();
+    88→    88→  const firs = crimeData?.firs ?? [];
+    89→    89→  const getFirId = () => firs.length > 0
+    90→    90→    ? firs[Math.floor(Math.random() * firs.length)].fir_id
+    91→    91→    : `FIR-2024-KA-${String(Math.floor(Math.random() * 200)).padStart(4, "0")}`;
+    92→    92→
+    93→    93→  const items: Array<AIQueueItem & { stageHistory: StageHistoryEntry[] }> = [];
+    94→    94→
+    95→    95→  // 2 completed
+    96→    96→  for (let i = 0; i < 2; i++) {
+    97→    97→    const completedAt = new Date(now - Math.random() * 3600000).toISOString();
+    98→    98→    const startedAt = new Date(now - 45000 - Math.random() * 60000).toISOString();
+    99→    99→    const history: StageHistoryEntry[] = STAGE_ORDER.filter(s => s !== "completed").map((s, idx) => ({
+   100→   100→      stage: s as HistoryStageKey,
+   101→   101→      enteredAt: new Date(new Date(startedAt).getTime() + idx * 5000 + Math.random() * 3000).toISOString(),
+   102→   102→      exitedAt: new Date(new Date(startedAt).getTime() + (idx + 1) * 5000 + Math.random() * 3000).toISOString() as string | null,
+   103→   103→    }));
+   104→   104→    history.push({ stage: "completed", enteredAt: completedAt, exitedAt: null });
+   105→   105→    items.push({
+   106→   106→      id: generateId("AIQ"),
+   107→   107→      firId: getFirId(),
+   108→   108→      stage: "completed",
+   109→   109→      progress: 100,
+   110→   110→      startedAt,
+   111→   111→      completedAt,
+   112→   112→      error: null,
+   113→   113→      stageHistory: history,
+   114→   114→    });
+   115→   115→  }
+   116→   116→
+   117→   117→  // 1 failed
+   118→   118→  {
+   119→   119→    const startedAt = new Date(now - 20000).toISOString();
+   120→   120→    const history: StageHistoryEntry[] = [
+   121→   121→      { stage: "queued", enteredAt: startedAt, exitedAt: new Date(now - 18000).toISOString() },
+   122→   122→      { stage: "ocr", enteredAt: new Date(now - 18000).toISOString(), exitedAt: new Date(now - 3000).toISOString() },
+   123→   123→      { stage: "failed", enteredAt: new Date(now - 3000).toISOString(), exitedAt: null },
+   124→   124→    ];
+   125→   125→    items.push({
+   126→   126→      id: generateId("AIQ"),
+   127→   127→      firId: getFirId(),
+   128→   128→      stage: "failed",
+   129→   129→      progress: 12,
+   130→   130→      startedAt,
+   131→   131→      completedAt: null,
+   132→   132→      error: "OCR engine timeout: document too large (45MB). Retry with smaller chunks.",
+   133→   133→      stageHistory: history,
+   134→   134→    });
+   135→   135→  }
+   136→   136→
+   137→   137→  // Another failed
+   138→   138→  {
+   139→   139→    const startedAt = new Date(now - 35000).toISOString();
+   140→   140→    const history: StageHistoryEntry[] = [
+   141→   141→      { stage: "queued", enteredAt: startedAt, exitedAt: new Date(now - 33000).toISOString() },
+   142→   142→      { stage: "ocr", enteredAt: new Date(now - 33000).toISOString(), exitedAt: new Date(now - 22000).toISOString() },
+   143→   143→      { stage: "entity_extraction", enteredAt: new Date(now - 22000).toISOString(), exitedAt: new Date(now - 5000).toISOString() },
+   144→   144→      { stage: "failed", enteredAt: new Date(now - 5000).toISOString(), exitedAt: null },
+   145→   145→    ];
+   146→   146→    items.push({
+   147→   147→      id: generateId("AIQ"),
+   148→   148→      firId: getFirId(),
+   149→   149→      stage: "failed",
+   150→   150→      progress: 28,
+   151→   151→      startedAt,
+   152→   152→      completedAt: null,
+   153→   153→      error: "Entity extraction API rate limit exceeded. Queue backoff for 60s.",
+   154→   154→      stageHistory: history,
+   155→   155→    });
+   156→   156→  }
+   157→   157→
+   158→   158→  // 3 at various processing stages
+   159→   159→  const processingStages: StageKey[] = ["ocr", "entity_extraction", "risk_scoring"];
+   160→   160→  processingStages.forEach((stage) => {
+   161→   161→    const startedAt = new Date(now - Math.random() * 30000).toISOString();
+   162→   162→    const idx = getStageIndex(stage);
+   163→   163→    const history: StageHistoryEntry[] = [];
+   164→   164→    for (let i = 0; i <= idx; i++) {
+   165→   165→      const entered = new Date(new Date(startedAt).getTime() + i * 5000).toISOString();
+   166→   166→      const exited = i < idx ? new Date(new Date(entered).getTime() + 4500 + Math.random() * 1000).toISOString() : null;
+   167→   167→      history.push({ stage: STAGE_ORDER[i], enteredAt: entered, exitedAt: exited });
+   168→   168→    }
+   169→   169→    items.push({
+   170→   170→      id: generateId("AIQ"),
+   171→   171→      firId: getFirId(),
+   172→   172→      stage,
+   173→   173→      progress: getStageProgress(stage),
+   174→   174→      startedAt,
+   175→   175→      completedAt: null,
+   176→   176→      error: null,
+   177→   177→      stageHistory: history,
+   178→   178→    });
+   179→   179→  });
+   180→   180→
+   181→   181→  // 3-4 queued
+   182→   182→  for (let i = 0; i < 4; i++) {
+   183→   183→    const startedAt = new Date(now - Math.random() * 15000).toISOString();
+   184→   184→    items.push({
+   185→   185→      id: generateId("AIQ"),
+   186→   186→      firId: getFirId(),
+   187→   187→      stage: "queued",
+   188→   188→      progress: 0,
+   189→   189→      startedAt,
+   190→   190→      completedAt: null,
+   191→   191→      error: null,
+   192→   192→      stageHistory: [{ stage: "queued", enteredAt: startedAt, exitedAt: null }],
+   193→   193→    });
+   194→   194→  }
+   195→   195→
+   196→   196→  return items;
+   197→   197→}
+   198→   198→
+   199→   199→// ─── Animated Counter ───────────────────────────────────────────────
+   200→   200→function useAnimatedCounter(target: number, duration = 1200) {
+   201→   201→  const [count, setCount] = useState(0);
+   202→   202→  useEffect(() => {
+   203→   203→    let start = 0;
+   204→   204→    const step = target / (duration / 16);
+   205→   205→    const timer = setInterval(() => {
+   206→   206→      start += step;
+   207→   207→      if (start >= target) { setCount(target); clearInterval(timer); }
+   208→   208→      else { setCount(Math.floor(start)); }
+   209→   209→    }, 16);
+   210→   210→    return () => clearInterval(timer);
+   211→   211→  }, [target, duration]);
+   212→   212→  return count;
+   213→   213→}
+   214→   214→
+   215→   215→// ─── Pipeline Node ──────────────────────────────────────────────────
+   216→   216→function PipelineNode({
+   217→   217→  stage,
+   218→   218→  isActive,
+   219→   219→  isCompleted,
+   220→   220→  isFailed,
+   221→   221→  index,
+   222→   222→}: {
+   223→   223→  stage: (typeof PIPELINE_STAGES)[number];
+   224→   224→  isActive: boolean;
+   225→   225→  isCompleted: boolean;
+   226→   226→  isFailed: boolean;
+   227→   227→  index: number;
+   228→   228→}) {
+   229→   229→  const Icon = stage.icon;
+   230→   230→  let nodeColor: string = stage.color;
+   231→   231→  if (isFailed) nodeColor = "#ef4444";
+   232→   232→  else if (isCompleted) nodeColor = "#10b981";
+   233→   233→  else if (!isActive) nodeColor = "#4a5568";
+   234→   234→
+   235→   235→  return (
+   236→   236→    <motion.div
+   237→   237→      className="flex flex-col items-center gap-2"
+   238→   238→      initial={{ opacity: 0, y: 15 }}
+   239→   239→      animate={{ opacity: 1, y: 0 }}
+   240→   240→      transition={{ delay: index * 0.08 }}
+   241→   241→    >
+   242→   242→      <motion.div
+   243→   243→        className={`relative flex h-14 w-14 items-center justify-center rounded-2xl border-2 transition-colors ${
+   244→   244→          isActive ? "border-transparent" : isCompleted ? "border-emerald-500/30" : isFailed ? "border-red-500/30" : "border-white/10"
+   245→   245→        }`}
+   246→   246→        style={{ backgroundColor: `${nodeColor}15` }}
+   247→   247→        animate={isActive ? { boxShadow: [`0 0 0px ${nodeColor}40`, `0 0 20px ${nodeColor}40`, `0 0 0px ${nodeColor}40`] } : {}}
+   248→   248→        transition={isActive ? { duration: 2, repeat: Infinity, ease: "easeInOut" } : {}}
+   249→   249→      >
+   250→   250→        <Icon className="h-6 w-6" style={{ color: nodeColor }} />
+   251→   251→        {isActive && (
+   252→   252→          <motion.div
+   253→   253→            className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-emerald-500"
+   254→   254→            animate={{ scale: [1, 1.4, 1] }}
+   255→   255→            transition={{ duration: 1.5, repeat: Infinity }}
+   256→   256→          />
+   257→   257→        )}
+   258→   258→        {isCompleted && <CheckCircle2 className="absolute -bottom-1 -right-1 h-4 w-4 text-emerald-400" />}
+   259→   259→        {isFailed && <XCircle className="absolute -bottom-1 -right-1 h-4 w-4 text-red-400" />}
+   260→   260→      </motion.div>
+   261→   261→      <span className="text-[10px] text-[#94a3b8] font-medium text-center max-w-[80px] leading-tight">{stage.label}</span>
+   262→   262→    </motion.div>
+   263→   263→  );
+   264→   264→}
+   265→   265→
+   266→   266→// ─── Pipeline Connector ─────────────────────────────────────────────
+   267→   267→function PipelineConnector({
+   268→   268→  isCompleted,
+   269→   269→  isActive,
+   270→   270→  index,
+   271→   271→}: {
+   272→   272→  isCompleted: boolean;
+   273→   273→  isActive: boolean;
+   274→   274→  index: number;
+   275→   275→}) {
+   276→   276→  return (
+   277→   277→    <div className="flex items-center self-start mt-7 w-8 lg:w-12 h-0.5 bg-white/10 relative overflow-hidden">
+   278→   278→      {(isCompleted || isActive) && (
+   279→   279→        <motion.div
+   280→   280→          className="absolute top-0 left-0 h-full w-3 rounded-full"
+   281→   281→          style={{ backgroundColor: isCompleted ? "#10b981" : "#3b82f6" }}
+   282→   282→          initial={{ left: "-12px" }}
+   283→   283→          animate={{ left: "calc(100% + 0px)" }}
+   284→   284→          transition={{ duration: 1.5, repeat: Infinity, ease: "linear", delay: index * 0.3 }}
+   285→   285→        />
+   286→   286→      )}
+   287→   287→      {isCompleted && <div className="absolute inset-0 bg-emerald-500/50" />}
+   288→   288→    </div>
+   289→   289→  );
+   290→   290→}
+   291→   291→
+   292→   292→// ─── Stage Badge ────────────────────────────────────────────────────
+   293→   293→function StageBadge({ stage }: { stage: StageKey }) {
+   294→   294→  const stageConfig: Record<string, { bg: string }> = {
+   295→   295→    queued: { bg: "bg-slate-500/15 text-slate-400 border-slate-500/30" },
+   296→   296→    ocr: { bg: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30" },
+   297→   297→    entity_extraction: { bg: "bg-violet-500/15 text-violet-400 border-violet-500/30" },
+   298→   298→    relationship_detection: { bg: "bg-pink-500/15 text-pink-400 border-pink-500/30" },
+   299→   299→    risk_scoring: { bg: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
+   300→   300→    network_update: { bg: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
+   301→   301→    embedding: { bg: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
+   302→   302→    completed: { bg: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
+   303→   303→    failed: { bg: "bg-red-500/15 text-red-400 border-red-500/30" },
+   304→   304→  };
+   305→   305→  const c = stageConfig[stage] || stageConfig.queued;
+   306→   306→  const label = PIPELINE_STAGES.find(s => s.key === stage)?.label ?? stage;
+   307→   307→  return (
+   308→   308→    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${c.bg}`}>
+   309→   309→      {label}
+   310→   310→    </span>
+   311→   311→  );
+   312→   312→}
+   313→   313→
+   314→   314→// ─── Main Component ─────────────────────────────────────────────────
+   315→   315→export default function AIProcessingQueue() {
+   316→   316→  const { crimeData, setCrimeData, addAIQueueItem, updateAIQueueItem, addNotification } = useAppStore();
+   317→   317→  const [localQueue, setLocalQueue] = useState<Array<AIQueueItem & { stageHistory: StageHistoryEntry[] }>>([]);
+   318→   318→  const [loading, setLoading] = useState(true);
+   319→   319→  const [selectedItem, setSelectedItem] = useState<(AIQueueItem & { stageHistory: StageHistoryEntry[] }) | null>(null);
+   320→   320→  const [showDetail, setShowDetail] = useState(false);
+   321→   321→
+   322→   322→  // Initialize
+   323→   323→  useEffect(() => {
+   324→   324→    async function init() {
+   325→   325→      let data = crimeData;
+   326→   326→      if (!data) {
+   327→   327→        try { data = await loadCrimeData(); setCrimeData(data); } catch (e) { console.error(e); }
+   328→   328→      }
+   329→   329→      const queue = generateInitialQueue(data);
+   330→   330→      // Sync to store
+   331→   331→      queue.forEach(item => {
+   332→   332→        const { stageHistory: _, ...storeItem } = item;
+   333→   333→        addAIQueueItem(storeItem);
+   334→   334→      });
+   335→   335→      setLocalQueue(queue);
+   336→   336→      setLoading(false);
+   337→   337→    }
+   338→   338→    init();
+   339→   339→    // eslint-disable-next-line react-hooks/exhaustive-deps
+   340→   340→  }, []);
+   341→   341→
+   342→   342→  // Auto-progress simulation: every 3 seconds, advance a queued item
+   343→   343→  useEffect(() => {
+   344→   344→    if (loading) return;
+   345→   345→    const interval = setInterval(() => {
+   346→   346→      setLocalQueue(prev => {
+   347→   347→        const copy = [...prev];
+   348→   348→        // Find items that are not completed/failed
+   349→   349→        const activeItems = copy.filter(q => q.stage !== "completed" && q.stage !== "failed");
+   350→   350→        if (activeItems.length === 0) return prev;
+   351→   351→
+   352→   352→        // Prefer the earliest staged item
+   353→   353→        activeItems.sort((a, b) => getStageIndex(a.stage) - getStageIndex(b.stage));
+   354→   354→        const target = activeItems[0];
+   355→   355→        const idx = copy.findIndex(q => q.id === target.id);
+   356→   356→        if (idx === -1) return prev;
+   357→   357→
+   358→   358→        const currentIdx = getStageIndex(target.stage);
+   359→   359→        // 5% chance of failure at processing stages
+   360→   360→        const willFail = currentIdx > 0 && currentIdx < STAGE_ORDER.length - 1 && Math.random() < 0.05;
+   361→   361→
+   362→   362→        const now = new Date().toISOString();
+   363→   363→        const updatedHistory = [...target.stageHistory.map(h => h.stage === target.stage ? { ...h, exitedAt: now } : h)];
+   364→   364→
+   365→   365→        if (willFail) {
+   366→   366→          const failedItem: typeof copy[0] = {
+   367→   367→            ...copy[idx],
+   368→   368→            stage: "failed",
+   369→   369→            progress: getStageProgress(target.stage),
+   370→   370→            error: `Processing error at ${PIPELINE_STAGES[currentIdx]?.label ?? "unknown"} stage: Unexpected internal failure.`,
+   371→   371→            stageHistory: [...updatedHistory, { stage: "failed", enteredAt: now, exitedAt: null }],
+   372→   372→          };
+   373→   373→          updateAIQueueItem(target.id, { stage: "failed", error: failedItem.error });
+   374→   374→          copy[idx] = failedItem;
+   375→   375→        } else {
+   376→   376→          const nextStage = STAGE_ORDER[currentIdx + 1];
+   377→   377→          const isCompleted = nextStage === "completed";
+   378→   378→          const completedAt = isCompleted ? now : null;
+   379→   379→          const newItem: typeof copy[0] = {
+   380→   380→            ...copy[idx],
+   381→   381→            stage: nextStage,
+   382→   382→            progress: getStageProgress(nextStage),
+   383→   383→            completedAt,
+   384→   384→            stageHistory: [...updatedHistory, { stage: nextStage, enteredAt: now, exitedAt: null }],
+   385→   385→          };
+   386→   386→          updateAIQueueItem(target.id, { stage: nextStage, progress: newItem.progress, completedAt });
+   387→   387→          copy[idx] = newItem;
+   388→   388→
+   389→   389→          if (isCompleted) {
+   390→   390→            addNotification({
+   391→   391→              title: "AI Processing Complete",
+   392→   392→              message: `${target.firId} has been fully processed through the AI pipeline.`,
+   393→   393→              type: "success",
+   394→   394→              read: false,
+   395→   395→            });
+   396→   396→          }
+   397→   397→        }
+   398→   398→        return copy;
+   399→   399→      });
+   400→   400→    }, 3000);
+   401→   401→    return () => clearInterval(interval);
+   402→   402→  }, [loading, updateAIQueueItem, addNotification]);
+   403→   403→
+   404→   404→  // Stats
+   405→   405→  const stats = useMemo(() => {
+   406→   406→    const total = localQueue.length;
+   407→   407→    const processing = localQueue.filter(q => q.stage !== "completed" && q.stage !== "failed" && q.stage !== "queued").length;
+   408→   408→    const completedToday = localQueue.filter(q => q.stage === "completed").length;
+   409→   409→    const failed = localQueue.filter(q => q.stage === "failed").length;
+   410→   410→    // Avg processing time for completed items
+   411→   411→    const completed = localQueue.filter(q => q.stage === "completed" && q.startedAt && q.completedAt);
+   412→   412→    const avgTime = completed.length > 0
+   413→   413→      ? Math.round(completed.reduce((sum, q) => sum + (new Date(q.completedAt!).getTime() - new Date(q.startedAt).getTime()), 0) / completed.length / 1000)
+   414→   414→      : 0;
+   415→   415→    return { total, processing, completedToday, failed, avgTime };
+   416→   416→  }, [localQueue]);
+   417→   417→
+   418→   418→  const animTotal = useAnimatedCounter(stats.total);
+   419→   419→  const animProcessing = useAnimatedCounter(stats.processing);
+   420→   420→  const animCompleted = useAnimatedCounter(stats.completedToday);
+   421→   421→  const animFailed = useAnimatedCounter(stats.failed);
+   422→   422→
+   423→   423→  // Pipeline state: highest active stage across all items
+   424→   424→  const highestActiveStage = useMemo(() => {
+   425→   425→    const active = localQueue.filter(q => q.stage !== "completed" && q.stage !== "failed" && q.stage !== "queued");
+   426→   426→    if (active.length === 0) return null;
+   427→   427→    return active.reduce((best, q) => getStageIndex(q.stage) > getStageIndex(best.stage) ? q : best, active[0]).stage;
+   428→   428→  }, [localQueue]);
+   429→   429→
+   430→   430→  // Add test item
+   431→   431→  const addTestItem = useCallback(() => {
+   432→   432→    const firs = crimeData?.firs;
+   433→   433→    const firId = firs && firs.length > 0
+   434→   434→      ? firs[Math.floor(Math.random() * firs.length)].fir_id
+   435→   435→      : `FIR-2024-KA-${String(Math.floor(Math.random() * 200)).padStart(4, "0")}`;
+   436→   436→    const now = new Date().toISOString();
+   437→   437→    const newItem: AIQueueItem & { stageHistory: StageHistoryEntry[] } = {
+   438→   438→      id: generateId("AIQ"),
+   439→   439→      firId,
+   440→   440→      stage: "queued",
+   441→   441→      progress: 0,
+   442→   442→      startedAt: now,
+   443→   443→      completedAt: null,
+   444→   444→      error: null,
+   445→   445→      stageHistory: [{ stage: "queued", enteredAt: now, exitedAt: null }],
+   446→   446→    };
+   447→   447→    addAIQueueItem(newItem);
+   448→   448→    setLocalQueue(prev => [...prev, newItem]);
+   449→   449→  }, [crimeData, addAIQueueItem]);
+   450→   450→
+   451→   451→  // Clear completed
+   452→   452→  const clearCompleted = useCallback(() => {
+   453→   453→    setLocalQueue(prev => prev.filter(q => q.stage !== "completed"));
+   454→   454→  }, []);
+   455→   455→
+   456→   456→  // Retry failed
+   457→   457→  const retryFailed = useCallback(() => {
+   458→   458→    setLocalQueue(prev => prev.map(q => {
+   459→   459→      if (q.stage === "failed") {
+   460→   460→        const now = new Date().toISOString();
+   461→   461→        const updated: typeof q = {
+   462→   462→          ...q,
+   463→   463→          stage: "queued",
+   464→   464→          progress: 0,
+   465→   465→          error: null,
+   466→   466→          completedAt: null,
+   467→   467→          stageHistory: [{ stage: "queued", enteredAt: now, exitedAt: null }],
+   468→   468→        };
+   469→   469→        updateAIQueueItem(q.id, { stage: "queued", progress: 0, error: null, completedAt: null });
+   470→   470→        return updated;
+   471→   471→      }
+   472→   472→      return q;
+   473→   473→    }));
+   474→   474→  }, [updateAIQueueItem]);
+   475→   475→
+   476→   476→  // Duration calculation
+   477→   477→  function getDuration(item: typeof localQueue[0]): string {
+   478→   478→    const start = new Date(item.startedAt).getTime();
+   479→   479→    const end = item.completedAt ? new Date(item.completedAt).getTime() : Date.now();
+   480→   480→    const secs = Math.round((end - start) / 1000);
+   481→   481→    if (secs < 60) return `${secs}s`;
+   482→   482→    const mins = Math.floor(secs / 60);
+   483→   483→    const remainSecs = secs % 60;
+   484→   484→    return `${mins}m ${remainSecs}s`;
+   485→   485→  }
+   486→   486→
+   487→   487→  const statCards = [
+   488→   488→    { label: "Total in Queue", value: animTotal, icon: <Layers className="h-5 w-5" />, color: "#3b82f6", delay: 0 },
+   489→   489→    { label: "Processing Now", value: animProcessing, icon: <Loader2 className="h-5 w-5" />, color: "#f59e0b", delay: 1 },
+   490→   490→    { label: "Completed Today", value: animCompleted, icon: <CheckCircle2 className="h-5 w-5" />, color: "#10b981", delay: 2 },
+   491→   491→    { label: "Failed", value: animFailed, icon: <XCircle className="h-5 w-5" />, color: "#ef4444", delay: 3 },
+   492→   492→    { label: "Avg Process Time", value: stats.avgTime, suffix: "s", icon: <Timer className="h-5 w-5" />, color: "#8b5cf6", delay: 4, isRaw: true },
+   493→   493→  ];
+   494→   494→
+   495→   495→  if (loading) {
+   496→   496→    return (
+   497→   497→      <div className="flex h-full items-center justify-center">
+   498→   498→        <LoadingSpinner />
+   499→   499→      </div>
+   500→   500→    );
+   501→   501→  }
+   502→   502→
+   503→   503→  return (
+   504→   504→    <div className="space-y-6 p-6">
+   505→   505→      {/* Header */}
+   506→   506→      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
+   507→   507→        <div>
+   508→   508→          <h1 className="text-[#e2e8f0] text-2xl font-bold tracking-tight">AI Processing Queue</h1>
+   509→   509→          <p className="text-[#64748b] text-sm mt-1">8-stage intelligence pipeline with real-time progress tracking</p>
+   510→   510→        </div>
+   511→   511→        <div className="flex items-center gap-2">
+   512→   512→          <Button onClick={addTestItem} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-0 rounded-xl px-5">
+   513→   513→            <Plus className="h-4 w-4" /> Add Test Item
+   514→   514→          </Button>
+   515→   515→          <Button variant="outline" onClick={clearCompleted} className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#94a3b8] hover:text-[#e2e8f0] rounded-xl px-4">
+   516→   516→            <Trash2 className="h-4 w-4" /> Clear Completed
+   517→   517→          </Button>
+   518→   518→          <Button variant="outline" onClick={retryFailed} className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#94a3b8] hover:text-[#e2e8f0] rounded-xl px-4">
+   519→   519→            <RotateCcw className="h-4 w-4" /> Retry Failed
+   520→   520→          </Button>
+   521→   521→        </div>
+   522→   522→      </motion.div>
+   523→   523→
+   524→   524→      {/* Stats Row */}
+   525→   525→      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+   526→   526→        {statCards.map((sc) => (
+   527→   527→          <motion.div
+   528→   528→            key={sc.label}
+   529→   529→            initial={{ opacity: 0, y: 20 }}
+   530→   530→            animate={{ opacity: 1, y: 0 }}
+   531→   531→            transition={{ duration: 0.5, delay: sc.delay * 0.08 }}
+   532→   532→            className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl transition-all duration-300 hover:scale-[1.02]"
+   533→   533→            style={{ borderLeft: `3px solid ${sc.color}` }}
+   534→   534→          >
+   535→   535→            <div className="relative flex items-start justify-between p-4">
+   536→   536→              <div>
+   537→   537→                <span className="text-[#64748b] text-[10px] font-medium uppercase tracking-wider">{sc.label}</span>
+   538→   538→                <div className="flex items-baseline gap-1 mt-1">
+   539→   539→                  <span className="text-[#e2e8f0] text-2xl font-bold tabular-nums">
+   540→   540→                    {sc.isRaw ? sc.value : sc.value}
+   541→   541→                  </span>
+   542→   542→                  {sc.suffix && <span className="text-[#64748b] text-sm">{sc.suffix}</span>}
+   543→   543→                </div>
+   544→   544→              </div>
+   545→   545→              <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: `${sc.color}15`, color: sc.color }}>
+   546→   546→                {sc.icon}
+   547→   547→              </div>
+   548→   548→            </div>
+   549→   549→          </motion.div>
+   550→   550→        ))}
+   551→   551→      </div>
+   552→   552→
+   553→   553→      {/* Pipeline Visualization */}
+   554→   554→      <motion.div
+   555→   555→        initial={{ opacity: 0, y: 15 }}
+   556→   556→        animate={{ opacity: 1, y: 0 }}
+   557→   557→        transition={{ delay: 0.4 }}
+   558→   558→        className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-6"
+   559→   559→      >
+   560→   560→        <div className="flex items-center gap-2 mb-6">
+   561→   561→          <Brain className="h-5 w-5 text-blue-400" />
+   562→   562→          <h2 className="text-[#e2e8f0] text-sm font-semibold uppercase tracking-wider">Processing Pipeline</h2>
+   563→   563→          {highestActiveStage && (
+   564→   564→            <motion.div
+   565→   565→              initial={{ opacity: 0, scale: 0.8 }}
+   566→   566→              animate={{ opacity: 1, scale: 1 }}
+   567→   567→              className="ml-2 flex items-center gap-1.5 rounded-full bg-blue-500/15 border border-blue-500/30 px-3 py-1"
+   568→   568→            >
+   569→   569→              <motion.div className="h-1.5 w-1.5 rounded-full bg-blue-400" animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }} />
+   570→   570→              <span className="text-blue-400 text-xs font-medium">
+   571→   571→                Active: {PIPELINE_STAGES.find(s => s.key === highestActiveStage)?.label}
+   572→   572→              </span>
+   573→   573→            </motion.div>
+   574→   574→          )}
+   575→   575→        </div>
+   576→   576→
+   577→   577→        <div className="flex items-center justify-center gap-1 overflow-x-auto pb-2">
+   578→   578→          {PIPELINE_STAGES.map((stage, idx) => {
+   579→   579→            const stageIdx = getStageIndex(stage.key);
+   580→   580→            const isActive = highestActiveStage === stage.key;
+   581→   581→            const isCompleted = highestActiveStage ? stageIdx < getStageIndex(highestActiveStage) : false;
+   582→   582→            const isFailed = localQueue.some(q => q.stage === "failed" && q.stageHistory[q.stageHistory.length - 2]?.stage === stage.key);
+   583→   583→
+   584→   584→            return (
+   585→   585→              <div key={stage.key} className="flex items-center">
+   586→   586→                <PipelineNode stage={stage} isActive={isActive} isCompleted={isCompleted} isFailed={isFailed} index={idx} />
+   587→   587→                {idx < PIPELINE_STAGES.length - 1 && (
+   588→   588→                  <PipelineConnector isCompleted={isCompleted} isActive={isActive} index={idx} />
+   589→   589→                )}
+   590→   590→              </div>
+   591→   591→            );
+   592→   592→          })}
+   593→   593→        </div>
+   594→   594→      </motion.div>
+   595→   595→
+   596→   596→      {/* Queue Table */}
+   597→   597→      <motion.div
+   598→   598→        initial={{ opacity: 0, y: 15 }}
+   599→   599→        animate={{ opacity: 1, y: 0 }}
+   600→   600→        transition={{ delay: 0.5 }}
+   601→   601→        className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl overflow-hidden"
+   602→   602→      >
+   603→   603→        <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+   604→   604→          <div className="flex items-center gap-2">
+   605→   605→            <Activity className="h-4 w-4 text-[#64748b]" />
+   606→   606→            <span className="text-[#e2e8f0] text-sm font-semibold">Queue Items</span>
+   607→   607→            <Badge variant="outline" className="border-white/10 text-[#64748b] text-xs ml-1">{localQueue.length}</Badge>
+   608→   608→          </div>
+   609→   609→        </div>
+   610→   610→
+   611→   611→        {localQueue.length === 0 ? (
+   612→   612→          <div className="flex flex-col items-center justify-center py-20 gap-4">
+   613→   613→            <Inbox className="h-12 w-12 text-[#4a5568]" />
+   614→   614→            <p className="text-[#64748b] text-sm">No items in the queue</p>
+   615→   615→            <Button onClick={addTestItem} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl">
+   616→   616→              <Plus className="h-4 w-4" /> Add Test Item
+   617→   617→            </Button>
+   618→   618→          </div>
+   619→   619→        ) : (
+   620→   620→          <Table>
+   621→   621→            <TableHeader>
+   622→   622→              <TableRow className="border-white/10 hover:bg-transparent">
+   623→   623→                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">FIR ID</TableHead>
+   624→   624→                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Current Stage</TableHead>
+   625→   625→                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Progress</TableHead>
+   626→   626→                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Started</TableHead>
+   627→   627→                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Duration</TableHead>
+   628→   628→                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Status</TableHead>
+   629→   629→                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Error</TableHead>
+   630→   630→                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Actions</TableHead>
+   631→   631→              </TableRow>
+   632→   632→            </TableHeader>
+   633→   633→            <TableBody>
+   634→   634→              <AnimatePresence mode="popLayout">
+   635→   635→                {localQueue.map((item) => (
+   636→   636→                  <motion.tr
+   637→   637→                    key={item.id}
+   638→   638→                    initial={{ opacity: 0, x: -10 }}
+   639→   639→                    animate={{ opacity: 1, x: 0 }}
+   640→   640→                    exit={{ opacity: 0, x: 10, height: 0 }}
+   641→   641→                    transition={{ duration: 0.25 }}
+   642→   642→                    className="border-b border-white/5 hover:bg-white/5 transition-colors"
+   643→   643→                  >
+   644→   644→                    <TableCell className="text-[#e2e8f0] text-xs font-mono font-medium py-2.5">
+   645→   645→                      {item.firId}
+   646→   646→                    </TableCell>
+   647→   647→                    <TableCell className="py-2.5">
+   648→   648→                      <StageBadge stage={item.stage} />
+   649→   649→                    </TableCell>
+   650→   650→                    <TableCell className="py-2.5 min-w-[120px]">
+   651→   651→                      <div className="flex items-center gap-2">
+   652→   652→                        <Progress
+   653→   653→                          value={item.progress}
+   654→   654→                          className={`h-2 w-20 bg-white/5 ${
+   655→   655→                            item.stage === "failed" ? "[&>div]:bg-red-500" :
+   656→   656→                            item.stage === "completed" ? "[&>div]:bg-emerald-500" : "[&>div]:bg-blue-500"
+   657→   657→                          } [&>div]:rounded-full`}
+   658→   658→                        />
+   659→   659→                        <span className="text-[#94a3b8] text-xs tabular-nums w-8">{item.progress}%</span>
+   660→   660→                      </div>
+   661→   661→                    </TableCell>
+   662→   662→                    <TableCell className="text-[#94a3b8] text-xs py-2.5">
+   663→   663→                      {new Date(item.startedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}
+   664→   664→                    </TableCell>
+   665→   665→                    <TableCell className="text-[#94a3b8] text-xs tabular-nums py-2.5">
+   666→   666→                      {getDuration(item)}
+   667→   667→                    </TableCell>
+   668→   668→                    <TableCell className="py-2.5">
+   669→   669→                      {item.stage === "completed" && (
+   670→   670→                        <span className="inline-flex items-center gap-1 text-emerald-400 text-xs font-medium">
+   671→   671→                          <CheckCircle2 className="h-3.5 w-3.5" /> Done
+   672→   672→                        </span>
+   673→   673→                      )}
+   674→   674→                      {item.stage === "failed" && (
+   675→   675→                        <span className="inline-flex items-center gap-1 text-red-400 text-xs font-medium">
+   676→   676→                          <XCircle className="h-3.5 w-3.5" /> Failed
+   677→   677→                        </span>
+   678→   678→                      )}
+   679→   679→                      {(item.stage !== "completed" && item.stage !== "failed") && (
+   680→   680→                        <span className="inline-flex items-center gap-1 text-blue-400 text-xs font-medium">
+   681→   681→                          <motion.div className="h-2 w-2 rounded-full bg-blue-400" animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }} />
+   682→   682→                          Active
+   683→   683→                        </span>
+   684→   684→                      )}
+   685→   685→                    </TableCell>
+   686→   686→                    <TableCell className="text-xs py-2.5 max-w-[200px]">
+   687→   687→                      {item.error ? (
+   688→   688→                        <span className="text-red-400 truncate block" title={item.error}>{item.error}</span>
+   689→   689→                      ) : (
+   690→   690→                        <span className="text-[#4a5568]">—</span>
+   691→   691→                      )}
+   692→   692→                    </TableCell>
+   693→   693→                    <TableCell className="py-2.5">
+   694→   694→                      <Button variant="ghost" size="sm" className="text-[#64748b] hover:text-[#e2e8f0] h-8 gap-1 text-xs"
+   695→   695→                        onClick={() => { setSelectedItem(item); setShowDetail(true); }}>
+   696→   696→                        <Eye className="h-3.5 w-3.5" /> Details
+   697→   697→                      </Button>
+   698→   698→                    </TableCell>
+   699→   699→                  </motion.tr>
+   700→   700→                ))}
+   701→   701→              </AnimatePresence>
+   702→   702→            </TableBody>
+   703→   703→          </Table>
+   704→   704→        )}
+   705→   705→      </motion.div>
+   706→   706→
+   707→   707→      {/* Detail Dialog */}
+   708→   708→      <Dialog open={showDetail} onOpenChange={setShowDetail}>
+   709→   709→        <DialogContent className="bg-[#1a2035] border-[#2a3550] max-w-lg max-h-[85vh] overflow-hidden">
+   710→   710→          {selectedItem && (
+   711→   711→            <>
+   712→   712→              <DialogHeader>
+   713→   713→                <DialogTitle className="text-[#e2e8f0] flex items-center gap-2">
+   714→   714→                  <Sparkles className="h-5 w-5 text-blue-400" />
+   715→   715→                  {selectedItem.firId}
+   716→   716→                </DialogTitle>
+   717→   717→                <DialogDescription className="text-[#64748b]">
+   718→   718→                  Stage history and processing details
+   719→   719→                </DialogDescription>
+   720→   720→              </DialogHeader>
+   721→   721→              <ScrollArea className="max-h-[60vh]">
+   722→   722→                <div className="space-y-4 pr-4">
+   723→   723→                  {/* Summary */}
+   724→   724→                  <div className="grid grid-cols-2 gap-3">
+   725→   725→                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+   726→   726→                      <span className="text-[#64748b] text-xs block mb-1">Current Stage</span>
+   727→   727→                      <StageBadge stage={selectedItem.stage} />
+   728→   728→                    </div>
+   729→   729→                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+   730→   730→                      <span className="text-[#64748b] text-xs block mb-1">Duration</span>
+   731→   731→                      <span className="text-[#e2e8f0] text-sm font-medium">{getDuration(selectedItem)}</span>
+   732→   732→                    </div>
+   733→   733→                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+   734→   734→                      <span className="text-[#64748b] text-xs block mb-1">Progress</span>
+   735→   735→                      <span className="text-[#e2e8f0] text-sm font-medium tabular-nums">{selectedItem.progress}%</span>
+   736→   736→                    </div>
+   737→   737→                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+   738→   738→                      <span className="text-[#64748b] text-xs block mb-1">Started</span>
+   739→   739→                      <span className="text-[#e2e8f0] text-sm font-medium">
+   740→   740→                        {new Date(selectedItem.startedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}
+   741→   741→                      </span>
+   742→   742→                    </div>
+   743→   743→                  </div>
+   744→   744→
+   745→   745→                  {/* Error */}
+   746→   746→                  {selectedItem.error && (
+   747→   747→                    <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+   748→   748→                      <div className="flex items-center gap-2 mb-2">
+   749→   749→                        <XCircle className="h-4 w-4 text-red-400" />
+   750→   750→                        <span className="text-red-400 text-sm font-semibold">Error</span>
+   751→   751→                      </div>
+   752→   752→                      <p className="text-[#94a3b8] text-xs">{selectedItem.error}</p>
+   753→   753→                    </div>
+   754→   754→                  )}
+   755→   755→
+   756→   756→                  {/* Stage History Timeline */}
+   757→   757→                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+   758→   758→                    <h3 className="text-[#e2e8f0] text-sm font-semibold mb-4">Stage History</h3>
+   759→   759→                    <div className="space-y-0">
+   760→   760→                      {selectedItem.stageHistory.map((entry, idx) => {
+   761→   761→                        const stageInfo = PIPELINE_STAGES.find(s => s.key === entry.stage);
+   762→   762→                        const StageIcon = stageInfo?.icon ?? Clock;
+   763→   763→                        const isLast = idx === selectedItem.stageHistory.length - 1;
+   764→   764→                        const isCurrentStage = entry.stage === selectedItem.stage;
+   765→   765→                        const isCompletedStage = !!entry.exitedAt;
+   766→   766→
+   767→   767→                        let dotColor = "#4a5568";
+   768→   768→                        if (isCompletedStage) dotColor = "#10b981";
+   769→   769→                        if (isCurrentStage && !isCompletedStage) {
+   770→   770→                          dotColor = selectedItem.stage === "failed" ? "#ef4444" : "#3b82f6";
+   771→   771→                        }
+   772→   772→
+   773→   773→                        return (
+   774→   774→                          <motion.div
+   775→   775→                            key={`${entry.stage}-${idx}`}
+   776→   776→                            initial={{ opacity: 0, x: -10 }}
+   777→   777→                            animate={{ opacity: 1, x: 0 }}
+   778→   778→                            transition={{ delay: idx * 0.08 }}
+   779→   779→                            className="flex items-start gap-3"
+   780→   780→                          >
+   781→   781→                            <div className="relative mt-1">
+   782→   782→                              <div className="flex h-7 w-7 items-center justify-center rounded-full border-2" style={{ borderColor: `${dotColor}40`, backgroundColor: `${dotColor}15` }}>
+   783→   783→                                <StageIcon className="h-3.5 w-3.5" style={{ color: dotColor }} />
+   784→   784→                              </div>
+   785→   785→                              {!isLast && (
+   786→   786→                                <div className="absolute left-1/2 top-7 h-full w-px bg-white/10 -translate-x-1/2" />
+   787→   787→                              )}
+   788→   788→                            </div>
+   789→   789→                            <div className="flex-1 pb-6 min-w-0">
+   790→   790→                              <div className="flex items-center justify-between gap-2">
+   791→   791→                                <span className="text-[#e2e8f0] text-sm font-medium">
+   792→   792→                                  {stageInfo?.label ?? entry.stage}
+   793→   793→                                </span>
+   794→   794→                                {isCurrentStage && !isCompletedStage && (
+   795→   795→                                  <motion.div className="h-2 w-2 rounded-full" style={{ backgroundColor: dotColor }}
+   796→   796→                                    animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }}
+   797→   797→                                  />
+   798→   798→                                )}
+   799→   799→                              </div>
+   800→   800→                              <div className="text-[#4a5568] text-xs mt-0.5">
+   801→   801→                                Entered: {new Date(entry.enteredAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}
+   802→   802→                                {entry.exitedAt && (
+   803→   803→                                  <> &middot; Exited: {new Date(entry.exitedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}</>
+   804→   804→                                )}
+   805→   805→                              </div>
+   806→   806→                              {isCompletedStage && (
+   807→   807→                                <div className="text-[#64748b] text-[10px] mt-0.5">
+   808→   808→                                  Duration: {Math.round((new Date(entry.exitedAt!).getTime() - new Date(entry.enteredAt).getTime()) / 1000)}s
+   809→   809→                                </div>
+   810→   810→                              )}
+   811→   811→                            </div>
+   812→   812→                          </motion.div>
+   813→   813→                        );
+   814→   814→                      })}
+   815→   815→                    </div>
+   816→   816→                  </div>
+   817→   817→                </div>
+   818→   818→              </ScrollArea>
+   819→   819→            </>
+   820→   820→          )}
+   821→   821→        </DialogContent>
+   822→   822→      </Dialog>
+   823→   823→    </div>
+   824→   824→  );
+   825→   825→}

@@ -1,0 +1,720 @@
+     1→     1→"use client";
+     2→     2→
+     3→     3→import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+     4→     4→import { motion, AnimatePresence } from "framer-motion";
+     5→     5→import {
+     6→     6→  Shield,
+     7→     7→  Activity,
+     8→     8→  CheckCircle2,
+     9→     9→  XCircle,
+    10→    10→  Clock,
+    11→    11→  Search,
+    12→    12→  Download,
+    13→    13→  FileJson,
+    14→    14→  FileSpreadsheet,
+    15→    15→  Printer,
+    16→    16→  ChevronLeft,
+    17→    17→  ChevronRight,
+    18→    18→  Filter,
+    19→    19→  Eye,
+    20→    20→  RefreshCw,
+    21→    21→  Zap,
+    22→    22→  Users,
+    23→    23→  AlertTriangle,
+    24→    24→} from "lucide-react";
+    25→    25→import { useAppStore } from "@/lib/store";
+    26→    26→import { exportToCSV, exportToJSON, exportToPrint, generateId } from "@/lib/export-utils";
+    27→    27→import type { AuditLogEntry } from "@/lib/types";
+    28→    28→import { Button } from "@/components/ui/button";
+    29→    29→import { Input } from "@/components/ui/input";
+    30→    30→import { Badge } from "@/components/ui/badge";
+    31→    31→import {
+    32→    32→  Select,
+    33→    33→  SelectContent,
+    34→    34→  SelectItem,
+    35→    35→  SelectTrigger,
+    36→    36→  SelectValue,
+    37→    37→} from "@/components/ui/select";
+    38→    38→import {
+    39→    39→  Table,
+    40→    40→  TableBody,
+    41→    41→  TableCell,
+    42→    42→  TableHead,
+    43→    43→  TableHeader,
+    44→    44→  TableRow,
+    45→    45→} from "@/components/ui/table";
+    46→    46→import {
+    47→    47→  Dialog,
+    48→    48→  DialogContent,
+    49→    49→  DialogDescription,
+    50→    50→  DialogHeader,
+    51→    51→  DialogTitle,
+    52→    52→} from "@/components/ui/dialog";
+    53→    53→import { ScrollArea } from "@/components/ui/scroll-area";
+    54→    54→import LoadingSpinner from "@/components/ksp/LoadingSpinner";
+    55→    55→
+    56→    56→// ─── Constants ──────────────────────────────────────────────────────
+    57→    57→const ACTIONS = [
+    58→    58→  "CREATE_FIR", "UPDATE_FIR", "DELETE_FIR", "VIEW_FIR",
+    59→    59→  "LOGIN", "LOGOUT", "EXPORT_DATA", "IMPORT_DATA",
+    60→    60→  "RUN_AI_ANALYSIS", "UPDATE_EVIDENCE", "CHANGE_ROLE", "VIEW_ACCUSED",
+    61→    61→] as const;
+    62→    62→
+    63→    63→const ENTITIES = ["FIR", "Accused", "Evidence", "User", "Report", "Vehicle"] as const;
+    64→    64→
+    65→    65→const STATUSES: Array<AuditLogEntry["status"]> = ["success", "failure", "pending"];
+    66→    66→
+    67→    67→const USERS = [
+    68→    68→  { name: "ISP Ravi Kumar", role: "ISP" },
+    69→    69→  { name: "DSP Lakshmi", role: "DSP" },
+    70→    70→  { name: "SI Mohan", role: "SI" },
+    71→    71→  { name: "ACP Priya", role: "ACP" },
+    72→    72→  { name: "ASP Venkatesh", role: "ASP" },
+    73→    73→];
+    74→    74→
+    75→    75→const IPS = [
+    76→    76→  "192.168.1.45", "192.168.1.72", "10.0.5.33", "172.16.0.18",
+    77→    77→  "192.168.2.101", "10.0.8.55", "192.168.1.88", "172.16.1.22",
+    78→    78→];
+    79→    79→
+    80→    80→const OLD_NEW_MAPS: Record<string, Array<{ old: string; new: string }>> = {
+    81→    81→  CREATE_FIR: [
+    82→    82→    { old: "—", new: "FIR-2024-KA-0142 created: Theft under IPC 379, Bengaluru Urban" },
+    83→    83→    { old: "—", new: "FIR-2024-KA-0143 created: Robbery under IPC 392, Mysuru" },
+    84→    84→    { old: "—", new: "FIR-2024-KA-0144 created: Burglary under IPC 380, Hubballi" },
+    85→    85→  ],
+    86→    86→  UPDATE_FIR: [
+    87→    87→    { old: "status: Under Investigation", new: "status: Charge Sheet Filed" },
+    88→    88→    { old: "severity: medium", new: "severity: high" },
+    89→    89→    { old: "officer_id: OFF-004", new: "officer_id: OFF-012" },
+    90→    90→    { old: "investigation_status: pending", new: "investigation_status: in_progress" },
+    91→    91→    { old: "gang_id: null", new: "gang_id: GANG-007" },
+    92→    92→  ],
+    93→    93→  DELETE_FIR: [
+    94→    94→    { old: "FIR-2024-KA-0098 (Duplicate)", new: "— (Deleted)" },
+    95→    95→    { old: "FIR-2024-KA-0101 (Test Record)", new: "— (Deleted)" },
+    96→    96→  ],
+    97→    97→  VIEW_FIR: [
+    98→    98→    { old: "—", new: "Accessed FIR-2024-KA-0042: Kidnapping case details" },
+    99→    99→    { old: "—", new: "Accessed FIR-2024-KA-0055: Financial fraud report" },
+   100→   100→  ],
+   101→   101→  LOGIN: [
+   102→   102→    { old: "—", new: "Session started: IP 192.168.1.45, Chrome/120" },
+   103→   103→    { old: "—", new: "Session started: IP 10.0.5.33, Firefox/121" },
+   104→   104→  ],
+   105→   105→  LOGOUT: [
+   106→   106→    { old: "Session active: 4h 23m", new: "Session ended" },
+   107→   107→    { old: "Session active: 1h 05m", new: "Session ended" },
+   108→   108→  ],
+   109→   109→  EXPORT_DATA: [
+   110→   110→    { old: "—", new: "Exported 247 FIRs as CSV (2.4 MB)" },
+   111→   111→    { old: "—", new: "Exported crime analytics report as PDF" },
+   112→   112→    { old: "—", new: "Exported 89 accused records as Excel" },
+   113→   113→  ],
+   114→   114→  IMPORT_DATA: [
+   115→   115→    { old: "0 records", new: "1,247 FIRs imported from crime_jan_2024.csv" },
+   116→   116→    { old: "0 records", new: "523 accused records imported from accused_master.xlsx" },
+   117→   117→  ],
+   118→   118→  RUN_AI_ANALYSIS: [
+   119→   119→    { old: "Queue: 12 items", new: "Processing batch of 12 FIRs through AI pipeline" },
+   120→   120→    { old: "Confidence: 82%", new: "Confidence: 91% after retraining" },
+   121→   121→  ],
+   122→   122→  UPDATE_EVIDENCE: [
+   123→   123→    { old: "status: processing", new: "status: ready, AI Summary: CCTV footage shows 3 suspects" },
+   124→   124→    { old: "tags: [cctv]", new: "tags: [cctv, facial_match, timestamp_2230]" },
+   125→   125→    { old: "status: ready", new: "status: archived, linked to 3 FIRs" },
+   126→   126→  ],
+   127→   127→  CHANGE_ROLE: [
+   128→   128→    { old: "SI Mohan: role=investigator", new: "SI Mohan: role=analyst" },
+   129→   129→    { old: "ACP Priya: permissions=12", new: "ACP Priya: permissions=15" },
+   130→   130→  ],
+   131→   131→  VIEW_ACCUSED: [
+   132→   132→    { old: "—", new: "Viewed profile: A005 — Ramesh Kumar (Risk: 8.7)" },
+   133→   133→    { old: "—", new: "Viewed profile: A012 — Suresh (Risk: 6.2, Prior FIRs: 5)" },
+   134→   134→  ],
+   135→   135→};
+   136→   136→
+   137→   137→// ─── Mock Data Generator ────────────────────────────────────────────
+   138→   138→function generateMockAuditLogs(count: number): AuditLogEntry[] {
+   139→   139→  const logs: AuditLogEntry[] = [];
+   140→   140→  const now = Date.now();
+   141→   141→
+   142→   142→  for (let i = 0; i < count; i++) {
+   143→   143→    const action = ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
+   144→   144→    const entity = ENTITIES[Math.floor(Math.random() * ENTITIES.length)];
+   145→   145→    const user = USERS[Math.floor(Math.random() * USERS.length)];
+   146→   146→    const status = STATUSES[Math.random() < 0.82 ? 0 : Math.random() < 0.7 ? 1 : 2];
+   147→   147→    const pairs = OLD_NEW_MAPS[action] || OLD_NEW_MAPS.VIEW_FIR;
+   148→   148→    const pair = pairs[Math.floor(Math.random() * pairs.length)];
+   149→   149→
+   150→   150→    const entityPrefixes: Record<string, string> = {
+   151→   151→      FIR: "FIR-2024-KA-",
+   152→   152→      Accused: "A",
+   153→   153→      Evidence: "EVD-",
+   154→   154→      User: "USR-",
+   155→   155→      Report: "RPT-",
+   156→   156→      Vehicle: "KA-",
+   157→   157→    };
+   158→   158→
+   159→   159→    logs.push({
+   160→   160→      id: generateId("AL"),
+   161→   161→      timestamp: new Date(now - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+   162→   162→      user: user.name,
+   163→   163→      role: user.role,
+   164→   164→      action,
+   165→   165→      entity,
+   166→   166→      entityId: `${entityPrefixes[entity] || "ENT-"}${String(Math.floor(Math.random() * 200)).padStart(4, "0")}`,
+   167→   167→      oldValue: status === "failure" && Math.random() > 0.5 ? `Error: ${pair.old}` : pair.old,
+   168→   168→      newValue: status === "failure" ? `Failed: ${pair.new.slice(0, 40)}...` : pair.new,
+   169→   169→      ip: IPS[Math.floor(Math.random() * IPS.length)],
+   170→   170→      status,
+   171→   171→    });
+   172→   172→  }
+   173→   173→
+   174→   174→  return logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+   175→   175→}
+   176→   176→
+   177→   177→function generateSingleAuditLog(): Omit<AuditLogEntry, "id" | "timestamp" | "ip"> {
+   178→   178→  const action = ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
+   179→   179→  const entity = ENTITIES[Math.floor(Math.random() * ENTITIES.length)];
+   180→   180→  const user = USERS[Math.floor(Math.random() * USERS.length)];
+   181→   181→  const status = STATUSES[Math.random() < 0.85 ? 0 : Math.random() < 0.65 ? 1 : 2];
+   182→   182→  const pairs = OLD_NEW_MAPS[action] || OLD_NEW_MAPS.VIEW_FIR;
+   183→   183→  const pair = pairs[Math.floor(Math.random() * pairs.length)];
+   184→   184→  const entityPrefixes: Record<string, string> = {
+   185→   185→    FIR: "FIR-2024-KA-", Accused: "A", Evidence: "EVD-", User: "USR-", Report: "RPT-", Vehicle: "KA-",
+   186→   186→  };
+   187→   187→
+   188→   188→  return {
+   189→   189→    user: user.name,
+   190→   190→    role: user.role,
+   191→   191→    action,
+   192→   192→    entity,
+   193→   193→    entityId: `${entityPrefixes[entity] || "ENT-"}${String(Math.floor(Math.random() * 200)).padStart(4, "0")}`,
+   194→   194→    oldValue: pair.old,
+   195→   195→    newValue: pair.new,
+   196→   196→    status,
+   197→   197→  };
+   198→   198→}
+   199→   199→
+   200→   200→// ─── Animated Counter Hook ──────────────────────────────────────────
+   201→   201→function useAnimatedCounter(target: number, duration = 1200) {
+   202→   202→  const [count, setCount] = useState(0);
+   203→   203→  useEffect(() => {
+   204→   204→    let start = 0;
+   205→   205→    const step = target / (duration / 16);
+   206→   206→    const timer = setInterval(() => {
+   207→   207→      start += step;
+   208→   208→      if (start >= target) { setCount(target); clearInterval(timer); }
+   209→   209→      else { setCount(Math.floor(start)); }
+   210→   210→    }, 16);
+   211→   211→    return () => clearInterval(timer);
+   212→   212→  }, [target, duration]);
+   213→   213→  return count;
+   214→   214→}
+   215→   215→
+   216→   216→// ─── Relative Time ──────────────────────────────────────────────────
+   217→   217→function relativeTime(dateStr: string): string {
+   218→   218→  const diff = Date.now() - new Date(dateStr).getTime();
+   219→   219→  const mins = Math.floor(diff / 60000);
+   220→   220→  if (mins < 1) return "just now";
+   221→   221→  if (mins < 60) return `${mins}m ago`;
+   222→   222→  const hrs = Math.floor(mins / 60);
+   223→   223→  if (hrs < 24) return `${hrs}h ago`;
+   224→   224→  const days = Math.floor(hrs / 24);
+   225→   225→  return `${days}d ago`;
+   226→   226→}
+   227→   227→
+   228→   228→function formatTimestamp(dateStr: string): string {
+   229→   229→  return new Date(dateStr).toLocaleString("en-IN", {
+   230→   230→    day: "2-digit", month: "short", year: "numeric",
+   231→   231→    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+   232→   232→  });
+   233→   233→}
+   234→   234→
+   235→   235→// ─── Status Badge ───────────────────────────────────────────────────
+   236→   236→function StatusBadge({ status }: { status: AuditLogEntry["status"] }) {
+   237→   237→  const config = {
+   238→   238→    success: { bg: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", icon: <CheckCircle2 className="h-3 w-3" /> },
+   239→   239→    failure: { bg: "bg-red-500/15 text-red-400 border-red-500/30", icon: <XCircle className="h-3 w-3" /> },
+   240→   240→    pending: { bg: "bg-amber-500/15 text-amber-400 border-amber-500/30", icon: <Clock className="h-3 w-3" /> },
+   241→   241→  };
+   242→   242→  const c = config[status];
+   243→   243→  return (
+   244→   244→    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${c.bg}`}>
+   245→   245→      {c.icon}
+   246→   246→      {status.charAt(0).toUpperCase() + status.slice(1)}
+   247→   247→    </span>
+   248→   248→  );
+   249→   249→}
+   250→   250→
+   251→   251→// ─── Main Component ─────────────────────────────────────────────────
+   252→   252→export default function AuditLogs() {
+   253→   253→  const { addAuditLog, auditLogs: storeLogs } = useAppStore();
+   254→   254→  const [localLogs, setLocalLogs] = useState<AuditLogEntry[]>([]);
+   255→   255→  const [loading, setLoading] = useState(true);
+   256→   256→  const [search, setSearch] = useState("");
+   257→   257→  const [filterUser, setFilterUser] = useState("all");
+   258→   258→  const [filterAction, setFilterAction] = useState("all");
+   259→   259→  const [filterEntity, setFilterEntity] = useState("all");
+   260→   260→  const [filterStatus, setFilterStatus] = useState("all");
+   261→   261→  const [filterFrom, setFilterFrom] = useState("");
+   262→   262→  const [filterTo, setFilterTo] = useState("");
+   263→   263→  const [page, setPage] = useState(1);
+   264→   264→  const [selectedLog, setSelectedLog] = useState<AuditLogEntry | null>(null);
+   265→   265→  const [showDetail, setShowDetail] = useState(false);
+   266→   266→  const PER_PAGE = 25;
+   267→   267→
+   268→   268→  // Initialize logs
+   269→   269→  useEffect(() => {
+   270→   270→    const timer = setTimeout(() => {
+   271→   271→      const mock = generateMockAuditLogs(55);
+   272→   272→      setLocalLogs(mock);
+   273→   273→      setLoading(false);
+   274→   274→    }, 600);
+   275→   275→    return () => clearTimeout(timer);
+   276→   276→  }, []);
+   277→   277→
+   278→   278→  // Live update: add new log every 8 seconds
+   279→   279→  useEffect(() => {
+   280→   280→    const interval = setInterval(() => {
+   281→   281→      const entry = generateSingleAuditLog();
+   282→   282→      addAuditLog(entry);
+   283→   283→      setLocalLogs((prev) => {
+   284→   284→        const now = new Date().toISOString();
+   285→   285→        const ip = IPS[Math.floor(Math.random() * IPS.length)];
+   286→   286→        const newLog: AuditLogEntry = {
+   287→   287→          ...entry, id: generateId("AL"), timestamp: now, ip,
+   288→   288→        };
+   289→   289→        return [newLog, ...prev].slice(0, 200);
+   290→   290→      });
+   291→   291→    }, 8000);
+   292→   292→    return () => clearInterval(interval);
+   293→   293→  }, [addAuditLog]);
+   294→   294→
+   295→   295→  // Filtered logs
+   296→   296→  const filteredLogs = useMemo(() => {
+   297→   297→    return localLogs.filter((log) => {
+   298→   298→      if (search && !Object.values(log).some((v) => String(v).toLowerCase().includes(search.toLowerCase()))) return false;
+   299→   299→      if (filterUser !== "all" && log.user !== filterUser) return false;
+   300→   300→      if (filterAction !== "all" && log.action !== filterAction) return false;
+   301→   301→      if (filterEntity !== "all" && log.entity !== filterEntity) return false;
+   302→   302→      if (filterStatus !== "all" && log.status !== filterStatus) return false;
+   303→   303→      if (filterFrom) {
+   304→   304→        const from = new Date(filterFrom);
+   305→   305→        if (new Date(log.timestamp) < from) return false;
+   306→   306→      }
+   307→   307→      if (filterTo) {
+   308→   308→        const to = new Date(filterTo);
+   309→   309→        to.setHours(23, 59, 59, 999);
+   310→   310→        if (new Date(log.timestamp) > to) return false;
+   311→   311→      }
+   312→   312→      return true;
+   313→   313→    });
+   314→   314→  }, [localLogs, search, filterUser, filterAction, filterEntity, filterStatus, filterFrom, filterTo]);
+   315→   315→
+   316→   316→  // Stats
+   317→   317→  const stats = useMemo(() => {
+   318→   318→    const total = localLogs.length;
+   319→   319→    const successCount = localLogs.filter((l) => l.status === "success").length;
+   320→   320→    const failCount = localLogs.filter((l) => l.status === "failure").length;
+   321→   321→    const uniqueUsers = new Set(localLogs.map((l) => l.user)).size;
+   322→   322→    return {
+   323→   323→      total, successRate: total ? Math.round((successCount / total) * 100) : 0,
+   324→   324→      failed: failCount, activeUsers: uniqueUsers,
+   325→   325→    };
+   326→   326→  }, [localLogs]);
+   327→   327→
+   328→   328→  const animTotal = useAnimatedCounter(stats.total);
+   329→   329→  const animRate = useAnimatedCounter(stats.successRate);
+   330→   330→  const animFailed = useAnimatedCounter(stats.failed);
+   331→   331→  const animUsers = useAnimatedCounter(stats.activeUsers);
+   332→   332→
+   333→   333→  // Pagination
+   334→   334→  const totalPages = Math.ceil(filteredLogs.length / PER_PAGE);
+   335→   335→  const paginatedLogs = filteredLogs.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+   336→   336→
+   337→   337→  // Reset page on filter change
+   338→   338→  useEffect(() => { setPage(1); }, [search, filterUser, filterAction, filterEntity, filterStatus, filterFrom, filterTo]);
+   339→   339→
+   340→   340→  // Export handlers
+   341→   341→  const handleExportCSV = () => {
+   342→   342→    exportToCSV(
+   343→   343→      filteredLogs.map((l) => ({ Timestamp: l.timestamp, User: l.user, Role: l.role, Action: l.action, Entity: l.entity, EntityID: l.entityId, OldValue: l.oldValue, NewValue: l.newValue, IP: l.ip, Status: l.status })),
+   344→   344→      "audit_logs",
+   345→   345→    );
+   346→   346→  };
+   347→   347→
+   348→   348→  const handleExportJSON = () => { exportToJSON(filteredLogs, "audit_logs"); };
+   349→   349→  const handlePrint = () => { exportToPrint("audit-log-table"); };
+   350→   350→
+   351→   351→  const openDetail = (log: AuditLogEntry) => { setSelectedLog(log); setShowDetail(true); };
+   352→   352→
+   353→   353→  const statCards = [
+   354→   354→    { label: "Total Actions", value: animTotal, icon: <Activity className="h-5 w-5" />, color: "#3b82f6", delay: 0 },
+   355→   355→    { label: "Success Rate", value: animRate, suffix: "%", icon: <CheckCircle2 className="h-5 w-5" />, color: "#10b981", delay: 1 },
+   356→   356→    { label: "Failed Actions", value: animFailed, icon: <XCircle className="h-5 w-5" />, color: "#ef4444", delay: 2 },
+   357→   357→    { label: "Active Users", value: animUsers, icon: <Users className="h-5 w-5" />, color: "#f59e0b", delay: 3 },
+   358→   358→  ];
+   359→   359→
+   360→   360→  if (loading) {
+   361→   361→    return (
+   362→   362→      <div className="flex h-full items-center justify-center">
+   363→   363→        <LoadingSpinner />
+   364→   364→      </div>
+   365→   365→    );
+   366→   366→  }
+   367→   367→
+   368→   368→  return (
+   369→   369→    <div className="space-y-6 p-6">
+   370→   370→      {/* Header */}
+   371→   371→      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
+   372→   372→        <div>
+   373→   373→          <h1 className="text-[#e2e8f0] text-2xl font-bold tracking-tight">Audit Logs</h1>
+   374→   374→          <p className="text-[#64748b] text-sm mt-1">Complete activity trail with real-time monitoring</p>
+   375→   375→        </div>
+   376→   376→        <div className="flex items-center gap-2">
+   377→   377→          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2">
+   378→   378→            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+   379→   379→            <span className="text-emerald-400 text-xs font-medium">Live</span>
+   380→   380→          </div>
+   381→   381→        </div>
+   382→   382→      </motion.div>
+   383→   383→
+   384→   384→      {/* Stats Row */}
+   385→   385→      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+   386→   386→        {statCards.map((sc) => (
+   387→   387→          <motion.div
+   388→   388→            key={sc.label}
+   389→   389→            initial={{ opacity: 0, y: 20 }}
+   390→   390→            animate={{ opacity: 1, y: 0 }}
+   391→   391→            transition={{ duration: 0.5, delay: sc.delay * 0.08 }}
+   392→   392→            className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl transition-all duration-300 hover:scale-[1.02]"
+   393→   393→            style={{ borderLeft: `3px solid ${sc.color}` }}
+   394→   394→          >
+   395→   395→            <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 hover:opacity-100"
+   396→   396→              style={{ background: `linear-gradient(135deg, ${sc.color}08 0%, transparent 60%)` }} />
+   397→   397→            <div className="relative flex items-start justify-between p-5">
+   398→   398→              <div>
+   399→   399→                <span className="text-[#64748b] text-xs font-medium uppercase tracking-wider">{sc.label}</span>
+   400→   400→                <div className="flex items-baseline gap-1 mt-1">
+   401→   401→                  <span className="text-[#e2e8f0] text-3xl font-bold tabular-nums">{sc.value}</span>
+   402→   402→                  {sc.suffix && <span className="text-[#64748b] text-sm">{sc.suffix}</span>}
+   403→   403→                </div>
+   404→   404→              </div>
+   405→   405→              <div className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ backgroundColor: `${sc.color}15`, color: sc.color }}>
+   406→   406→                {sc.icon}
+   407→   407→              </div>
+   408→   408→            </div>
+   409→   409→          </motion.div>
+   410→   410→        ))}
+   411→   411→      </div>
+   412→   412→
+   413→   413→      {/* Filters */}
+   414→   414→      <motion.div
+   415→   415→        initial={{ opacity: 0, y: 15 }}
+   416→   416→        animate={{ opacity: 1, y: 0 }}
+   417→   417→        transition={{ delay: 0.35 }}
+   418→   418→        className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5"
+   419→   419→      >
+   420→   420→        <div className="flex items-center gap-2 mb-4">
+   421→   421→          <Filter className="h-4 w-4 text-[#64748b]" />
+   422→   422→          <span className="text-[#e2e8f0] text-sm font-semibold">Filters</span>
+   423→   423→        </div>
+   424→   424→        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+   425→   425→          {/* Search */}
+   426→   426→          <div className="relative xl:col-span-2">
+   427→   427→            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748b]" />
+   428→   428→            <Input
+   429→   429→              placeholder="Search all fields..."
+   430→   430→              value={search}
+   431→   431→              onChange={(e) => setSearch(e.target.value)}
+   432→   432→              className="pl-9 bg-white/5 border-white/10 text-[#e2e8f0] placeholder:text-[#4a5568] h-9"
+   433→   433→            />
+   434→   434→          </div>
+   435→   435→          {/* Date From */}
+   436→   436→          <Input
+   437→   437→            type="date"
+   438→   438→            value={filterFrom}
+   439→   439→            onChange={(e) => setFilterFrom(e.target.value)}
+   440→   440→            className="bg-white/5 border-white/10 text-[#e2e8f0] h-9"
+   441→   441→          />
+   442→   442→          {/* Date To */}
+   443→   443→          <Input
+   444→   444→            type="date"
+   445→   445→            value={filterTo}
+   446→   446→            onChange={(e) => setFilterTo(e.target.value)}
+   447→   447→            className="bg-white/5 border-white/10 text-[#e2e8f0] h-9"
+   448→   448→          />
+   449→   449→          {/* User */}
+   450→   450→          <Select value={filterUser} onValueChange={setFilterUser}>
+   451→   451→            <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#e2e8f0] h-9">
+   452→   452→              <SelectValue placeholder="All Users" />
+   453→   453→            </SelectTrigger>
+   454→   454→            <SelectContent className="bg-[#1a2035] border-[#2a3550]">
+   455→   455→              <SelectItem value="all">All Users</SelectItem>
+   456→   456→              {USERS.map((u) => (
+   457→   457→                <SelectItem key={u.name} value={u.name}>{u.name}</SelectItem>
+   458→   458→              ))}
+   459→   459→            </SelectContent>
+   460→   460→          </Select>
+   461→   461→          {/* Action */}
+   462→   462→          <Select value={filterAction} onValueChange={setFilterAction}>
+   463→   463→            <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#e2e8f0] h-9">
+   464→   464→              <SelectValue placeholder="All Actions" />
+   465→   465→            </SelectTrigger>
+   466→   466→            <SelectContent className="bg-[#1a2035] border-[#2a3550]">
+   467→   467→              <SelectItem value="all">All Actions</SelectItem>
+   468→   468→              {ACTIONS.map((a) => (
+   469→   469→                <SelectItem key={a} value={a}>{a.replace(/_/g, " ")}</SelectItem>
+   470→   470→              ))}
+   471→   471→            </SelectContent>
+   472→   472→          </Select>
+   473→   473→          {/* Status */}
+   474→   474→          <Select value={filterStatus} onValueChange={setFilterStatus}>
+   475→   475→            <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#e2e8f0] h-9">
+   476→   476→              <SelectValue placeholder="All Status" />
+   477→   477→            </SelectTrigger>
+   478→   478→            <SelectContent className="bg-[#1a2035] border-[#2a3550]">
+   479→   479→              <SelectItem value="all">All Status</SelectItem>
+   480→   480→              <SelectItem value="success">Success</SelectItem>
+   481→   481→              <SelectItem value="failure">Failure</SelectItem>
+   482→   482→              <SelectItem value="pending">Pending</SelectItem>
+   483→   483→            </SelectContent>
+   484→   484→          </Select>
+   485→   485→        </div>
+   486→   486→        {/* Entity filter as separate row on small screens */}
+   487→   487→        <div className="mt-3 flex gap-3">
+   488→   488→          <Select value={filterEntity} onValueChange={setFilterEntity}>
+   489→   489→            <SelectTrigger className="w-full sm:w-48 bg-white/5 border-white/10 text-[#e2e8f0] h-9">
+   490→   490→              <SelectValue placeholder="All Entities" />
+   491→   491→            </SelectTrigger>
+   492→   492→            <SelectContent className="bg-[#1a2035] border-[#2a3550]">
+   493→   493→              <SelectItem value="all">All Entities</SelectItem>
+   494→   494→              {ENTITIES.map((e) => (
+   495→   495→                <SelectItem key={e} value={e}>{e}</SelectItem>
+   496→   496→              ))}
+   497→   497→            </SelectContent>
+   498→   498→          </Select>
+   499→   499→          {(filterUser !== "all" || filterAction !== "all" || filterEntity !== "all" || filterStatus !== "all" || filterFrom || filterTo || search) && (
+   500→   500→            <Button
+   501→   501→              variant="ghost"
+   502→   502→              size="sm"
+   503→   503→              className="text-[#64748b] hover:text-[#e2e8f0] gap-1"
+   504→   504→              onClick={() => { setFilterUser("all"); setFilterAction("all"); setFilterEntity("all"); setFilterStatus("all"); setFilterFrom(""); setFilterTo(""); setSearch(""); }}
+   505→   505→            >
+   506→   506→              <RefreshCw className="h-3 w-3" /> Clear Filters
+   507→   507→            </Button>
+   508→   508→          )}
+   509→   509→        </div>
+   510→   510→      </motion.div>
+   511→   511→
+   512→   512→      {/* Export Buttons */}
+   513→   513→      <motion.div
+   514→   514→        initial={{ opacity: 0 }}
+   515→   515→        animate={{ opacity: 1 }}
+   516→   516→        transition={{ delay: 0.4 }}
+   517→   517→        className="flex items-center gap-2"
+   518→   518→      >
+   519→   519→        <span className="text-[#64748b] text-xs mr-2">Export:</span>
+   520→   520→        <Button variant="outline" size="sm" className="gap-1.5 border-white/10 bg-white/5 hover:bg-white/10 text-[#94a3b8] hover:text-[#e2e8f0] text-xs rounded-lg" onClick={handleExportCSV}>
+   521→   521→          <FileSpreadsheet className="h-3.5 w-3.5" /> CSV
+   522→   522→        </Button>
+   523→   523→        <Button variant="outline" size="sm" className="gap-1.5 border-white/10 bg-white/5 hover:bg-white/10 text-[#94a3b8] hover:text-[#e2e8f0] text-xs rounded-lg" onClick={handleExportJSON}>
+   524→   524→          <FileJson className="h-3.5 w-3.5" /> JSON
+   525→   525→        </Button>
+   526→   526→        <Button variant="outline" size="sm" className="gap-1.5 border-white/10 bg-white/5 hover:bg-white/10 text-[#94a3b8] hover:text-[#e2e8f0] text-xs rounded-lg" onClick={handlePrint}>
+   527→   527→          <Printer className="h-3.5 w-3.5" /> Print
+   528→   528→        </Button>
+   529→   529→        <span className="text-[#4a5568] text-xs ml-2">
+   530→   530→          Showing {filteredLogs.length} of {localLogs.length} entries
+   531→   531→        </span>
+   532→   532→      </motion.div>
+   533→   533→
+   534→   534→      {/* Table */}
+   535→   535→      <motion.div
+   536→   536→        initial={{ opacity: 0, y: 15 }}
+   537→   537→        animate={{ opacity: 1, y: 0 }}
+   538→   538→        transition={{ delay: 0.45 }}
+   539→   539→        className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl overflow-hidden"
+   540→   540→      >
+   541→   541→        <div id="audit-log-table">
+   542→   542→          <Table>
+   543→   543→            <TableHeader>
+   544→   544→              <TableRow className="border-white/10 hover:bg-transparent">
+   545→   545→                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Timestamp</TableHead>
+   546→   546→                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">User</TableHead>
+   547→   547→                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Role</TableHead>
+   548→   548→                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Action</TableHead>
+   549→   549→                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Entity</TableHead>
+   550→   550→                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Entity ID</TableHead>
+   551→   551→                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Old Value</TableHead>
+   552→   552→                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">New Value</TableHead>
+   553→   553→                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">IP</TableHead>
+   554→   554→                <TableHead className="text-[#64748b] text-xs font-semibold uppercase tracking-wider">Status</TableHead>
+   555→   555→              </TableRow>
+   556→   556→            </TableHeader>
+   557→   557→            <TableBody>
+   558→   558→              {paginatedLogs.length === 0 ? (
+   559→   559→                <TableRow className="border-white/5">
+   560→   560→                  <TableCell colSpan={10} className="text-center py-16">
+   561→   561→                    <div className="flex flex-col items-center gap-3">
+   562→   562→                      <Shield className="h-10 w-10 text-[#4a5568]" />
+   563→   563→                      <p className="text-[#64748b] text-sm">No audit logs match your filters</p>
+   564→   564→                      <Button variant="ghost" size="sm" className="text-[#64748b] hover:text-[#e2e8f0]"
+   565→   565→                        onClick={() => { setFilterUser("all"); setFilterAction("all"); setFilterEntity("all"); setFilterStatus("all"); setFilterFrom(""); setFilterTo(""); setSearch(""); }}>
+   566→   566→                        Clear all filters
+   567→   567→                      </Button>
+   568→   568→                    </div>
+   569→   569→                  </TableCell>
+   570→   570→                </TableRow>
+   571→   571→              ) : (
+   572→   572→                <AnimatePresence mode="popLayout">
+   573→   573→                  {paginatedLogs.map((log, idx) => (
+   574→   574→                    <motion.tr
+   575→   575→                      key={log.id}
+   576→   576→                      initial={{ opacity: 0, x: -10 }}
+   577→   577→                      animate={{ opacity: 1, x: 0 }}
+   578→   578→                      exit={{ opacity: 0, x: 10 }}
+   579→   579→                      transition={{ duration: 0.2, delay: idx * 0.01 }}
+   580→   580→                      className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer"
+   581→   581→                      onClick={() => openDetail(log)}
+   582→   582→                    >
+   583→   583→                      <TableCell className="text-[#94a3b8] text-xs py-2.5">
+   584→   584→                        <div>
+   585→   585→                          <div className="text-[#e2e8f0] text-xs">{relativeTime(log.timestamp)}</div>
+   586→   586→                          <div className="text-[#4a5568] text-[10px] mt-0.5">{formatTimestamp(log.timestamp)}</div>
+   587→   587→                        </div>
+   588→   588→                      </TableCell>
+   589→   589→                      <TableCell className="text-[#e2e8f0] text-xs font-medium py-2.5">{log.user}</TableCell>
+   590→   590→                      <TableCell className="py-2.5">
+   591→   591→                        <span className="text-[#64748b] text-xs bg-white/5 px-2 py-0.5 rounded-md">{log.role}</span>
+   592→   592→                      </TableCell>
+   593→   593→                      <TableCell className="py-2.5">
+   594→   594→                        <span className="text-blue-400 text-xs font-medium">{log.action.replace(/_/g, " ")}</span>
+   595→   595→                      </TableCell>
+   596→   596→                      <TableCell className="text-[#94a3b8] text-xs py-2.5">{log.entity}</TableCell>
+   597→   597→                      <TableCell className="text-[#94a3b8] text-xs font-mono py-2.5">{log.entityId}</TableCell>
+   598→   598→                      <TableCell className="text-[#64748b] text-xs py-2.5 max-w-[140px] truncate" title={log.oldValue}>
+   599→   599→                        {log.oldValue.length > 30 ? log.oldValue.slice(0, 30) + "..." : log.oldValue}
+   600→   600→                      </TableCell>
+   601→   601→                      <TableCell className="text-[#64748b] text-xs py-2.5 max-w-[140px] truncate" title={log.newValue}>
+   602→   602→                        {log.newValue.length > 30 ? log.newValue.slice(0, 30) + "..." : log.newValue}
+   603→   603→                      </TableCell>
+   604→   604→                      <TableCell className="text-[#4a5568] text-xs font-mono py-2.5">{log.ip}</TableCell>
+   605→   605→                      <TableCell className="py-2.5">
+   606→   606→                        <StatusBadge status={log.status} />
+   607→   607→                      </TableCell>
+   608→   608→                    </motion.tr>
+   609→   609→                  ))}
+   610→   610→                </AnimatePresence>
+   611→   611→              )}
+   612→   612→            </TableBody>
+   613→   613→          </Table>
+   614→   614→        </div>
+   615→   615→
+   616→   616→        {/* Pagination */}
+   617→   617→        {totalPages > 1 && (
+   618→   618→          <div className="flex items-center justify-between px-5 py-3 border-t border-white/10">
+   619→   619→            <span className="text-[#64748b] text-xs">
+   620→   620→              Page {page} of {totalPages} &middot; {PER_PAGE} per page
+   621→   621→            </span>
+   622→   622→            <div className="flex items-center gap-1">
+   623→   623→              <Button variant="ghost" size="sm" className="text-[#64748b] hover:text-[#e2e8f0] h-8 w-8 p-0"
+   624→   624→                disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+   625→   625→                <ChevronLeft className="h-4 w-4" />
+   626→   626→              </Button>
+   627→   627→              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+   628→   628→                let pageNum: number;
+   629→   629→                if (totalPages <= 5) {
+   630→   630→                  pageNum = i + 1;
+   631→   631→                } else if (page <= 3) {
+   632→   632→                  pageNum = i + 1;
+   633→   633→                } else if (page >= totalPages - 2) {
+   634→   634→                  pageNum = totalPages - 4 + i;
+   635→   635→                } else {
+   636→   636→                  pageNum = page - 2 + i;
+   637→   637→                }
+   638→   638→                return (
+   639→   639→                  <Button key={pageNum} variant={page === pageNum ? "default" : "ghost"} size="sm"
+   640→   640→                    className={`h-8 w-8 p-0 text-xs ${page === pageNum ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "text-[#64748b] hover:text-[#e2e8f0]"}`}
+   641→   641→                    onClick={() => setPage(pageNum)}>
+   642→   642→                    {pageNum}
+   643→   643→                  </Button>
+   644→   644→                );
+   645→   645→              })}
+   646→   646→              <Button variant="ghost" size="sm" className="text-[#64748b] hover:text-[#e2e8f0] h-8 w-8 p-0"
+   647→   647→                disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+   648→   648→                <ChevronRight className="h-4 w-4" />
+   649→   649→              </Button>
+   650→   650→            </div>
+   651→   651→          </div>
+   652→   652→        )}
+   653→   653→      </motion.div>
+   654→   654→
+   655→   655→      {/* Detail Dialog */}
+   656→   656→      <Dialog open={showDetail} onOpenChange={setShowDetail}>
+   657→   657→        <DialogContent className="bg-[#1a2035] border-[#2a3550] max-w-2xl max-h-[85vh] overflow-hidden">
+   658→   658→          {selectedLog && (
+   659→   659→            <>
+   660→   660→              <DialogHeader>
+   661→   661→                <DialogTitle className="text-[#e2e8f0]">Audit Log Detail</DialogTitle>
+   662→   662→                <DialogDescription className="text-[#64748b]">
+   663→   663→                  Full details for action {selectedLog.action} on {selectedLog.entity}
+   664→   664→                </DialogDescription>
+   665→   665→              </DialogHeader>
+   666→   666→              <ScrollArea className="max-h-[60vh]">
+   667→   667→                <div className="space-y-4 pr-4">
+   668→   668→                  {/* Metadata */}
+   669→   669→                  <div className="grid grid-cols-2 gap-3">
+   670→   670→                    {[
+   671→   671→                      { label: "Timestamp", value: formatTimestamp(selectedLog.timestamp) },
+   672→   672→                      { label: "User", value: selectedLog.user },
+   673→   673→                      { label: "Role", value: selectedLog.role },
+   674→   674→                      { label: "Action", value: selectedLog.action.replace(/_/g, " ") },
+   675→   675→                      { label: "Entity", value: selectedLog.entity },
+   676→   676→                      { label: "Entity ID", value: selectedLog.entityId },
+   677→   677→                      { label: "IP Address", value: selectedLog.ip },
+   678→   678→                      { label: "Status", value: selectedLog.status.charAt(0).toUpperCase() + selectedLog.status.slice(1) },
+   679→   679→                    ].map((item) => (
+   680→   680→                      <div key={item.label} className="rounded-xl border border-white/10 bg-white/5 p-3">
+   681→   681→                        <span className="text-[#64748b] text-xs block mb-1">{item.label}</span>
+   682→   682→                        {item.label === "Status" ? (
+   683→   683→                          <StatusBadge status={selectedLog.status} />
+   684→   684→                        ) : (
+   685→   685→                          <span className="text-[#e2e8f0] text-sm font-medium">{item.value}</span>
+   686→   686→                        )}
+   687→   687→                      </div>
+   688→   688→                    ))}
+   689→   689→                  </div>
+   690→   690→
+   691→   691→                  {/* Diff View */}
+   692→   692→                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+   693→   693→                    <div className="flex items-center gap-2 mb-3">
+   694→   694→                      <AlertTriangle className="h-4 w-4 text-amber-400" />
+   695→   695→                      <span className="text-[#e2e8f0] text-sm font-semibold">Value Change</span>
+   696→   696→                    </div>
+   697→   697→                    <div className="grid grid-cols-2 gap-3">
+   698→   698→                      <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3">
+   699→   699→                        <span className="text-red-400 text-xs font-semibold block mb-2">Old Value</span>
+   700→   700→                        <pre className="text-[#94a3b8] text-xs whitespace-pre-wrap break-words font-mono">
+   701→   701→                          {selectedLog.oldValue || "—"}
+   702→   702→                        </pre>
+   703→   703→                      </div>
+   704→   704→                      <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3">
+   705→   705→                        <span className="text-emerald-400 text-xs font-semibold block mb-2">New Value</span>
+   706→   706→                        <pre className="text-[#94a3b8] text-xs whitespace-pre-wrap break-words font-mono">
+   707→   707→                          {selectedLog.newValue || "—"}
+   708→   708→                        </pre>
+   709→   709→                      </div>
+   710→   710→                    </div>
+   711→   711→                  </div>
+   712→   712→                </div>
+   713→   713→              </ScrollArea>
+   714→   714→            </>
+   715→   715→          )}
+   716→   716→        </DialogContent>
+   717→   717→      </Dialog>
+   718→   718→    </div>
+   719→   719→  );
+   720→   720→}

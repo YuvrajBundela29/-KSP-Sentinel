@@ -7,17 +7,6 @@ import type { Accused, FIR } from "@/lib/types";
 import { generateInvestigationBrief, computeSimilarCrimes } from "@/lib/intelligence";
 import type { InvestigationBrief, SimilarCrimeResult } from "@/lib/types";
 import LoadingSpinner from "@/components/ksp/LoadingSpinner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   ArrowLeft,
   User,
@@ -30,6 +19,16 @@ import {
   Brain,
   Search,
 } from "lucide-react";
+import { motion } from "framer-motion";
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.07, duration: 0.45, ease: [0.4, 0, 0.2, 1] },
+  }),
+};
 
 function formatINR(amount: number): string {
   const str = Math.abs(amount).toString();
@@ -76,41 +75,92 @@ function getTimeSlot(hour: number): "morning" | "evening" | "night" {
 }
 
 const severityColors: Record<string, string> = {
-  critical: "bg-red-500",
-  high: "bg-orange-500",
-  medium: "bg-yellow-500",
-  low: "bg-green-500",
+  critical: "bg-[#f87171]",
+  high: "bg-[#fbbf24]",
+  medium: "bg-[#fbbf24]",
+  low: "bg-[#34d399]",
 };
 
-const severityBadgeColors: Record<string, string> = {
-  critical: "bg-red-500/20 text-red-400 border-red-500/30",
-  high: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-  medium: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-  low: "bg-green-500/20 text-green-400 border-green-500/30",
+const severityBadgeStyles: Record<string, React.CSSProperties> = {
+  critical: {
+    background: "rgba(248, 113, 113, 0.08)",
+    color: "#f87171",
+    borderColor: "rgba(248, 113, 113, 0.2)",
+  },
+  high: {
+    background: "rgba(251, 191, 36, 0.08)",
+    color: "#fbbf24",
+    borderColor: "rgba(251, 191, 36, 0.2)",
+  },
+  medium: {
+    background: "rgba(251, 191, 36, 0.08)",
+    color: "#fbbf24",
+    borderColor: "rgba(251, 191, 36, 0.2)",
+  },
+  low: {
+    background: "rgba(52, 211, 153, 0.08)",
+    color: "#34d399",
+    borderColor: "rgba(52, 211, 153, 0.2)",
+  },
 };
 
-const investigationStatusColors: Record<string, string> = {
-  "Under Investigation": "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  "Charge Sheet Filed": "bg-green-500/20 text-green-400 border-green-500/30",
-  Closed: "bg-gray-500/20 text-gray-400 border-gray-500/30",
-  "Trial in Progress": "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-  "Evidence Collection": "bg-purple-500/20 text-purple-400 border-purple-500/30",
+const investigationStatusStyles: Record<string, React.CSSProperties> = {
+  "Under Investigation": {
+    background: "rgba(34, 211, 238, 0.08)",
+    color: "#22d3ee",
+    borderColor: "rgba(34, 211, 238, 0.2)",
+  },
+  "Charge Sheet Filed": {
+    background: "rgba(52, 211, 153, 0.08)",
+    color: "#34d399",
+    borderColor: "rgba(52, 211, 153, 0.2)",
+  },
+  Closed: {
+    background: "rgba(100, 116, 139, 0.08)",
+    color: "#94a3b8",
+    borderColor: "rgba(100, 116, 139, 0.2)",
+  },
+  "Trial in Progress": {
+    background: "rgba(251, 191, 36, 0.08)",
+    color: "#fbbf24",
+    borderColor: "rgba(251, 191, 36, 0.2)",
+  },
+  "Evidence Collection": {
+    background: "rgba(129, 140, 248, 0.08)",
+    color: "#818cf8",
+    borderColor: "rgba(129, 140, 248, 0.2)",
+  },
+};
+
+const defaultStatusStyle: React.CSSProperties = {
+  background: "rgba(100, 116, 139, 0.08)",
+  color: "#94a3b8",
+  borderColor: "rgba(100, 116, 139, 0.2)",
 };
 
 function SeverityBadge({ severity }: { severity: string }) {
-  const map: Record<string, string> = {
-    critical: "bg-red-500/20 text-red-400 border-red-500/30",
-    high: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-    medium: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-    low: "bg-green-500/20 text-green-400 border-green-500/30",
-  };
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${
-        map[severity] ?? map.low
-      }`}
+      className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium capitalize"
+      style={severityBadgeStyles[severity] ?? severityBadgeStyles.low}
     >
       {severity}
+    </span>
+  );
+}
+
+function GlassBadge({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <span
+      className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm"
+      style={{
+        background: "rgba(255, 255, 255, 0.04)",
+        color: "#f1f5f9",
+        borderColor: "rgba(255, 255, 255, 0.1)",
+        ...style,
+      }}
+    >
+      {children}
     </span>
   );
 }
@@ -298,10 +348,10 @@ export default function AccusedProfile() {
   // Risk score display helpers
   const riskColor =
     (accused?.risk ?? 0) > 80
-      ? "#ef4444"
+      ? "#f87171"
       : (accused?.risk ?? 0) > 60
-        ? "#f97316"
-        : "#10b981";
+        ? "#fbbf24"
+        : "#34d399";
   const riskLabel =
     (accused?.risk ?? 0) > 80
       ? "HIGH RISK"
@@ -317,183 +367,274 @@ export default function AccusedProfile() {
   // No selection state
   if (!selectedAccusedId || !accused) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-[#94a3b8]">
-        <Button
-          variant="ghost"
+      <div
+        className="flex flex-col items-center justify-center min-h-[60vh]"
+        style={{ color: "#8b97b0" }}
+      >
+        <button
           onClick={() => setView("dashboard")}
-          className="text-[#94a3b8] hover:text-[#e2e8f0] mb-6"
+          className="flex items-center gap-2 mb-6 px-3 py-2 rounded-lg border transition-all duration-200"
+          style={{
+            background: "rgba(15, 21, 36, 0.45)",
+            backdropFilter: "blur(24px)",
+            borderColor: "rgba(255, 255, 255, 0.06)",
+            color: "#8b97b0",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = "rgba(34, 211, 238, 0.15)";
+            e.currentTarget.style.color = "#f1f5f9";
+            e.currentTarget.style.boxShadow = "0 0 20px rgba(34, 211, 238, 0.06)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.06)";
+            e.currentTarget.style.color = "#8b97b0";
+            e.currentTarget.style.boxShadow = "none";
+          }}
         >
-          <ArrowLeft className="size-4 mr-2" />
+          <ArrowLeft className="size-4" />
           Back to Dashboard
-        </Button>
+        </button>
         <User className="size-16 mb-4 opacity-30" />
         <p className="text-lg">Select an accused to view their profile</p>
       </div>
     );
   }
 
-  return (
-    <div className="h-full overflow-y-auto" style={{ background: "#0a0f1e" }}>
-      <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-start gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setView("dashboard")}
-            className="text-[#94a3b8] hover:text-[#e2e8f0] hover:bg-[#2a3550]/50 shrink-0 mt-1"
-          >
-            <ArrowLeft className="size-5" />
-          </Button>
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-3 mb-2">
-              <h1 className="text-2xl sm:text-3xl font-bold text-[#e2e8f0]">
-                {accused.name}
-              </h1>
-              <Badge
-                variant="outline"
-                className="bg-[#2a3550] text-[#e2e8f0] border-[#3a4560] text-sm px-2.5 py-0.5"
-              >
-                Age: {accused.age}
-              </Badge>
-              <Badge
-                variant="outline"
-                className="bg-[#2a3550] text-[#e2e8f0] border-[#3a4560] text-sm px-2.5 py-0.5"
-              >
-                {accused.gender}
-              </Badge>
-              {gangName && (
-                <Badge
-                  variant="outline"
-                  className="bg-purple-500/15 text-purple-400 border-purple-500/30 text-sm px-2.5 py-0.5"
-                >
-                  <Users className="size-3 mr-1" />
-                  {gangName}
-                </Badge>
-              )}
-            </div>
+  const circumference = 2 * Math.PI * 50;
+  const riskStrokeDash = (accused.risk / 100) * circumference;
 
-            {/* Risk Score Gauge */}
-            <div className="flex items-center gap-4 mt-4">
-              <div className="relative w-28 h-28 sm:w-32 sm:h-32 shrink-0">
-                <svg
-                  viewBox="0 0 120 120"
-                  className="w-full h-full -rotate-90"
-                >
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r="50"
-                    fill="none"
-                    stroke="#1a2035"
-                    strokeWidth="10"
-                  />
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r="50"
-                    fill="none"
-                    stroke={riskColor}
-                    strokeWidth="10"
-                    strokeLinecap="round"
-                    strokeDasharray={`${(accused.risk / 100) * 314.16} 314.16`}
-                    className="transition-all duration-700 ease-out"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span
-                    className="text-2xl sm:text-3xl font-bold"
-                    style={{ color: riskColor }}
+  return (
+    <div
+      className="h-full overflow-y-auto"
+      style={{ background: "#050810" }}
+    >
+      <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
+        {/* ── Header Section ── */}
+        <motion.div
+          custom={0}
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+        >
+          <div className="glass-card p-5 sm:p-6 relative overflow-hidden">
+            {/* Gradient overlay */}
+            <div
+              className="absolute inset-0 pointer-events-none rounded-xl"
+              style={{
+                background: "linear-gradient(135deg, rgba(34, 211, 238, 0.04) 0%, transparent 40%, rgba(129, 140, 248, 0.03) 100%)",
+              }}
+            />
+
+            <div className="relative flex items-start gap-4">
+              {/* Back button */}
+              <button
+                onClick={() => setView("dashboard")}
+                className="shrink-0 mt-1 w-9 h-9 flex items-center justify-center rounded-lg border transition-all duration-200"
+                style={{
+                  background: "rgba(15, 21, 36, 0.6)",
+                  backdropFilter: "blur(16px)",
+                  borderColor: "rgba(255, 255, 255, 0.06)",
+                  color: "#8b97b0",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(34, 211, 238, 0.2)";
+                  e.currentTarget.style.color = "#22d3ee";
+                  e.currentTarget.style.boxShadow = "0 0 24px rgba(34, 211, 238, 0.08)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.06)";
+                  e.currentTarget.style.color = "#8b97b0";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              >
+                <ArrowLeft className="size-4" />
+              </button>
+
+              <div className="flex-1 min-w-0">
+                {/* Name row */}
+                <div className="flex flex-wrap items-center gap-3 mb-4">
+                  <h1
+                    className="text-2xl sm:text-3xl font-bold tracking-tight"
+                    style={{ color: "#f1f5f9" }}
                   >
-                    {accused.risk}
-                  </span>
-                  <span className="text-[10px] text-[#94a3b8] uppercase tracking-wider">
-                    Score
-                  </span>
+                    {accused.name}
+                  </h1>
+                  <GlassBadge>Age: {accused.age}</GlassBadge>
+                  <GlassBadge>{accused.gender}</GlassBadge>
+                  {gangName && (
+                    <span
+                      className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm"
+                      style={{
+                        background: "rgba(129, 140, 248, 0.08)",
+                        color: "#818cf8",
+                        borderColor: "rgba(129, 140, 248, 0.2)",
+                      }}
+                    >
+                      <Users className="size-3 mr-1" />
+                      {gangName}
+                    </span>
+                  )}
                 </div>
-              </div>
-              <div>
-                <p
-                  className="text-lg font-bold tracking-wide"
-                  style={{ color: riskColor }}
-                >
-                  {riskLabel}
-                </p>
-                <p className="text-sm text-[#94a3b8] mt-1">
-                  Linked to {firs.length} FIR{firs.length !== 1 ? "s" : ""} •{" "}
-                  {firs.filter((f) => f.investigation_status !== "Closed").length}{" "}
-                  active case
-                  {firs.filter((f) => f.investigation_status !== "Closed")
-                    .length !== 1
-                    ? "s"
-                    : ""}
-                </p>
+
+                {/* Risk Score Gauge with glow */}
+                <div className="flex items-center gap-5">
+                  <div className="relative w-28 h-28 sm:w-32 sm:h-32 shrink-0">
+                    <svg
+                      viewBox="0 0 120 120"
+                      className="w-full h-full"
+                      style={{ transform: "rotate(-90deg)" }}
+                    >
+                      <defs>
+                        <filter id="riskGlow">
+                          <feGaussianBlur stdDeviation="4" result="blur" />
+                          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                        </filter>
+                      </defs>
+                      {/* Background ring */}
+                      <circle
+                        cx="60"
+                        cy="60"
+                        r="50"
+                        fill="none"
+                        stroke="rgba(255, 255, 255, 0.04)"
+                        strokeWidth="10"
+                      />
+                      {/* Progress ring with glow */}
+                      <circle
+                        cx="60"
+                        cy="60"
+                        r="50"
+                        fill="none"
+                        stroke={riskColor}
+                        strokeWidth="10"
+                        strokeLinecap="round"
+                        strokeDasharray={`${riskStrokeDash} ${circumference}`}
+                        style={{
+                          transition: "stroke-dashoffset 1s ease-out",
+                          filter: "url(#riskGlow)",
+                        }}
+                      />
+                    </svg>
+                    <div
+                      className="absolute inset-0 flex flex-col items-center justify-center"
+                      style={{ transform: "none" }}
+                    >
+                      <span
+                        className="text-2xl sm:text-3xl font-bold"
+                        style={{ color: riskColor }}
+                      >
+                        {accused.risk}
+                      </span>
+                      <span
+                        className="uppercase tracking-wider"
+                        style={{ fontSize: 10, color: "#8b97b0" }}
+                      >
+                        Score
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <p
+                      className="text-lg font-bold tracking-wide"
+                      style={{ color: riskColor }}
+                    >
+                      {riskLabel}
+                    </p>
+                    <p className="text-sm mt-1" style={{ color: "#8b97b0" }}>
+                      Linked to {firs.length} FIR{firs.length !== 1 ? "s" : ""} •{" "}
+                      {firs.filter((f) => f.investigation_status !== "Closed").length}{" "}
+                      active case
+                      {firs.filter((f) => f.investigation_status !== "Closed")
+                        .length !== 1
+                        ? "s"
+                        : ""}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Section 1 — Criminal History Timeline */}
-        <Card className="bg-[#1a2035] border-[#2a3550] shadow-none">
-          <CardHeader>
-            <CardTitle className="text-[#e2e8f0] flex items-center gap-2">
-              <FileText className="size-5 text-[#94a3b8]" />
+        {/* ── Section 1 — Criminal History Timeline ── */}
+        <motion.div
+          custom={1}
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+        >
+          <div className="glass-card p-5 sm:p-6">
+            <h2
+              className="text-base font-semibold flex items-center gap-2 mb-4"
+              style={{ color: "#f1f5f9" }}
+            >
+              <FileText className="size-5" style={{ color: "#8b97b0" }} />
               Criminal History Timeline
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h2>
+
             {firs.length === 0 ? (
-              <p className="text-[#94a3b8] text-sm">
+              <p className="text-sm" style={{ color: "#8b97b0" }}>
                 No FIR records found for this accused.
               </p>
             ) : (
-              <div className="relative pl-6 max-h-96 overflow-y-auto space-y-0 custom-scrollbar">
+              <div className="relative pl-6 max-h-96 overflow-y-auto space-y-0">
                 {/* Vertical timeline line */}
-                <div className="absolute left-[9px] top-2 bottom-2 w-[2px] bg-[#2a3550]" />
+                <div
+                  className="absolute left-[9px] top-2 bottom-2 w-[2px]"
+                  style={{ background: "rgba(255, 255, 255, 0.06)" }}
+                />
 
                 {firs.map((fir) => (
                   <div key={fir.fir_id} className="relative pb-6 last:pb-0">
                     {/* Timeline dot */}
                     <div
-                      className={`absolute -left-6 top-1.5 w-4 h-4 rounded-full border-2 border-[#0a0f1e] ${severityColors[fir.severity] ?? "bg-gray-500"}`}
+                      className={`absolute -left-6 top-1.5 w-4 h-4 rounded-full border-2 ${severityColors[fir.severity] ?? "bg-gray-500"}`}
+                      style={{ borderColor: "rgba(5, 8, 16, 0.8)" }}
                     />
-                    <div className="bg-[#0f1528] rounded-lg p-4 border border-[#2a3550]/60">
+                    <div
+                      className="rounded-lg p-4"
+                      style={{
+                        background: "rgba(10, 15, 28, 0.6)",
+                        border: "1px solid rgba(255, 255, 255, 0.06)",
+                      }}
+                    >
                       <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <span className="text-sm text-[#94a3b8]">
+                        <span className="text-sm" style={{ color: "#8b97b0" }}>
                           {formatDate(fir.date)}
                         </span>
-                        <Badge
-                          variant="outline"
-                          className="bg-[#2a3550] text-[#e2e8f0] border-[#3a4560] text-xs"
-                        >
+                        <GlassBadge>
                           {fir.crime_type}
-                        </Badge>
-                        <Badge
-                          variant="outline"
-                          className={`text-xs ${severityBadgeColors[fir.severity] ?? ""}`}
-                        >
-                          {fir.severity.toUpperCase()}
-                        </Badge>
-                        <Badge
-                          variant="outline"
-                          className={`text-xs ${investigationStatusColors[fir.investigation_status] ?? "bg-gray-500/20 text-gray-400 border-gray-500/30"}`}
+                        </GlassBadge>
+                        <SeverityBadge severity={fir.severity} />
+                        <span
+                          className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs"
+                          style={
+                            investigationStatusStyles[fir.investigation_status] ??
+                            defaultStatusStyle
+                          }
                         >
                           {fir.investigation_status}
-                        </Badge>
+                        </span>
                       </div>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-                        <span className="text-blue-400 font-mono">
+                        <span className="font-mono" style={{ color: "#22d3ee" }}>
                           {fir.fir_id}
                         </span>
-                        <span className="text-[#94a3b8] flex items-center gap-1">
+                        <span
+                          className="flex items-center gap-1"
+                          style={{ color: "#8b97b0" }}
+                        >
                           <MapPin className="size-3" />
                           {fir.district}
                         </span>
-                        <span className="text-[#94a3b8] flex items-center gap-1">
+                        <span
+                          className="flex items-center gap-1"
+                          style={{ color: "#8b97b0" }}
+                        >
                           <Clock className="size-3" />
                           {fir.time}
                         </span>
-                        <span className="text-[#94a3b8]">
+                        <span style={{ color: "#8b97b0" }}>
                           {fir.police_station}
                         </span>
                       </div>
@@ -502,42 +643,57 @@ export default function AccusedProfile() {
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </motion.div>
 
-        {/* Section 2 — Behavioral Analysis */}
-        <Card className="bg-[#1a2035] border-[#2a3550] shadow-none">
-          <CardHeader>
-            <CardTitle className="text-[#e2e8f0] flex items-center gap-2">
-              <Shield className="size-5 text-[#94a3b8]" />
+        {/* ── Section 2 — Behavioral Analysis ── */}
+        <motion.div
+          custom={2}
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+        >
+          <div className="glass-card p-5 sm:p-6">
+            <h2
+              className="text-base font-semibold flex items-center gap-2 mb-4"
+              style={{ color: "#f1f5f9" }}
+            >
+              <Shield className="size-5" style={{ color: "#8b97b0" }} />
               Behavioral Analysis
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h2>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Preferred Time of Crime */}
-              <div className="bg-[#0f1528] rounded-lg p-4 border border-[#2a3550]/60">
-                <div className="flex items-center gap-2 mb-3">
-                  <Clock className="size-4 text-[#94a3b8]" />
-                  <span className="text-sm font-medium text-[#e2e8f0]">
+              <div className="glass-card gradient-cyan p-4 relative overflow-hidden">
+                <div
+                  className="flex items-center gap-2 mb-3"
+                >
+                  <Clock className="size-4" style={{ color: "#22d3ee" }} />
+                  <span className="text-sm font-medium" style={{ color: "#f1f5f9" }}>
                     Preferred Time of Crime
                   </span>
                 </div>
                 {firs.length === 0 ? (
-                  <p className="text-sm text-[#94a3b8]">No data</p>
+                  <p className="text-sm" style={{ color: "#8b97b0" }}>No data</p>
                 ) : (
                   <div className="space-y-2">
                     {(
                       ["morning", "evening", "night"] as const
                     ).map((slot) => (
                       <div key={slot} className="flex items-center gap-2">
-                        <span className="text-xs text-[#94a3b8] w-16 capitalize">
+                        <span
+                          className="capitalize w-16"
+                          style={{ fontSize: 12, color: "#8b97b0" }}
+                        >
                           {slot === "morning"
                             ? "Morning"
                             : slot === "evening"
                               ? "Evening"
                               : "Night"}
-                          <span className="text-[10px] ml-0.5 opacity-60">
+                          <span
+                            className="ml-0.5"
+                            style={{ fontSize: 10, opacity: 0.6, color: "#8b97b0" }}
+                          >
                             {slot === "morning"
                               ? "6-12"
                               : slot === "evening"
@@ -545,15 +701,23 @@ export default function AccusedProfile() {
                                 : "18-6"}
                           </span>
                         </span>
-                        <div className="flex-1 h-2 bg-[#1a2035] rounded-full overflow-hidden">
+                        <div
+                          className="flex-1 h-2 rounded-full overflow-hidden"
+                          style={{ background: "rgba(255, 255, 255, 0.04)" }}
+                        >
                           <div
-                            className={`h-full rounded-full transition-all duration-500 ${timeAnalysis.preferred === slot ? "bg-blue-400" : "bg-[#2a3550]"}`}
+                            className="h-full rounded-full transition-all duration-500"
                             style={{
                               width: `${timeAnalysis.percentages[slot]}%`,
+                              background: timeAnalysis.preferred === slot ? "#22d3ee" : "rgba(255, 255, 255, 0.08)",
+                              boxShadow: timeAnalysis.preferred === slot ? "0 0 12px rgba(34, 211, 238, 0.3)" : "none",
                             }}
                           />
                         </div>
-                        <span className="text-xs text-[#94a3b8] w-10 text-right">
+                        <span
+                          className="w-10 text-right"
+                          style={{ fontSize: 12, color: "#8b97b0" }}
+                        >
                           {timeAnalysis.slots[slot] > 0
                             ? `${Math.round(timeAnalysis.percentages[slot])}%`
                             : "—"}
@@ -565,52 +729,56 @@ export default function AccusedProfile() {
               </div>
 
               {/* Preferred Crime Type */}
-              <div className="bg-[#0f1528] rounded-lg p-4 border border-[#2a3550]/60">
+              <div className="glass-card gradient-indigo p-4 relative overflow-hidden">
                 <div className="flex items-center gap-2 mb-3">
-                  <Shield className="size-4 text-[#94a3b8]" />
-                  <span className="text-sm font-medium text-[#e2e8f0]">
+                  <Shield className="size-4" style={{ color: "#818cf8" }} />
+                  <span className="text-sm font-medium" style={{ color: "#f1f5f9" }}>
                     Preferred Crime Type
                   </span>
                 </div>
                 {preferredCrimeType ? (
-                  <p className="text-sm text-blue-400 font-medium">
+                  <p className="text-sm font-medium" style={{ color: "#22d3ee" }}>
                     {preferredCrimeType}
                   </p>
                 ) : (
-                  <p className="text-sm text-[#94a3b8]">No data</p>
+                  <p className="text-sm" style={{ color: "#8b97b0" }}>No data</p>
                 )}
               </div>
 
               {/* Districts Active In */}
-              <div className="bg-[#0f1528] rounded-lg p-4 border border-[#2a3550]/60">
+              <div className="glass-card gradient-emerald p-4 relative overflow-hidden">
                 <div className="flex items-center gap-2 mb-3">
-                  <MapPin className="size-4 text-[#94a3b8]" />
-                  <span className="text-sm font-medium text-[#e2e8f0]">
+                  <MapPin className="size-4" style={{ color: "#34d399" }} />
+                  <span className="text-sm font-medium" style={{ color: "#f1f5f9" }}>
                     Districts Active In
                   </span>
                 </div>
                 {activeDistricts.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5">
                     {activeDistricts.map((d) => (
-                      <Badge
+                      <span
                         key={d}
-                        variant="outline"
-                        className="bg-[#2a3550] text-[#e2e8f0] border-[#3a4560] text-xs"
+                        className="rounded-full border px-2 py-0.5 text-xs"
+                        style={{
+                          background: "rgba(255, 255, 255, 0.04)",
+                          color: "#f1f5f9",
+                          borderColor: "rgba(255, 255, 255, 0.1)",
+                        }}
                       >
                         {d}
-                      </Badge>
+                      </span>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-[#94a3b8]">No data</p>
+                  <p className="text-sm" style={{ color: "#8b97b0" }}>No data</p>
                 )}
               </div>
 
               {/* Vehicles Used */}
-              <div className="bg-[#0f1528] rounded-lg p-4 border border-[#2a3550]/60">
+              <div className="glass-card gradient-amber p-4 relative overflow-hidden">
                 <div className="flex items-center gap-2 mb-3">
-                  <Car className="size-4 text-[#94a3b8]" />
-                  <span className="text-sm font-medium text-[#e2e8f0]">
+                  <Car className="size-4" style={{ color: "#fbbf24" }} />
+                  <span className="text-sm font-medium" style={{ color: "#f1f5f9" }}>
                     Vehicles Used
                   </span>
                 </div>
@@ -619,27 +787,28 @@ export default function AccusedProfile() {
                     {vehiclesUsed.map((v) => (
                       <div
                         key={v.id}
-                        className="text-sm text-[#e2e8f0] flex items-center gap-2"
+                        className="text-sm flex items-center gap-2"
+                        style={{ color: "#f1f5f9" }}
                       >
-                        <span className="font-mono text-xs text-blue-400">
+                        <span className="font-mono text-xs" style={{ color: "#22d3ee" }}>
                           {v.reg}
                         </span>
-                        <span className="text-[#94a3b8]">
+                        <span style={{ color: "#8b97b0" }}>
                           {v.make} {v.type} ({v.color})
                         </span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-[#94a3b8]">No vehicles linked</p>
+                  <p className="text-sm" style={{ color: "#8b97b0" }}>No vehicles linked</p>
                 )}
               </div>
 
               {/* Gang Associates */}
-              <div className="bg-[#0f1528] rounded-lg p-4 border border-[#2a3550]/60 sm:col-span-2">
+              <div className="glass-card gradient-rose p-4 relative overflow-hidden sm:col-span-2">
                 <div className="flex items-center gap-2 mb-3">
-                  <Users className="size-4 text-[#94a3b8]" />
-                  <span className="text-sm font-medium text-[#e2e8f0]">
+                  <Users className="size-4" style={{ color: "#f87171" }} />
+                  <span className="text-sm font-medium" style={{ color: "#f1f5f9" }}>
                     Gang Associates
                   </span>
                 </div>
@@ -648,127 +817,184 @@ export default function AccusedProfile() {
                     {gangAssociates.map((a) => (
                       <div
                         key={a.id}
-                        className="flex items-center gap-2 bg-[#1a2035] rounded-md px-3 py-1.5 border border-[#2a3550]"
+                        className="flex items-center gap-2 rounded-md px-3 py-1.5 border"
+                        style={{
+                          background: "rgba(15, 21, 36, 0.6)",
+                          borderColor: "rgba(255, 255, 255, 0.06)",
+                        }}
                       >
-                        <User className="size-3.5 text-purple-400" />
-                        <span className="text-sm text-[#e2e8f0]">{a.name}</span>
-                        <span className="text-xs text-[#94a3b8]">
+                        <User className="size-3.5" style={{ color: "#818cf8" }} />
+                        <span className="text-sm" style={{ color: "#f1f5f9" }}>{a.name}</span>
+                        <span className="text-xs" style={{ color: "#8b97b0" }}>
                           (Risk: {a.risk})
                         </span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-[#94a3b8]">
+                  <p className="text-sm" style={{ color: "#8b97b0" }}>
                     No gang affiliation or no associates found
                   </p>
                 )}
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </motion.div>
 
-        {/* Section 3 — Risk Scoring Breakdown */}
-        <Card className="bg-[#1a2035] border-[#2a3550] shadow-none">
-          <CardHeader>
-            <CardTitle className="text-[#e2e8f0] flex items-center gap-2">
-              <Shield className="size-5 text-[#94a3b8]" />
+        {/* ── Section 3 — Risk Scoring Breakdown ── */}
+        <motion.div
+          custom={3}
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+        >
+          <div className="glass-card p-5 sm:p-6">
+            <h2
+              className="text-base font-semibold flex items-center gap-2 mb-4"
+              style={{ color: "#f1f5f9" }}
+            >
+              <Shield className="size-5" style={{ color: "#8b97b0" }} />
               Risk Scoring Breakdown
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow className="border-[#2a3550] hover:bg-transparent">
-                  <TableHead className="text-[#94a3b8]">Factor</TableHead>
-                  <TableHead className="text-[#94a3b8]">Value</TableHead>
-                  <TableHead className="text-[#94a3b8] text-right">Score</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow className="border-[#2a3550] hover:bg-[#2a3550]/30">
-                  <TableCell className="text-[#e2e8f0]">
-                    Prior FIRs Count
-                  </TableCell>
-                  <TableCell className="text-[#e2e8f0]">
-                    {riskBreakdown.priorFIRsCount}
-                  </TableCell>
-                  <TableCell className="text-[#e2e8f0] text-right">
-                    {riskBreakdown.priorFIRsScore}
-                    <span className="text-[#94a3b8] text-xs ml-1">
-                      (max 40)
-                    </span>
-                  </TableCell>
-                </TableRow>
-                <TableRow className="border-[#2a3550] hover:bg-[#2a3550]/30">
-                  <TableCell className="text-[#e2e8f0]">
-                    Gang Membership
-                  </TableCell>
-                  <TableCell className="text-[#e2e8f0]">
-                    {riskBreakdown.gangMembership}
-                  </TableCell>
-                  <TableCell className="text-[#e2e8f0] text-right">
-                    {riskBreakdown.gangScore > 0 ? "+" : ""}
-                    {riskBreakdown.gangScore}
-                  </TableCell>
-                </TableRow>
-                <TableRow className="border-[#2a3550] hover:bg-[#2a3550]/30">
-                  <TableCell className="text-[#e2e8f0]">
-                    Severity of Crimes
-                  </TableCell>
-                  <TableCell className="text-[#e2e8f0]">
-                    {riskBreakdown.highCriticalCount} high/critical
-                  </TableCell>
-                  <TableCell className="text-[#e2e8f0] text-right">
-                    {riskBreakdown.severityScore}
-                  </TableCell>
-                </TableRow>
-                <TableRow className="border-[#2a3550] hover:bg-[#2a3550]/30">
-                  <TableCell className="text-[#e2e8f0]">Recency</TableCell>
-                  <TableCell className="text-[#e2e8f0]">
-                    {riskBreakdown.recentCrime
-                      ? "Crime in last 12 months"
-                      : "No recent crime"}
-                  </TableCell>
-                  <TableCell className="text-[#e2e8f0] text-right">
-                    {riskBreakdown.recencyScore > 0 ? "+" : ""}
-                    {riskBreakdown.recencyScore}
-                  </TableCell>
-                </TableRow>
-                <TableRow className="border-[#2a3550] hover:bg-[#2a3550]/30">
-                  <TableCell
-                    className="text-[#e2e8f0] font-bold"
-                    colSpan={2}
-                  >
-                    Total
-                  </TableCell>
-                  <TableCell
-                    className="text-right font-bold"
-                    style={{ color: riskColor }}
-                  >
-                    {riskBreakdown.total}
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+            </h2>
 
-        {/* Section 4 — Financial Connections */}
-        <Card className="bg-[#1a2035] border-[#2a3550] shadow-none">
-          <CardHeader>
-            <CardTitle className="text-[#e2e8f0] flex items-center gap-2">
-              <FileText className="size-5 text-[#94a3b8]" />
+            <div className="overflow-x-auto rounded-lg" style={{ border: "1px solid rgba(255, 255, 255, 0.06)" }}>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr
+                    style={{
+                      borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
+                      background: "rgba(15, 21, 36, 0.3)",
+                    }}
+                  >
+                    <th
+                      className="text-left px-4 py-3 font-medium"
+                      style={{ color: "#8b97b0" }}
+                    >
+                      Factor
+                    </th>
+                    <th
+                      className="text-left px-4 py-3 font-medium"
+                      style={{ color: "#8b97b0" }}
+                    >
+                      Value
+                    </th>
+                    <th
+                      className="text-right px-4 py-3 font-medium"
+                      style={{ color: "#8b97b0" }}
+                    >
+                      Score
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.04)" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(34, 211, 238, 0.04)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                  >
+                    <td className="px-4 py-3" style={{ color: "#f1f5f9" }}>
+                      Prior FIRs Count
+                    </td>
+                    <td className="px-4 py-3" style={{ color: "#f1f5f9" }}>
+                      {riskBreakdown.priorFIRsCount}
+                    </td>
+                    <td className="px-4 py-3 text-right" style={{ color: "#f1f5f9" }}>
+                      {riskBreakdown.priorFIRsScore}
+                      <span className="ml-1" style={{ fontSize: 12, color: "#8b97b0" }}>
+                        (max 40)
+                      </span>
+                    </td>
+                  </tr>
+                  <tr
+                    style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.04)" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(34, 211, 238, 0.04)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                  >
+                    <td className="px-4 py-3" style={{ color: "#f1f5f9" }}>
+                      Gang Membership
+                    </td>
+                    <td className="px-4 py-3" style={{ color: "#f1f5f9" }}>
+                      {riskBreakdown.gangMembership}
+                    </td>
+                    <td className="px-4 py-3 text-right" style={{ color: "#f1f5f9" }}>
+                      {riskBreakdown.gangScore > 0 ? "+" : ""}
+                      {riskBreakdown.gangScore}
+                    </td>
+                  </tr>
+                  <tr
+                    style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.04)" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(34, 211, 238, 0.04)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                  >
+                    <td className="px-4 py-3" style={{ color: "#f1f5f9" }}>
+                      Severity of Crimes
+                    </td>
+                    <td className="px-4 py-3" style={{ color: "#f1f5f9" }}>
+                      {riskBreakdown.highCriticalCount} high/critical
+                    </td>
+                    <td className="px-4 py-3 text-right" style={{ color: "#f1f5f9" }}>
+                      {riskBreakdown.severityScore}
+                    </td>
+                  </tr>
+                  <tr
+                    style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.04)" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(34, 211, 238, 0.04)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                  >
+                    <td className="px-4 py-3" style={{ color: "#f1f5f9" }}>Recency</td>
+                    <td className="px-4 py-3" style={{ color: "#f1f5f9" }}>
+                      {riskBreakdown.recentCrime
+                        ? "Crime in last 12 months"
+                        : "No recent crime"}
+                    </td>
+                    <td className="px-4 py-3 text-right" style={{ color: "#f1f5f9" }}>
+                      {riskBreakdown.recencyScore > 0 ? "+" : ""}
+                      {riskBreakdown.recencyScore}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td
+                      className="px-4 py-3 font-bold"
+                      colSpan={2}
+                      style={{ color: "#f1f5f9" }}
+                    >
+                      Total
+                    </td>
+                    <td
+                      className="px-4 py-3 text-right font-bold"
+                      style={{ color: riskColor }}
+                    >
+                      {riskBreakdown.total}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ── Section 4 — Financial Connections ── */}
+        <motion.div
+          custom={4}
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+        >
+          <div className="glass-card p-5 sm:p-6">
+            <h2
+              className="text-base font-semibold flex items-center gap-2 mb-4"
+              style={{ color: "#f1f5f9" }}
+            >
+              <FileText className="size-5" style={{ color: "#8b97b0" }} />
               Financial Connections
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h2>
+
             {financialTransactions.length === 0 ? (
-              <p className="text-sm text-[#94a3b8]">
+              <p className="text-sm" style={{ color: "#8b97b0" }}>
                 No financial transactions linked to this accused.
               </p>
             ) : (
-              <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
+              <div className="space-y-3 max-h-96 overflow-y-auto">
                 {financialTransactions.map(({ firId, transaction }) => {
                   const bankAccount = crimeData?.bank_accounts.find(
                     (ba) => ba.id === transaction.account
@@ -776,117 +1002,178 @@ export default function AccusedProfile() {
                   return (
                     <div
                       key={firId}
-                      className="bg-[#0f1528] rounded-lg p-4 border border-[#2a3550]/60 flex flex-col sm:flex-row sm:items-center gap-3"
+                      className="rounded-lg p-4 border flex flex-col sm:flex-row sm:items-center gap-3"
+                      style={{
+                        background: "rgba(10, 15, 28, 0.6)",
+                        borderColor: "rgba(255, 255, 255, 0.06)",
+                      }}
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-mono text-sm text-blue-400">
+                          <span className="font-mono text-sm" style={{ color: "#22d3ee" }}>
                             {firId}
                           </span>
                         </div>
                         {bankAccount && (
-                          <p className="text-xs text-[#94a3b8]">
+                          <p className="text-xs" style={{ color: "#8b97b0" }}>
                             {bankAccount.bank} — {bankAccount.acc}
                           </p>
                         )}
                         {transaction.note && (
-                          <p className="text-xs text-[#94a3b8] mt-1">
+                          <p className="text-xs mt-1" style={{ color: "#8b97b0" }}>
                             {transaction.note}
                           </p>
                         )}
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-lg font-bold text-[#e2e8f0]">
+                        <p className="text-lg font-bold" style={{ color: "#f1f5f9" }}>
                           {formatINR(transaction.amount_inr)}
                         </p>
-                        <Badge
-                          variant="outline"
-                          className="bg-[#2a3550] text-[#e2e8f0] border-[#3a4560] text-xs mt-1"
+                        <GlassBadge
+                          style={{
+                            fontSize: 12,
+                            marginTop: 4,
+                            display: "inline-flex",
+                          }}
                         >
                           {transaction.mode}
-                        </Badge>
+                        </GlassBadge>
                       </div>
                     </div>
                   );
                 })}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </motion.div>
 
-        {/* Section 5 — AI Analysis */}
-        <Card className="bg-[#1a2035] border-[#2a3550] shadow-none">
-          <CardHeader>
-            <CardTitle className="text-[#e2e8f0] flex items-center gap-2">
-              <Shield className="size-5 text-purple-400" />
+        {/* ── Section 5 — AI Analysis ── */}
+        <motion.div
+          custom={5}
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+        >
+          <div className="glass-card p-5 sm:p-6">
+            <h2
+              className="text-base font-semibold flex items-center gap-2 mb-4"
+              style={{ color: "#f1f5f9" }}
+            >
+              <Shield className="size-5" style={{ color: "#818cf8" }} />
               AI Analysis
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h2>
+
             {aiLoading && (
               <div className="flex items-center gap-3 py-4">
-                <div className="size-5 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
-                <span className="text-sm text-[#94a3b8]">
+                <div
+                  className="size-5 rounded-full"
+                  style={{
+                    border: "2px solid rgba(129, 140, 248, 0.3)",
+                    borderTopColor: "#818cf8",
+                    animation: "spin 1s linear infinite",
+                  }}
+                />
+                <span className="text-sm" style={{ color: "#8b97b0" }}>
                   Generating AI analysis...
                 </span>
               </div>
             )}
             {aiError && !aiLoading && (
-              <p className="text-sm text-[#94a3b8] py-2">
+              <p className="text-sm py-2" style={{ color: "#8b97b0" }}>
                 AI analysis unavailable in demo mode.
               </p>
             )}
             {aiAnalysis && !aiLoading && (
-              <p className="text-sm text-[#e2e8f0] leading-relaxed py-2">
+              <p className="text-sm leading-relaxed py-2" style={{ color: "#f1f5f9" }}>
                 {aiAnalysis}
               </p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </motion.div>
 
-        {/* Section 6 — AI Investigation Brief */}
+        {/* ── Section 6 — AI Investigation Brief ── */}
         {brief && (
-          <div className="space-y-4 animate-fade-in-up">
+          <motion.div
+            custom={6}
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            className="space-y-4"
+          >
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-[#e2e8f0] flex items-center gap-2">
-                <Brain className="w-5 h-5 text-blue-400" /> AI Investigation Brief
+              <h2
+                className="text-lg font-bold flex items-center gap-2"
+                style={{ color: "#f1f5f9" }}
+              >
+                <Brain className="w-5 h-5" style={{ color: "#22d3ee" }} /> AI Investigation Brief
               </h2>
               {/* Confidence Score Ring */}
               <div className="flex items-center gap-2">
                 <svg width="44" height="44" className="confidence-ring">
-                  <circle cx="22" cy="22" r="18" fill="none" stroke="#2a3550" strokeWidth="3" />
+                  <circle cx="22" cy="22" r="18" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="3" />
                   <circle cx="22" cy="22" r="18" fill="none"
-                    stroke={brief.confidenceScore >= 80 ? "#10b981" : brief.confidenceScore >= 60 ? "#f59e0b" : "#ef4444"}
+                    stroke={brief.confidenceScore >= 80 ? "#34d399" : brief.confidenceScore >= 60 ? "#fbbf24" : "#f87171"}
                     strokeWidth="3" strokeLinecap="round"
                     strokeDasharray={2 * Math.PI * 18}
                     strokeDashoffset={2 * Math.PI * 18 - (brief.confidenceScore / 100) * 2 * Math.PI * 18}
-                    className="confidence-ring-circle" />
-                  <text x="22" y="22" textAnchor="middle" dominantBaseline="central" fill="#e2e8f0" fontSize="10" fontWeight="bold" style={{transform: "rotate(90deg)", transformOrigin: "center"}}>{brief.confidenceScore}%</text>
+                    className="confidence-ring-circle"
+                    style={{
+                      filter: "drop-shadow(0 0 6px " + (brief.confidenceScore >= 80 ? "rgba(52,211,153,0.4)" : brief.confidenceScore >= 60 ? "rgba(251,191,36,0.4)" : "rgba(248,113,113,0.4)") + ")",
+                    }}
+                  />
+                  <text x="22" y="22" textAnchor="middle" dominantBaseline="central" fill="#f1f5f9" fontSize="10" fontWeight="bold" style={{transform: "rotate(90deg)", transformOrigin: "center"}}>{brief.confidenceScore}%</text>
                 </svg>
-                <span className="text-xs text-[#94a3b8]">Confidence</span>
+                <span className="text-xs" style={{ color: "#8b97b0" }}>Confidence</span>
               </div>
             </div>
 
             {/* Executive Summary */}
             <div className="glass-card p-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-[#64748b] mb-2">Executive Summary</h3>
-              <p className="text-sm text-[#e2e8f0] leading-relaxed">{brief.executiveSummary}</p>
+              <h3
+                className="text-xs font-semibold uppercase tracking-wider mb-2"
+                style={{ color: "#5a657a" }}
+              >
+                Executive Summary
+              </h3>
+              <p className="text-sm leading-relaxed" style={{ color: "#f1f5f9" }}>{brief.executiveSummary}</p>
             </div>
 
             {/* Related Cases */}
             {brief.relatedCases.length > 0 && (
               <div className="glass-card p-4">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#64748b] mb-3">Related Cases ({brief.relatedCases.length})</h3>
+                <h3
+                  className="text-xs font-semibold uppercase tracking-wider mb-3"
+                  style={{ color: "#5a657a" }}
+                >
+                  Related Cases ({brief.relatedCases.length})
+                </h3>
                 <div className="space-y-2">
                   {brief.relatedCases.map((c, i) => (
-                    <div key={i} className="flex items-center justify-between py-1.5 border-b border-[#2a3550]/50 last:border-0">
+                    <div
+                      key={i}
+                      className="flex items-center justify-between py-1.5 last:border-0"
+                      style={{
+                        borderBottom: i < brief.relatedCases.length - 1 ? "1px solid rgba(255, 255, 255, 0.04)" : "none",
+                      }}
+                    >
                       <div>
-                        <span className="text-xs font-mono text-blue-400">{c.firId}</span>
-                        <span className="text-xs text-[#94a3b8] ml-2">{c.crimeType}</span>
+                        <span className="text-xs font-mono" style={{ color: "#22d3ee" }}>{c.firId}</span>
+                        <span className="text-xs ml-2" style={{ color: "#8b97b0" }}>{c.crimeType}</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-[10px] text-[#94a3b8]">{c.date}</span>
-                        <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full ${c.status === "Arrested" ? "bg-green-500/20 text-green-400" : c.status === "Under Investigation" ? "bg-yellow-500/20 text-yellow-400" : "bg-gray-500/20 text-gray-400"}`}>{c.status}</span>
+                        <span className="text-[10px]" style={{ color: "#8b97b0" }}>{c.date}</span>
+                        <span
+                          className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full"
+                          style={
+                            c.status === "Arrested"
+                              ? { background: "rgba(52, 211, 153, 0.08)", color: "#34d399" }
+                              : c.status === "Under Investigation"
+                                ? { background: "rgba(251, 191, 36, 0.08)", color: "#fbbf24" }
+                                : { background: "rgba(100, 116, 139, 0.08)", color: "#94a3b8" }
+                          }
+                        >
+                          {c.status}
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -897,16 +1184,48 @@ export default function AccusedProfile() {
             {/* Likely Associates */}
             {brief.likelyAssociates.length > 0 && (
               <div className="glass-card p-4">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#64748b] mb-3">Likely Associates</h3>
+                <h3
+                  className="text-xs font-semibold uppercase tracking-wider mb-3"
+                  style={{ color: "#5a657a" }}
+                >
+                  Likely Associates
+                </h3>
                 <div className="space-y-2">
                   {brief.likelyAssociates.map((a, i) => (
-                    <div key={i} className="flex items-center justify-between py-1.5 border-b border-[#2a3550]/50 last:border-0">
+                    <div
+                      key={i}
+                      className="flex items-center justify-between py-1.5 last:border-0"
+                      style={{
+                        borderBottom: i < brief.likelyAssociates.length - 1 ? "1px solid rgba(255, 255, 255, 0.04)" : "none",
+                      }}
+                    >
                       <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${a.strength === "strong" ? "bg-red-500" : a.strength === "moderate" ? "bg-yellow-500" : "bg-green-500"}`} />
-                        <span className="text-sm text-[#e2e8f0]">{a.name}</span>
-                        <span className="text-[10px] text-[#64748b]">({a.id})</span>
+                        <div
+                          className="w-2 h-2 rounded-full"
+                          style={{
+                            background:
+                              a.strength === "strong" ? "#f87171" :
+                              a.strength === "moderate" ? "#fbbf24" : "#34d399",
+                            boxShadow:
+                              a.strength === "strong" ? "0 0 8px rgba(248,113,113,0.4)" :
+                              a.strength === "moderate" ? "0 0 8px rgba(251,191,36,0.4)" : "0 0 8px rgba(52,211,153,0.4)",
+                          }}
+                        />
+                        <span className="text-sm" style={{ color: "#f1f5f9" }}>{a.name}</span>
+                        <span className="text-[10px]" style={{ color: "#5a657a" }}>({a.id})</span>
                       </div>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${a.strength === "strong" ? "bg-red-500/20 text-red-400" : a.strength === "moderate" ? "bg-yellow-500/20 text-yellow-400" : "bg-green-500/20 text-green-400"}`}>{a.strength}</span>
+                      <span
+                        className="text-[10px] px-1.5 py-0.5 rounded-full"
+                        style={
+                          a.strength === "strong"
+                            ? { background: "rgba(248, 113, 113, 0.08)", color: "#f87171" }
+                            : a.strength === "moderate"
+                              ? { background: "rgba(251, 191, 36, 0.08)", color: "#fbbf24" }
+                              : { background: "rgba(52, 211, 153, 0.08)", color: "#34d399" }
+                        }
+                      >
+                        {a.strength}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -916,27 +1235,47 @@ export default function AccusedProfile() {
             {/* Behavioral Analysis + Missing Evidence side by side */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="glass-card p-4">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#64748b] mb-3">Behavioral Analysis</h3>
+                <h3
+                  className="text-xs font-semibold uppercase tracking-wider mb-3"
+                  style={{ color: "#5a657a" }}
+                >
+                  Behavioral Analysis
+                </h3>
                 <div className="space-y-3">
                   {brief.behavioralAnalysis.map((b, i) => (
                     <div key={i}>
-                      <p className="text-xs font-semibold text-[#e2e8f0]">{b.pattern}</p>
-                      <p className="text-[11px] text-[#94a3b8] mt-0.5 leading-relaxed">{b.description}</p>
-                      <p className="text-[10px] text-[#64748b] mt-0.5">{b.frequency}</p>
+                      <p className="text-xs font-semibold" style={{ color: "#f1f5f9" }}>{b.pattern}</p>
+                      <p className="mt-0.5 leading-relaxed" style={{ fontSize: 11, color: "#8b97b0" }}>{b.description}</p>
+                      <p className="mt-0.5" style={{ fontSize: 10, color: "#5a657a" }}>{b.frequency}</p>
                     </div>
                   ))}
                 </div>
               </div>
               <div className="space-y-4">
                 <div className="glass-card p-4">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-[#64748b] mb-3">Missing Evidence</h3>
+                  <h3
+                    className="text-xs font-semibold uppercase tracking-wider mb-3"
+                    style={{ color: "#5a657a" }}
+                  >
+                    Missing Evidence
+                  </h3>
                   <div className="space-y-2">
                     {brief.missingEvidence.map((m, i) => (
                       <div key={i} className="flex items-start gap-2">
-                        <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${m.priority === "high" ? "bg-red-500" : m.priority === "medium" ? "bg-yellow-500" : "bg-blue-500"}`} />
+                        <div
+                          className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
+                          style={{
+                            background:
+                              m.priority === "high" ? "#f87171" :
+                              m.priority === "medium" ? "#fbbf24" : "#22d3ee",
+                            boxShadow:
+                              m.priority === "high" ? "0 0 6px rgba(248,113,113,0.4)" :
+                              m.priority === "medium" ? "0 0 6px rgba(251,191,36,0.4)" : "0 0 6px rgba(34,211,238,0.4)",
+                          }}
+                        />
                         <div>
-                          <p className="text-xs font-semibold text-[#e2e8f0]">{m.type}</p>
-                          <p className="text-[11px] text-[#94a3b8]">{m.description}</p>
+                          <p className="text-xs font-semibold" style={{ color: "#f1f5f9" }}>{m.type}</p>
+                          <p style={{ fontSize: 11, color: "#8b97b0" }}>{m.description}</p>
                         </div>
                       </div>
                     ))}
@@ -944,11 +1283,16 @@ export default function AccusedProfile() {
                 </div>
                 {brief.financialLinks.length > 0 && (
                   <div className="glass-card p-4">
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-[#64748b] mb-3">Financial Links</h3>
+                    <h3
+                      className="text-xs font-semibold uppercase tracking-wider mb-3"
+                      style={{ color: "#5a657a" }}
+                    >
+                      Financial Links
+                    </h3>
                     {brief.financialLinks.map((f, i) => (
                       <div key={i} className="mb-2 last:mb-0">
-                        <p className="text-xs text-[#e2e8f0]">{f.bank} — {f.holder}</p>
-                        <p className="text-[10px] text-[#94a3b8]">A/C: {f.account.slice(-4)} | Total: ₹{f.totalAmount.toLocaleString("en-IN")} | {f.transactions} txns</p>
+                        <p className="text-xs" style={{ color: "#f1f5f9" }}>{f.bank} — {f.holder}</p>
+                        <p style={{ fontSize: 10, color: "#8b97b0" }}>A/C: {f.account.slice(-4)} | Total: ₹{f.totalAmount.toLocaleString("en-IN")} | {f.transactions} txns</p>
                       </div>
                     ))}
                   </div>
@@ -958,63 +1302,117 @@ export default function AccusedProfile() {
 
             {/* Suggested Actions */}
             <div className="glass-card p-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-[#64748b] mb-3">Suggested Investigative Actions</h3>
+              <h3
+                className="text-xs font-semibold uppercase tracking-wider mb-3"
+                style={{ color: "#5a657a" }}
+              >
+                Suggested Investigative Actions
+              </h3>
               <div className="space-y-2">
                 {brief.suggestedActions.map((a, i) => (
-                  <div key={i} className="flex items-start gap-3 py-2 border-b border-[#2a3550]/50 last:border-0">
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold flex-shrink-0 mt-0.5 ${a.priority === "immediate" ? "bg-red-500/20 text-red-400" : a.priority === "short_term" ? "bg-yellow-500/20 text-yellow-400" : "bg-blue-500/20 text-blue-400"}`}>
+                  <div
+                    key={i}
+                    className="flex items-start gap-3 py-2 last:border-0"
+                    style={{
+                      borderBottom: i < brief.suggestedActions.length - 1 ? "1px solid rgba(255, 255, 255, 0.04)" : "none",
+                    }}
+                  >
+                    <span
+                      className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold flex-shrink-0 mt-0.5"
+                      style={
+                        a.priority === "immediate"
+                          ? { background: "rgba(248, 113, 113, 0.08)", color: "#f87171" }
+                          : a.priority === "short_term"
+                            ? { background: "rgba(251, 191, 36, 0.08)", color: "#fbbf24" }
+                            : { background: "rgba(34, 211, 238, 0.08)", color: "#22d3ee" }
+                      }
+                    >
                       {a.priority === "immediate" ? "IMMEDIATE" : a.priority === "short_term" ? "SHORT-TERM" : "LONG-TERM"}
                     </span>
                     <div>
-                      <p className="text-sm text-[#e2e8f0]">{a.action}</p>
-                      <p className="text-[11px] text-[#94a3b8] mt-0.5">{a.rationale}</p>
+                      <p className="text-sm" style={{ color: "#f1f5f9" }}>{a.action}</p>
+                      <p className="mt-0.5" style={{ fontSize: 11, color: "#8b97b0" }}>{a.rationale}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
-        {/* Section 7 — Similar Crimes Engine */}
+        {/* ── Section 7 — Similar Crimes Engine ── */}
         {similarCrimes.length > 0 && (
-          <div className="space-y-4 animate-fade-in-up">
-            <h2 className="text-lg font-bold text-[#e2e8f0] flex items-center gap-2">
-              <Search className="w-5 h-5 text-blue-400" /> Similar Crimes Engine
+          <motion.div
+            custom={7}
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            className="space-y-4"
+          >
+            <h2
+              className="text-lg font-bold flex items-center gap-2"
+              style={{ color: "#f1f5f9" }}
+            >
+              <Search className="w-5 h-5" style={{ color: "#22d3ee" }} /> Similar Crimes Engine
             </h2>
             <div className="space-y-3">
               {similarCrimes.map((sc, i) => (
                 <div key={i} className="glass-card p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-mono font-bold text-blue-400">{sc.fir.fir_id}</span>
+                      <span className="text-sm font-mono font-bold" style={{ color: "#22d3ee" }}>{sc.fir.fir_id}</span>
                       <SeverityBadge severity={sc.fir.severity} />
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-24 h-2 rounded-full bg-[#2a3550] overflow-hidden">
+                      <div
+                        className="w-24 h-2 rounded-full overflow-hidden"
+                        style={{ background: "rgba(255, 255, 255, 0.04)" }}
+                      >
                         <div
                           className="h-full rounded-full transition-all"
                           style={{
                             width: `${sc.similarityScore}%`,
-                            backgroundColor: sc.similarityScore >= 70 ? "#10b981" : sc.similarityScore >= 40 ? "#f59e0b" : "#ef4444",
+                            backgroundColor: sc.similarityScore >= 70 ? "#34d399" : sc.similarityScore >= 40 ? "#fbbf24" : "#f87171",
+                            boxShadow: sc.similarityScore >= 70 ? "0 0 8px rgba(52,211,153,0.4)" : sc.similarityScore >= 40 ? "0 0 8px rgba(251,191,36,0.4)" : "0 0 8px rgba(248,113,113,0.4)",
                           }}
                         />
                       </div>
-                      <span className="text-sm font-bold" style={{
-                        color: sc.similarityScore >= 70 ? "#10b981" : sc.similarityScore >= 40 ? "#f59e0b" : "#ef4444"
-                      }}>{sc.similarityScore}%</span>
+                      <span
+                        className="text-sm font-bold"
+                        style={{
+                          color: sc.similarityScore >= 70 ? "#34d399" : sc.similarityScore >= 40 ? "#fbbf24" : "#f87171",
+                        }}
+                      >
+                        {sc.similarityScore}%
+                      </span>
                     </div>
                   </div>
-                  <p className="text-xs text-[#e2e8f0] mb-1">{sc.fir.crime_type} — {sc.fir.district} — {sc.fir.date}</p>
-                  <p className="text-[11px] text-[#94a3b8] leading-relaxed mb-2">{sc.explanation}</p>
+                  <p className="text-xs mb-1" style={{ color: "#f1f5f9" }}>{sc.fir.crime_type} — {sc.fir.district} — {sc.fir.date}</p>
+                  <p className="leading-relaxed mb-2" style={{ fontSize: 11, color: "#8b97b0" }}>{sc.explanation}</p>
                   <div className="flex flex-wrap gap-1.5">
                     {sc.matchedFactors.filter(f => f.matched).map((f, j) => (
-                      <span key={j} className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">
+                      <span
+                        key={j}
+                        className="text-[10px] px-2 py-0.5 rounded-full border"
+                        style={{
+                          background: "rgba(52, 211, 153, 0.06)",
+                          color: "#34d399",
+                          borderColor: "rgba(52, 211, 153, 0.15)",
+                        }}
+                      >
                         {f.factor}
                       </span>
                     ))}
                     {sc.matchedFactors.filter(f => !f.matched).map((f, j) => (
-                      <span key={j} className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/10 text-red-400/60 border border-red-500/10">
+                      <span
+                        key={j}
+                        className="text-[10px] px-2 py-0.5 rounded-full border"
+                        style={{
+                          background: "rgba(248, 113, 113, 0.06)",
+                          color: "rgba(248, 113, 113, 0.6)",
+                          borderColor: "rgba(248, 113, 113, 0.1)",
+                        }}
+                      >
                         {f.factor}
                       </span>
                     ))}
@@ -1022,7 +1420,7 @@ export default function AccusedProfile() {
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
         )}
       </div>
     </div>

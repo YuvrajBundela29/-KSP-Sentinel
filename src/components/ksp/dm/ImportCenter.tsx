@@ -413,20 +413,20 @@ function StatusBadge({ status }: { status: ImportJob["status"] }) {
       icon: <Clock className="h-3 w-3" />,
     },
     processing: {
-      color: "bg-blue-500/15 text-blue-400 border-blue-500/30 animate-pulse",
+      color: "bg-[#22d3ee]/15 text-[#22d3ee] border-[rgba(34,211,238,0.15)] animate-pulse",
       icon: <Loader2 className="h-3 w-3 animate-spin" />,
       animate: true,
     },
     completed: {
-      color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+      color: "bg-[#34d399]/15 text-[#34d399] border-[rgba(52,211,153,0.15)]",
       icon: <CheckCircle2 className="h-3 w-3" />,
     },
     failed: {
-      color: "bg-red-500/15 text-red-400 border-red-500/30",
+      color: "bg-[#f87171]/15 text-[#f87171] border-[rgba(248,113,113,0.15)]",
       icon: <XCircle className="h-3 w-3" />,
     },
     rolled_back: {
-      color: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+      color: "bg-[#fbbf24]/15 text-[#fbbf24] border-[rgba(251,191,36,0.15)]",
       icon: <RotateCcw className="h-3 w-3" />,
     },
   };
@@ -776,10 +776,10 @@ export default function ImportCenter() {
       {/* ── Page Header ── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-[#e2e8f0] text-2xl font-bold tracking-tight">
+          <h1 className="text-[#f1f5f9] text-2xl font-bold tracking-tight">
             Import Center
           </h1>
-          <p className="text-[#64748b] text-sm mt-1">
+          <p className="text-[#5a657a] text-sm mt-1">
             Bulk import FIR data from CSV, Excel, JSON, Parquet, and ZIP files
           </p>
         </div>
@@ -787,7 +787,7 @@ export default function ImportCenter() {
           <Button
             variant="outline"
             onClick={() => handleDownloadTemplate("csv")}
-            className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#e2e8f0] rounded-xl"
+            className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#f1f5f9] rounded-xl"
           >
             <FileText className="h-4 w-4" />
             CSV Template
@@ -795,7 +795,7 @@ export default function ImportCenter() {
           <Button
             variant="outline"
             onClick={() => handleDownloadTemplate("json")}
-            className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#e2e8f0] rounded-xl"
+            className="gap-2 border-white/10 bg-white/5 hover:bg-white/10 text-[#f1f5f9] rounded-xl"
           >
             <FileJson className="h-4 w-4" />
             JSON Template
@@ -818,7 +818,7 @@ export default function ImportCenter() {
               relative flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed p-12
               transition-all duration-300 cursor-pointer
               ${isDragOver
-                ? "border-blue-500 bg-blue-500/10 backdrop-blur-xl scale-[1.01]"
+                ? "border-cyan-500 bg-[#22d3ee]/10 backdrop-blur-xl scale-[1.01]"
                 : "border-white/10 bg-white/5 backdrop-blur-xl hover:border-white/20 hover:bg-white/8"
               }
             `}
@@ -838,15 +838,15 @@ export default function ImportCenter() {
             >
               <UploadCloud
                 className={`h-10 w-10 transition-colors duration-300 ${
-                  isDragOver ? "text-blue-400" : "text-[#4a5568]"
+                  isDragOver ? "text-[#22d3ee]" : "text-[#3d4659]"
                 }`}
               />
             </motion.div>
             <div className="text-center">
-              <p className="text-[#e2e8f0] text-base font-medium">
+              <p className="text-[#f1f5f9] text-base font-medium">
                 {isDragOver ? "Drop your file here" : "Drag & drop files here"}
               </p>
-              <p className="text-[#64748b] text-sm mt-1">
+              <p className="text-[#5a657a] text-sm mt-1">
                 or click to browse · Supports CSV, Excel, JSON, Parquet, ZIP
               </p>
             </div>
@@ -855,7 +855,7 @@ export default function ImportCenter() {
                 <Badge
                   key={fmt}
                   variant="outline"
-                  className="text-[10px] border-white/10 text-[#64748b]"
+                  className="text-[10px] border-white/10 text-[#5a657a]"
                 >
                   {fmt}
                 </Badge>
@@ -866,17 +866,17 @@ export default function ImportCenter() {
           <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5">
             <div className="flex items-start justify-between">
               <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/15">
-                  <FormatIcon format={uploadedFile.format} className="h-6 w-6 text-blue-400" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#22d3ee]/15">
+                  <FormatIcon format={uploadedFile.format} className="h-6 w-6 text-[#22d3ee]" />
                 </div>
                 <div>
-                  <h3 className="text-[#e2e8f0] text-base font-semibold">{uploadedFile.name}</h3>
+                  <h3 className="text-[#f1f5f9] text-base font-semibold">{uploadedFile.name}</h3>
                   <div className="flex items-center gap-3 mt-1">
-                    <Badge variant="outline" className="text-[10px] border-white/10 text-[#94a3b8]">
+                    <Badge variant="outline" className="text-[10px] border-white/10 text-[#8b97b0]">
                       {uploadedFile.format.toUpperCase()}
                     </Badge>
-                    <span className="text-[#64748b] text-xs">{formatBytes(uploadedFile.size)}</span>
-                    <span className="text-[#64748b] text-xs">~{uploadedFile.estimatedRows.toLocaleString("en-IN")} estimated rows</span>
+                    <span className="text-[#5a657a] text-xs">{formatBytes(uploadedFile.size)}</span>
+                    <span className="text-[#5a657a] text-xs">~{uploadedFile.estimatedRows.toLocaleString("en-IN")} estimated rows</span>
                   </div>
                 </div>
               </div>
@@ -885,7 +885,7 @@ export default function ImportCenter() {
                   <Button
                     onClick={() => document.getElementById("file-input")?.click()}
                     variant="ghost"
-                    className="text-[#94a3b8] hover:text-[#e2e8f0] hover:bg-white/10 rounded-lg h-8 text-xs"
+                    className="text-[#8b97b0] hover:text-[#f1f5f9] hover:bg-white/10 rounded-lg h-8 text-xs"
                   >
                     Change File
                   </Button>
@@ -894,7 +894,7 @@ export default function ImportCenter() {
                   variant="ghost"
                   onClick={handleReset}
                   disabled={importStep === "importing"}
-                  className="h-8 w-8 p-0 text-[#64748b] hover:text-red-400 hover:bg-red-500/10 rounded-lg"
+                  className="h-8 w-8 p-0 text-[#5a657a] hover:text-[#f87171] hover:bg-[#f87171]/10 rounded-lg"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -905,16 +905,16 @@ export default function ImportCenter() {
             {importStep === "importing" && (
               <div className="mt-4 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[#94a3b8] text-sm flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
+                  <span className="text-[#8b97b0] text-sm flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-[#22d3ee]" />
                     Importing data...
                   </span>
-                  <span className="text-[#e2e8f0] text-sm font-medium">
+                  <span className="text-[#f1f5f9] text-sm font-medium">
                     {importProgress}%
                   </span>
                 </div>
-                <Progress value={importProgress} className="h-2 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-blue-500 [&>div]:to-emerald-500" />
-                <p className="text-[#64748b] text-xs">
+                <Progress value={importProgress} className="h-2 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-cyan-500 [&>div]:to-emerald-500" />
+                <p className="text-[#5a657a] text-xs">
                   {processingJob?.processedRows.toLocaleString("en-IN")} of {processingJob?.totalRows.toLocaleString("en-IN")} rows processed
                 </p>
               </div>
@@ -933,7 +933,7 @@ export default function ImportCenter() {
                       <React.Fragment key={step}>
                         {i > 0 && <div className="flex-1 h-px bg-white/10" />}
                         <div className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-colors ${
-                          isActive ? "bg-blue-500/15 text-blue-400" : isPast ? "bg-emerald-500/10 text-emerald-400" : "bg-white/5 text-[#4a5568]"
+                          isActive ? "bg-[#22d3ee]/15 text-[#22d3ee]" : isPast ? "bg-[#34d399]/10 text-[#34d399]" : "bg-white/5 text-[#3d4659]"
                         }`}>
                           {stepIcons[i]}
                           <span className="text-xs font-medium">{stepLabels[i]}</span>
@@ -948,7 +948,7 @@ export default function ImportCenter() {
                   {importStep === "idle" && (
                     <Button
                       onClick={handleOpenMapping}
-                      className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-0 rounded-xl"
+                      className="gap-2 bg-[#34d399] hover:bg-[#2bc48a] text-white border-0 rounded-xl"
                     >
                       <ArrowLeftRight className="h-4 w-4" />
                       Map Columns
@@ -959,13 +959,13 @@ export default function ImportCenter() {
                       <Button
                         variant="ghost"
                         onClick={handleReset}
-                        className="text-[#94a3b8] hover:text-[#e2e8f0] hover:bg-white/10 rounded-xl"
+                        className="text-[#8b97b0] hover:text-[#f1f5f9] hover:bg-white/10 rounded-xl"
                       >
                         Cancel
                       </Button>
                       <Button
                         onClick={handleMappingNext}
-                        className="gap-2 bg-blue-600 hover:bg-blue-700 text-white border-0 rounded-xl"
+                        className="gap-2 bg-[#22d3ee] hover:bg-cyan-700 text-white border-0 rounded-xl"
                       >
                         <ClipboardCheck className="h-4 w-4" />
                         Validate & Continue
@@ -977,13 +977,13 @@ export default function ImportCenter() {
                       <Button
                         variant="ghost"
                         onClick={handleFixErrors}
-                        className="text-[#94a3b8] hover:text-[#e2e8f0] hover:bg-white/10 rounded-xl"
+                        className="text-[#8b97b0] hover:text-[#f1f5f9] hover:bg-white/10 rounded-xl"
                       >
                         Fix Errors
                       </Button>
                       <Button
                         onClick={handleProceedWithValid}
-                        className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-0 rounded-xl"
+                        className="gap-2 bg-[#34d399] hover:bg-[#2bc48a] text-white border-0 rounded-xl"
                       >
                         <Play className="h-4 w-4" />
                         Proceed with Valid Rows
@@ -999,22 +999,22 @@ export default function ImportCenter() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4"
+                className="mt-4 rounded-xl border border-[rgba(52,211,153,0.12)] bg-[#34d399]/5 p-4"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/20">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#34d399]/20">
+                    <CheckCircle2 className="h-5 w-5 text-[#34d399]" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-emerald-400 font-medium text-sm">Import Completed Successfully</p>
-                    <p className="text-[#64748b] text-xs mt-0.5">
+                    <p className="text-[#34d399] font-medium text-sm">Import Completed Successfully</p>
+                    <p className="text-[#5a657a] text-xs mt-0.5">
                       {processingJob?.totalRows.toLocaleString("en-IN")} rows imported · {processingJob?.errors} errors · {processingJob?.duplicates} duplicates skipped
                     </p>
                   </div>
                   <Button
                     variant="ghost"
                     onClick={handleReset}
-                    className="gap-2 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 rounded-xl text-sm"
+                    className="gap-2 text-[#34d399] hover:text-emerald-300 hover:bg-[#34d399]/10 rounded-xl text-sm"
                   >
                     <RefreshCw className="h-4 w-4" />
                     Import Another
@@ -1036,16 +1036,16 @@ export default function ImportCenter() {
             className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5 space-y-5"
           >
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/15">
-                <ArrowLeftRight className="h-4 w-4 text-blue-400" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#22d3ee]/15">
+                <ArrowLeftRight className="h-4 w-4 text-[#22d3ee]" />
               </div>
               <div>
-                <h3 className="text-[#e2e8f0] text-sm font-semibold">Column Mapping</h3>
-                <p className="text-[#64748b] text-xs">
+                <h3 className="text-[#f1f5f9] text-sm font-semibold">Column Mapping</h3>
+                <p className="text-[#5a657a] text-xs">
                   Map source columns to KSP Sentinel fields. Auto-mapped columns are pre-filled.
                 </p>
               </div>
-              <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[10px] ml-auto">
+              <Badge className="bg-[#34d399]/15 text-[#34d399] border-[rgba(52,211,153,0.15)] text-[10px] ml-auto">
                 <Sparkles className="h-3 w-3 mr-1" />
                 Auto-mapped
               </Badge>
@@ -1056,13 +1056,13 @@ export default function ImportCenter() {
               <Table>
                 <TableHeader>
                   <TableRow className="border-white/5 hover:bg-transparent">
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">
+                    <TableHead className="text-[#5a657a] font-semibold text-xs uppercase tracking-wider">
                       Source Column
                     </TableHead>
-                    <TableHead className="text-center text-[#64748b] font-semibold text-xs uppercase tracking-wider w-10">
+                    <TableHead className="text-center text-[#5a657a] font-semibold text-xs uppercase tracking-wider w-10">
                       →
                     </TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">
+                    <TableHead className="text-[#5a657a] font-semibold text-xs uppercase tracking-wider">
                       Target Field
                     </TableHead>
                   </TableRow>
@@ -1072,12 +1072,12 @@ export default function ImportCenter() {
                     <TableRow key={mapping.sourceColumn} className="border-white/5">
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Table2 className="h-3.5 w-3.5 text-[#64748b]" />
-                          <span className="text-[#e2e8f0] text-sm">{mapping.sourceColumn}</span>
+                          <Table2 className="h-3.5 w-3.5 text-[#5a657a]" />
+                          <span className="text-[#f1f5f9] text-sm">{mapping.sourceColumn}</span>
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
-                        <ArrowRight className="h-4 w-4 text-[#4a5568] mx-auto" />
+                        <ArrowRight className="h-4 w-4 text-[#3d4659] mx-auto" />
                       </TableCell>
                       <TableCell>
                         <Select
@@ -1092,10 +1092,10 @@ export default function ImportCenter() {
                             );
                           }}
                         >
-                          <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#e2e8f0] h-8 rounded-lg text-sm">
+                          <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#f1f5f9] h-8 rounded-lg text-sm">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="bg-[#1a2035] border-white/10 text-[#e2e8f0] max-h-64">
+                          <SelectContent className="bg-[rgba(15,21,36,0.45)] border-white/10 text-[#f1f5f9] max-h-64">
                             {TARGET_FIELDS.map((f) => (
                               <SelectItem key={f.value} value={f.value}>
                                 {f.label}
@@ -1113,8 +1113,8 @@ export default function ImportCenter() {
             {/* Preview Table */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <Eye className="h-4 w-4 text-[#64748b]" />
-                <h4 className="text-[#e2e8f0] text-sm font-semibold">Data Preview (First 5 Rows)</h4>
+                <Eye className="h-4 w-4 text-[#5a657a]" />
+                <h4 className="text-[#f1f5f9] text-sm font-semibold">Data Preview (First 5 Rows)</h4>
               </div>
               <ScrollArea className="w-full">
                 <div className="rounded-xl border border-white/10 overflow-hidden">
@@ -1122,7 +1122,7 @@ export default function ImportCenter() {
                     <TableHeader>
                       <TableRow className="border-white/5 hover:bg-transparent">
                         {MOCK_SOURCE_COLUMNS.filter((_, i) => i < 8).map((col) => (
-                          <TableHead key={col} className="text-[#64748b] text-[10px] uppercase tracking-wider whitespace-nowrap">
+                          <TableHead key={col} className="text-[#5a657a] text-[10px] uppercase tracking-wider whitespace-nowrap">
                             {col}
                           </TableHead>
                         ))}
@@ -1132,8 +1132,8 @@ export default function ImportCenter() {
                       {MOCK_PREVIEW_ROWS.slice(0, 5).map((row, i) => (
                         <TableRow key={i} className="border-white/5">
                           {MOCK_SOURCE_COLUMNS.filter((_, ci) => ci < 8).map((col) => (
-                            <TableCell key={col} className="text-[#94a3b8] text-xs whitespace-nowrap max-w-[150px] truncate">
-                              {row[col as keyof typeof row] || <span className="text-[#4a5568] italic">null</span>}
+                            <TableCell key={col} className="text-[#8b97b0] text-xs whitespace-nowrap max-w-[150px] truncate">
+                              {row[col as keyof typeof row] || <span className="text-[#3d4659] italic">null</span>}
                             </TableCell>
                           ))}
                         </TableRow>
@@ -1157,12 +1157,12 @@ export default function ImportCenter() {
             className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5 space-y-5"
           >
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/15">
-                <ClipboardCheck className="h-4 w-4 text-amber-400" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#fbbf24]/15">
+                <ClipboardCheck className="h-4 w-4 text-[#fbbf24]" />
               </div>
               <div>
-                <h3 className="text-[#e2e8f0] text-sm font-semibold">Validation Results</h3>
-                <p className="text-[#64748b] text-xs">
+                <h3 className="text-[#f1f5f9] text-sm font-semibold">Validation Results</h3>
+                <p className="text-[#5a657a] text-xs">
                   Review validation results before proceeding with import
                 </p>
               </div>
@@ -1170,31 +1170,31 @@ export default function ImportCenter() {
 
             {/* Summary Cards */}
             <div className="grid grid-cols-3 gap-4">
-              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-center">
-                <p className="text-emerald-400 text-2xl font-bold">
+              <div className="rounded-xl border border-[rgba(52,211,153,0.12)] bg-[#34d399]/5 p-4 text-center">
+                <p className="text-[#34d399] text-2xl font-bold">
                   {validationResult.validRows.toLocaleString("en-IN")}
                 </p>
-                <p className="text-[#64748b] text-xs mt-1">Valid Rows</p>
+                <p className="text-[#5a657a] text-xs mt-1">Valid Rows</p>
               </div>
-              <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-center">
-                <p className="text-red-400 text-2xl font-bold">
+              <div className="rounded-xl border border-red-500/20 bg-[#f87171]/5 p-4 text-center">
+                <p className="text-[#f87171] text-2xl font-bold">
                   {validationResult.invalidRows}
                 </p>
-                <p className="text-[#64748b] text-xs mt-1">Invalid Rows</p>
+                <p className="text-[#5a657a] text-xs mt-1">Invalid Rows</p>
               </div>
-              <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-center">
-                <p className="text-amber-400 text-2xl font-bold">
+              <div className="rounded-xl border border-amber-500/20 bg-[#fbbf24]/5 p-4 text-center">
+                <p className="text-[#fbbf24] text-2xl font-bold">
                   {validationResult.duplicateRows}
                 </p>
-                <p className="text-[#64748b] text-xs mt-1">Duplicates</p>
+                <p className="text-[#5a657a] text-xs mt-1">Duplicates</p>
               </div>
             </div>
 
             {/* Error List */}
             {validationResult.errors.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-[#e2e8f0] text-sm font-semibold flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 text-red-400" />
+                <h4 className="text-[#f1f5f9] text-sm font-semibold flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-[#f87171]" />
                   Errors Found ({validationResult.errors.length})
                 </h4>
                 <ScrollArea className="max-h-[200px]">
@@ -1202,14 +1202,14 @@ export default function ImportCenter() {
                     {validationResult.errors.map((err, i) => (
                       <div
                         key={i}
-                        className="flex items-start gap-3 rounded-lg border border-red-500/10 bg-red-500/5 p-3"
+                        className="flex items-start gap-3 rounded-lg border border-red-500/10 bg-[#f87171]/5 p-3"
                       >
-                        <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-[10px] shrink-0 mt-0.5">
+                        <Badge className="bg-[#f87171]/20 text-[#f87171] border-[rgba(248,113,113,0.15)] text-[10px] shrink-0 mt-0.5">
                           Row {err.row}
                         </Badge>
                         <div className="min-w-0">
-                          <p className="text-[#e2e8f0] text-sm">{err.message}</p>
-                          <p className="text-[#64748b] text-xs mt-0.5">Column: {err.column}</p>
+                          <p className="text-[#f1f5f9] text-sm">{err.message}</p>
+                          <p className="text-[#5a657a] text-xs mt-0.5">Column: {err.column}</p>
                         </div>
                       </div>
                     ))}
@@ -1224,8 +1224,8 @@ export default function ImportCenter() {
       {/* ── Import History ── */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-[#e2e8f0] text-lg font-semibold">Import History</h2>
-          <Badge className="bg-white/5 text-[#94a3b8] border-white/10 text-xs">
+          <h2 className="text-[#f1f5f9] text-lg font-semibold">Import History</h2>
+          <Badge className="bg-white/5 text-[#8b97b0] border-white/10 text-xs">
             {filteredJobs.length} jobs
           </Badge>
         </div>
@@ -1233,19 +1233,19 @@ export default function ImportCenter() {
         {/* Search + Filter */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#4a5568]" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#3d4659]" />
             <Input
               value={searchHistory}
               onChange={(e) => setSearchHistory(e.target.value)}
               placeholder="Search by filename, ID, or format..."
-              className="pl-10 bg-white/5 border-white/10 text-[#e2e8f0] placeholder:text-[#4a5568] h-9 rounded-xl focus-visible:border-blue-500/50 focus-visible:ring-blue-500/20"
+              className="pl-10 bg-white/5 border-white/10 text-[#f1f5f9] placeholder:text-[#3d4659] h-9 rounded-xl focus-visible:border-cyan-500/50 focus-visible:ring-cyan-500/20"
             />
           </div>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-[160px] bg-white/5 border-white/10 text-[#e2e8f0] h-9 rounded-xl">
+            <SelectTrigger className="w-[160px] bg-white/5 border-white/10 text-[#f1f5f9] h-9 rounded-xl">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
-            <SelectContent className="bg-[#1a2035] border-white/10 text-[#e2e8f0]">
+            <SelectContent className="bg-[rgba(15,21,36,0.45)] border-white/10 text-[#f1f5f9]">
               <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="queued">Queued</SelectItem>
               <SelectItem value="processing">Processing</SelectItem>
@@ -1263,8 +1263,8 @@ export default function ImportCenter() {
             animate={{ opacity: 1, y: 0 }}
             className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl py-16"
           >
-            <Database className="h-8 w-8 text-[#4a5568]" />
-            <p className="text-[#64748b] text-sm">No import jobs found</p>
+            <Database className="h-8 w-8 text-[#3d4659]" />
+            <p className="text-[#5a657a] text-sm">No import jobs found</p>
           </motion.div>
         ) : (
           <motion.div
@@ -1276,17 +1276,17 @@ export default function ImportCenter() {
               <Table>
                 <TableHeader>
                   <TableRow className="border-white/5 hover:bg-transparent">
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">ID</TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">Filename</TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">Format</TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">Status</TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">Progress</TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider text-right">Rows</TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider text-right">Errors</TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider text-right">Dupes</TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">Started</TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider">Completed</TableHead>
-                    <TableHead className="text-[#64748b] font-semibold text-xs uppercase tracking-wider text-right">Actions</TableHead>
+                    <TableHead className="text-[#5a657a] font-semibold text-xs uppercase tracking-wider">ID</TableHead>
+                    <TableHead className="text-[#5a657a] font-semibold text-xs uppercase tracking-wider">Filename</TableHead>
+                    <TableHead className="text-[#5a657a] font-semibold text-xs uppercase tracking-wider">Format</TableHead>
+                    <TableHead className="text-[#5a657a] font-semibold text-xs uppercase tracking-wider">Status</TableHead>
+                    <TableHead className="text-[#5a657a] font-semibold text-xs uppercase tracking-wider">Progress</TableHead>
+                    <TableHead className="text-[#5a657a] font-semibold text-xs uppercase tracking-wider text-right">Rows</TableHead>
+                    <TableHead className="text-[#5a657a] font-semibold text-xs uppercase tracking-wider text-right">Errors</TableHead>
+                    <TableHead className="text-[#5a657a] font-semibold text-xs uppercase tracking-wider text-right">Dupes</TableHead>
+                    <TableHead className="text-[#5a657a] font-semibold text-xs uppercase tracking-wider">Started</TableHead>
+                    <TableHead className="text-[#5a657a] font-semibold text-xs uppercase tracking-wider">Completed</TableHead>
+                    <TableHead className="text-[#5a657a] font-semibold text-xs uppercase tracking-wider text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1303,17 +1303,17 @@ export default function ImportCenter() {
                         transition={{ delay: idx * 0.03 }}
                         className="border-white/5 hover:bg-white/5 transition-colors group"
                       >
-                        <TableCell className="text-[#94a3b8] text-xs font-mono">{job.id}</TableCell>
+                        <TableCell className="text-[#8b97b0] text-xs font-mono">{job.id}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <FormatIcon format={job.format} className="h-4 w-4 text-[#64748b] shrink-0" />
-                            <span className="text-[#e2e8f0] text-sm font-medium truncate max-w-[200px]">
+                            <FormatIcon format={job.format} className="h-4 w-4 text-[#5a657a] shrink-0" />
+                            <span className="text-[#f1f5f9] text-sm font-medium truncate max-w-[200px]">
                               {job.filename}
                             </span>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-[10px] border-white/10 text-[#94a3b8] uppercase">
+                          <Badge variant="outline" className="text-[10px] border-white/10 text-[#8b97b0] uppercase">
                             {job.format}
                           </Badge>
                         </TableCell>
@@ -1325,39 +1325,39 @@ export default function ImportCenter() {
                             <div className="space-y-1">
                               <Progress
                                 value={progressPct}
-                                className="h-1.5 bg-white/10 [&>div]:bg-blue-500"
+                                className="h-1.5 bg-white/10 [&>div]:bg-[#22d3ee]"
                               />
-                              <span className="text-[#64748b] text-[10px]">{progressPct}%</span>
+                              <span className="text-[#5a657a] text-[10px]">{progressPct}%</span>
                             </div>
                           ) : job.status === "completed" ? (
-                            <Progress value={100} className="h-1.5 bg-white/10 [&>div]:bg-emerald-500" />
+                            <Progress value={100} className="h-1.5 bg-white/10 [&>div]:bg-[#34d399]" />
                           ) : job.status === "failed" ? (
-                            <Progress value={progressPct} className="h-1.5 bg-white/10 [&>div]:bg-red-500" />
+                            <Progress value={progressPct} className="h-1.5 bg-white/10 [&>div]:bg-[#f87171]" />
                           ) : (
                             <div className="h-1.5 rounded-full bg-white/10" />
                           )}
                         </TableCell>
-                        <TableCell className="text-[#e2e8f0] text-sm text-right font-mono">
+                        <TableCell className="text-[#f1f5f9] text-sm text-right font-mono">
                           {job.totalRows > 0 ? (
                             <>
                               <span>{job.processedRows.toLocaleString("en-IN")}</span>
-                              <span className="text-[#4a5568]"> / {job.totalRows.toLocaleString("en-IN")}</span>
+                              <span className="text-[#3d4659]"> / {job.totalRows.toLocaleString("en-IN")}</span>
                             </>
                           ) : (
-                            <span className="text-[#4a5568]">—</span>
+                            <span className="text-[#3d4659]">—</span>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <span className={job.errors > 0 ? "text-red-400 text-sm" : "text-[#4a5568] text-sm"}>
+                          <span className={job.errors > 0 ? "text-[#f87171] text-sm" : "text-[#3d4659] text-sm"}>
                             {job.errors || "—"}
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
-                          <span className={job.duplicates > 0 ? "text-amber-400 text-sm" : "text-[#4a5568] text-sm"}>
+                          <span className={job.duplicates > 0 ? "text-[#fbbf24] text-sm" : "text-[#3d4659] text-sm"}>
                             {job.duplicates || "—"}
                           </span>
                         </TableCell>
-                        <TableCell className="text-[#94a3b8] text-xs">
+                        <TableCell className="text-[#8b97b0] text-xs">
                           {new Date(job.startedAt).toLocaleString("en-IN", {
                             day: "2-digit",
                             month: "short",
@@ -1365,7 +1365,7 @@ export default function ImportCenter() {
                             minute: "2-digit",
                           })}
                         </TableCell>
-                        <TableCell className="text-[#94a3b8] text-xs">
+                        <TableCell className="text-[#8b97b0] text-xs">
                           {job.completedAt
                             ? new Date(job.completedAt).toLocaleString("en-IN", {
                                 day: "2-digit",
@@ -1373,7 +1373,7 @@ export default function ImportCenter() {
                                 hour: "2-digit",
                                 minute: "2-digit",
                               })
-                            : <span className="text-[#4a5568]">—</span>}
+                            : <span className="text-[#3d4659]">—</span>}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1389,7 +1389,7 @@ export default function ImportCenter() {
                                     read: false,
                                   });
                                 }}
-                                className="h-7 w-7 p-0 text-[#94a3b8] hover:text-blue-400 hover:bg-blue-500/10"
+                                className="h-7 w-7 p-0 text-[#8b97b0] hover:text-[#22d3ee] hover:bg-[#22d3ee]/10"
                                 title="Retry"
                               >
                                 <RefreshCw className="h-3.5 w-3.5" />
@@ -1407,7 +1407,7 @@ export default function ImportCenter() {
                                     read: false,
                                   });
                                 }}
-                                className="h-7 w-7 p-0 text-[#94a3b8] hover:text-amber-400 hover:bg-amber-500/10"
+                                className="h-7 w-7 p-0 text-[#8b97b0] hover:text-[#fbbf24] hover:bg-[#fbbf24]/10"
                                 title="Rollback"
                               >
                                 <RotateCcw className="h-3.5 w-3.5" />
@@ -1416,7 +1416,7 @@ export default function ImportCenter() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-7 w-7 p-0 text-[#94a3b8] hover:text-[#e2e8f0] hover:bg-white/10"
+                              className="h-7 w-7 p-0 text-[#8b97b0] hover:text-[#f1f5f9] hover:bg-white/10"
                               title="View Details"
                             >
                               <Eye className="h-3.5 w-3.5" />

@@ -1,0 +1,1030 @@
+     1→     1→"use client";
+     2→     2→
+     3→     3→import { useEffect, useState, useMemo } from "react";
+     4→     4→import { useAppStore } from "@/lib/store";
+     5→     5→import { getAccusedById, getFIRsByAccused } from "@/lib/data";
+     6→     6→import type { Accused, FIR } from "@/lib/types";
+     7→     7→import { generateInvestigationBrief, computeSimilarCrimes } from "@/lib/intelligence";
+     8→     8→import type { InvestigationBrief, SimilarCrimeResult } from "@/lib/types";
+     9→     9→import LoadingSpinner from "@/components/ksp/LoadingSpinner";
+    10→    10→import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+    11→    11→import { Badge } from "@/components/ui/badge";
+    12→    12→import { Button } from "@/components/ui/button";
+    13→    13→import {
+    14→    14→  Table,
+    15→    15→  TableBody,
+    16→    16→  TableCell,
+    17→    17→  TableHead,
+    18→    18→  TableHeader,
+    19→    19→  TableRow,
+    20→    20→} from "@/components/ui/table";
+    21→    21→import {
+    22→    22→  ArrowLeft,
+    23→    23→  User,
+    24→    24→  Shield,
+    25→    25→  Clock,
+    26→    26→  MapPin,
+    27→    27→  Car,
+    28→    28→  Users,
+    29→    29→  FileText,
+    30→    30→  Brain,
+    31→    31→  Search,
+    32→    32→} from "lucide-react";
+    33→    33→
+    34→    34→function formatINR(amount: number): string {
+    35→    35→  const str = Math.abs(amount).toString();
+    36→    36→  let lastThree = str.substring(str.length - 3);
+    37→    37→  const otherNumbers = str.substring(0, str.length - 3);
+    38→    38→  if (otherNumbers !== "") {
+    39→    39→    lastThree = "," + lastThree;
+    40→    40→  }
+    41→    41→  const formatted =
+    42→    42→    otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + lastThree;
+    43→    43→  return "₹" + (amount < 0 ? "-" : "") + formatted;
+    44→    44→}
+    45→    45→
+    46→    46→function formatDate(dateStr: string): string {
+    47→    47→  const d = new Date(dateStr);
+    48→    48→  return d.toLocaleDateString("en-IN", {
+    49→    49→    day: "2-digit",
+    50→    50→    month: "short",
+    51→    51→    year: "numeric",
+    52→    52→  });
+    53→    53→}
+    54→    54→
+    55→    55→function parseTimeHour(timeStr: string): number {
+    56→    56→  const match = timeStr.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+    57→    57→  if (!match) return 12;
+    58→    58→  let h = parseInt(match[1], 10);
+    59→    59→  const m = match[2] ? parseInt(match[2], 10) : 0;
+    60→    60→  const ampm = match[3];
+    61→    61→  if (ampm) {
+    62→    62→    if (ampm.toLowerCase() === "pm" && h !== 12) h += 12;
+    63→    63→    if (ampm.toLowerCase() === "am" && h === 12) h = 0;
+    64→    64→  }
+    65→    65→  // If no am/pm and h <= 23, assume 24h format
+    66→    66→  if (!ampm && h <= 23) {
+    67→    67→    // already in 24h
+    68→    68→  }
+    69→    69→  return h;
+    70→    70→}
+    71→    71→
+    72→    72→function getTimeSlot(hour: number): "morning" | "evening" | "night" {
+    73→    73→  if (hour >= 6 && hour < 12) return "morning";
+    74→    74→  if (hour >= 12 && hour < 18) return "evening";
+    75→    75→  return "night";
+    76→    76→}
+    77→    77→
+    78→    78→const severityColors: Record<string, string> = {
+    79→    79→  critical: "bg-[#f87171]",
+    80→    80→  high: "bg-[#fbbf24]",
+    81→    81→  medium: "bg-[#fbbf24]",
+    82→    82→  low: "bg-[#34d399]",
+    83→    83→};
+    84→    84→
+    85→    85→const severityBadgeColors: Record<string, string> = {
+    86→    86→  critical: "bg-[#f87171]/20 text-[#f87171] border-[rgba(248,113,113,0.15)]",
+    87→    87→  high: "bg-[#fbbf24]/20 text-[#fbbf24] border-[rgba(251,191,36,0.15)]",
+    88→    88→  medium: "bg-[#fbbf24]/20 text-[#fbbf24] border-[rgba(251,191,36,0.15)]",
+    89→    89→  low: "bg-[#34d399]/20 text-[#34d399] border-[rgba(52,211,153,0.15)]",
+    90→    90→};
+    91→    91→
+    92→    92→const investigationStatusColors: Record<string, string> = {
+    93→    93→  "Under Investigation": "bg-[#22d3ee]/20 text-[#22d3ee] border-[rgba(34,211,238,0.15)]",
+    94→    94→  "Charge Sheet Filed": "bg-[#34d399]/20 text-[#34d399] border-[rgba(52,211,153,0.15)]",
+    95→    95→  Closed: "bg-gray-500/20 text-gray-400 border-gray-500/30",
+    96→    96→  "Trial in Progress": "bg-[#fbbf24]/20 text-[#fbbf24] border-[rgba(251,191,36,0.15)]",
+    97→    97→  "Evidence Collection": "bg-[#818cf8]/20 text-[#818cf8] border-[rgba(129,140,248,0.15)]",
+    98→    98→};
+    99→    99→
+   100→   100→function SeverityBadge({ severity }: { severity: string }) {
+   101→   101→  const map: Record<string, string> = {
+   102→   102→    critical: "bg-[#f87171]/20 text-[#f87171] border-[rgba(248,113,113,0.15)]",
+   103→   103→    high: "bg-[#fbbf24]/20 text-[#fbbf24] border-[rgba(251,191,36,0.15)]",
+   104→   104→    medium: "bg-[#fbbf24]/20 text-[#fbbf24] border-[rgba(251,191,36,0.15)]",
+   105→   105→    low: "bg-[#34d399]/20 text-[#34d399] border-[rgba(52,211,153,0.15)]",
+   106→   106→  };
+   107→   107→  return (
+   108→   108→    <span
+   109→   109→      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${
+   110→   110→        map[severity] ?? map.low
+   111→   111→      }`}
+   112→   112→    >
+   113→   113→      {severity}
+   114→   114→    </span>
+   115→   115→  );
+   116→   116→}
+   117→   117→
+   118→   118→export default function AccusedProfile() {
+   119→   119→  const crimeData = useAppStore((s) => s.crimeData);
+   120→   120→  const selectedAccusedId = useAppStore((s) => s.selectedAccusedId);
+   121→   121→  const setView = useAppStore((s) => s.setView);
+   122→   122→  const accused: Accused | undefined = useMemo(() => {
+   123→   123→    if (!crimeData || !selectedAccusedId) return undefined;
+   124→   124→    return getAccusedById(crimeData, selectedAccusedId);
+   125→   125→  }, [crimeData, selectedAccusedId]);
+   126→   126→
+   127→   127→  const firs: FIR[] = useMemo(() => {
+   128→   128→    if (!crimeData || !selectedAccusedId) return [];
+   129→   129→    return getFIRsByAccused(crimeData, selectedAccusedId).sort(
+   130→   130→      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+   131→   131→    );
+   132→   132→  }, [crimeData, selectedAccusedId]);
+   133→   133→
+   134→   134→  const gangName = useMemo(() => {
+   135→   135→    if (!crimeData || !accused?.gang) return null;
+   136→   136→    const gang = crimeData.gangs.find((g) => g.id === accused.gang);
+   137→   137→    return gang?.name ?? null;
+   138→   138→  }, [crimeData, accused]);
+   139→   139→
+   140→   140→  // Time of crime analysis
+   141→   141→  const timeAnalysis = useMemo(() => {
+   142→   142→    const slots = { morning: 0, evening: 0, night: 0 };
+   143→   143→    for (const fir of firs) {
+   144→   144→      const hour = parseTimeHour(fir.time);
+   145→   145→      const slot = getTimeSlot(hour);
+   146→   146→      slots[slot]++;
+   147→   147→    }
+   148→   148→    const total = firs.length || 1;
+   149→   149→    let maxSlot: "morning" | "evening" | "night" = "morning";
+   150→   150→    if (slots.evening > slots[maxSlot]) maxSlot = "evening";
+   151→   151→    if (slots.night > slots[maxSlot]) maxSlot = "night";
+   152→   152→    return { slots, percentages: { morning: (slots.morning / total) * 100, evening: (slots.evening / total) * 100, night: (slots.night / total) * 100 }, preferred: maxSlot };
+   153→   153→  }, [firs]);
+   154→   154→
+   155→   155→  // Preferred crime type
+   156→   156→  const preferredCrimeType = useMemo(() => {
+   157→   157→    if (firs.length === 0) return null;
+   158→   158→    const counts: Record<string, number> = {};
+   159→   159→    for (const fir of firs) {
+   160→   160→      counts[fir.crime_type] = (counts[fir.crime_type] || 0) + 1;
+   161→   161→    }
+   162→   162→    let max = 0;
+   163→   163→    let preferred = "";
+   164→   164→    for (const [type, count] of Object.entries(counts)) {
+   165→   165→      if (count > max) {
+   166→   166→        max = count;
+   167→   167→        preferred = type;
+   168→   168→      }
+   169→   169→    }
+   170→   170→    return preferred;
+   171→   171→  }, [firs]);
+   172→   172→
+   173→   173→  // Unique districts
+   174→   174→  const activeDistricts = useMemo(() => {
+   175→   175→    const districts = new Set(firs.map((f) => f.district));
+   176→   176→    return Array.from(districts);
+   177→   177→  }, [firs]);
+   178→   178→
+   179→   179→  // Vehicles used
+   180→   180→  const vehiclesUsed = useMemo(() => {
+   181→   181→    const vehicleIds = new Set<string>();
+   182→   182→    for (const fir of firs) {
+   183→   183→      if (fir.vehicle_used) vehicleIds.add(fir.vehicle_used);
+   184→   184→    }
+   185→   185→    if (vehicleIds.size === 0 || !crimeData) return [];
+   186→   186→    return crimeData.vehicles.filter((v) => vehicleIds.has(v.id));
+   187→   187→  }, [firs, crimeData]);
+   188→   188→
+   189→   189→  // Gang associates
+   190→   190→  const gangAssociates = useMemo(() => {
+   191→   191→    if (!crimeData || !accused?.gang) return [];
+   192→   192→    const gang = crimeData.gangs.find((g) => g.id === accused.gang);
+   193→   193→    if (!gang) return [];
+   194→   194→    return gang.members
+   195→   195→      .filter((m) => m !== accused.id)
+   196→   196→      .map((m) => crimeData.accused.find((a) => a.id === m))
+   197→   197→      .filter(Boolean) as Accused[];
+   198→   198→  }, [crimeData, accused]);
+   199→   199→
+   200→   200→  // Risk breakdown
+   201→   201→  const riskBreakdown = useMemo(() => {
+   202→   202→    const priorFIRsCount = firs.length;
+   203→   203→    const priorFIRsScore = Math.min(priorFIRsCount * 5, 40);
+   204→   204→    const gangMembership = accused?.gang ? "Yes" : "No";
+   205→   205→    const gangScore = accused?.gang ? 20 : 0;
+   206→   206→    const highCriticalCount = firs.filter(
+   207→   207→      (f) => f.severity === "critical" || f.severity === "high"
+   208→   208→    ).length;
+   209→   209→    const severityScore = highCriticalCount * 10;
+   210→   210→    const now = new Date();
+   211→   211→    const twelveMonthsAgo = new Date(
+   212→   212→      now.getFullYear(),
+   213→   213→      now.getMonth() - 12,
+   214→   214→      now.getDate()
+   215→   215→    );
+   216→   216→    const recentCrime = firs.some((f) => new Date(f.date) >= twelveMonthsAgo);
+   217→   217→    const recencyScore = recentCrime ? 10 : 0;
+   218→   218→    const total = priorFIRsScore + gangScore + severityScore + recencyScore;
+   219→   219→    return {
+   220→   220→      priorFIRsCount,
+   221→   221→      priorFIRsScore,
+   222→   222→      gangMembership,
+   223→   223→      gangScore,
+   224→   224→      highCriticalCount,
+   225→   225→      severityScore,
+   226→   226→      recentCrime,
+   227→   227→      recencyScore,
+   228→   228→      total,
+   229→   229→    };
+   230→   230→  }, [firs, accused]);
+   231→   231→
+   232→   232→  // Financial transactions
+   233→   233→  const financialTransactions = useMemo(() => {
+   234→   234→    return firs
+   235→   235→      .filter((f) => f.financial_transaction)
+   236→   236→      .map((f) => ({
+   237→   237→        firId: f.fir_id,
+   238→   238→        transaction: f.financial_transaction!,
+   239→   239→      }));
+   240→   240→  }, [firs]);
+   241→   241→
+   242→   242→  // AI Investigation Brief
+   243→   243→  const brief = useMemo(() => {
+   244→   244→    if (!crimeData || !selectedAccusedId) return null;
+   245→   245→    return generateInvestigationBrief(crimeData, selectedAccusedId, "accused");
+   246→   246→  }, [crimeData, selectedAccusedId]);
+   247→   247→
+   248→   248→  // Similar Crimes (based on first FIR linked to accused)
+   249→   249→  const similarCrimes = useMemo(() => {
+   250→   250→    if (!crimeData || !selectedAccusedId) return [];
+   251→   251→    const firstFir = crimeData.firs.find(f => f.accused.includes(selectedAccusedId));
+   252→   252→    if (!firstFir) return [];
+   253→   253→    return computeSimilarCrimes(crimeData, firstFir.fir_id, 4);
+   254→   254→  }, [crimeData, selectedAccusedId]);
+   255→   255→
+   256→   256→  // AI Analysis
+   257→   257→  const [aiState, setAiState] = useState<{
+   258→   258→    loading: boolean;
+   259→   259→    error: boolean;
+   260→   260→    text: string | null;
+   261→   261→    accusedId: string | null;
+   262→   262→  }>({ loading: false, error: false, text: null, accusedId: null });
+   263→   263→
+   264→   264→  // Derive display state: show loading when accused changed but fetch hasn't completed yet
+   265→   265→  const aiLoading =
+   266→   266→    !!accused &&
+   267→   267→    (aiState.accusedId !== accused.id || aiState.loading);
+   268→   268→  const aiError =
+   269→   269→    !aiLoading && aiState.error && aiState.accusedId === selectedAccusedId;
+   270→   270→  const aiAnalysis =
+   271→   271→    aiState.text && aiState.accusedId === selectedAccusedId
+   272→   272→      ? aiState.text
+   273→   273→      : null;
+   274→   274→
+   275→   275→  useEffect(() => {
+   276→   276→    if (!accused) return;
+   277→   277→
+   278→   278→    const accusedId = accused.id;
+   279→   279→    // Set loading state via fetch lifecycle only (in async callback)
+   280→   280→    fetch("/api/chat?XTransformPort=3000", {
+   281→   281→      method: "POST",
+   282→   282→      headers: { "Content-Type": "application/json" },
+   283→   283→      body: JSON.stringify({
+   284→   284→        message: `Provide a 3-sentence behavioral analysis of ${accused.name} (ID: ${accused.id}). They have ${firs.length} FIRs. Cite specific FIR IDs.`,
+   285→   285→        history: [],
+   286→   286→      }),
+   287→   287→    })
+   288→   288→      .then((res) => res.json())
+   289→   289→      .then((data) => {
+   290→   290→        const response = data?.response ?? data?.content ?? null;
+   291→   291→        setAiState({ loading: false, error: !response, text: response, accusedId });
+   292→   292→      })
+   293→   293→      .catch(() => {
+   294→   294→        setAiState({ loading: false, error: true, text: null, accusedId });
+   295→   295→      });
+   296→   296→  }, [accused, firs.length]);
+   297→   297→
+   298→   298→  // Risk score display helpers
+   299→   299→  const riskColor =
+   300→   300→    (accused?.risk ?? 0) > 80
+   301→   301→      ? "#f87171"
+   302→   302→      : (accused?.risk ?? 0) > 60
+   303→   303→        ? "#fbbf24"
+   304→   304→        : "#34d399";
+   305→   305→  const riskLabel =
+   306→   306→    (accused?.risk ?? 0) > 80
+   307→   307→      ? "HIGH RISK"
+   308→   308→      : (accused?.risk ?? 0) > 60
+   309→   309→        ? "MODERATE RISK"
+   310→   310→        : "LOW RISK";
+   311→   311→
+   312→   312→  // Loading state
+   313→   313→  if (!crimeData) {
+   314→   314→    return <LoadingSpinner />;
+   315→   315→  }
+   316→   316→
+   317→   317→  // No selection state
+   318→   318→  if (!selectedAccusedId || !accused) {
+   319→   319→    return (
+   320→   320→      <div className="flex flex-col items-center justify-center min-h-[60vh] text-[#8b97b0]">
+   321→   321→        <Button
+   322→   322→          variant="ghost"
+   323→   323→          onClick={() => setView("dashboard")}
+   324→   324→          className="text-[#8b97b0] hover:text-[#f1f5f9] mb-6"
+   325→   325→        >
+   326→   326→          <ArrowLeft className="size-4 mr-2" />
+   327→   327→          Back to Dashboard
+   328→   328→        </Button>
+   329→   329→        <User className="size-16 mb-4 opacity-30" />
+   330→   330→        <p className="text-lg">Select an accused to view their profile</p>
+   331→   331→      </div>
+   332→   332→    );
+   333→   333→  }
+   334→   334→
+   335→   335→  return (
+   336→   336→    <div className="h-full overflow-y-auto" style={{ background: "rgba(10,15,28,0.6)" }}>
+   337→   337→      <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
+   338→   338→        {/* Header */}
+   339→   339→        <div className="flex items-start gap-4">
+   340→   340→          <Button
+   341→   341→            variant="ghost"
+   342→   342→            size="icon"
+   343→   343→            onClick={() => setView("dashboard")}
+   344→   344→            className="text-[#8b97b0] hover:text-[#f1f5f9] hover:bg-[rgba(255,255,255,0.08)]/50 shrink-0 mt-1"
+   345→   345→          >
+   346→   346→            <ArrowLeft className="size-5" />
+   347→   347→          </Button>
+   348→   348→          <div className="flex-1 min-w-0">
+   349→   349→            <div className="flex flex-wrap items-center gap-3 mb-2">
+   350→   350→              <h1 className="text-2xl sm:text-3xl font-bold text-[#f1f5f9]">
+   351→   351→                {accused.name}
+   352→   352→              </h1>
+   353→   353→              <Badge
+   354→   354→                variant="outline"
+   355→   355→                className="bg-[rgba(255,255,255,0.08)] text-[#f1f5f9] border-[#3a4560] text-sm px-2.5 py-0.5"
+   356→   356→              >
+   357→   357→                Age: {accused.age}
+   358→   358→              </Badge>
+   359→   359→              <Badge
+   360→   360→                variant="outline"
+   361→   361→                className="bg-[rgba(255,255,255,0.08)] text-[#f1f5f9] border-[#3a4560] text-sm px-2.5 py-0.5"
+   362→   362→              >
+   363→   363→                {accused.gender}
+   364→   364→              </Badge>
+   365→   365→              {gangName && (
+   366→   366→                <Badge
+   367→   367→                  variant="outline"
+   368→   368→                  className="bg-[#818cf8]/15 text-[#818cf8] border-[rgba(129,140,248,0.15)] text-sm px-2.5 py-0.5"
+   369→   369→                >
+   370→   370→                  <Users className="size-3 mr-1" />
+   371→   371→                  {gangName}
+   372→   372→                </Badge>
+   373→   373→              )}
+   374→   374→            </div>
+   375→   375→
+   376→   376→            {/* Risk Score Gauge */}
+   377→   377→            <div className="flex items-center gap-4 mt-4">
+   378→   378→              <div className="relative w-28 h-28 sm:w-32 sm:h-32 shrink-0">
+   379→   379→                <svg
+   380→   380→                  viewBox="0 0 120 120"
+   381→   381→                  className="w-full h-full -rotate-90"
+   382→   382→                >
+   383→   383→                  <circle
+   384→   384→                    cx="60"
+   385→   385→                    cy="60"
+   386→   386→                    r="50"
+   387→   387→                    fill="none"
+   388→   388→                    stroke="rgba(15,21,36,0.45)"
+   389→   389→                    strokeWidth="10"
+   390→   390→                  />
+   391→   391→                  <circle
+   392→   392→                    cx="60"
+   393→   393→                    cy="60"
+   394→   394→                    r="50"
+   395→   395→                    fill="none"
+   396→   396→                    stroke={riskColor}
+   397→   397→                    strokeWidth="10"
+   398→   398→                    strokeLinecap="round"
+   399→   399→                    strokeDasharray={`${(accused.risk / 100) * 314.16} 314.16`}
+   400→   400→                    className="transition-all duration-700 ease-out"
+   401→   401→                  />
+   402→   402→                </svg>
+   403→   403→                <div className="absolute inset-0 flex flex-col items-center justify-center">
+   404→   404→                  <span
+   405→   405→                    className="text-2xl sm:text-3xl font-bold"
+   406→   406→                    style={{ color: riskColor }}
+   407→   407→                  >
+   408→   408→                    {accused.risk}
+   409→   409→                  </span>
+   410→   410→                  <span className="text-[10px] text-[#8b97b0] uppercase tracking-wider">
+   411→   411→                    Score
+   412→   412→                  </span>
+   413→   413→                </div>
+   414→   414→              </div>
+   415→   415→              <div>
+   416→   416→                <p
+   417→   417→                  className="text-lg font-bold tracking-wide"
+   418→   418→                  style={{ color: riskColor }}
+   419→   419→                >
+   420→   420→                  {riskLabel}
+   421→   421→                </p>
+   422→   422→                <p className="text-sm text-[#8b97b0] mt-1">
+   423→   423→                  Linked to {firs.length} FIR{firs.length !== 1 ? "s" : ""} •{" "}
+   424→   424→                  {firs.filter((f) => f.investigation_status !== "Closed").length}{" "}
+   425→   425→                  active case
+   426→   426→                  {firs.filter((f) => f.investigation_status !== "Closed")
+   427→   427→                    .length !== 1
+   428→   428→                    ? "s"
+   429→   429→                    : ""}
+   430→   430→                </p>
+   431→   431→              </div>
+   432→   432→            </div>
+   433→   433→          </div>
+   434→   434→        </div>
+   435→   435→
+   436→   436→        {/* Section 1 — Criminal History Timeline */}
+   437→   437→        <Card className="bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.08)] shadow-none">
+   438→   438→          <CardHeader>
+   439→   439→            <CardTitle className="text-[#f1f5f9] flex items-center gap-2">
+   440→   440→              <FileText className="size-5 text-[#8b97b0]" />
+   441→   441→              Criminal History Timeline
+   442→   442→            </CardTitle>
+   443→   443→          </CardHeader>
+   444→   444→          <CardContent>
+   445→   445→            {firs.length === 0 ? (
+   446→   446→              <p className="text-[#8b97b0] text-sm">
+   447→   447→                No FIR records found for this accused.
+   448→   448→              </p>
+   449→   449→            ) : (
+   450→   450→              <div className="relative pl-6 max-h-96 overflow-y-auto space-y-0 custom-scrollbar">
+   451→   451→                {/* Vertical timeline line */}
+   452→   452→                <div className="absolute left-[9px] top-2 bottom-2 w-[2px] bg-[rgba(255,255,255,0.08)]" />
+   453→   453→
+   454→   454→                {firs.map((fir) => (
+   455→   455→                  <div key={fir.fir_id} className="relative pb-6 last:pb-0">
+   456→   456→                    {/* Timeline dot */}
+   457→   457→                    <div
+   458→   458→                      className={`absolute -left-6 top-1.5 w-4 h-4 rounded-full border-2 border-[rgba(10,15,28,0.6)] ${severityColors[fir.severity] ?? "bg-gray-500"}`}
+   459→   459→                    />
+   460→   460→                    <div className="bg-[#0f1528] rounded-lg p-4 border border-[rgba(255,255,255,0.08)]/60">
+   461→   461→                      <div className="flex flex-wrap items-center gap-2 mb-2">
+   462→   462→                        <span className="text-sm text-[#8b97b0]">
+   463→   463→                          {formatDate(fir.date)}
+   464→   464→                        </span>
+   465→   465→                        <Badge
+   466→   466→                          variant="outline"
+   467→   467→                          className="bg-[rgba(255,255,255,0.08)] text-[#f1f5f9] border-[#3a4560] text-xs"
+   468→   468→                        >
+   469→   469→                          {fir.crime_type}
+   470→   470→                        </Badge>
+   471→   471→                        <Badge
+   472→   472→                          variant="outline"
+   473→   473→                          className={`text-xs ${severityBadgeColors[fir.severity] ?? ""}`}
+   474→   474→                        >
+   475→   475→                          {fir.severity.toUpperCase()}
+   476→   476→                        </Badge>
+   477→   477→                        <Badge
+   478→   478→                          variant="outline"
+   479→   479→                          className={`text-xs ${investigationStatusColors[fir.investigation_status] ?? "bg-gray-500/20 text-gray-400 border-gray-500/30"}`}
+   480→   480→                        >
+   481→   481→                          {fir.investigation_status}
+   482→   482→                        </Badge>
+   483→   483→                      </div>
+   484→   484→                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+   485→   485→                        <span className="text-[#22d3ee] font-mono">
+   486→   486→                          {fir.fir_id}
+   487→   487→                        </span>
+   488→   488→                        <span className="text-[#8b97b0] flex items-center gap-1">
+   489→   489→                          <MapPin className="size-3" />
+   490→   490→                          {fir.district}
+   491→   491→                        </span>
+   492→   492→                        <span className="text-[#8b97b0] flex items-center gap-1">
+   493→   493→                          <Clock className="size-3" />
+   494→   494→                          {fir.time}
+   495→   495→                        </span>
+   496→   496→                        <span className="text-[#8b97b0]">
+   497→   497→                          {fir.police_station}
+   498→   498→                        </span>
+   499→   499→                      </div>
+   500→   500→                    </div>
+   501→   501→                  </div>
+   502→   502→                ))}
+   503→   503→              </div>
+   504→   504→            )}
+   505→   505→          </CardContent>
+   506→   506→        </Card>
+   507→   507→
+   508→   508→        {/* Section 2 — Behavioral Analysis */}
+   509→   509→        <Card className="bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.08)] shadow-none">
+   510→   510→          <CardHeader>
+   511→   511→            <CardTitle className="text-[#f1f5f9] flex items-center gap-2">
+   512→   512→              <Shield className="size-5 text-[#8b97b0]" />
+   513→   513→              Behavioral Analysis
+   514→   514→            </CardTitle>
+   515→   515→          </CardHeader>
+   516→   516→          <CardContent>
+   517→   517→            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+   518→   518→              {/* Preferred Time of Crime */}
+   519→   519→              <div className="bg-[#0f1528] rounded-lg p-4 border border-[rgba(255,255,255,0.08)]/60">
+   520→   520→                <div className="flex items-center gap-2 mb-3">
+   521→   521→                  <Clock className="size-4 text-[#8b97b0]" />
+   522→   522→                  <span className="text-sm font-medium text-[#f1f5f9]">
+   523→   523→                    Preferred Time of Crime
+   524→   524→                  </span>
+   525→   525→                </div>
+   526→   526→                {firs.length === 0 ? (
+   527→   527→                  <p className="text-sm text-[#8b97b0]">No data</p>
+   528→   528→                ) : (
+   529→   529→                  <div className="space-y-2">
+   530→   530→                    {(
+   531→   531→                      ["morning", "evening", "night"] as const
+   532→   532→                    ).map((slot) => (
+   533→   533→                      <div key={slot} className="flex items-center gap-2">
+   534→   534→                        <span className="text-xs text-[#8b97b0] w-16 capitalize">
+   535→   535→                          {slot === "morning"
+   536→   536→                            ? "Morning"
+   537→   537→                            : slot === "evening"
+   538→   538→                              ? "Evening"
+   539→   539→                              : "Night"}
+   540→   540→                          <span className="text-[10px] ml-0.5 opacity-60">
+   541→   541→                            {slot === "morning"
+   542→   542→                              ? "6-12"
+   543→   543→                              : slot === "evening"
+   544→   544→                                ? "12-18"
+   545→   545→                                : "18-6"}
+   546→   546→                          </span>
+   547→   547→                        </span>
+   548→   548→                        <div className="flex-1 h-2 bg-[rgba(15,21,36,0.45)] rounded-full overflow-hidden">
+   549→   549→                          <div
+   550→   550→                            className={`h-full rounded-full transition-all duration-500 ${timeAnalysis.preferred === slot ? "bg-blue-400" : "bg-[rgba(255,255,255,0.08)]"}`}
+   551→   551→                            style={{
+   552→   552→                              width: `${timeAnalysis.percentages[slot]}%`,
+   553→   553→                            }}
+   554→   554→                          />
+   555→   555→                        </div>
+   556→   556→                        <span className="text-xs text-[#8b97b0] w-10 text-right">
+   557→   557→                          {timeAnalysis.slots[slot] > 0
+   558→   558→                            ? `${Math.round(timeAnalysis.percentages[slot])}%`
+   559→   559→                            : "—"}
+   560→   560→                        </span>
+   561→   561→                      </div>
+   562→   562→                    ))}
+   563→   563→                  </div>
+   564→   564→                )}
+   565→   565→              </div>
+   566→   566→
+   567→   567→              {/* Preferred Crime Type */}
+   568→   568→              <div className="bg-[#0f1528] rounded-lg p-4 border border-[rgba(255,255,255,0.08)]/60">
+   569→   569→                <div className="flex items-center gap-2 mb-3">
+   570→   570→                  <Shield className="size-4 text-[#8b97b0]" />
+   571→   571→                  <span className="text-sm font-medium text-[#f1f5f9]">
+   572→   572→                    Preferred Crime Type
+   573→   573→                  </span>
+   574→   574→                </div>
+   575→   575→                {preferredCrimeType ? (
+   576→   576→                  <p className="text-sm text-[#22d3ee] font-medium">
+   577→   577→                    {preferredCrimeType}
+   578→   578→                  </p>
+   579→   579→                ) : (
+   580→   580→                  <p className="text-sm text-[#8b97b0]">No data</p>
+   581→   581→                )}
+   582→   582→              </div>
+   583→   583→
+   584→   584→              {/* Districts Active In */}
+   585→   585→              <div className="bg-[#0f1528] rounded-lg p-4 border border-[rgba(255,255,255,0.08)]/60">
+   586→   586→                <div className="flex items-center gap-2 mb-3">
+   587→   587→                  <MapPin className="size-4 text-[#8b97b0]" />
+   588→   588→                  <span className="text-sm font-medium text-[#f1f5f9]">
+   589→   589→                    Districts Active In
+   590→   590→                  </span>
+   591→   591→                </div>
+   592→   592→                {activeDistricts.length > 0 ? (
+   593→   593→                  <div className="flex flex-wrap gap-1.5">
+   594→   594→                    {activeDistricts.map((d) => (
+   595→   595→                      <Badge
+   596→   596→                        key={d}
+   597→   597→                        variant="outline"
+   598→   598→                        className="bg-[rgba(255,255,255,0.08)] text-[#f1f5f9] border-[#3a4560] text-xs"
+   599→   599→                      >
+   600→   600→                        {d}
+   601→   601→                      </Badge>
+   602→   602→                    ))}
+   603→   603→                  </div>
+   604→   604→                ) : (
+   605→   605→                  <p className="text-sm text-[#8b97b0]">No data</p>
+   606→   606→                )}
+   607→   607→              </div>
+   608→   608→
+   609→   609→              {/* Vehicles Used */}
+   610→   610→              <div className="bg-[#0f1528] rounded-lg p-4 border border-[rgba(255,255,255,0.08)]/60">
+   611→   611→                <div className="flex items-center gap-2 mb-3">
+   612→   612→                  <Car className="size-4 text-[#8b97b0]" />
+   613→   613→                  <span className="text-sm font-medium text-[#f1f5f9]">
+   614→   614→                    Vehicles Used
+   615→   615→                  </span>
+   616→   616→                </div>
+   617→   617→                {vehiclesUsed.length > 0 ? (
+   618→   618→                  <div className="space-y-1.5">
+   619→   619→                    {vehiclesUsed.map((v) => (
+   620→   620→                      <div
+   621→   621→                        key={v.id}
+   622→   622→                        className="text-sm text-[#f1f5f9] flex items-center gap-2"
+   623→   623→                      >
+   624→   624→                        <span className="font-mono text-xs text-[#22d3ee]">
+   625→   625→                          {v.reg}
+   626→   626→                        </span>
+   627→   627→                        <span className="text-[#8b97b0]">
+   628→   628→                          {v.make} {v.type} ({v.color})
+   629→   629→                        </span>
+   630→   630→                      </div>
+   631→   631→                    ))}
+   632→   632→                  </div>
+   633→   633→                ) : (
+   634→   634→                  <p className="text-sm text-[#8b97b0]">No vehicles linked</p>
+   635→   635→                )}
+   636→   636→              </div>
+   637→   637→
+   638→   638→              {/* Gang Associates */}
+   639→   639→              <div className="bg-[#0f1528] rounded-lg p-4 border border-[rgba(255,255,255,0.08)]/60 sm:col-span-2">
+   640→   640→                <div className="flex items-center gap-2 mb-3">
+   641→   641→                  <Users className="size-4 text-[#8b97b0]" />
+   642→   642→                  <span className="text-sm font-medium text-[#f1f5f9]">
+   643→   643→                    Gang Associates
+   644→   644→                  </span>
+   645→   645→                </div>
+   646→   646→                {gangAssociates.length > 0 ? (
+   647→   647→                  <div className="flex flex-wrap gap-2">
+   648→   648→                    {gangAssociates.map((a) => (
+   649→   649→                      <div
+   650→   650→                        key={a.id}
+   651→   651→                        className="flex items-center gap-2 bg-[rgba(15,21,36,0.45)] rounded-md px-3 py-1.5 border border-[rgba(255,255,255,0.08)]"
+   652→   652→                      >
+   653→   653→                        <User className="size-3.5 text-[#818cf8]" />
+   654→   654→                        <span className="text-sm text-[#f1f5f9]">{a.name}</span>
+   655→   655→                        <span className="text-xs text-[#8b97b0]">
+   656→   656→                          (Risk: {a.risk})
+   657→   657→                        </span>
+   658→   658→                      </div>
+   659→   659→                    ))}
+   660→   660→                  </div>
+   661→   661→                ) : (
+   662→   662→                  <p className="text-sm text-[#8b97b0]">
+   663→   663→                    No gang affiliation or no associates found
+   664→   664→                  </p>
+   665→   665→                )}
+   666→   666→              </div>
+   667→   667→            </div>
+   668→   668→          </CardContent>
+   669→   669→        </Card>
+   670→   670→
+   671→   671→        {/* Section 3 — Risk Scoring Breakdown */}
+   672→   672→        <Card className="bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.08)] shadow-none">
+   673→   673→          <CardHeader>
+   674→   674→            <CardTitle className="text-[#f1f5f9] flex items-center gap-2">
+   675→   675→              <Shield className="size-5 text-[#8b97b0]" />
+   676→   676→              Risk Scoring Breakdown
+   677→   677→            </CardTitle>
+   678→   678→          </CardHeader>
+   679→   679→          <CardContent>
+   680→   680→            <Table>
+   681→   681→              <TableHeader>
+   682→   682→                <TableRow className="border-[rgba(255,255,255,0.08)] hover:bg-transparent">
+   683→   683→                  <TableHead className="text-[#8b97b0]">Factor</TableHead>
+   684→   684→                  <TableHead className="text-[#8b97b0]">Value</TableHead>
+   685→   685→                  <TableHead className="text-[#8b97b0] text-right">Score</TableHead>
+   686→   686→                </TableRow>
+   687→   687→              </TableHeader>
+   688→   688→              <TableBody>
+   689→   689→                <TableRow className="border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.08)]/30">
+   690→   690→                  <TableCell className="text-[#f1f5f9]">
+   691→   691→                    Prior FIRs Count
+   692→   692→                  </TableCell>
+   693→   693→                  <TableCell className="text-[#f1f5f9]">
+   694→   694→                    {riskBreakdown.priorFIRsCount}
+   695→   695→                  </TableCell>
+   696→   696→                  <TableCell className="text-[#f1f5f9] text-right">
+   697→   697→                    {riskBreakdown.priorFIRsScore}
+   698→   698→                    <span className="text-[#8b97b0] text-xs ml-1">
+   699→   699→                      (max 40)
+   700→   700→                    </span>
+   701→   701→                  </TableCell>
+   702→   702→                </TableRow>
+   703→   703→                <TableRow className="border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.08)]/30">
+   704→   704→                  <TableCell className="text-[#f1f5f9]">
+   705→   705→                    Gang Membership
+   706→   706→                  </TableCell>
+   707→   707→                  <TableCell className="text-[#f1f5f9]">
+   708→   708→                    {riskBreakdown.gangMembership}
+   709→   709→                  </TableCell>
+   710→   710→                  <TableCell className="text-[#f1f5f9] text-right">
+   711→   711→                    {riskBreakdown.gangScore > 0 ? "+" : ""}
+   712→   712→                    {riskBreakdown.gangScore}
+   713→   713→                  </TableCell>
+   714→   714→                </TableRow>
+   715→   715→                <TableRow className="border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.08)]/30">
+   716→   716→                  <TableCell className="text-[#f1f5f9]">
+   717→   717→                    Severity of Crimes
+   718→   718→                  </TableCell>
+   719→   719→                  <TableCell className="text-[#f1f5f9]">
+   720→   720→                    {riskBreakdown.highCriticalCount} high/critical
+   721→   721→                  </TableCell>
+   722→   722→                  <TableCell className="text-[#f1f5f9] text-right">
+   723→   723→                    {riskBreakdown.severityScore}
+   724→   724→                  </TableCell>
+   725→   725→                </TableRow>
+   726→   726→                <TableRow className="border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.08)]/30">
+   727→   727→                  <TableCell className="text-[#f1f5f9]">Recency</TableCell>
+   728→   728→                  <TableCell className="text-[#f1f5f9]">
+   729→   729→                    {riskBreakdown.recentCrime
+   730→   730→                      ? "Crime in last 12 months"
+   731→   731→                      : "No recent crime"}
+   732→   732→                  </TableCell>
+   733→   733→                  <TableCell className="text-[#f1f5f9] text-right">
+   734→   734→                    {riskBreakdown.recencyScore > 0 ? "+" : ""}
+   735→   735→                    {riskBreakdown.recencyScore}
+   736→   736→                  </TableCell>
+   737→   737→                </TableRow>
+   738→   738→                <TableRow className="border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.08)]/30">
+   739→   739→                  <TableCell
+   740→   740→                    className="text-[#f1f5f9] font-bold"
+   741→   741→                    colSpan={2}
+   742→   742→                  >
+   743→   743→                    Total
+   744→   744→                  </TableCell>
+   745→   745→                  <TableCell
+   746→   746→                    className="text-right font-bold"
+   747→   747→                    style={{ color: riskColor }}
+   748→   748→                  >
+   749→   749→                    {riskBreakdown.total}
+   750→   750→                  </TableCell>
+   751→   751→                </TableRow>
+   752→   752→              </TableBody>
+   753→   753→            </Table>
+   754→   754→          </CardContent>
+   755→   755→        </Card>
+   756→   756→
+   757→   757→        {/* Section 4 — Financial Connections */}
+   758→   758→        <Card className="bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.08)] shadow-none">
+   759→   759→          <CardHeader>
+   760→   760→            <CardTitle className="text-[#f1f5f9] flex items-center gap-2">
+   761→   761→              <FileText className="size-5 text-[#8b97b0]" />
+   762→   762→              Financial Connections
+   763→   763→            </CardTitle>
+   764→   764→          </CardHeader>
+   765→   765→          <CardContent>
+   766→   766→            {financialTransactions.length === 0 ? (
+   767→   767→              <p className="text-sm text-[#8b97b0]">
+   768→   768→                No financial transactions linked to this accused.
+   769→   769→              </p>
+   770→   770→            ) : (
+   771→   771→              <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
+   772→   772→                {financialTransactions.map(({ firId, transaction }) => {
+   773→   773→                  const bankAccount = crimeData?.bank_accounts.find(
+   774→   774→                    (ba) => ba.id === transaction.account
+   775→   775→                  );
+   776→   776→                  return (
+   777→   777→                    <div
+   778→   778→                      key={firId}
+   779→   779→                      className="bg-[#0f1528] rounded-lg p-4 border border-[rgba(255,255,255,0.08)]/60 flex flex-col sm:flex-row sm:items-center gap-3"
+   780→   780→                    >
+   781→   781→                      <div className="flex-1 min-w-0">
+   782→   782→                        <div className="flex items-center gap-2 mb-1">
+   783→   783→                          <span className="font-mono text-sm text-[#22d3ee]">
+   784→   784→                            {firId}
+   785→   785→                          </span>
+   786→   786→                        </div>
+   787→   787→                        {bankAccount && (
+   788→   788→                          <p className="text-xs text-[#8b97b0]">
+   789→   789→                            {bankAccount.bank} — {bankAccount.acc}
+   790→   790→                          </p>
+   791→   791→                        )}
+   792→   792→                        {transaction.note && (
+   793→   793→                          <p className="text-xs text-[#8b97b0] mt-1">
+   794→   794→                            {transaction.note}
+   795→   795→                          </p>
+   796→   796→                        )}
+   797→   797→                      </div>
+   798→   798→                      <div className="text-right shrink-0">
+   799→   799→                        <p className="text-lg font-bold text-[#f1f5f9]">
+   800→   800→                          {formatINR(transaction.amount_inr)}
+   801→   801→                        </p>
+   802→   802→                        <Badge
+   803→   803→                          variant="outline"
+   804→   804→                          className="bg-[rgba(255,255,255,0.08)] text-[#f1f5f9] border-[#3a4560] text-xs mt-1"
+   805→   805→                        >
+   806→   806→                          {transaction.mode}
+   807→   807→                        </Badge>
+   808→   808→                      </div>
+   809→   809→                    </div>
+   810→   810→                  );
+   811→   811→                })}
+   812→   812→              </div>
+   813→   813→            )}
+   814→   814→          </CardContent>
+   815→   815→        </Card>
+   816→   816→
+   817→   817→        {/* Section 5 — AI Analysis */}
+   818→   818→        <Card className="bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.08)] shadow-none">
+   819→   819→          <CardHeader>
+   820→   820→            <CardTitle className="text-[#f1f5f9] flex items-center gap-2">
+   821→   821→              <Shield className="size-5 text-[#818cf8]" />
+   822→   822→              AI Analysis
+   823→   823→            </CardTitle>
+   824→   824→          </CardHeader>
+   825→   825→          <CardContent>
+   826→   826→            {aiLoading && (
+   827→   827→              <div className="flex items-center gap-3 py-4">
+   828→   828→                <div className="size-5 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+   829→   829→                <span className="text-sm text-[#8b97b0]">
+   830→   830→                  Generating AI analysis...
+   831→   831→                </span>
+   832→   832→              </div>
+   833→   833→            )}
+   834→   834→            {aiError && !aiLoading && (
+   835→   835→              <p className="text-sm text-[#8b97b0] py-2">
+   836→   836→                AI analysis unavailable in demo mode.
+   837→   837→              </p>
+   838→   838→            )}
+   839→   839→            {aiAnalysis && !aiLoading && (
+   840→   840→              <p className="text-sm text-[#f1f5f9] leading-relaxed py-2">
+   841→   841→                {aiAnalysis}
+   842→   842→              </p>
+   843→   843→            )}
+   844→   844→          </CardContent>
+   845→   845→        </Card>
+   846→   846→
+   847→   847→        {/* Section 6 — AI Investigation Brief */}
+   848→   848→        {brief && (
+   849→   849→          <div className="space-y-4 animate-fade-in-up">
+   850→   850→            <div className="flex items-center justify-between">
+   851→   851→              <h2 className="text-lg font-bold text-[#f1f5f9] flex items-center gap-2">
+   852→   852→                <Brain className="w-5 h-5 text-[#22d3ee]" /> AI Investigation Brief
+   853→   853→              </h2>
+   854→   854→              {/* Confidence Score Ring */}
+   855→   855→              <div className="flex items-center gap-2">
+   856→   856→                <svg width="44" height="44" className="confidence-ring">
+   857→   857→                  <circle cx="22" cy="22" r="18" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3" />
+   858→   858→                  <circle cx="22" cy="22" r="18" fill="none"
+   859→   859→                    stroke={brief.confidenceScore >= 80 ? "#34d399" : brief.confidenceScore >= 60 ? "#fbbf24" : "#f87171"}
+   860→   860→                    strokeWidth="3" strokeLinecap="round"
+   861→   861→                    strokeDasharray={2 * Math.PI * 18}
+   862→   862→                    strokeDashoffset={2 * Math.PI * 18 - (brief.confidenceScore / 100) * 2 * Math.PI * 18}
+   863→   863→                    className="confidence-ring-circle" />
+   864→   864→                  <text x="22" y="22" textAnchor="middle" dominantBaseline="central" fill="#f1f5f9" fontSize="10" fontWeight="bold" style={{transform: "rotate(90deg)", transformOrigin: "center"}}>{brief.confidenceScore}%</text>
+   865→   865→                </svg>
+   866→   866→                <span className="text-xs text-[#8b97b0]">Confidence</span>
+   867→   867→              </div>
+   868→   868→            </div>
+   869→   869→
+   870→   870→            {/* Executive Summary */}
+   871→   871→            <div className="glass-card p-4">
+   872→   872→              <h3 className="text-xs font-semibold uppercase tracking-wider text-[#5a657a] mb-2">Executive Summary</h3>
+   873→   873→              <p className="text-sm text-[#f1f5f9] leading-relaxed">{brief.executiveSummary}</p>
+   874→   874→            </div>
+   875→   875→
+   876→   876→            {/* Related Cases */}
+   877→   877→            {brief.relatedCases.length > 0 && (
+   878→   878→              <div className="glass-card p-4">
+   879→   879→                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#5a657a] mb-3">Related Cases ({brief.relatedCases.length})</h3>
+   880→   880→                <div className="space-y-2">
+   881→   881→                  {brief.relatedCases.map((c, i) => (
+   882→   882→                    <div key={i} className="flex items-center justify-between py-1.5 border-b border-[rgba(255,255,255,0.08)]/50 last:border-0">
+   883→   883→                      <div>
+   884→   884→                        <span className="text-xs font-mono text-[#22d3ee]">{c.firId}</span>
+   885→   885→                        <span className="text-xs text-[#8b97b0] ml-2">{c.crimeType}</span>
+   886→   886→                      </div>
+   887→   887→                      <div className="text-right">
+   888→   888→                        <span className="text-[10px] text-[#8b97b0]">{c.date}</span>
+   889→   889→                        <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full ${c.status === "Arrested" ? "bg-[#34d399]/20 text-[#34d399]" : c.status === "Under Investigation" ? "bg-[#fbbf24]/20 text-[#fbbf24]" : "bg-gray-500/20 text-gray-400"}`}>{c.status}</span>
+   890→   890→                      </div>
+   891→   891→                    </div>
+   892→   892→                  ))}
+   893→   893→                </div>
+   894→   894→              </div>
+   895→   895→            )}
+   896→   896→
+   897→   897→            {/* Likely Associates */}
+   898→   898→            {brief.likelyAssociates.length > 0 && (
+   899→   899→              <div className="glass-card p-4">
+   900→   900→                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#5a657a] mb-3">Likely Associates</h3>
+   901→   901→                <div className="space-y-2">
+   902→   902→                  {brief.likelyAssociates.map((a, i) => (
+   903→   903→                    <div key={i} className="flex items-center justify-between py-1.5 border-b border-[rgba(255,255,255,0.08)]/50 last:border-0">
+   904→   904→                      <div className="flex items-center gap-2">
+   905→   905→                        <div className={`w-2 h-2 rounded-full ${a.strength === "strong" ? "bg-[#f87171]" : a.strength === "moderate" ? "bg-[#fbbf24]" : "bg-[#34d399]"}`} />
+   906→   906→                        <span className="text-sm text-[#f1f5f9]">{a.name}</span>
+   907→   907→                        <span className="text-[10px] text-[#5a657a]">({a.id})</span>
+   908→   908→                      </div>
+   909→   909→                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${a.strength === "strong" ? "bg-[#f87171]/20 text-[#f87171]" : a.strength === "moderate" ? "bg-[#fbbf24]/20 text-[#fbbf24]" : "bg-[#34d399]/20 text-[#34d399]"}`}>{a.strength}</span>
+   910→   910→                    </div>
+   911→   911→                  ))}
+   912→   912→                </div>
+   913→   913→              </div>
+   914→   914→            )}
+   915→   915→
+   916→   916→            {/* Behavioral Analysis + Missing Evidence side by side */}
+   917→   917→            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+   918→   918→              <div className="glass-card p-4">
+   919→   919→                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#5a657a] mb-3">Behavioral Analysis</h3>
+   920→   920→                <div className="space-y-3">
+   921→   921→                  {brief.behavioralAnalysis.map((b, i) => (
+   922→   922→                    <div key={i}>
+   923→   923→                      <p className="text-xs font-semibold text-[#f1f5f9]">{b.pattern}</p>
+   924→   924→                      <p className="text-[11px] text-[#8b97b0] mt-0.5 leading-relaxed">{b.description}</p>
+   925→   925→                      <p className="text-[10px] text-[#5a657a] mt-0.5">{b.frequency}</p>
+   926→   926→                    </div>
+   927→   927→                  ))}
+   928→   928→                </div>
+   929→   929→              </div>
+   930→   930→              <div className="space-y-4">
+   931→   931→                <div className="glass-card p-4">
+   932→   932→                  <h3 className="text-xs font-semibold uppercase tracking-wider text-[#5a657a] mb-3">Missing Evidence</h3>
+   933→   933→                  <div className="space-y-2">
+   934→   934→                    {brief.missingEvidence.map((m, i) => (
+   935→   935→                      <div key={i} className="flex items-start gap-2">
+   936→   936→                        <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${m.priority === "high" ? "bg-[#f87171]" : m.priority === "medium" ? "bg-[#fbbf24]" : "bg-[#22d3ee]"}`} />
+   937→   937→                        <div>
+   938→   938→                          <p className="text-xs font-semibold text-[#f1f5f9]">{m.type}</p>
+   939→   939→                          <p className="text-[11px] text-[#8b97b0]">{m.description}</p>
+   940→   940→                        </div>
+   941→   941→                      </div>
+   942→   942→                    ))}
+   943→   943→                  </div>
+   944→   944→                </div>
+   945→   945→                {brief.financialLinks.length > 0 && (
+   946→   946→                  <div className="glass-card p-4">
+   947→   947→                    <h3 className="text-xs font-semibold uppercase tracking-wider text-[#5a657a] mb-3">Financial Links</h3>
+   948→   948→                    {brief.financialLinks.map((f, i) => (
+   949→   949→                      <div key={i} className="mb-2 last:mb-0">
+   950→   950→                        <p className="text-xs text-[#f1f5f9]">{f.bank} — {f.holder}</p>
+   951→   951→                        <p className="text-[10px] text-[#8b97b0]">A/C: {f.account.slice(-4)} | Total: ₹{f.totalAmount.toLocaleString("en-IN")} | {f.transactions} txns</p>
+   952→   952→                      </div>
+   953→   953→                    ))}
+   954→   954→                  </div>
+   955→   955→                )}
+   956→   956→              </div>
+   957→   957→            </div>
+   958→   958→
+   959→   959→            {/* Suggested Actions */}
+   960→   960→            <div className="glass-card p-4">
+   961→   961→              <h3 className="text-xs font-semibold uppercase tracking-wider text-[#5a657a] mb-3">Suggested Investigative Actions</h3>
+   962→   962→              <div className="space-y-2">
+   963→   963→                {brief.suggestedActions.map((a, i) => (
+   964→   964→                  <div key={i} className="flex items-start gap-3 py-2 border-b border-[rgba(255,255,255,0.08)]/50 last:border-0">
+   965→   965→                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold flex-shrink-0 mt-0.5 ${a.priority === "immediate" ? "bg-[#f87171]/20 text-[#f87171]" : a.priority === "short_term" ? "bg-[#fbbf24]/20 text-[#fbbf24]" : "bg-[#22d3ee]/20 text-[#22d3ee]"}`}>
+   966→   966→                      {a.priority === "immediate" ? "IMMEDIATE" : a.priority === "short_term" ? "SHORT-TERM" : "LONG-TERM"}
+   967→   967→                    </span>
+   968→   968→                    <div>
+   969→   969→                      <p className="text-sm text-[#f1f5f9]">{a.action}</p>
+   970→   970→                      <p className="text-[11px] text-[#8b97b0] mt-0.5">{a.rationale}</p>
+   971→   971→                    </div>
+   972→   972→                  </div>
+   973→   973→                ))}
+   974→   974→              </div>
+   975→   975→            </div>
+   976→   976→          </div>
+   977→   977→        )}
+   978→   978→
+   979→   979→        {/* Section 7 — Similar Crimes Engine */}
+   980→   980→        {similarCrimes.length > 0 && (
+   981→   981→          <div className="space-y-4 animate-fade-in-up">
+   982→   982→            <h2 className="text-lg font-bold text-[#f1f5f9] flex items-center gap-2">
+   983→   983→              <Search className="w-5 h-5 text-[#22d3ee]" /> Similar Crimes Engine
+   984→   984→            </h2>
+   985→   985→            <div className="space-y-3">
+   986→   986→              {similarCrimes.map((sc, i) => (
+   987→   987→                <div key={i} className="glass-card p-4">
+   988→   988→                  <div className="flex items-center justify-between mb-2">
+   989→   989→                    <div className="flex items-center gap-2">
+   990→   990→                      <span className="text-sm font-mono font-bold text-[#22d3ee]">{sc.fir.fir_id}</span>
+   991→   991→                      <SeverityBadge severity={sc.fir.severity} />
+   992→   992→                    </div>
+   993→   993→                    <div className="flex items-center gap-2">
+   994→   994→                      <div className="w-24 h-2 rounded-full bg-[rgba(255,255,255,0.08)] overflow-hidden">
+   995→   995→                        <div
+   996→   996→                          className="h-full rounded-full transition-all"
+   997→   997→                          style={{
+   998→   998→                            width: `${sc.similarityScore}%`,
+   999→   999→                            backgroundColor: sc.similarityScore >= 70 ? "#34d399" : sc.similarityScore >= 40 ? "#fbbf24" : "#f87171",
+  1000→  1000→                          }}
+  1001→  1001→                        />
+  1002→  1002→                      </div>
+  1003→  1003→                      <span className="text-sm font-bold" style={{
+  1004→  1004→                        color: sc.similarityScore >= 70 ? "#34d399" : sc.similarityScore >= 40 ? "#fbbf24" : "#f87171"
+  1005→  1005→                      }}>{sc.similarityScore}%</span>
+  1006→  1006→                    </div>
+  1007→  1007→                  </div>
+  1008→  1008→                  <p className="text-xs text-[#f1f5f9] mb-1">{sc.fir.crime_type} — {sc.fir.district} — {sc.fir.date}</p>
+  1009→  1009→                  <p className="text-[11px] text-[#8b97b0] leading-relaxed mb-2">{sc.explanation}</p>
+  1010→  1010→                  <div className="flex flex-wrap gap-1.5">
+  1011→  1011→                    {sc.matchedFactors.filter(f => f.matched).map((f, j) => (
+  1012→  1012→                      <span key={j} className="text-[10px] px-2 py-0.5 rounded-full bg-[#34d399]/10 text-[#34d399] border border-green-500/20">
+  1013→  1013→                        {f.factor}
+  1014→  1014→                      </span>
+  1015→  1015→                    ))}
+  1016→  1016→                    {sc.matchedFactors.filter(f => !f.matched).map((f, j) => (
+  1017→  1017→                      <span key={j} className="text-[10px] px-2 py-0.5 rounded-full bg-[#f87171]/10 text-[#f87171]/60 border border-red-500/10">
+  1018→  1018→                        {f.factor}
+  1019→  1019→                      </span>
+  1020→  1020→                    ))}
+  1021→  1021→                  </div>
+  1022→  1022→                </div>
+  1023→  1023→              ))}
+  1024→  1024→            </div>
+  1025→  1025→          </div>
+  1026→  1026→        )}
+  1027→  1027→      </div>
+  1028→  1028→    </div>
+  1029→  1029→  );
+  1030→  1030→}

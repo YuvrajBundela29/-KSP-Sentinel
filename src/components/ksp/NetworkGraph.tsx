@@ -51,11 +51,11 @@ interface SimLink {
 /* ------------------------------------------------------------------ */
 
 const LINK_COLORS: Record<string, string> = {
-  involved_in: "#64748b",
-  member_of: "#f59e0b",
-  occurred_in: "#8b5cf6",
+  involved_in: "#5a657a",
+  member_of: "#fbbf24",
+  occurred_in: "#818cf8",
   used_vehicle: "#06b6d4",
-  gang_associate: "#f59e0b",
+  gang_associate: "#fbbf24",
 };
 
 const CRIME_TYPES = [
@@ -73,10 +73,10 @@ const CRIME_TYPES = [
 function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start gap-2 py-1.5">
-      <Icon className="size-4 mt-0.5 shrink-0 text-[#94a3b8]" />
+      <Icon className="size-4 mt-0.5 shrink-0 text-[#8b97b0]" />
       <div className="min-w-0">
-        <p className="text-[11px] uppercase tracking-wider text-[#64748b]">{label}</p>
-        <p className="text-sm text-[#e2e8f0] break-words">{value}</p>
+        <p className="text-[11px] uppercase tracking-wider text-[#5a657a]">{label}</p>
+        <p className="text-sm text-[#f1f5f9] break-words">{value}</p>
       </div>
     </div>
   );
@@ -90,18 +90,18 @@ function AccusedPanel({ node }: { node: SimNode }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <div className="w-9 h-9 rounded-full bg-red-500/20 flex items-center justify-center">
-          <User className="size-4 text-red-400" />
+        <div className="w-9 h-9 rounded-full bg-[#f87171]/20 flex items-center justify-center">
+          <User className="size-4 text-[#f87171]" />
         </div>
         <div>
           <h3 className="text-base font-semibold text-white leading-tight">{a.name}</h3>
-          <span className="text-[11px] text-[#64748b] uppercase">Accused &bull; {a.id}</span>
+          <span className="text-[11px] text-[#5a657a] uppercase">Accused &bull; {a.id}</span>
         </div>
       </div>
       <InfoRow icon={User} label="Age" value={`${a.age} years`} />
       <InfoRow icon={Users} label="Gender" value={a.gender} />
       <InfoRow icon={Shield} label="Risk Score" value={
-        <span className={a.risk > 80 ? "text-red-400 font-bold" : a.risk > 60 ? "text-orange-400 font-bold" : "text-green-400 font-bold"}>
+        <span className={a.risk > 80 ? "text-[#f87171] font-bold" : a.risk > 60 ? "text-[#fbbf24] font-bold" : "text-[#34d399] font-bold"}>
           {a.risk}/100
         </span>
       } />
@@ -109,10 +109,10 @@ function AccusedPanel({ node }: { node: SimNode }) {
       <InfoRow icon={FileText} label="Prior FIRs" value={String(a.prior_firs)} />
       {firs.length > 0 && (
         <div className="mt-2">
-          <p className="text-[11px] uppercase tracking-wider text-[#64748b] mb-1">Linked FIRs</p>
+          <p className="text-[11px] uppercase tracking-wider text-[#5a657a] mb-1">Linked FIRs</p>
           <div className="flex flex-wrap gap-1">
             {firs.map((f) => (
-              <span key={f.fir_id} className="px-1.5 py-0.5 bg-yellow-500/10 text-yellow-400 text-[11px] rounded">
+              <span key={f.fir_id} className="px-1.5 py-0.5 bg-[#fbbf24]/10 text-[#fbbf24] text-[11px] rounded">
                 {f.fir_id}
               </span>
             ))}
@@ -129,12 +129,12 @@ function GangPanel({ node }: { node: SimNode }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <div className="w-9 h-9 rounded-full bg-orange-500/20 flex items-center justify-center">
-          <Shield className="size-4 text-orange-400" />
+        <div className="w-9 h-9 rounded-full bg-[#fbbf24]/20 flex items-center justify-center">
+          <Shield className="size-4 text-[#fbbf24]" />
         </div>
         <div>
           <h3 className="text-base font-semibold text-white leading-tight">{g.name}</h3>
-          <span className="text-[11px] text-[#64748b] uppercase">Gang &bull; {g.id}</span>
+          <span className="text-[11px] text-[#5a657a] uppercase">Gang &bull; {g.id}</span>
         </div>
       </div>
       <InfoRow icon={Shield} label="Type" value={g.type} />
@@ -143,7 +143,7 @@ function GangPanel({ node }: { node: SimNode }) {
         <div className="space-y-0.5">
           {g.members.map((mid) => {
             const acc = crimeData?.accused.find((a) => a.id === mid);
-            return <div key={mid}>{acc ? acc.name : mid} <span className="text-[#64748b]">({mid})</span></div>;
+            return <div key={mid}>{acc ? acc.name : mid} <span className="text-[#5a657a]">({mid})</span></div>;
           })}
         </div>
       } />
@@ -156,19 +156,19 @@ function FIRPanel({ node }: { node: SimNode }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <div className="w-9 h-9 rounded-full bg-yellow-500/20 flex items-center justify-center">
-          <FileText className="size-4 text-yellow-400" />
+        <div className="w-9 h-9 rounded-full bg-[#fbbf24]/20 flex items-center justify-center">
+          <FileText className="size-4 text-[#fbbf24]" />
         </div>
         <div>
           <h3 className="text-base font-semibold text-white leading-tight">{f.fir_id}</h3>
-          <span className="text-[11px] text-[#64748b] uppercase">FIR &bull; {f.crime_type}</span>
+          <span className="text-[11px] text-[#5a657a] uppercase">FIR &bull; {f.crime_type}</span>
         </div>
       </div>
       <InfoRow icon={FileText} label="Date" value={`${f.date} ${f.time}`} />
       <InfoRow icon={MapPin} label="District" value={f.district} />
       <InfoRow icon={Shield} label="Severity" value={
         <span className={
-          f.severity === "critical" ? "text-red-400" : f.severity === "high" ? "text-orange-400" : "text-yellow-400"
+          f.severity === "critical" ? "text-[#f87171]" : f.severity === "high" ? "text-[#fbbf24]" : "text-[#fbbf24]"
         }>{f.severity.toUpperCase()}</span>
       } />
       <InfoRow icon={Shield} label="Status" value={f.investigation_status} />
@@ -185,12 +185,12 @@ function VehiclePanel({ node }: { node: SimNode }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <div className="w-9 h-9 rounded-full bg-cyan-500/20 flex items-center justify-center">
-          <Car className="size-4 text-cyan-400" />
+        <div className="w-9 h-9 rounded-full bg-[#22d3ee]/20 flex items-center justify-center">
+          <Car className="size-4 text-[#22d3ee]" />
         </div>
         <div>
           <h3 className="text-base font-semibold text-white leading-tight">{v.reg}</h3>
-          <span className="text-[11px] text-[#64748b] uppercase">Vehicle &bull; {v.id}</span>
+          <span className="text-[11px] text-[#5a657a] uppercase">Vehicle &bull; {v.id}</span>
         </div>
       </div>
       <InfoRow icon={Car} label="Type" value={v.type} />
@@ -205,17 +205,17 @@ function DistrictPanel({ node }: { node: SimNode }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <div className="w-9 h-9 rounded-full bg-purple-500/20 flex items-center justify-center">
-          <MapPin className="size-4 text-purple-400" />
+        <div className="w-9 h-9 rounded-full bg-[#818cf8]/20 flex items-center justify-center">
+          <MapPin className="size-4 text-[#818cf8]" />
         </div>
         <div>
           <h3 className="text-base font-semibold text-white leading-tight">{d.name}</h3>
-          <span className="text-[11px] text-[#64748b] uppercase">District</span>
+          <span className="text-[11px] text-[#5a657a] uppercase">District</span>
         </div>
       </div>
       <InfoRow icon={MapPin} label="Name" value={d.name} />
       <InfoRow icon={FileText} label="FIR Count" value={
-        <span className="font-bold text-purple-400">{node._firCount ?? 0}</span>
+        <span className="font-bold text-[#818cf8]">{node._firCount ?? 0}</span>
       } />
     </div>
   );
@@ -414,7 +414,7 @@ function GraphNodeMesh({
             fontSize: "10px",
             whiteSpace: "nowrap",
             pointerEvents: "none",
-            border: "1px solid #2a3550",
+            border: "1px solid rgba(255,255,255,0.08)",
             fontFamily: "Inter, system-ui, sans-serif",
           }}
         >
@@ -465,7 +465,7 @@ function GraphScene({
     <>
       <ambientLight intensity={0.6} />
       <pointLight position={[200, 200, 200]} intensity={1.2} />
-      <pointLight position={[-150, -100, -150]} intensity={0.4} color="#8b5cf6" />
+      <pointLight position={[-150, -100, -150]} intensity={0.4} color="#818cf8" />
 
       {/* Links */}
       {links.map((link, i) => (
@@ -559,7 +559,7 @@ function NetworkGraphInner() {
     for (const a of accused) {
       if (isFiltered && visibleAccusedIds && !visibleAccusedIds.has(a.id)) continue;
       nodeMap.set(a.id, {
-        id: a.id, name: a.name, type: "accused", color: "#ef4444",
+        id: a.id, name: a.name, type: "accused", color: "#f87171",
         size: a.risk / 10, x: 0, y: 0, z: 0, _accused: a,
       });
     }
@@ -567,7 +567,7 @@ function NetworkGraphInner() {
       if (isFiltered && visibleGangIds && !visibleGangIds.has(g.id)) continue;
       if (isFiltered && visibleAccusedIds && !visibleAccusedIds.has(g.id)) continue;
       nodeMap.set(g.id, {
-        id: g.id, name: g.name, type: "gang", color: "#f59e0b",
+        id: g.id, name: g.name, type: "gang", color: "#fbbf24",
         size: 6, x: 0, y: 0, z: 0, _gang: g,
       });
     }
@@ -590,7 +590,7 @@ function NetworkGraphInner() {
       const firCount = firs.filter((f) => (!visibleFirIds || visibleFirIds.has(f.fir_id)) && f.district === d.name).length;
       if (isFiltered && firCount === 0) continue;
       nodeMap.set(d.name, {
-        id: d.name, name: d.name, type: "district", color: "#8b5cf6",
+        id: d.name, name: d.name, type: "district", color: "#818cf8",
         size: 4, x: 0, y: 0, z: 0, _district: d, _firCount: firCount,
       });
     }
@@ -599,7 +599,7 @@ function NetworkGraphInner() {
     const nodeIds = new Set(nodeMap.keys());
     const filteredEdges = allEdges.filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target));
     const filteredLinks: SimLink[] = filteredEdges.map((e) => ({
-      source: e.source, target: e.target, type: e.type, color: LINK_COLORS[e.type] || "#64748b",
+      source: e.source, target: e.target, type: e.type, color: LINK_COLORS[e.type] || "#5a657a",
     }));
 
     return { nodes: Array.from(nodeMap.values()), links: filteredLinks };
@@ -632,62 +632,62 @@ function NetworkGraphInner() {
   return (
     <div className="flex flex-col h-full w-full">
       {/* Filter Controls (HTML overlay, NOT inside Canvas) */}
-      <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-[#0d1321] border-b border-[#1e293b] shrink-0">
+      <div className="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-[rgba(255,255,255,0.06)] shrink-0">
         <div className="flex items-center gap-2">
-          <label className="text-xs font-medium text-[#94a3b8] uppercase tracking-wider">Crime Type</label>
+          <label className="text-xs font-medium text-[#8b97b0] uppercase tracking-wider">Crime Type</label>
           <Select value={crimeTypeFilter} onValueChange={(v) => { setCrimeTypeFilter(v); setSelectedNode(null); }}>
-            <SelectTrigger className="w-48 bg-[#0a0f1e] border-[#1e293b] text-[#e2e8f0]">
+            <SelectTrigger className="w-48 bg-[rgba(10,15,28,0.6)] border-[rgba(255,255,255,0.06)] text-[#f1f5f9]">
               <SelectValue placeholder="Show All" />
             </SelectTrigger>
-            <SelectContent className="bg-[#0d1321] border-[#1e293b]">
-              <SelectItem value="all" className="text-[#e2e8f0]">Show All</SelectItem>
+            <SelectContent className="bg-[rgba(15,21,36,0.9)] border-[rgba(255,255,255,0.06)]">
+              <SelectItem value="all" className="text-[#f1f5f9]">Show All</SelectItem>
               {crimeTypes.map((ct) => (
-                <SelectItem key={ct} value={ct} className="text-[#e2e8f0]">{ct}</SelectItem>
+                <SelectItem key={ct} value={ct} className="text-[#f1f5f9]">{ct}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-xs font-medium text-[#94a3b8] uppercase tracking-wider">Gang</label>
+          <label className="text-xs font-medium text-[#8b97b0] uppercase tracking-wider">Gang</label>
           <Select value={gangFilter} onValueChange={(v) => { setGangFilter(v); setSelectedNode(null); }}>
-            <SelectTrigger className="w-56 bg-[#0a0f1e] border-[#1e293b] text-[#e2e8f0]">
+            <SelectTrigger className="w-56 bg-[rgba(10,15,28,0.6)] border-[rgba(255,255,255,0.06)] text-[#f1f5f9]">
               <SelectValue placeholder="All Gangs" />
             </SelectTrigger>
-            <SelectContent className="bg-[#0d1321] border-[#1e293b]">
-              <SelectItem value="all" className="text-[#e2e8f0]">All Gangs</SelectItem>
+            <SelectContent className="bg-[rgba(15,21,36,0.9)] border-[rgba(255,255,255,0.06)]">
+              <SelectItem value="all" className="text-[#f1f5f9]">All Gangs</SelectItem>
               {gangNames.map((gn) => (
-                <SelectItem key={gn} value={gn} className="text-[#e2e8f0]">{gn}</SelectItem>
+                <SelectItem key={gn} value={gn} className="text-[#f1f5f9]">{gn}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-        <Button variant="outline" size="sm" onClick={handleReset} className="border-[#334155] text-[#94a3b8] hover:bg-[#1e293b] hover:text-white bg-transparent">
+        <Button variant="outline" size="sm" onClick={handleReset} className="border-[#334155] text-[#8b97b0] hover:bg-[rgba(34,211,238,0.08)] hover:text-[#22d3ee] bg-transparent">
           Reset
         </Button>
         {/* Legend */}
         <div className="flex items-center gap-3 ml-auto">
           {[
-            { color: "#ef4444", label: "Accused" },
-            { color: "#f59e0b", label: "Gang" },
+            { color: "#f87171", label: "Accused" },
+            { color: "#fbbf24", label: "Gang" },
             { color: "#eab308", label: "FIR" },
             { color: "#06b6d4", label: "Vehicle" },
-            { color: "#8b5cf6", label: "District" },
+            { color: "#818cf8", label: "District" },
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-1">
               <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-              <span className="text-[11px] text-[#64748b] hidden sm:inline">{item.label}</span>
+              <span className="text-[11px] text-[#5a657a] hidden sm:inline">{item.label}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* 3D Canvas + Info Panel */}
-      <div className="flex-1 relative overflow-hidden" style={{ background: "#0a0f1e" }}>
+      <div className="flex-1 relative overflow-hidden" style={{ background: "rgba(10,15,28,0.6)" }}>
         {/* R3F Canvas */}
         {simReady && (
           <Canvas
             camera={{ position: [0, 0, 500], fov: 60 }}
-            style={{ background: "#0a0f1e" }}
+            style={{ background: "rgba(10,15,28,0.6)" }}
             onPointerMissed={() => setSelectedNode(null)}
           >
             <GraphScene
@@ -709,11 +709,11 @@ function NetworkGraphInner() {
         {/* Stats overlay */}
         {simReady && (
           <div className="absolute bottom-3 left-3 z-10">
-            <div className="px-3 py-1.5 bg-[#0a0f1e]/80 backdrop-blur-sm border border-[#1e293b] rounded-md">
-              <p className="text-[11px] text-[#64748b]">
-                <span className="text-[#94a3b8] font-medium">{simNodes.length}</span> nodes
+            <div className="px-3 py-1.5 bg-[rgba(10,15,28,0.6)]/80 backdrop-blur-sm border border-[rgba(255,255,255,0.06)] rounded-md">
+              <p className="text-[11px] text-[#5a657a]">
+                <span className="text-[#8b97b0] font-medium">{simNodes.length}</span> nodes
                 <span className="mx-1.5 text-[#334155]">&bull;</span>
-                <span className="text-[#94a3b8] font-medium">{links.length}</span> links
+                <span className="text-[#8b97b0] font-medium">{links.length}</span> links
               </p>
             </div>
           </div>
@@ -722,8 +722,8 @@ function NetworkGraphInner() {
         {/* Controls hint */}
         {simReady && (
           <div className="absolute bottom-3 right-3 z-10">
-            <div className="px-3 py-1.5 bg-[#0a0f1e]/80 backdrop-blur-sm border border-[#1e293b] rounded-md">
-              <p className="text-[10px] text-[#475569]">
+            <div className="px-3 py-1.5 bg-[rgba(10,15,28,0.6)]/80 backdrop-blur-sm border border-[rgba(255,255,255,0.06)] rounded-md">
+              <p className="text-[10px] text-[#3d4659]">
                 Left drag: rotate &bull; Scroll: zoom &bull; Right drag: pan
               </p>
             </div>
@@ -732,12 +732,12 @@ function NetworkGraphInner() {
 
         {/* Right Side Info Panel (HTML overlay, NOT inside Canvas) */}
         {selectedNode && (
-          <div className="absolute top-0 right-0 w-80 h-full bg-[#0d1321]/95 backdrop-blur-md border-l border-[#1e293b] z-10 flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e293b] shrink-0">
+          <div className="absolute top-0 right-0 w-80 h-full bg-[rgba(7,10,20,0.95)] backdrop-blur-md border-l border-[rgba(255,255,255,0.06)] z-10 flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(255,255,255,0.06)] shrink-0">
               <h2 className="text-sm font-semibold text-white uppercase tracking-wider">Node Details</h2>
               <button
                 onClick={() => setSelectedNode(null)}
-                className="w-7 h-7 rounded-md flex items-center justify-center text-[#64748b] hover:text-white hover:bg-[#1e293b] transition-colors"
+                className="w-7 h-7 rounded-md flex items-center justify-center text-[#5a657a] hover:text-white hover:bg-[rgba(34,211,238,0.08)] transition-colors"
               >
                 <X className="size-4" />
               </button>
@@ -749,12 +749,12 @@ function NetworkGraphInner() {
               {selectedNode.type === "vehicle" && <VehiclePanel node={selectedNode} />}
               {selectedNode.type === "district" && <DistrictPanel node={selectedNode} />}
             </div>
-            <div className="px-4 py-2 border-t border-[#1e293b] shrink-0">
+            <div className="px-4 py-2 border-t border-[rgba(255,255,255,0.06)] shrink-0">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedNode.color }} />
-                <span className="text-[11px] text-[#64748b] uppercase">{selectedNode.type}</span>
+                <span className="text-[11px] text-[#5a657a] uppercase">{selectedNode.type}</span>
                 <span className="text-[11px] text-[#334155]">&bull;</span>
-                <span className="text-[11px] text-[#475569] truncate">{selectedNode.id}</span>
+                <span className="text-[11px] text-[#3d4659] truncate">{selectedNode.id}</span>
               </div>
             </div>
           </div>

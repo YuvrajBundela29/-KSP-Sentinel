@@ -27,6 +27,9 @@ const ImportCenter = lazy(() => import("@/components/ksp/dm/ImportCenter"));
 const AuditLogs = lazy(() => import("@/components/ksp/dm/AuditLogs"));
 const AIProcessingQueue = lazy(() => import("@/components/ksp/dm/AIProcessingQueue"));
 const SettingsPage = lazy(() => import("@/components/ksp/dm/SettingsPage"));
+const SociologicalInsights = lazy(() => import("@/components/ksp/dm/SociologicalInsights"));
+const CrimeForecasting = lazy(() => import("@/components/ksp/dm/CrimeForecasting"));
+const FinancialNetworkView = lazy(() => import("@/components/ksp/dm/FinancialNetworkView"));
 
 export default function Home() {
   const user = useAppStore((s) => s.user);
@@ -137,17 +140,39 @@ export default function Home() {
             <SettingsPage />
           </Suspense>
         );
+      case "dm-sociological":
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <SociologicalInsights />
+          </Suspense>
+        );
+      case "dm-forecasting":
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <CrimeForecasting />
+          </Suspense>
+        );
+      case "dm-financial-network":
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <FinancialNetworkView />
+          </Suspense>
+        );
       default:
         return <DashboardHome />;
     }
   };
 
   return (
-    <div className="flex h-screen bg-[#0a0f1e] overflow-hidden">
+    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: "#050810" }}>
       <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <Header />
-        <main className="flex-1 overflow-auto relative">{renderContent()}</main>
+        <main className="flex-1 overflow-auto relative ambient-bg">
+          <div className="relative z-10">
+            {renderContent()}
+          </div>
+        </main>
       </div>
       <CommandPalette />
     </div>

@@ -14,11 +14,16 @@ import {
   ChevronUp,
   Link,
   Brain,
+  Sparkles,
+  Zap,
+  Lightbulb,
+  ArrowRight,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useAppStore } from "@/lib/store";
 import type { ChatMessage, FIR, ExplainableResponse } from "@/lib/types";
 import { searchFIRs } from "@/lib/data";
+import { motion, AnimatePresence } from "framer-motion";
 import jsPDF from "jspdf";
 
 const EXAMPLE_QUERIES = [
@@ -30,17 +35,17 @@ const EXAMPLE_QUERIES = [
 ];
 
 const SEVERITY_BORDER: Record<string, string> = {
-  critical: "#ef4444",
-  high: "#f97316",
-  medium: "#eab308",
-  low: "#22c55e",
+  critical: "#f87171",
+  high: "#fbbf24",
+  medium: "#fbbf24",
+  low: "#34d399",
 };
 
-const SEVERITY_BADGE: Record<string, string> = {
-  critical: "bg-red-500/20 text-red-400 border border-red-500/40",
-  high: "bg-orange-500/20 text-orange-400 border border-orange-500/40",
-  medium: "bg-yellow-500/20 text-yellow-400 border border-yellow-500/40",
-  low: "bg-green-500/20 text-green-400 border border-green-500/40",
+const SEVERITY_BADGE: Record<string, { bg: string; color: string; border: string }> = {
+  critical: { bg: "rgba(248,113,113,0.1)", color: "#f87171", border: "rgba(248,113,113,0.2)" },
+  high: { bg: "rgba(251,191,36,0.1)", color: "#fbbf24", border: "rgba(251,191,36,0.2)" },
+  medium: { bg: "rgba(251,191,36,0.1)", color: "#fbbf24", border: "rgba(251,191,36,0.2)" },
+  low: { bg: "rgba(52,211,153,0.1)", color: "#34d399", border: "rgba(52,211,153,0.2)" },
 };
 
 function extractFIRIds(text: string): string[] {
@@ -52,65 +57,137 @@ function fmtTime(d: Date): string {
   return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
 }
 
+/* ─── Explainable AI Panel ──────────────────────────────────────────── */
 function ExplainablePanel({ exp }: { exp: ExplainableResponse }) {
   const [open, setOpen] = useState(false);
-  const confColor = exp.confidenceScore >= 80 ? "#10b981" : exp.confidenceScore >= 60 ? "#f59e0b" : "#ef4444";
+  const confColor = exp.confidenceScore >= 80 ? "#34d399" : exp.confidenceScore >= 60 ? "#fbbf24" : "#f87171";
   return (
-    <div className="mt-1.5 rounded-lg overflow-hidden animate-fade-in" style={{ border: "1px solid rgba(42,53,80,0.6)", backgroundColor: "rgba(13,19,38,0.8)", backdropFilter: "blur(8px)" }}>
-      <button onClick={() => setOpen(!open)} className="w-full flex items-center gap-2 px-3 py-2 text-left cursor-pointer hover:bg-[#1a2035]/50 transition-colors">
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      className="mt-2 rounded-xl overflow-hidden"
+      style={{ border: "1px solid rgba(255,255,255,0.06)", backgroundColor: "rgba(15,21,36,0.6)", backdropFilter: "blur(12px)" }}
+    >
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left cursor-pointer transition-colors duration-200"
+        style={{ borderBottom: open ? "1px solid rgba(255,255,255,0.04)" : "none" }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+      >
         <Brain className="w-3.5 h-3.5 flex-shrink-0" style={{ color: confColor }} />
-        <span className="text-[11px] font-semibold" style={{ color: "#94a3b8" }}>EXPLAINABLE AI</span>
-        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: `${confColor}20`, color: confColor, border: `1px solid ${confColor}40` }}>
+        <span className="text-[11px] font-semibold tracking-wider uppercase" style={{ color: "#8b97b0" }}>Explainable AI</span>
+        <span
+          className="text-[10px] px-2 py-0.5 rounded-full font-bold"
+          style={{ backgroundColor: `${confColor}15`, color: confColor, border: `1px solid ${confColor}25` }}
+        >
           {exp.confidenceScore}% confidence
         </span>
         {exp.evidenceChain.length > 0 && (
-          <span className="text-[10px]" style={{ color: "#64748b" }}>
-            <Link className="w-3 h-3 inline mr-0.5" /> {exp.evidenceChain.length} source{exp.evidenceChain.length > 1 ? "s" : ""}
+          <span className="text-[10px] flex items-center gap-1" style={{ color: "#5a657a" }}>
+            <Link className="w-3 h-3" /> {exp.evidenceChain.length} source{exp.evidenceChain.length > 1 ? "s" : ""}
           </span>
         )}
-        {open ? <ChevronUp className="w-3 h-3 ml-auto" style={{ color: "#64748b" }} /> : <ChevronDown className="w-3 h-3 ml-auto" style={{ color: "#64748b" }} />}
+        <motion.div
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+          className="ml-auto"
+        >
+          <ChevronDown className="w-3.5 h-3.5" style={{ color: "#5a657a" }} />
+        </motion.div>
       </button>
-      {open && (
-        <div className="px-3 pb-3 space-y-2.5 animate-fade-in">
-          {exp.evidenceChain.length > 0 && (
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="px-4 py-3 space-y-3 overflow-hidden"
+          >
+            {exp.evidenceChain.length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "#5a657a" }}>Evidence Chain</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {exp.evidenceChain.map((e, i) => (
+                    <span
+                      key={i}
+                      className="text-[10px] px-2.5 py-1 rounded-lg font-mono"
+                      style={{ backgroundColor: "rgba(34,211,238,0.08)", color: "#22d3ee", border: "1px solid rgba(34,211,238,0.15)" }}
+                    >
+                      {e.firId}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "#64748b" }}>Evidence Chain</p>
-              <div className="flex flex-wrap gap-1.5">
-                {exp.evidenceChain.map((e, i) => (
-                  <span key={i} className="text-[10px] px-2 py-0.5 rounded-full font-mono" style={{ backgroundColor: "rgba(59,130,246,0.1)", color: "#3b82f6", border: "1px solid rgba(59,130,246,0.2)" }}>
-                    {e.firId}
-                  </span>
+              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "#5a657a" }}>Reasoning</p>
+              <p className="text-[12px] leading-relaxed" style={{ color: "#8b97b0" }}>{exp.reasoningSummary}</p>
+            </div>
+            {exp.evidenceChain.map((e, i) => (
+              <div key={i} className="flex items-start gap-2.5">
+                <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: "#22d3ee" }} />
+                <div>
+                  <span className="text-[11px] font-mono font-bold" style={{ color: "#f1f5f9" }}>{e.firId}</span>
+                  <span className="text-[11px] ml-2" style={{ color: "#8b97b0" }}>{e.relevance}</span>
+                </div>
+              </div>
+            ))}
+            {exp.alternativeExplanations && exp.alternativeExplanations.length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#fbbf24" }}>Alternative Explanations</p>
+                {exp.alternativeExplanations.map((alt, i) => (
+                  <p key={i} className="text-[11px] leading-relaxed pl-3" style={{ color: "#8b97b0", borderLeft: "2px solid rgba(251,191,36,0.2)" }}>
+                    {alt}
+                  </p>
                 ))}
               </div>
-            </div>
-          )}
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: "#64748b" }}>Reasoning</p>
-            <p className="text-[11px] leading-relaxed" style={{ color: "#94a3b8" }}>{exp.reasoningSummary}</p>
-          </div>
-          {exp.evidenceChain.map((e, i) => (
-            <div key={i} className="flex items-start gap-2">
-              <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: "#3b82f6" }} />
-              <div>
-                <span className="text-[10px] font-mono font-bold" style={{ color: "#e2e8f0" }}>{e.firId}</span>
-                <span className="text-[10px] ml-2" style={{ color: "#94a3b8" }}>{e.relevance}</span>
-              </div>
-            </div>
-          ))}
-          {exp.alternativeExplanations && exp.alternativeExplanations.length > 0 && (
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "#f59e0b" }}>Alternative Explanations</p>
-              {exp.alternativeExplanations.map((alt, i) => (
-                <p key={i} className="text-[10px] leading-relaxed" style={{ color: "#94a3b8" }}>&#8226; {alt}</p>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+/* ─── Typing Indicator ──────────────────────────────────────────────── */
+function TypingIndicator() {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="w-1.5 h-1.5 rounded-full typing-dot" style={{ backgroundColor: "#22d3ee" }} />
+      <span className="w-1.5 h-1.5 rounded-full typing-dot" style={{ backgroundColor: "#22d3ee", animationDelay: "0.15s" }} />
+      <span className="w-1.5 h-1.5 rounded-full typing-dot" style={{ backgroundColor: "#22d3ee", animationDelay: "0.3s" }} />
     </div>
   );
 }
 
+/* ─── Thinking State ─────────────────────────────────────────────────── */
+function ThinkingState() {
+  const steps = ["Parsing query semantics...", "Searching crime database...", "Cross-referencing FIRs...", "Generating response..."];
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    const iv = setInterval(() => {
+      setStep((s) => (s + 1) % steps.length);
+    }, 1200);
+    return () => clearInterval(iv);
+  }, [steps.length]);
+
+  return (
+    <div className="flex items-center gap-2.5 px-1">
+      <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.15)" }}>
+        <Sparkles className="w-3 h-3" style={{ color: "#22d3ee" }} />
+      </div>
+      <div>
+        <p className="text-[11px] font-medium" style={{ color: "#22d3ee" }}>{steps[step]}</p>
+        <TypingIndicator />
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main Chat View ─────────────────────────────────────────────────── */
 export default function ChatView() {
   const crimeData = useAppStore((s) => s.crimeData);
   const chatMessages = useAppStore((s) => s.chatMessages);
@@ -232,40 +309,95 @@ export default function ChatView() {
   }, [chatMessages, user]);
 
   return (
-    <div className="flex h-full w-full" style={{ backgroundColor: "#0a0f1e" }}>
+    <div className="flex h-full w-full">
       {/* Left Column — Chat */}
       <div className="flex flex-col h-full w-full lg:w-[60%]">
         {/* Chat Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "#2a3550", backgroundColor: "#0d1225" }}>
-          <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5" style={{ color: "#3b82f6" }} />
-            <span className="text-sm font-semibold tracking-wide" style={{ color: "#e2e8f0" }}>KSP Sentinel Chat</span>
+        <div
+          className="flex items-center justify-between px-5 h-12 flex-shrink-0"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, rgba(34,211,238,0.15), rgba(34,211,238,0.05))", border: "1px solid rgba(34,211,238,0.12)" }}>
+              <Shield className="w-3.5 h-3.5" style={{ color: "#22d3ee" }} />
+            </div>
+            <span className="text-[13px] font-semibold tracking-wide" style={{ color: "#f1f5f9" }}>AI Copilot</span>
+            <span className="text-[9px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider" style={{ background: "rgba(34,211,238,0.08)", color: "#22d3ee", border: "1px solid rgba(34,211,238,0.12)" }}>Live</span>
           </div>
           {chatMessages.length > 0 && (
-            <button onClick={() => clearChat()} className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg border transition-all cursor-pointer hover:border-red-500 hover:text-red-400 hover:bg-red-500/10" style={{ borderColor: "#2a3550", backgroundColor: "#1a2035", color: "#94a3b8" }}>
-              <Trash2 className="w-3 h-3" /> Clear Chat
-            </button>
+            <motion.button
+              onClick={() => clearChat()}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] rounded-lg cursor-pointer transition-all duration-200"
+              style={{ color: "#5a657a", border: "1px solid rgba(255,255,255,0.06)" }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(248,113,113,0.06)"; e.currentTarget.style.color = "#f87171"; e.currentTarget.style.borderColor = "rgba(248,113,113,0.15)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#5a657a"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; }}
+            >
+              <Trash2 className="w-3 h-3" /> Clear
+            </motion.button>
           )}
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
           {/* Welcome Screen */}
           {chatMessages.length === 0 && !chatLoading && (
-            <div className="flex flex-col items-center justify-center h-full text-center gap-6">
-              <div className="flex items-center justify-center w-20 h-20 rounded-2xl" style={{ background: "linear-gradient(135deg, rgba(59,130,246,0.13), rgba(59,130,246,0.06))", border: "1px solid rgba(59,130,246,0.19)" }}>
-                <Shield className="w-10 h-10" style={{ color: "#3b82f6" }} />
+            <div className="flex flex-col items-center justify-center h-full text-center gap-8 animate-fade-in">
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.5 }}
+                className="relative"
+              >
+                <div className="w-20 h-20 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, rgba(34,211,238,0.12), rgba(129,140,248,0.08))", border: "1px solid rgba(34,211,238,0.15)" }}>
+                  <Shield className="w-9 h-9" style={{ color: "#22d3ee" }} />
+                </div>
+                <div className="absolute -inset-4 rounded-3xl animate-pulse-glow" style={{ background: "radial-gradient(circle, rgba(34,211,238,0.06) 0%, transparent 70%)" }} />
+              </motion.div>
+
+              <div className="space-y-2">
+                <h2 className="text-xl font-bold" style={{ color: "#f1f5f9" }}>KSP AI Copilot</h2>
+                <p className="text-sm max-w-sm mx-auto leading-relaxed" style={{ color: "#8b97b0" }}>
+                  Ask about crimes, patterns, gang connections, or specific FIRs. Intelligence analysis powered by pattern recognition.
+                </p>
               </div>
-              <div>
-                <p className="text-xl font-bold" style={{ color: "#e2e8f0" }}>KSP AI Copilot</p>
-                <p className="text-sm mt-2 max-w-sm" style={{ color: "#94a3b8" }}>Ask me about crimes, patterns, gang connections, or specific FIRs</p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full max-w-xl px-4">
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-lg px-4">
                 {EXAMPLE_QUERIES.map((q, i) => (
-                  <button key={i} onClick={() => { setInput(q); inputRef.current?.focus(); }}
-                    className="text-left p-3 rounded-xl border transition-all cursor-pointer hover:border-blue-500 hover:text-white hover:bg-[#1a2035] hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)]"
-                    style={{ backgroundColor: "rgba(26,32,53,0.5)", borderColor: "#2a3550", color: "#94a3b8", fontSize: "0.75rem", lineHeight: "1.4" }}>
-                    {q}
+                  <motion.button
+                    key={i}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 + i * 0.05, duration: 0.3 }}
+                    whileHover={{ y: -2, transition: { duration: 0.15 } }}
+                    onClick={() => { setInput(q); inputRef.current?.focus(); }}
+                    className="text-left p-3.5 rounded-xl cursor-pointer transition-all duration-200 group"
+                    style={{ backgroundColor: "rgba(15,21,36,0.45)", border: "1px solid rgba(255,255,255,0.06)" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(34,211,238,0.15)"; e.currentTarget.style.background = "rgba(15,21,36,0.6)"; e.currentTarget.style.boxShadow = "0 8px 32px rgba(34,211,238,0.04)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; e.currentTarget.style.background = "rgba(15,21,36,0.45)"; e.currentTarget.style.boxShadow = "none"; }}
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <Lightbulb className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 transition-colors duration-200" style={{ color: "#3d4659" }} />
+                      <span className="text-[12px] leading-relaxed" style={{ color: "#8b97b0" }}>{q}</span>
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
+
+              {/* Quick actions */}
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase tracking-wider" style={{ color: "#3d4659" }}>Try:</span>
+                {["High risk analysis", "Gang mapping", "Crime trends"].map((chip) => (
+                  <button
+                    key={chip}
+                    onClick={() => { setInput(chip); inputRef.current?.focus(); }}
+                    className="text-[10px] px-2.5 py-1 rounded-full cursor-pointer transition-all duration-200"
+                    style={{ color: "#5a657a", border: "1px solid rgba(255,255,255,0.06)" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = "#22d3ee"; e.currentTarget.style.borderColor = "rgba(34,211,238,0.2)"; e.currentTarget.style.background = "rgba(34,211,238,0.06)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = "#5a657a"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; e.currentTarget.style.background = "transparent"; }}
+                  >
+                    {chip}
                   </button>
                 ))}
               </div>
@@ -273,121 +405,203 @@ export default function ChatView() {
           )}
 
           {/* Chat Bubbles */}
-          {chatMessages.map((msg, idx) => (
-            <div key={idx} className={`flex gap-2.5 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-              {msg.role === "assistant" && (
-                <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-1" style={{ background: "linear-gradient(135deg, #3b82f6, #2563eb)", boxShadow: "0 0 12px rgba(59,130,246,0.3)" }}>
-                  <Shield className="w-3.5 h-3.5 text-white" />
-                </div>
-              )}
-              <div className="flex flex-col max-w-[80%]">
-                <div
-                  className="px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap"
-                  style={msg.role === "user"
-                    ? { background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "#fff", borderRadius: "1rem 1rem 0.25rem 1rem", boxShadow: "0 4px 16px rgba(37,99,235,0.3)" }
-                    : { backgroundColor: "rgba(26,32,53,0.7)", backdropFilter: "blur(12px)", border: "1px solid #2a3550", color: "#e2e8f0", borderRadius: "1rem 1rem 1rem 0.25rem" }}
-                >
-                  {msg.content}
-                </div>
-                {msg.role === "assistant" && msg.explainable && (
-                  <ExplainablePanel exp={msg.explainable} />
+          <AnimatePresence>
+            {chatMessages.map((msg, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+              >
+                {msg.role === "assistant" && (
+                  <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-1" style={{ background: "linear-gradient(135deg, rgba(34,211,238,0.15), rgba(129,140,248,0.1))", border: "1px solid rgba(34,211,238,0.15)" }}>
+                    <Shield className="w-3.5 h-3.5" style={{ color: "#22d3ee" }} />
+                  </div>
                 )}
-                <span className="text-[10px] mt-1 px-1" style={{ color: "#64748b" }}>{fmtTime(new Date())}</span>
-              </div>
-              {msg.role === "user" && (
-                <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-1" style={{ background: "linear-gradient(135deg, #334155, #1e293b)", border: "1px solid #475569" }}>
-                  <User className="w-3.5 h-3.5" style={{ color: "#94a3b8" }} />
+                <div className="flex flex-col max-w-[80%]">
+                  <div
+                    className="px-4 py-3 text-[13px] leading-relaxed whitespace-pre-wrap"
+                    style={msg.role === "user"
+                      ? { background: "linear-gradient(135deg, rgba(34,211,238,0.12), rgba(34,211,238,0.06))", color: "#f1f5f9", borderRadius: "16px 16px 4px 16px", border: "1px solid rgba(34,211,238,0.15)" }
+                      : { backgroundColor: "rgba(15,21,36,0.45)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.06)", color: "#e8edf5", borderRadius: "16px 16px 16px 4px" }
+                  }
+                  >
+                    {msg.content}
+                  </div>
+                  {msg.role === "assistant" && msg.explainable && (
+                    <ExplainablePanel exp={msg.explainable} />
+                  )}
+                  {msg.role === "assistant" && idx === chatMessages.length - 1 && (
+                    <div className="flex items-center gap-1.5 mt-1.5 ml-1">
+                      <Zap className="w-3 h-3" style={{ color: "#3d4659" }} />
+                      <span className="text-[10px]" style={{ color: "#3d4659" }}>AI Generated — Verify with sources</span>
+                    </div>
+                  )}
+                  <span className="text-[10px] mt-1.5 px-1" style={{ color: "#3d4659" }}>{fmtTime(new Date())}</span>
                 </div>
-              )}
-            </div>
-          ))}
+                {msg.role === "user" && (
+                  <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-1" style={{ background: "rgba(129,140,248,0.1)", border: "1px solid rgba(129,140,248,0.15)" }}>
+                    <User className="w-3.5 h-3.5" style={{ color: "#818cf8" }} />
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </AnimatePresence>
 
-          {/* Loading Indicator */}
-          {chatLoading && (
-            <div className="flex gap-2.5 justify-start">
-              <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-1" style={{ background: "linear-gradient(135deg, #3b82f6, #2563eb)", boxShadow: "0 0 12px rgba(59,130,246,0.3)" }}>
-                <Shield className="w-3.5 h-3.5 text-white" />
-              </div>
-              <div className="px-4 py-3 rounded-2xl flex items-center gap-2" style={{ backgroundColor: "rgba(26,32,53,0.7)", backdropFilter: "blur(12px)", border: "1px solid #2a3550" }}>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: "#3b82f6" }} />
-                <span className="text-xs" style={{ color: "#94a3b8" }}>Analyzing intelligence data</span>
-                <div className="flex gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: "#3b82f6", animationDelay: "0ms" }} />
-                  <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: "#3b82f6", animationDelay: "150ms" }} />
-                  <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: "#3b82f6", animationDelay: "300ms" }} />
+          {/* Loading / Thinking State */}
+          <AnimatePresence>
+            {chatLoading && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="flex gap-3 justify-start"
+              >
+                <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-1" style={{ background: "linear-gradient(135deg, rgba(34,211,238,0.15), rgba(129,140,248,0.1))", border: "1px solid rgba(34,211,238,0.15)" }}>
+                  <Shield className="w-3.5 h-3.5" style={{ color: "#22d3ee" }} />
                 </div>
-              </div>
-            </div>
-          )}
+                <div className="px-4 py-3.5 rounded-2xl" style={{ backgroundColor: "rgba(15,21,36,0.45)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                  <ThinkingState />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
           <div ref={endRef} />
         </div>
 
         {/* Input Area */}
-        <div className="flex items-center gap-2 px-4 py-3 border-t" style={{ borderColor: "#2a3550", backgroundColor: "#0d1225" }}>
-          <Input ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown}
-            placeholder={voiceLang === "en" ? "Ask about crimes, FIRs, gangs..." : "ಅಪರಾಧ, FIR, ಗ್ಯಾಂಗ್ ಬಗ್ಗೆ ಕೇಳಿ..."}
-            disabled={chatLoading}
-            className="flex-1 text-sm h-12 rounded-2xl"
-            style={{ backgroundColor: "#1a2035", border: "1px solid #2a3550", color: "#e2e8f0" }}
-          />
-          <button onClick={handleSend} disabled={chatLoading || !input.trim()}
-            className="flex items-center justify-center w-10 h-10 rounded-xl transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-700"
-            style={{ backgroundColor: "#3b82f6" }}>
-            <Send className="w-4 h-4 text-white" />
-          </button>
-          <button onClick={toggleVoice}
-            className="flex items-center justify-center w-10 h-10 rounded-xl border transition-all cursor-pointer relative"
-            style={{ borderColor: isListening ? "#ef4444" : "#2a3550", backgroundColor: isListening ? "rgba(239,68,68,0.13)" : "#1a2035" }}>
-            {isListening && <span className="absolute inset-0 rounded-xl animate-ping" style={{ backgroundColor: "rgba(239,68,68,0.15)", animationDuration: "1s" }} />}
-            {isListening ? <Mic className="w-4 h-4" style={{ color: "#ef4444" }} /> : <MicOff className="w-4 h-4" style={{ color: "#94a3b8" }} />}
-          </button>
-          <button onClick={() => setVoiceLang((v) => v === "en" ? "kn" : "en")}
-            className="flex items-center justify-center w-10 h-10 rounded-xl border transition-colors cursor-pointer"
-            style={{ borderColor: voiceLang === "kn" ? "#3b82f6" : "#2a3550", backgroundColor: voiceLang === "kn" ? "rgba(59,130,246,0.13)" : "#1a2035", color: voiceLang === "kn" ? "#3b82f6" : "#94a3b8" }}>
-            <span className="text-xs font-bold">{voiceLang.toUpperCase()}</span>
-          </button>
-          <button onClick={exportPDF} disabled={chatMessages.length === 0}
-            className="flex items-center gap-1.5 px-3 h-10 rounded-xl border transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed hover:border-blue-500"
-            style={{ borderColor: "#2a3550", backgroundColor: "#1a2035" }}>
-            <FileText className="w-3.5 h-3.5" style={{ color: "#94a3b8" }} />
-            <span className="text-xs hidden sm:inline" style={{ color: "#94a3b8" }}>PDF</span>
-          </button>
+        <div
+          className="flex items-center gap-2 px-5 py-3 flex-shrink-0"
+          style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}
+        >
+          <div className="flex-1 relative">
+            <Input
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={voiceLang === "en" ? "Ask about crimes, FIRs, gangs..." : "ಅಪರಾಧ, FIR, ಗ್ಯಾಂಗ್ ಬಗ್ಗೆ ಕೇಳಿ..."}
+              disabled={chatLoading}
+              className="h-11 rounded-xl text-[13px]"
+              style={{ backgroundColor: "rgba(10,15,28,0.6)", border: "1px solid rgba(255,255,255,0.06)", color: "#f1f5f9" }}
+            />
+          </div>
+          <motion.button
+            onClick={handleSend}
+            disabled={chatLoading || !input.trim()}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            className="flex items-center justify-center w-11 h-11 rounded-xl cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200"
+            style={{ background: "linear-gradient(135deg, #22d3ee, #06b6d4)", color: "#050810", boxShadow: (!chatLoading && input.trim()) ? "0 0 20px rgba(34,211,238,0.15)" : "none" }}
+          >
+            <Send className="w-4 h-4" />
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            onClick={toggleVoice}
+            className="flex items-center justify-center w-11 h-11 rounded-xl cursor-pointer transition-all duration-200 relative"
+            style={{ border: isListening ? "1px solid rgba(248,113,113,0.3)" : "1px solid rgba(255,255,255,0.06)", backgroundColor: isListening ? "rgba(248,113,113,0.08)" : "rgba(15,21,36,0.45)" }}
+          >
+            {isListening && <span className="absolute inset-0 rounded-xl animate-ping" style={{ backgroundColor: "rgba(248,113,113,0.1)", animationDuration: "1.5s" }} />}
+            {isListening ? <Mic className="w-4 h-4" style={{ color: "#f87171" }} /> : <MicOff className="w-4 h-4" style={{ color: "#5a657a" }} />}
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            onClick={() => setVoiceLang((v) => v === "en" ? "kn" : "en")}
+            className="flex items-center justify-center w-11 h-11 rounded-xl cursor-pointer transition-all duration-200"
+            style={{ border: voiceLang === "kn" ? "1px solid rgba(34,211,238,0.2)" : "1px solid rgba(255,255,255,0.06)", backgroundColor: voiceLang === "kn" ? "rgba(34,211,238,0.06)" : "rgba(15,21,36,0.45)", color: voiceLang === "kn" ? "#22d3ee" : "#5a657a" }}
+          >
+            <span className="text-[10px] font-bold">{voiceLang.toUpperCase()}</span>
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            onClick={exportPDF}
+            disabled={chatMessages.length === 0}
+            className="flex items-center justify-center w-11 h-11 rounded-xl cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed transition-all duration-200"
+            style={{ border: "1px solid rgba(255,255,255,0.06)", backgroundColor: "rgba(15,21,36,0.45)" }}
+            onMouseEnter={(e) => { if (chatMessages.length > 0) { e.currentTarget.style.borderColor = "rgba(34,211,238,0.15)"; e.currentTarget.style.background = "rgba(34,211,238,0.06)"; }}}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; e.currentTarget.style.background = "rgba(15,21,36,0.45)"; }}
+          >
+            <FileText className="w-4 h-4" style={{ color: chatMessages.length > 0 ? "#8b97b0" : "#3d4659" }} />
+          </motion.button>
         </div>
       </div>
 
       {/* Right Column — Evidence Panel */}
-      <div className="hidden lg:flex flex-col h-full w-[40%] border-l" style={{ borderColor: "#2a3550", backgroundColor: "#0d1225" }}>
-        <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: "#2a3550", backgroundColor: "rgba(26,32,53,0.6)", backdropFilter: "blur(12px)" }}>
-          <FileText className="w-4 h-4" style={{ color: "#3b82f6" }} />
-          <span className="text-sm font-semibold tracking-wide uppercase" style={{ color: "#e2e8f0" }}>Evidence Panel</span>
+      <div
+        className="hidden lg:flex flex-col h-full w-[40%] flex-shrink-0"
+        style={{ borderLeft: "1px solid rgba(255,255,255,0.04)" }}
+      >
+        <div
+          className="flex items-center gap-2.5 px-5 h-12 flex-shrink-0"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
+        >
+          <FileText className="w-4 h-4" style={{ color: "#818cf8" }} />
+          <span className="text-[13px] font-semibold tracking-wide" style={{ color: "#f1f5f9" }}>Evidence Panel</span>
           {extractedFIRs.length > 0 && (
-            <span className="ml-auto text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: "rgba(59,130,246,0.13)", color: "#3b82f6", border: "1px solid rgba(59,130,246,0.25)" }}>
+            <motion.span
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="ml-auto text-[10px] px-2.5 py-0.5 rounded-full font-semibold"
+              style={{ backgroundColor: "rgba(129,140,248,0.08)", color: "#818cf8", border: "1px solid rgba(129,140,248,0.12)" }}
+            >
               {extractedFIRs.length} FIR{extractedFIRs.length > 1 ? "s" : ""} linked
-            </span>
+            </motion.span>
           )}
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {extractedFIRs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center gap-3 opacity-50">
-              <Shield className="w-10 h-10" style={{ color: "#94a3b8" }} />
-              <p className="text-sm" style={{ color: "#94a3b8" }}>FIR references will appear here...</p>
-              <p className="text-xs" style={{ color: "#64748b" }}>Ask a question to see linked FIR evidence</p>
+            <div className="flex flex-col items-center justify-center h-full text-center gap-3">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" }}>
+                <Shield className="w-5 h-5" style={{ color: "#3d4659" }} />
+              </div>
+              <div>
+                <p className="text-[13px] font-medium" style={{ color: "#3d4659" }}>No evidence linked</p>
+                <p className="text-[11px] mt-1" style={{ color: "#3d4659" }}>FIR references will appear here when you ask a question</p>
+              </div>
             </div>
           ) : (
-            extractedFIRs.map((fir) => (
-              <div key={fir.fir_id}
-                className="p-4 rounded-xl border transition-all duration-200 cursor-default hover:shadow-[0_4px_16px_rgba(59,130,246,0.08)] hover:translate-x-0.5"
-                style={{ backgroundColor: "#1a2035", borderColor: "#2a3550", borderLeftWidth: "3px", borderLeftColor: SEVERITY_BORDER[fir.severity] || "#eab308" }}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-mono font-bold" style={{ color: "#e2e8f0" }}>{fir.fir_id}</span>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase ${SEVERITY_BADGE[fir.severity] || ""}`}>{fir.severity}</span>
-                </div>
-                <p className="text-xs mb-1" style={{ color: "#94a3b8" }}>&#128197; {fir.date} {fir.time}</p>
-                <p className="text-xs mb-1" style={{ color: "#e2e8f0" }}><span style={{ color: "#94a3b8" }}>Crime:</span> {fir.crime_type}</p>
-                <p className="text-xs mb-1" style={{ color: "#e2e8f0" }}><span style={{ color: "#94a3b8" }}>District:</span> {fir.district}</p>
-                <p className="text-xs" style={{ color: "#e2e8f0" }}><span style={{ color: "#94a3b8" }}>IPC:</span> {fir.ipc_section}</p>
-              </div>
-            ))
+            extractedFIRs.map((fir, idx) => {
+              const sev = SEVERITY_BADGE[fir.severity] || SEVERITY_BADGE.low;
+              return (
+                <motion.div
+                  key={fir.fir_id}
+                  initial={{ opacity: 0, x: 8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.05, duration: 0.2 }}
+                  className="p-4 rounded-xl cursor-default transition-all duration-200 group"
+                  style={{
+                    backgroundColor: "rgba(15,21,36,0.45)",
+                    border: "1px solid rgba(255,255,255,0.06)",
+                    borderLeft: `3px solid ${SEVERITY_BORDER[fir.severity] || "#fbbf24"}`,
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(15,21,36,0.6)"; e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.2)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(15,21,36,0.45)"; e.currentTarget.style.boxShadow = "none"; }}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[12px] font-mono font-bold" style={{ color: "#f1f5f9" }}>{fir.fir_id}</span>
+                    <span
+                      className="text-[9px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider"
+                      style={{ backgroundColor: sev.bg, color: sev.color, border: `1px solid ${sev.border}` }}
+                    >
+                      {fir.severity}
+                    </span>
+                  </div>
+                  <p className="text-[11px] mb-1.5" style={{ color: "#5a657a" }}>{fir.date} {fir.time}</p>
+                  <p className="text-[12px] mb-1" style={{ color: "#e8edf5" }}>
+                    <span style={{ color: "#5a657a" }}>Crime: </span>{fir.crime_type}
+                  </p>
+                  <p className="text-[12px] mb-1" style={{ color: "#e8edf5" }}>
+                    <span style={{ color: "#5a657a" }}>District: </span>{fir.district}
+                  </p>
+                  <p className="text-[11px]" style={{ color: "#5a657a" }}>IPC: {fir.ipc_section}</p>
+                </motion.div>
+              );
+            })
           )}
         </div>
       </div>

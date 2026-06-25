@@ -1,6 +1,7 @@
 "use client";
 
 import { useAppStore } from "@/lib/store";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
   Bot,
@@ -23,9 +24,14 @@ import {
   Cpu,
   Settings,
   X,
+  BarChart3,
+  TrendingUp,
+  GitBranch,
+  Command,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, memo } from "react";
 import type { ViewType } from "@/lib/types";
+import { canAccessView } from "@/lib/permissions";
 
 const LABELS: Record<string, Record<string, string>> = {
   en: {
@@ -35,7 +41,7 @@ const LABELS: Record<string, Record<string, string>> = {
     map: "Crime Map",
     timeline: "Timeline",
     report: "Reports",
-    logout: "Logout",
+    logout: "Sign Out",
     dataMgmt: "Data Management",
     dmDashboard: "Dashboard",
     dmFir: "FIR Management",
@@ -48,6 +54,9 @@ const LABELS: Record<string, Record<string, string>> = {
     dmAudit: "Audit Logs",
     dmAiQueue: "AI Processing",
     dmSettings: "Settings",
+    dmSociological: "Sociological",
+    dmForecasting: "Forecasting",
+    dmFinancialNetwork: "Financial Network",
   },
   kn: {
     dashboard: "ಮಿಷನ್ ಕಂಟ್ರೋಲ್",
@@ -69,6 +78,9 @@ const LABELS: Record<string, Record<string, string>> = {
     dmAudit: "ಆಡಿಟ್ ಲಾಗ್‌ಗಳು",
     dmAiQueue: "AI ಪ್ರಕ್ರಿಯೆ",
     dmSettings: "ಸೆಟ್ಟಿಂಗ್‌ಗಳು",
+    dmSociological: "ಸಾಮಾಜಿಕ",
+    dmForecasting: "ಮುನ್ಸೂಚನೆ",
+    dmFinancialNetwork: "ಹಣಕಾಸು ನೆಟ್‌ವರ್ಕ್",
   },
 };
 
@@ -93,7 +105,88 @@ const DM_ITEMS = [
   { key: "dmAudit", icon: ScrollText, view: "dm-audit" as ViewType },
   { key: "dmAiQueue", icon: Cpu, view: "dm-ai-queue" as ViewType },
   { key: "dmSettings", icon: Settings, view: "dm-settings" as ViewType },
+  { key: "dmSociological", icon: BarChart3, view: "dm-sociological" as ViewType },
+  { key: "dmForecasting", icon: TrendingUp, view: "dm-forecasting" as ViewType },
+  { key: "dmFinancialNetwork", icon: GitBranch, view: "dm-financial-network" as ViewType },
 ];
+
+/* ── Sidebar Nav Item ──────────────────────────────────────────────── */
+const NavItem = memo(function NavItem({
+  item,
+  isActive,
+  labels,
+  collapsed,
+  isDM,
+  onClick,
+}: {
+  item: { key: string; icon: React.ElementType; view: ViewType };
+  isActive: boolean;
+  labels: Record<string, string>;
+  collapsed: boolean;
+  isDM: boolean;
+  onClick: () => void;
+}) {
+  const Icon = item.icon;
+  const accentColor = isDM ? "#818cf8" : "#22d3ee";
+  const glowColor = isDM ? "rgba(129,140,248,0.08)" : "rgba(34,211,238,0.08)";
+
+  return (
+    <motion.button
+      onClick={onClick}
+      whileHover={{ x: collapsed ? 0 : 2 }}
+      transition={{ duration: 0.15 }}
+      title={collapsed ? labels[item.key] : undefined}
+      className="w-full group relative flex items-center gap-3 rounded-lg text-[13px] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/30"
+      style={{
+        padding: collapsed ? "10px" : "9px 12px",
+        justifyContent: collapsed ? "center" : "flex-start",
+        color: isActive ? accentColor : "#8b97b0",
+        background: isActive ? glowColor : "transparent",
+      }}
+      onMouseEnter={(e) => {
+        if (!isActive) {
+          e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+          e.currentTarget.style.color = "#c8d0e0";
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!isActive) {
+          e.currentTarget.style.background = "transparent";
+          e.currentTarget.style.color = "#8b97b0";
+        }
+      }}
+    >
+      {/* Active indicator */}
+      {isActive && (
+        <motion.div
+          layoutId={isDM ? "dm-active" : "nav-active"}
+          className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[60%] rounded-r-full"
+          style={{ backgroundColor: accentColor, boxShadow: `0 0 12px ${accentColor}60` }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        />
+      )}
+
+      {/* Hover glow */}
+      {!isActive && (
+        <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+          style={{ boxShadow: `inset 0 0 24px ${glowColor}` }}
+        />
+      )}
+
+      <Icon className="w-[18px] h-[18px] flex-shrink-0 transition-colors duration-200" />
+      {!collapsed && (
+        <motion.span
+          initial={false}
+          animate={{ opacity: collapsed ? 0 : 1 }}
+          className="truncate font-medium"
+          style={{ fontSize: "13px" }}
+        >
+          {labels[item.key]}
+        </motion.span>
+      )}
+    </motion.button>
+  );
+});
 
 export default function Sidebar() {
   const user = useAppStore((s) => s.user);
@@ -105,133 +198,176 @@ export default function Sidebar() {
   const sidebarCollapsed = useAppStore((s) => s.sidebarCollapsed);
   const setSidebarCollapsed = useAppStore((s) => s.setSidebarCollapsed);
   const notifications = useAppStore((s) => s.notifications);
-  const [dmOpen, setDmOpen] = useState(true);
+  const [dmOpen, setDmOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const labels = LABELS[lang];
-
-  const isDMView = currentView.startsWith("dm-");
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const handleNav = (view: ViewType) => {
+    setView(view);
+    setMobileOpen(false);
+  };
 
   const navContent = (
     <>
       {/* Logo */}
-      <div className="p-4 border-b border-[#2a3550] flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Shield className="w-6 h-6 text-blue-500 flex-shrink-0" />
-          {!sidebarCollapsed && (
-            <span className="text-blue-500 font-bold text-sm tracking-wide">
-              KSP SENTINEL
-            </span>
-          )}
+      <div className="flex items-center justify-between px-4 h-14" style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+        <div className="flex items-center gap-2.5 overflow-hidden">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "linear-gradient(135deg, rgba(34,211,238,0.15), rgba(34,211,238,0.05))", border: "1px solid rgba(34,211,238,0.12)" }}>
+            <Shield className="w-4 h-4" style={{ color: "#22d3ee" }} />
+          </div>
+          <AnimatePresence>
+            {!sidebarCollapsed && (
+              <motion.div
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: "auto" }}
+                exit={{ opacity: 0, width: 0 }}
+                className="overflow-hidden whitespace-nowrap"
+              >
+                <span className="text-xs font-bold tracking-[0.12em] uppercase" style={{ color: "#22d3ee" }}>
+                  Sentinel
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
         <button
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className="hidden lg:flex items-center justify-center w-6 h-6 rounded hover:bg-[#1a2035] text-[#4a5568] hover:text-[#94a3b8] transition-colors"
+          className="hidden lg:flex items-center justify-center w-6 h-6 rounded-md transition-colors cursor-pointer"
+          style={{ color: "#3d4659" }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = "#8b97b0"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#3d4659"; }}
         >
-          {sidebarCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronDown className="w-3 h-3 rotate-[-90deg]" />}
+          <motion.div animate={{ rotate: sidebarCollapsed ? 0 : -90 }} transition={{ duration: 0.2 }}>
+            <ChevronDown className="w-3.5 h-3.5" />
+          </motion.div>
         </button>
-        <button onClick={() => setMobileOpen(false)} className="lg:hidden text-[#4a5568]">
+        <button
+          onClick={() => setMobileOpen(false)}
+          className="lg:hidden flex items-center justify-center w-6 h-6 rounded-md cursor-pointer"
+          style={{ color: "#3d4659" }}
+        >
           <X className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Main Navigation */}
-      <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
+        {/* Intelligence Section */}
         {!sidebarCollapsed && (
-          <p className="text-[10px] uppercase tracking-widest text-[#4a5568] px-3 py-1 font-semibold">
-            {lang === "en" ? "Intelligence" : "ಗುಪ್ತಚರ"}
+          <p className="text-[10px] uppercase tracking-[0.1em] font-semibold px-2.5 py-2" style={{ color: "#3d4659" }}>
+            Intelligence
           </p>
         )}
         {NAV_ITEMS.map((item) => {
           const isActive = currentView === item.view;
+          const accessible = canAccessView(user?.role || "demo_user", item.view);
+          if (!accessible) return null;
           return (
-            <button
+            <NavItem
               key={item.key}
-              onClick={() => {
-                setView(item.view);
-                setMobileOpen(false);
-              }}
-              title={sidebarCollapsed ? labels[item.key] : undefined}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 group ${
-                isActive
-                  ? "bg-blue-600/20 text-blue-400 border border-blue-500/30 shadow-lg shadow-blue-500/5"
-                  : "text-[#94a3b8] hover:bg-[#1a2035] hover:text-[#e2e8f0]"
-              }`}
-            >
-              <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? "text-blue-400" : "text-[#64748b] group-hover:text-[#94a3b8]"}`} />
-              {!sidebarCollapsed && <span>{labels[item.key]}</span>}
-            </button>
+              item={item}
+              isActive={isActive}
+              labels={labels}
+              collapsed={sidebarCollapsed}
+              isDM={false}
+              onClick={() => handleNav(item.view)}
+            />
           );
         })}
 
         {/* Separator */}
-        <div className="pt-2 pb-1">
-          <div className="border-t border-[#2a3550]/50" />
-        </div>
+        <div className="my-3" style={{ height: "1px", background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)" }} />
 
         {/* Data Management Section */}
         {!sidebarCollapsed && (
           <button
             onClick={() => setDmOpen(!dmOpen)}
-            className="w-full flex items-center gap-3 px-3 py-1.5 text-[10px] uppercase tracking-widest text-[#4a5568] font-semibold hover:text-[#94a3b8] transition-colors"
+            className="w-full flex items-center gap-2.5 px-2.5 py-2 text-[10px] uppercase tracking-[0.1em] font-semibold transition-colors cursor-pointer rounded-md"
+            style={{ color: "#3d4659" }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = "#5a657a"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = "#3d4659"; }}
           >
             <Database className="w-3.5 h-3.5" />
             <span className="flex-1 text-left">{labels.dataMgmt}</span>
-            {dmOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+            <motion.div animate={{ rotate: dmOpen ? 0 : -90 }} transition={{ duration: 0.2 }}>
+              <ChevronDown className="w-3 h-3" />
+            </motion.div>
           </button>
         )}
 
-        {(dmOpen || sidebarCollapsed) && (
-          <div className="space-y-0.5">
-            {DM_ITEMS.map((item) => {
-              const isActive = currentView === item.view;
-              return (
-                <button
-                  key={item.key}
-                  onClick={() => {
-                    setView(item.view);
-                    setMobileOpen(false);
-                  }}
-                  title={sidebarCollapsed ? labels[item.key] : undefined}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-all duration-200 group ${
-                    isActive
-                      ? "bg-emerald-600/15 text-emerald-400 border border-emerald-500/30 shadow-lg shadow-emerald-500/5"
-                      : "text-[#94a3b8] hover:bg-[#1a2035] hover:text-[#e2e8f0]"
-                  }`}
-                >
-                  <item.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-emerald-400" : "text-[#64748b] group-hover:text-[#94a3b8]"}`} />
-                  {!sidebarCollapsed && <span>{labels[item.key]}</span>}
-                </button>
-              );
-            })}
-          </div>
-        )}
+        <AnimatePresence>
+          {(dmOpen || sidebarCollapsed) && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-0.5 overflow-hidden"
+            >
+              {DM_ITEMS.map((item) => {
+                const isActive = currentView === item.view;
+                const accessible = canAccessView(user?.role || "demo_user", item.view);
+                if (!accessible) return null;
+                return (
+                  <NavItem
+                    key={item.key}
+                    item={item}
+                    isActive={isActive}
+                    labels={labels}
+                    collapsed={sidebarCollapsed}
+                    isDM={true}
+                    onClick={() => handleNav(item.view)}
+                  />
+                );
+              })}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </nav>
 
-      {/* User info and logout */}
-      <div className="p-4 border-t border-[#2a3550]">
-        {user && !sidebarCollapsed && (
-          <div className="mb-3">
-            <p className="text-sm font-medium text-[#e2e8f0] truncate">{user.username}</p>
-            <p className="text-xs text-[#4a5568] capitalize">{user.role.replace(/_/g, " ")}</p>
-          </div>
-        )}
+      {/* Bottom Section */}
+      <div className="px-3 pb-3 space-y-1">
+        {/* Command Palette Hint */}
         {!sidebarCollapsed && (
-          <button
+          <motion.button
             onClick={() => setCommandPaletteOpen(true)}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-[#64748b] hover:bg-[#1a2035] hover:text-[#94a3b8] transition-colors mb-2 border border-dashed border-[#2a3550]"
+            whileHover={{ scale: 1.01 }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] cursor-pointer transition-colors"
+            style={{ color: "#3d4659", border: "1px dashed rgba(255,255,255,0.06)" }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#5a657a"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#3d4659"; }}
           >
-            <kbd className="font-mono text-[10px] bg-[#2a3550] px-1 rounded">Ctrl+K</kbd>
-            <span>Command Palette</span>
-          </button>
+            <Command className="w-3.5 h-3.5" />
+            <span className="flex-1 text-left">Command Palette</span>
+            <kbd className="text-[9px] px-1.5 py-0.5 rounded font-mono" style={{ background: "rgba(255,255,255,0.04)", color: "#3d4659" }}>
+              Ctrl+K
+            </kbd>
+          </motion.button>
         )}
-        <button
-          onClick={logout}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors ${sidebarCollapsed ? "justify-center" : ""}`}
-        >
-          <LogOut className="w-4 h-4 flex-shrink-0" />
-          {!sidebarCollapsed && <span>{labels.logout}</span>}
-        </button>
+
+        {/* User Info + Logout */}
+        <div className="pt-2 mt-1" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+          {user && !sidebarCollapsed && (
+            <div className="px-2.5 mb-2">
+              <p className="text-[13px] font-medium truncate" style={{ color: "#c8d0e0" }}>{user.username}</p>
+              <p className="text-[11px] capitalize" style={{ color: "#3d4659" }}>{user.role.replace(/_/g, " ")}</p>
+            </div>
+          )}
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] cursor-pointer transition-all duration-200"
+            style={{
+              justifyContent: sidebarCollapsed ? "center" : "flex-start",
+              color: "#5a657a",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(248,113,113,0.06)"; e.currentTarget.style.color = "#f87171"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#5a657a"; }}
+          >
+            <LogOut className="w-4 h-4 flex-shrink-0" />
+            {!sidebarCollapsed && <span>{labels.logout}</span>}
+          </button>
+        </div>
       </div>
     </>
   );
@@ -239,41 +375,67 @@ export default function Sidebar() {
   return (
     <>
       {/* Mobile overlay */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-40 lg:hidden"
+            style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
+            onClick={() => setMobileOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Mobile hamburger */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed top-3 left-3 z-50 lg:hidden bg-[#0d1326] border border-[#2a3550] rounded-lg p-2 text-[#94a3b8]"
+        className="fixed top-3 left-3 z-50 lg:hidden w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-200"
+        style={{ background: "rgba(15,21,36,0.8)", border: "1px solid rgba(255,255,255,0.06)", backdropFilter: "blur(16px)" }}
       >
-        <Shield className="w-5 h-5" />
+        <Shield className="w-4 h-4" style={{ color: "#22d3ee" }} />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold"
+            style={{ background: "#f87171", color: "#050810" }}>
             {unreadCount}
           </span>
         )}
       </button>
 
-      {/* Desktop sidebar */}
+      {/* Desktop Sidebar */}
       <aside
-        className={`hidden lg:flex flex-col min-h-screen bg-[#0d1326] border-r border-[#2a3550] transition-all duration-300 ${
-          sidebarCollapsed ? "w-16" : "w-64"
-        }`}
+        className="hidden lg:flex flex-col h-screen border-glow transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex-shrink-0"
+        style={{
+          width: sidebarCollapsed ? 64 : 240,
+          background: "rgba(7,10,20,0.85)",
+          backdropFilter: "blur(24px)",
+          borderRight: "1px solid rgba(255,255,255,0.04)",
+        }}
       >
         {navContent}
       </aside>
 
-      {/* Mobile sidebar */}
-      {mobileOpen && (
-        <aside className="fixed inset-y-0 left-0 z-50 w-72 bg-[#0d1326] border-r border-[#2a3550] flex flex-col lg:hidden">
-          {navContent}
-        </aside>
-      )}
+      {/* Mobile Sidebar */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.aside
+            initial={{ x: -280, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -280, opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+            className="fixed inset-y-0 left-0 z-50 w-[272px] flex flex-col lg:hidden border-glow"
+            style={{
+              background: "rgba(7,10,20,0.95)",
+              backdropFilter: "blur(32px)",
+              borderRight: "1px solid rgba(255,255,255,0.06)",
+            }}
+          >
+            {navContent}
+          </motion.aside>
+        )}
+      </AnimatePresence>
     </>
   );
 }

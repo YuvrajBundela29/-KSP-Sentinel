@@ -1,0 +1,703 @@
+     1→     1→"use client";
+     2→     2→
+     3→     3→import { useEffect, useState, useMemo } from "react";
+     4→     4→import { motion, AnimatePresence } from "framer-motion";
+     5→     5→import {
+     6→     6→  TrendingUp,
+     7→     7→  TrendingDown,
+     8→     8→  Minus,
+     9→     9→  AlertTriangle,
+    10→    10→  ShieldAlert,
+    11→    11→  Sun,
+    12→    12→  CloudRain,
+    13→    13→  Cloud,
+    14→    14→  Leaf,
+    15→    15→  Activity,
+    16→    16→  Zap,
+    17→    17→  Clock,
+    18→    18→  MapPin,
+    19→    19→  CheckCircle2,
+    20→    20→  FileText,
+    21→    21→  Filter,
+    22→    22→  BarChart3,
+    23→    23→  Calendar,
+    24→    24→  Target,
+    25→    25→} from "lucide-react";
+    26→    26→import { useAppStore } from "@/lib/store";
+    27→    27→import { loadCrimeData } from "@/lib/data";
+    28→    28→import {
+    29→    29→  generateForecasts,
+    30→    30→  generateEarlyWarnings,
+    31→    31→  analyzeSeasonalTrends,
+    32→    32→} from "@/lib/intelligence";
+    33→    33→import type { ForecastResult, EarlyWarningAlert, SeasonalTrend } from "@/lib/intelligence";
+    34→    34→import { Badge } from "@/components/ui/badge";
+    35→    35→import { Button } from "@/components/ui/button";
+    36→    36→import { Progress } from "@/components/ui/progress";
+    37→    37→import { Skeleton } from "@/components/ui/skeleton";
+    38→    38→import { Checkbox } from "@/components/ui/checkbox";
+    39→    39→import LoadingSpinner from "@/components/ksp/LoadingSpinner";
+    40→    40→
+    41→    41→// ─── Constants ──────────────────────────────────────────────────
+    42→    42→
+    43→    43→// eslint-disable-next-line @typescript-eslint/no-explicit-any
+    44→    44→const SEASON_ICONS: Record<string, React.ComponentType<any>> = {
+    45→    45→  Winter: Cloud,
+    46→    46→  Summer: Sun,
+    47→    47→  Monsoon: CloudRain,
+    48→    48→  "Post-Monsoon": Leaf,
+    49→    49→};
+    50→    50→
+    51→    51→const SEASON_COLORS: Record<string, string> = {
+    52→    52→  Winter: "#60a5fa",
+    53→    53→  Summer: "#f59e0b",
+    54→    54→  Monsoon: "#6366f1",
+    55→    55→  "Post-Monsoon": "#10b981",
+    56→    56→};
+    57→    57→
+    58→    58→const TYPE_FILTERS: Array<{ key: EarlyWarningAlert["type"]; label: string }> = [
+    59→    59→  { key: "repeat_crime", label: "Repeat Crime" },
+    60→    60→  { key: "gang_activity", label: "Gang Activity" },
+    61→    61→  { key: "emerging_hotspot", label: "Emerging Hotspot" },
+    62→    62→  { key: "escalation", label: "Escalation" },
+    63→    63→  { key: "financial_anomaly", label: "Financial Anomaly" },
+    64→    64→  { key: "pattern_shift", label: "Pattern Shift" },
+    65→    65→];
+    66→    66→
+    67→    67→const SEVERITY_ORDER: Record<string, number> = {
+    68→    68→  critical: 0,
+    69→    69→  high: 1,
+    70→    70→  medium: 2,
+    71→    71→  low: 3,
+    72→    72→};
+    73→    73→
+    74→    74→// ─── Helpers ────────────────────────────────────────────────────
+    75→    75→
+    76→    76→function formatTime(iso: string): string {
+    77→    77→  try {
+    78→    78→    const d = new Date(iso);
+    79→    79→    return d.toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    80→    80→  } catch {
+    81→    81→    return iso;
+    82→    82→  }
+    83→    83→}
+    84→    84→
+    85→    85→function trendIcon(trend: ForecastResult["trend"]) {
+    86→    86→  if (trend === "rising") return <TrendingUp className="w-4 h-4 text-amber-400" />;
+    87→    87→  if (trend === "declining") return <TrendingDown className="w-4 h-4 text-blue-400" />;
+    88→    88→  return <Minus className="w-4 h-4 text-[#4a5568]" />;
+    89→    89→}
+    90→    90→
+    91→    91→function trendColor(trend: ForecastResult["trend"]): string {
+    92→    92→  if (trend === "rising") return "text-amber-400";
+    93→    93→  if (trend === "declining") return "text-blue-400";
+    94→    94→  return "text-emerald-400";
+    95→    95→}
+    96→    96→
+    97→    97→function severityBadge(severity: EarlyWarningAlert["severity"]) {
+    98→    98→  const styles: Record<string, string> = {
+    99→    99→    critical: "bg-red-500/20 text-red-300 border-red-500/30 animate-pulse",
+   100→   100→    high: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+   101→   101→    medium: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+   102→   102→    low: "bg-[#4a5568]/20 text-[#94a3b8] border-[#4a5568]/30",
+   103→   103→  };
+   104→   104→  return styles[severity] || styles.low;
+   105→   105→}
+   106→   106→
+   107→   107→// ─── Sub-components ─────────────────────────────────────────────
+   108→   108→
+   109→   109→function ForecastCard({ forecast, index }: { forecast: ForecastResult; index: number }) {
+   110→   110→  return (
+   111→   111→    <motion.div
+   112→   112→      className="glass-card p-4 flex flex-col gap-3"
+   113→   113→      initial={{ opacity: 0, y: 12 }}
+   114→   114→      animate={{ opacity: 1, y: 0 }}
+   115→   115→      transition={{ delay: index * 0.04, duration: 0.3 }}
+   116→   116→    >
+   117→   117→      <div className="flex items-start justify-between gap-3">
+   118→   118→        <div className="flex items-center gap-2.5">
+   119→   119→          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+   120→   120→            forecast.trend === "rising" ? "bg-amber-500/15" :
+   121→   121→            forecast.trend === "declining" ? "bg-blue-500/15" : "bg-emerald-500/15"
+   122→   122→          }`}>
+   123→   123→            {trendIcon(forecast.trend)}
+   124→   124→          </div>
+   125→   125→          <div>
+   126→   126→            <h4 className="text-sm font-semibold text-[#e2e8f0]">{forecast.metric}</h4>
+   127→   127→            <p className="text-[11px] text-[#64748b]">{forecast.timeframe}</p>
+   128→   128→          </div>
+   129→   129→        </div>
+   130→   130→        <div className="text-right shrink-0">
+   131→   131→          <p className={`text-lg font-bold tabular-nums ${trendColor(forecast.trend)}`}>
+   132→   132→            {forecast.changePercent >= 0 ? "+" : ""}{forecast.changePercent.toFixed(1)}%
+   133→   133→          </p>
+   134→   134→        </div>
+   135→   135→      </div>
+   136→   136→
+   137→   137→      <div className="flex items-center gap-4 text-xs">
+   138→   138→        <div>
+   139→   139→          <span className="text-[#64748b]">Current: </span>
+   140→   140→          <span className="text-[#e2e8f0] font-medium tabular-nums">{forecast.current}</span>
+   141→   141→        </div>
+   142→   142→        <div>
+   143→   143→          <span className="text-[#64748b]">Predicted: </span>
+   144→   144→          <span className={`font-medium tabular-nums ${trendColor(forecast.trend)}`}>{forecast.predicted}</span>
+   145→   145→        </div>
+   146→   146→      </div>
+   147→   147→
+   148→   148→      {/* Confidence Bar */}
+   149→   149→      <div className="space-y-1">
+   150→   150→        <div className="flex items-center justify-between">
+   151→   151→          <span className="text-[11px] text-[#64748b]">Confidence</span>
+   152→   152→          <span className="text-[11px] text-[#94a3b8] tabular-nums">{forecast.confidence}%</span>
+   153→   153→        </div>
+   154→   154→        <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+   155→   155→          <motion.div
+   156→   156→            className="h-full rounded-full"
+   157→   157→            style={{
+   158→   158→              backgroundColor: forecast.confidence >= 80 ? "#10b981" : forecast.confidence >= 60 ? "#f59e0b" : "#ef4444",
+   159→   159→            }}
+   160→   160→            initial={{ width: 0 }}
+   161→   161→            animate={{ width: `${forecast.confidence}%` }}
+   162→   162→            transition={{ duration: 0.5, delay: index * 0.04 }}
+   163→   163→          />
+   164→   164→        </div>
+   165→   165→      </div>
+   166→   166→
+   167→   167→      {/* Contributing Factors */}
+   168→   168→      {forecast.factors.length > 0 && (
+   169→   169→        <div className="flex flex-wrap gap-1.5 pt-1">
+   170→   170→          {forecast.factors.map((f, i) => (
+   171→   171→            <Badge
+   172→   172→              key={i}
+   173→   173→              variant="outline"
+   174→   174→              className="text-[10px] px-2 py-0 bg-white/[0.03] text-[#94a3b8] border-white/10 font-normal"
+   175→   175→            >
+   176→   176→              {f}
+   177→   177→            </Badge>
+   178→   178→          ))}
+   179→   179→        </div>
+   180→   180→      )}
+   181→   181→    </motion.div>
+   182→   182→  );
+   183→   183→}
+   184→   184→
+   185→   185→function EarlyWarningCard({ alert, index }: { alert: EarlyWarningAlert; index: number }) {
+   186→   186→  const [actionsChecked, setActionsChecked] = useState<Record<number, boolean>>({});
+   187→   187→
+   188→   188→  const toggleAction = (idx: number) => {
+   189→   189→    setActionsChecked((prev) => ({ ...prev, [idx]: !prev[idx] }));
+   190→   190→  };
+   191→   191→
+   192→   192→  return (
+   193→   193→    <motion.div
+   194→   194→      className={`glass-card p-5 border-l-2 ${
+   195→   195→        alert.severity === "critical" ? "border-l-red-500" :
+   196→   196→        alert.severity === "high" ? "border-l-amber-500" :
+   197→   197→        alert.severity === "medium" ? "border-l-blue-500" : "border-l-[#4a5568]"
+   198→   198→      }`}
+   199→   199→      initial={{ opacity: 0, x: -12 }}
+   200→   200→      animate={{ opacity: 1, x: 0 }}
+   201→   201→      transition={{ delay: index * 0.06, duration: 0.3 }}
+   202→   202→    >
+   203→   203→      {/* Header */}
+   204→   204→      <div className="flex items-start justify-between gap-3 mb-3">
+   205→   205→        <div className="flex items-center gap-2.5">
+   206→   206→          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+   207→   207→            alert.severity === "critical" ? "bg-red-500/15" :
+   208→   208→            alert.severity === "high" ? "bg-amber-500/15" : "bg-blue-500/15"
+   209→   209→          }`}>
+   210→   210→            {alert.severity === "critical" ? (
+   211→   211→              <Zap className="w-4 h-4 text-red-400" />
+   212→   212→            ) : (
+   213→   213→              <AlertTriangle className={`w-4 h-4 ${
+   214→   214→                alert.severity === "high" ? "text-amber-400" : "text-blue-400"
+   215→   215→              }`} />
+   216→   216→            )}
+   217→   217→          </div>
+   218→   218→          <div>
+   219→   219→            <h4 className="text-sm font-semibold text-[#e2e8f0]">{alert.title}</h4>
+   220→   220→            <div className="flex items-center gap-2 mt-0.5">
+   221→   221→              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 border-current/20 ${severityBadge(alert.severity)}`}>
+   222→   222→                {alert.severity}
+   223→   223→              </Badge>
+   224→   224→              <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-white/[0.03] text-[#94a3b8] border-white/10">
+   225→   225→                {alert.type.replace(/_/g, " ")}
+   226→   226→              </Badge>
+   227→   227→            </div>
+   228→   228→          </div>
+   229→   229→        </div>
+   230→   230→        <div className="text-right shrink-0">
+   231→   231→          <p className="text-xs text-[#64748b]">Confidence</p>
+   232→   232→          <p className="text-sm font-bold text-[#e2e8f0] tabular-nums">{alert.confidence}%</p>
+   233→   233→        </div>
+   234→   234→      </div>
+   235→   235→
+   236→   236→      {/* Description & Location */}
+   237→   237→      <p className="text-xs text-[#94a3b8] leading-relaxed mb-3">{alert.description}</p>
+   238→   238→      <div className="flex flex-wrap items-center gap-3 mb-3 text-xs">
+   239→   239→        <span className="flex items-center gap-1 text-[#94a3b8]">
+   240→   240→          <MapPin className="w-3 h-3 text-[#64748b]" /> {alert.location}
+   241→   241→        </span>
+   242→   242→        <span className="flex items-center gap-1 text-[#94a3b8]">
+   243→   243→          <Clock className="w-3 h-3 text-[#64748b]" /> {formatTime(alert.detectedAt)}
+   244→   244→        </span>
+   245→   245→      </div>
+   246→   246→
+   247→   247→      {/* Predicted Impact */}
+   248→   248→      <div className="bg-white/[0.03] rounded-lg p-3 mb-3 border border-white/[0.05]">
+   249→   249→        <p className="text-[10px] uppercase tracking-wider text-[#64748b] mb-1">Predicted Impact</p>
+   250→   250→        <p className="text-xs text-[#e2e8f0]">{alert.predictedImpact}</p>
+   251→   251→      </div>
+   252→   252→
+   253→   253→      {/* Recommended Actions Checklist */}
+   254→   254→      {alert.recommendedActions.length > 0 && (
+   255→   255→        <div className="mb-3">
+   256→   256→          <p className="text-[10px] uppercase tracking-wider text-[#64748b] mb-2">Recommended Actions</p>
+   257→   257→          <div className="space-y-1.5">
+   258→   258→            {alert.recommendedActions.map((action, idx) => (
+   259→   259→              <label
+   260→   260→                key={idx}
+   261→   261→                className="flex items-start gap-2.5 cursor-pointer group"
+   262→   262→                onClick={() => toggleAction(idx)}
+   263→   263→              >
+   264→   264→                <Checkbox
+   265→   265→                  checked={!!actionsChecked[idx]}
+   266→   266→                  className="mt-0.5 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+   267→   267→                />
+   268→   268→                <span className={`text-xs leading-relaxed transition-colors ${
+   269→   269→                  actionsChecked[idx] ? "text-[#4a5568] line-through" : "text-[#94a3b8] group-hover:text-[#e2e8f0]"
+   270→   270→                }`}>
+   271→   271→                  {action}
+   272→   272→                </span>
+   273→   273→              </label>
+   274→   274→            ))}
+   275→   275→          </div>
+   276→   276→        </div>
+   277→   277→      )}
+   278→   278→
+   279→   279→      {/* Supporting FIRs */}
+   280→   280→      {alert.supportingFIRs.length > 0 && (
+   281→   281→        <div className="flex items-center gap-2 flex-wrap">
+   282→   282→          <FileText className="w-3 h-3 text-[#64748b]" />
+   283→   283→          {alert.supportingFIRs.map((fir) => (
+   284→   284→            <button
+   285→   285→              key={fir}
+   286→   286→              className="text-[10px] px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-300 border border-blue-500/20 hover:bg-blue-500/20 transition-colors"
+   287→   287→              onClick={() => {
+   288→   288→                const store = useAppStore.getState();
+   289→   289→                store.setSelectedFirId(fir);
+   290→   290→                store.setView("dm-fir");
+   291→   291→              }}
+   292→   292→            >
+   293→   293→              {fir}
+   294→   294→            </button>
+   295→   295→          ))}
+   296→   296→        </div>
+   297→   297→      )}
+   298→   298→    </motion.div>
+   299→   299→  );
+   300→   300→}
+   301→   301→
+   302→   302→function SeasonCard({ trend }: { trend: SeasonalTrend }) {
+   303→   303→  const IconComponent = SEASON_ICONS[trend.season] || BarChart3;
+   304→   304→  const color = SEASON_COLORS[trend.season] || "#3b82f6";
+   305→   305→  const maxCrimeCount = Math.max(...trend.topCrimeTypes.map((c) => c.count), 1);
+   306→   306→
+   307→   307→  return (
+   308→   308→    <motion.div
+   309→   309→      className="glass-card p-5 flex flex-col"
+   310→   310→      initial={{ opacity: 0, y: 16 }}
+   311→   311→      animate={{ opacity: 1, y: 0 }}
+   312→   312→      transition={{ duration: 0.35 }}
+   313→   313→    >
+   314→   314→      {/* Season Header */}
+   315→   315→      <div className="flex items-center justify-between mb-4">
+   316→   316→        <div className="flex items-center gap-2.5">
+   317→   317→          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${color}15` }}>
+   318→   318→            <IconComponent className="w-[18px] h-[18px]" style={{ color }} />
+   319→   319→          </div>
+   320→   320→          <div>
+   321→   321→            <h4 className="text-sm font-semibold text-[#e2e8f0]">{trend.season}</h4>
+   322→   322→            <p className="text-[10px] text-[#64748b]">{trend.months.join(", ")}</p>
+   323→   323→          </div>
+   324→   324→        </div>
+   325→   325→        {trend.anomaly && (
+   326→   326→          <Badge className="bg-red-500/20 text-red-300 text-[10px] animate-pulse gap-1">
+   327→   327→            <AlertTriangle className="w-3 h-3" /> Anomaly
+   328→   328→          </Badge>
+   329→   329→        )}
+   330→   330→      </div>
+   331→   331→
+   332→   332→      {/* Total Crimes */}
+   333→   333→      <div className="mb-4">
+   334→   334→        <p className="text-2xl font-bold tabular-nums" style={{ color }}>{trend.totalCrimes}</p>
+   335→   335→        <p className="text-[11px] text-[#64748b]">Total Crimes</p>
+   336→   336→      </div>
+   337→   337→
+   338→   338→      {/* Top Crime Types Mini Bar Chart */}
+   339→   339→      <div className="space-y-2.5 mb-4">
+   340→   340→        {trend.topCrimeTypes.slice(0, 3).map((ct, i) => (
+   341→   341→          <div key={ct.type}>
+   342→   342→            <div className="flex items-center justify-between mb-0.5">
+   343→   343→              <span className="text-[11px] text-[#94a3b8] truncate mr-2">{ct.type}</span>
+   344→   344→              <span className="text-[11px] text-[#e2e8f0] font-medium tabular-nums shrink-0">{ct.count}</span>
+   345→   345→            </div>
+   346→   346→            <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+   347→   347→              <motion.div
+   348→   348→                className="h-full rounded-full"
+   349→   349→                style={{ backgroundColor: color, opacity: 1 - i * 0.25 }}
+   350→   350→                initial={{ width: 0 }}
+   351→   351→                animate={{ width: `${(ct.count / maxCrimeCount) * 100}%` }}
+   352→   352→                transition={{ duration: 0.5, delay: i * 0.1 }}
+   353→   353→              />
+   354→   354→            </div>
+   355→   355→          </div>
+   356→   356→        ))}
+   357→   357→      </div>
+   358→   358→
+   359→   359→      {/* Anomaly Description */}
+   360→   360→      {trend.anomaly && trend.anomalyDescription && (
+   361→   361→        <div className="mt-auto pt-3 border-t border-white/[0.05]">
+   362→   362→          <p className="text-[11px] text-amber-300/80 leading-relaxed">
+   363→   363→            <AlertTriangle className="w-3 h-3 inline mr-1" />
+   364→   364→            {trend.anomalyDescription}
+   365→   365→          </p>
+   366→   366→        </div>
+   367→   367→      )}
+   368→   368→
+   369→   369→      {/* Year-over-Year */}
+   370→   370→      {trend.yearOverYear.length > 1 && (
+   371→   371→        <div className="mt-auto pt-3 border-t border-white/[0.05]">
+   372→   372→          <p className="text-[10px] uppercase tracking-wider text-[#64748b] mb-1.5">Year-over-Year</p>
+   373→   373→          <div className="flex items-center gap-2">
+   374→   374→            {trend.yearOverYear.map((yoy) => (
+   375→   375→              <div key={yoy.year} className="flex-1 bg-white/[0.03] rounded-lg p-2 text-center">
+   376→   376→                <p className="text-[10px] text-[#64748b]">{yoy.year}</p>
+   377→   377→                <p className="text-xs font-semibold text-[#e2e8f0] tabular-nums">{yoy.count}</p>
+   378→   378→              </div>
+   379→   379→            ))}
+   380→   380→          </div>
+   381→   381→        </div>
+   382→   382→      )}
+   383→   383→    </motion.div>
+   384→   384→  );
+   385→   385→}
+   386→   386→
+   387→   387→// ─── Main Component ─────────────────────────────────────────────
+   388→   388→
+   389→   389→export default function CrimeForecasting() {
+   390→   390→  const { crimeData, setCrimeData, dataLoading, setDataLoading } = useAppStore();
+   391→   391→  const [forecasts, setForecasts] = useState<ForecastResult[]>([]);
+   392→   392→  const [warnings, setWarnings] = useState<EarlyWarningAlert[]>([]);
+   393→   393→  const [seasonal, setSeasonal] = useState<SeasonalTrend[]>([]);
+   394→   394→  const [localLoading, setLocalLoading] = useState(true);
+   395→   395→  const [typeFilter, setTypeFilter] = useState<Set<string>>(new Set());
+   396→   396→
+   397→   397→  // Load data
+   398→   398→  useEffect(() => {
+   399→   399→    if (crimeData) {
+   400→   400→      setLocalLoading(false);
+   401→   401→      return;
+   402→   402→    }
+   403→   403→    let cancelled = false;
+   404→   404→    setDataLoading(true);
+   405→   405→    loadCrimeData()
+   406→   406→      .then((data) => {
+   407→   407→        if (!cancelled) {
+   408→   408→          setCrimeData(data);
+   409→   409→          setLocalLoading(false);
+   410→   410→        }
+   411→   411→      })
+   412→   412→      .catch(() => {
+   413→   413→        if (!cancelled) setLocalLoading(false);
+   414→   414→      })
+   415→   415→      .finally(() => {
+   416→   416→        if (!cancelled) setDataLoading(false);
+   417→   417→      });
+   418→   418→    return () => { cancelled = true; };
+   419→   419→  }, [crimeData, setCrimeData, setDataLoading]);
+   420→   420→
+   421→   421→  // Run intelligence functions
+   422→   422→  useEffect(() => {
+   423→   423→    if (!crimeData) return;
+   424→   424→    setForecasts(generateForecasts(crimeData));
+   425→   425→    setWarnings(generateEarlyWarnings(crimeData));
+   426→   426→    setSeasonal(analyzeSeasonalTrends(crimeData));
+   427→   427→  }, [crimeData]);
+   428→   428→
+   429→   429→  // Compute stats
+   430→   430→  const stats = useMemo(() => {
+   431→   431→    const criticalCount = warnings.filter((w) => w.severity === "critical").length;
+   432→   432→    const highCount = warnings.filter((w) => w.severity === "high").length;
+   433→   433→    const mediumCount = warnings.filter((w) => w.severity === "medium").length;
+   434→   434→    const risingCount = forecasts.filter((f) => f.trend === "rising").length;
+   435→   435→    const avgConfidence = forecasts.length > 0
+   436→   436→      ? Math.round(forecasts.reduce((s, f) => s + f.confidence, 0) / forecasts.length)
+   437→   437→      : 0;
+   438→   438→    return {
+   439→   439→      activeWarnings: { critical: criticalCount, high: highCount, medium: mediumCount },
+   440→   440→      forecastAccuracy: avgConfidence,
+   441→   441→      seasonsAnalyzed: seasonal.length,
+   442→   442→      trendingUp: risingCount,
+   443→   443→    };
+   444→   444→  }, [forecasts, warnings, seasonal]);
+   445→   445→
+   446→   446→  // Sort forecasts by severity (rising > stable > declining)
+   447→   447→  const sortedForecasts = useMemo(() => {
+   448→   448→    return [...forecasts].sort((a, b) => {
+   449→   449→      const order = { rising: 0, stable: 1, declining: 2 };
+   450→   450→      return order[a.trend] - order[b.trend];
+   451→   451→    });
+   452→   452→  }, [forecasts]);
+   453→   453→
+   454→   454→  // Filter and sort warnings
+   455→   455→  const filteredWarnings = useMemo(() => {
+   456→   456→    let result = warnings;
+   457→   457→    if (typeFilter.size > 0) {
+   458→   458→      result = result.filter((w) => typeFilter.has(w.type));
+   459→   459→    }
+   460→   460→    return [...result].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
+   461→   461→  }, [warnings, typeFilter]);
+   462→   462→
+   463→   463→  const toggleTypeFilter = (type: string) => {
+   464→   464→    setTypeFilter((prev) => {
+   465→   465→      const next = new Set(prev);
+   466→   466→      if (next.has(type)) next.delete(type);
+   467→   467→      else next.add(type);
+   468→   468→      return next;
+   469→   469→    });
+   470→   470→  };
+   471→   471→
+   472→   472→  const isLoading = dataLoading || localLoading;
+   473→   473→
+   474→   474→  if (isLoading) {
+   475→   475→    return (
+   476→   476→      <div className="p-6 space-y-6">
+   477→   477→        <div className="flex items-center gap-3 mb-2">
+   478→   478→          <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+   479→   479→            <BarChart3 className="w-4 h-4 text-blue-400" />
+   480→   480→          </div>
+   481→   481→          <div>
+   482→   482→            <h2 className="text-lg font-bold text-[#e2e8f0]">Crime Forecasting</h2>
+   483→   483→            <p className="text-xs text-[#64748b]">AI-powered predictions and early warning system</p>
+   484→   484→          </div>
+   485→   485→        </div>
+   486→   486→        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+   487→   487→          {Array.from({ length: 4 }).map((_, i) => (
+   488→   488→            <Skeleton key={i} className="h-24 rounded-xl bg-white/[0.03]" />
+   489→   489→          ))}
+   490→   490→        </div>
+   491→   491→        <Skeleton className="h-48 rounded-xl bg-white/[0.03]" />
+   492→   492→      </div>
+   493→   493→    );
+   494→   494→  }
+   495→   495→
+   496→   496→  if (!crimeData) {
+   497→   497→    return (
+   498→   498→      <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+   499→   499→        <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center">
+   500→   500→          <BarChart3 className="w-8 h-8 text-[#4a5568]" />
+   501→   501→        </div>
+   502→   502→        <div className="text-center">
+   503→   503→          <h3 className="text-lg font-semibold text-[#94a3b8]">No Forecasting Data</h3>
+   504→   504→          <p className="text-sm text-[#64748b] mt-1">Import crime data to generate forecasts and early warnings</p>
+   505→   505→        </div>
+   506→   506→      </div>
+   507→   507→    );
+   508→   508→  }
+   509→   509→
+   510→   510→  return (
+   511→   511→    <div className="p-6 space-y-6">
+   512→   512→      {/* Header */}
+   513→   513→      <div className="flex items-center gap-3">
+   514→   514→        <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+   515→   515→          <BarChart3 className="w-4 h-4 text-blue-400" />
+   516→   516→        </div>
+   517→   517→        <div>
+   518→   518→          <h2 className="text-lg font-bold text-[#e2e8f0]">Crime Forecasting</h2>
+   519→   519→          <p className="text-xs text-[#64748b]">AI-powered predictions and early warning system</p>
+   520→   520→        </div>
+   521→   521→      </div>
+   522→   522→
+   523→   523→      {/* Stats Row */}
+   524→   524→      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+   525→   525→        {/* Active Warnings */}
+   526→   526→        <motion.div
+   527→   527→          className="glass-card p-4"
+   528→   528→          initial={{ opacity: 0, y: 12 }}
+   529→   529→          animate={{ opacity: 1, y: 0 }}
+   530→   530→          transition={{ delay: 0 }}
+   531→   531→        >
+   532→   532→          <div className="flex items-center gap-2 mb-2">
+   533→   533→            <ShieldAlert className="w-4 h-4 text-red-400" />
+   534→   534→            <p className="text-[11px] text-[#64748b] uppercase tracking-wider font-medium">Active Warnings</p>
+   535→   535→          </div>
+   536→   536→          <div className="flex items-baseline gap-2">
+   537→   537→            <span className="text-2xl font-bold text-[#e2e8f0] tabular-nums">{warnings.length}</span>
+   538→   538→          </div>
+   539→   539→          <div className="flex gap-2 mt-2">
+   540→   540→            {stats.activeWarnings.critical > 0 && (
+   541→   541→              <Badge className="bg-red-500/20 text-red-300 text-[10px]">{stats.activeWarnings.critical} critical</Badge>
+   542→   542→            )}
+   543→   543→            {stats.activeWarnings.high > 0 && (
+   544→   544→              <Badge className="bg-amber-500/20 text-amber-300 text-[10px]">{stats.activeWarnings.high} high</Badge>
+   545→   545→            )}
+   546→   546→            {stats.activeWarnings.medium > 0 && (
+   547→   547→              <Badge className="bg-blue-500/20 text-blue-300 text-[10px]">{stats.activeWarnings.medium} medium</Badge>
+   548→   548→            )}
+   549→   549→          </div>
+   550→   550→        </motion.div>
+   551→   551→
+   552→   552→        {/* Forecast Accuracy */}
+   553→   553→        <motion.div
+   554→   554→          className="glass-card p-4"
+   555→   555→          initial={{ opacity: 0, y: 12 }}
+   556→   556→          animate={{ opacity: 1, y: 0 }}
+   557→   557→          transition={{ delay: 0.06 }}
+   558→   558→        >
+   559→   559→          <div className="flex items-center gap-2 mb-2">
+   560→   560→            <Target className="w-4 h-4 text-emerald-400" />
+   561→   561→            <p className="text-[11px] text-[#64748b] uppercase tracking-wider font-medium">Forecast Accuracy</p>
+   562→   562→          </div>
+   563→   563→          <span className="text-2xl font-bold text-emerald-400 tabular-nums">{stats.forecastAccuracy}%</span>
+   564→   564→          <div className="mt-2 h-1.5 bg-white/5 rounded-full overflow-hidden">
+   565→   565→            <motion.div
+   566→   566→              className="h-full rounded-full bg-emerald-500"
+   567→   567→              initial={{ width: 0 }}
+   568→   568→              animate={{ width: `${stats.forecastAccuracy}%` }}
+   569→   569→              transition={{ duration: 0.8, delay: 0.2 }}
+   570→   570→            />
+   571→   571→          </div>
+   572→   572→        </motion.div>
+   573→   573→
+   574→   574→        {/* Seasons Analyzed */}
+   575→   575→        <motion.div
+   576→   576→          className="glass-card p-4"
+   577→   577→          initial={{ opacity: 0, y: 12 }}
+   578→   578→          animate={{ opacity: 1, y: 0 }}
+   579→   579→          transition={{ delay: 0.12 }}
+   580→   580→        >
+   581→   581→          <div className="flex items-center gap-2 mb-2">
+   582→   582→            <Calendar className="w-4 h-4 text-blue-400" />
+   583→   583→            <p className="text-[11px] text-[#64748b] uppercase tracking-wider font-medium">Seasons Analyzed</p>
+   584→   584→          </div>
+   585→   585→          <span className="text-2xl font-bold text-blue-400 tabular-nums">{stats.seasonsAnalyzed}</span>
+   586→   586→          <p className="text-[11px] text-[#64748b] mt-1">of 4 seasons</p>
+   587→   587→        </motion.div>
+   588→   588→
+   589→   589→        {/* Trending Up */}
+   590→   590→        <motion.div
+   591→   591→          className="glass-card p-4"
+   592→   592→          initial={{ opacity: 0, y: 12 }}
+   593→   593→          animate={{ opacity: 1, y: 0 }}
+   594→   594→          transition={{ delay: 0.18 }}
+   595→   595→        >
+   596→   596→          <div className="flex items-center gap-2 mb-2">
+   597→   597→            <TrendingUp className="w-4 h-4 text-amber-400" />
+   598→   598→            <p className="text-[11px] text-[#64748b] uppercase tracking-wider font-medium">Trending Up</p>
+   599→   599→          </div>
+   600→   600→          <span className="text-2xl font-bold text-amber-400 tabular-nums">{stats.trendingUp}</span>
+   601→   601→          <p className="text-[11px] text-[#64748b] mt-1">of {forecasts.length} metrics</p>
+   602→   602→        </motion.div>
+   603→   603→      </div>
+   604→   604→
+   605→   605→      {/* Section 1: Crime Forecasts */}
+   606→   606→      <div>
+   607→   607→        <div className="flex items-center gap-2.5 mb-4">
+   608→   608→          <div className="w-1 h-5 rounded-full bg-blue-500" />
+   609→   609→          <h3 className="text-sm font-semibold text-[#e2e8f0] tracking-wide">Crime Forecasts</h3>
+   610→   610→          <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-white/[0.03] text-[#94a3b8] border-white/10">
+   611→   611→            {forecasts.length} metrics
+   612→   612→          </Badge>
+   613→   613→        </div>
+   614→   614→        {sortedForecasts.length > 0 ? (
+   615→   615→          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+   616→   616→            {sortedForecasts.map((f, i) => (
+   617→   617→              <ForecastCard key={f.metric} forecast={f} index={i} />
+   618→   618→            ))}
+   619→   619→          </div>
+   620→   620→        ) : (
+   621→   621→          <div className="glass-card p-8 text-center">
+   622→   622→            <Activity className="w-8 h-8 text-[#4a5568] mx-auto mb-2" />
+   623→   623→            <p className="text-sm text-[#64748b]">Insufficient data to generate forecasts</p>
+   624→   624→          </div>
+   625→   625→        )}
+   626→   626→      </div>
+   627→   627→
+   628→   628→      {/* Section 2: Early Warning Alerts */}
+   629→   629→      <div>
+   630→   630→        <div className="flex items-center gap-2.5 mb-4 flex-wrap">
+   631→   631→          <div className="w-1 h-5 rounded-full bg-red-500" />
+   632→   632→          <h3 className="text-sm font-semibold text-[#e2e8f0] tracking-wide">Early Warning Alerts</h3>
+   633→   633→          <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-white/[0.03] text-[#94a3b8] border-white/10">
+   634→   634→            {filteredWarnings.length} alerts
+   635→   635→          </Badge>
+   636→   636→
+   637→   637→          {/* Type Filters */}
+   638→   638→          <div className="flex items-center gap-1.5 ml-auto flex-wrap">
+   639→   639→            <Filter className="w-3.5 h-3.5 text-[#64748b]" />
+   640→   640→            {TYPE_FILTERS.map((tf) => (
+   641→   641→              <button
+   642→   642→                key={tf.key}
+   643→   643→                onClick={() => toggleTypeFilter(tf.key)}
+   644→   644→                className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors ${
+   645→   645→                  typeFilter.has(tf.key)
+   646→   646→                    ? "bg-blue-500/20 text-blue-300 border-blue-500/30"
+   647→   647→                    : "bg-white/[0.03] text-[#64748b] border-white/10 hover:text-[#94a3b8]"
+   648→   648→                }`}
+   649→   649→              >
+   650→   650→                {tf.label}
+   651→   651→              </button>
+   652→   652→            ))}
+   653→   653→            {typeFilter.size > 0 && (
+   654→   654→              <button
+   655→   655→                onClick={() => setTypeFilter(new Set())}
+   656→   656→                className="text-[10px] text-blue-400 hover:text-blue-300 ml-1"
+   657→   657→              >
+   658→   658→                Clear
+   659→   659→              </button>
+   660→   660→            )}
+   661→   661→          </div>
+   662→   662→        </div>
+   663→   663→        {filteredWarnings.length > 0 ? (
+   664→   664→          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+   665→   665→            {filteredWarnings.map((w, i) => (
+   666→   666→              <EarlyWarningCard key={w.id} alert={w} index={i} />
+   667→   667→            ))}
+   668→   668→          </div>
+   669→   669→        ) : (
+   670→   670→          <div className="glass-card p-8 text-center">
+   671→   671→            <ShieldAlert className="w-8 h-8 text-[#4a5568] mx-auto mb-2" />
+   672→   672→            <p className="text-sm text-[#64748b]">
+   673→   673→              {typeFilter.size > 0 ? "No warnings match the selected filters" : "No early warning alerts detected"}
+   674→   674→            </p>
+   675→   675→          </div>
+   676→   676→        )}
+   677→   677→      </div>
+   678→   678→
+   679→   679→      {/* Section 3: Seasonal Trends */}
+   680→   680→      <div>
+   681→   681→        <div className="flex items-center gap-2.5 mb-4">
+   682→   682→          <div className="w-1 h-5 rounded-full bg-emerald-500" />
+   683→   683→          <h3 className="text-sm font-semibold text-[#e2e8f0] tracking-wide">Seasonal Trends</h3>
+   684→   684→          <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-white/[0.03] text-[#94a3b8] border-white/10">
+   685→   685→            {seasonal.length} seasons
+   686→   686→          </Badge>
+   687→   687→        </div>
+   688→   688→        {seasonal.length > 0 ? (
+   689→   689→          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+   690→   690→            {seasonal.map((trend) => (
+   691→   691→              <SeasonCard key={trend.season} trend={trend} />
+   692→   692→            ))}
+   693→   693→          </div>
+   694→   694→        ) : (
+   695→   695→          <div className="glass-card p-8 text-center">
+   696→   696→            <Calendar className="w-8 h-8 text-[#4a5568] mx-auto mb-2" />
+   697→   697→            <p className="text-sm text-[#64748b]">Insufficient temporal data for seasonal analysis</p>
+   698→   698→          </div>
+   699→   699→        )}
+   700→   700→      </div>
+   701→   701→    </div>
+   702→   702→  );
+   703→   703→}

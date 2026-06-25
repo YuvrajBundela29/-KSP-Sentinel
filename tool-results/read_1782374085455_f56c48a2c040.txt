@@ -1,0 +1,730 @@
+     1→"use client";
+     2→
+     3→import { useEffect, useMemo } from "react";
+     4→import {
+     5→  BarChart,
+     6→  Bar,
+     7→  XAxis,
+     8→  YAxis,
+     9→  Tooltip,
+    10→  ResponsiveContainer,
+    11→} from "recharts";
+    12→import {
+    13→  FileText,
+    14→  Search,
+    15→  UserX,
+    16→  AlertTriangle,
+    17→  MapPin,
+    18→  Users,
+    19→  Brain,
+    20→  Clock,
+    21→  Radio,
+    22→  ShieldAlert,
+    23→} from "lucide-react";
+    24→import { motion } from "framer-motion";
+    25→import { useAppStore } from "@/lib/store";
+    26→import { loadCrimeData } from "@/lib/data";
+    27→import {
+    28→  getIntelFeedItems,
+    29→  getInvestigationQueue,
+    30→  getAIRecommendations,
+    31→  getCrimeTrendByMonth,
+    32→} from "@/lib/intelligence";
+    33→import LoadingSpinner from "@/components/ksp/LoadingSpinner";
+    34→import { Badge } from "@/components/ui/badge";
+    35→import {
+    36→  Table,
+    37→  TableHeader,
+    38→  TableBody,
+    39→  TableHead,
+    40→  TableRow,
+    41→  TableCell,
+    42→} from "@/components/ui/table";
+    43→
+    44→// ─── Sparkline helper ────────────────────────────────────────────
+    45→function Sparkline({
+    46→  data,
+    47→  color = "#3b82f6",
+    48→}: {
+    49→  data: { month: string; count: number }[];
+    50→  color?: string;
+    51→}) {
+    52→  if (data.length < 2) return null;
+    53→  const max = Math.max(...data.map((d) => d.count), 1);
+    54→  const w = 80,
+    55→    h = 24,
+    56→    pad = 2;
+    57→  const points = data
+    58→    .map((d, i) => {
+    59→      const x = pad + (i / (data.length - 1)) * (w - pad * 2);
+    60→      const y = h - pad - (d.count / max) * (h - pad * 2);
+    61→      return `${x},${y}`;
+    62→    })
+    63→    .join(" ");
+    64→  return (
+    65→    <svg width={w} height={h} className="mt-2 opacity-50">
+    66→      <polyline
+    67→        points={points}
+    68→        fill="none"
+    69→        stroke={color}
+    70→        strokeWidth="1.5"
+    71→        className="sparkline-path"
+    72→      />
+    73→    </svg>
+    74→  );
+    75→}
+    76→
+    77→// ─── Severity badge helper ───────────────────────────────────────
+    78→function SeverityBadge({ severity }: { severity: string }) {
+    79→  const map: Record<string, string> = {
+    80→    critical: "bg-red-500/20 text-red-400 border-red-500/30",
+    81→    high: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+    82→    medium: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+    83→    low: "bg-green-500/20 text-green-400 border-green-500/30",
+    84→  };
+    85→  return (
+    86→    <span
+    87→      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${
+    88→        map[severity] ?? map.low
+    89→      }`}
+    90→    >
+    91→      {severity}
+    92→    </span>
+    93→  );
+    94→}
+    95→
+    96→// ─── Sparkline Stat Card ─────────────────────────────────────────
+    97→function SparklineStatCard({
+    98→  icon: Icon,
+    99→  label,
+   100→  value,
+   101→  sparkData,
+   102→  stagger,
+   103→}: {
+   104→  icon: React.ElementType;
+   105→  label: string;
+   106→  value: number;
+   107→  sparkData: { month: string; count: number }[];
+   108→  stagger: string;
+   109→}) {
+   110→  return (
+   111→    <motion.div
+   112→      className={`glass-card p-4 flex items-center justify-between animate-fade-in-up ${stagger}`}
+   113→      whileHover={{ scale: 1.02 }}
+   114→      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+   115→    >
+   116→      <div className="flex-1">
+   117→        <p className="text-xs text-[#94a3b8] uppercase tracking-wider">
+   118→          {label}
+   119→        </p>
+   120→        <p className="text-2xl font-bold text-[#e2e8f0] mt-1">{value}</p>
+   121→        <Sparkline data={sparkData} />
+   122→      </div>
+   123→      <div className="h-10 w-10 rounded-lg bg-[#3b82f6]/10 flex items-center justify-center ml-3 shrink-0">
+   124→        <Icon className="h-5 w-5 text-[#3b82f6]" />
+   125→      </div>
+   126→    </motion.div>
+   127→  );
+   128→}
+   129→
+   130→// ─── Risk bar ────────────────────────────────────────────────────
+   131→function RiskBar({ score }: { score: number }) {
+   132→  const color =
+   133→    score > 80 ? "bg-red-500" : score > 60 ? "bg-orange-500" : "bg-green-500";
+   134→
+   135→  return (
+   136→    <div className="flex items-center gap-2 min-w-[120px]">
+   137→      <div className="flex-1 h-2 rounded-full bg-[#2a3550] overflow-hidden">
+   138→        <div
+   139→          className={`h-full rounded-full transition-all ${color}`}
+   140→          style={{ width: `${Math.min(score, 100)}%` }}
+   141→        />
+   142→      </div>
+   143→      <span className="text-xs font-mono text-[#94a3b8] w-8 text-right">
+   144→        {score}
+   145→      </span>
+   146→    </div>
+   147→  );
+   148→}
+   149→
+   150→// ─── Custom tooltip for the chart ────────────────────────────────
+   151→function ChartTooltip({
+   152→  active,
+   153→  payload,
+   154→  label,
+   155→}: {
+   156→  active?: boolean;
+   157→  payload?: { value: number }[];
+   158→  label?: string;
+   159→}) {
+   160→  if (!active || !payload?.length) return null;
+   161→  return (
+   162→    <div className="bg-[#1a2035] border border-[#2a3550] rounded-md px-3 py-2 shadow-lg">
+   163→      <p className="text-xs text-[#94a3b8]">{label}</p>
+   164→      <p className="text-sm font-semibold text-[#e2e8f0]">
+   165→        {payload[0].value} FIRs
+   166→      </p>
+   167→    </div>
+   168→  );
+   169→}
+   170→
+   171→// ─── Relative timestamp helper ───────────────────────────────────
+   172→function relativeTime(isoStr: string): string {
+   173→  const diff = Date.now() - new Date(isoStr).getTime();
+   174→  const mins = Math.floor(diff / 60000);
+   175→  if (mins < 1) return "just now";
+   176→  if (mins < 60) return `${mins}m ago`;
+   177→  const hrs = Math.floor(mins / 60);
+   178→  if (hrs < 24) return `${hrs}h ago`;
+   179→  const days = Math.floor(hrs / 24);
+   180→  return `${days}d ago`;
+   181→}
+   182→
+   183→// ─── Priority badge ──────────────────────────────────────────────
+   184→function PriorityBadge({ score }: { score: number }) {
+   185→  if (score > 90)
+   186→    return (
+   187→      <span className="inline-flex items-center rounded-full bg-red-500/20 text-red-400 px-2 py-0.5 text-xs font-bold">
+   188→        {score}
+   189→      </span>
+   190→    );
+   191→  if (score > 70)
+   192→    return (
+   193→      <span className="inline-flex items-center rounded-full bg-orange-500/20 text-orange-400 px-2 py-0.5 text-xs font-bold">
+   194→        {score}
+   195→      </span>
+   196→    );
+   197→  return (
+   198→    <span className="inline-flex items-center rounded-full bg-yellow-500/20 text-yellow-400 px-2 py-0.5 text-xs font-bold">
+   199→      {score}
+   200→    </span>
+   201→  );
+   202→}
+   203→
+   204→// ─── Main component ──────────────────────────────────────────────
+   205→export default function DashboardHome() {
+   206→  const crimeData = useAppStore((s) => s.crimeData);
+   207→  const setCrimeData = useAppStore((s) => s.setCrimeData);
+   208→  const setDataLoading = useAppStore((s) => s.setDataLoading);
+   209→  const dataLoading = useAppStore((s) => s.dataLoading);
+   210→  const setView = useAppStore((s) => s.setView);
+   211→  const setSelectedAccusedId = useAppStore((s) => s.setSelectedAccusedId);
+   212→
+   213→  // Load data on mount
+   214→  useEffect(() => {
+   215→    if (!crimeData && !dataLoading) {
+   216→      setDataLoading(true);
+   217→      loadCrimeData()
+   218→        .then((data) => setCrimeData(data))
+   219→        .catch((err) => console.error("Failed to load crime data:", err))
+   220→        .finally(() => setDataLoading(false));
+   221→    }
+   222→  }, [crimeData, dataLoading, setCrimeData, setDataLoading]);
+   223→
+   224→  // ─── Derived stats ──────────────────────────────────────────────
+   225→  const stats = useMemo(() => {
+   226→    if (!crimeData) return null;
+   227→
+   228→    const { firs, accused, gangs, districts } = crimeData;
+   229→
+   230→    const totalFIRs = firs.length;
+   231→
+   232→    const activeCases = firs.filter(
+   233→      (f) => f.investigation_status === "Under Investigation"
+   234→    ).length;
+   235→
+   236→    const arrestedAccusedIds = new Set<string>();
+   237→    firs
+   238→      .filter((f) => f.investigation_status === "Arrested")
+   239→      .forEach((f) => f.accused.forEach((id) => arrestedAccusedIds.add(id)));
+   240→    const arrestedCount = arrestedAccusedIds.size;
+   241→
+   242→    const highRiskCount = accused.filter((a) => a.risk > 80).length;
+   243→
+   244→    const districtCount = districts.length;
+   245→
+   246→    const gangCount = gangs.length;
+   247→
+   248→    return {
+   249→      totalFIRs,
+   250→      activeCases,
+   251→      arrestedCount,
+   252→      highRiskCount,
+   253→      districtCount,
+   254→      gangCount,
+   255→    };
+   256→  }, [crimeData]);
+   257→
+   258→  // ─── Chart data: FIRs by crime type ─────────────────────────────
+   259→  const chartData = useMemo(() => {
+   260→    if (!crimeData) return [];
+   261→    const map: Record<string, number> = {};
+   262→    crimeData.firs.forEach((f) => {
+   263→      map[f.crime_type] = (map[f.crime_type] ?? 0) + 1;
+   264→    });
+   265→    return Object.entries(map)
+   266→      .map(([name, count]) => ({ name, count }))
+   267→      .sort((a, b) => b.count - a.count);
+   268→  }, [crimeData]);
+   269→
+   270→  // ─── Recent 5 FIRs sorted by date ───────────────────────────────
+   271→  const recentFIRs = useMemo(() => {
+   272→    if (!crimeData) return [];
+   273→    return [...crimeData.firs]
+   274→      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+   275→      .slice(0, 5);
+   276→  }, [crimeData]);
+   277→
+   278→  // ─── High risk accused (risk > 60) sorted descending ───────────
+   279→  const highRiskAccused = useMemo(() => {
+   280→    if (!crimeData) return [];
+   281→    return crimeData.accused
+   282→      .filter((a) => a.risk > 60)
+   283→      .sort((a, b) => b.risk - a.risk);
+   284→  }, [crimeData]);
+   285→
+   286→  // ─── Crime trend by month (for sparklines) ─────────────────────
+   287→  const crimeTrend = useMemo(() => {
+   288→    if (!crimeData) return [];
+   289→    return getCrimeTrendByMonth(crimeData);
+   290→  }, [crimeData]);
+   291→
+   292→  // ─── Intel feed items ───────────────────────────────────────────
+   293→  const intelFeed = useMemo(() => {
+   294→    if (!crimeData) return [];
+   295→    return getIntelFeedItems(crimeData);
+   296→  }, [crimeData]);
+   297→
+   298→  // ─── AI Recommendations ─────────────────────────────────────────
+   299→  const recommendations = useMemo(() => {
+   300→    if (!crimeData) return [];
+   301→    return getAIRecommendations(crimeData);
+   302→  }, [crimeData]);
+   303→
+   304→  // ─── Investigation Queue ────────────────────────────────────────
+   305→  const investigationQueue = useMemo(() => {
+   306→    if (!crimeData) return [];
+   307→    return getInvestigationQueue(crimeData);
+   308→  }, [crimeData]);
+   309→
+   310→  // ─── Risk Alerts (high-risk with active cases) ──────────────────
+   311→  const riskAlerts = useMemo(() => {
+   312→    if (!crimeData) return [];
+   313→    return crimeData.accused
+   314→      .filter((a) => {
+   315→        if (a.risk < 80) return false;
+   316→        const activeFirs = crimeData.firs.filter(
+   317→          (f) =>
+   318→            f.accused.includes(a.id) &&
+   319→            f.investigation_status === "Under Investigation"
+   320→        );
+   321→        return activeFirs.length > 0;
+   322→      })
+   323→      .map((a) => ({
+   324→        ...a,
+   325→        activeCases: crimeData.firs.filter(
+   326→          (f) =>
+   327→            f.accused.includes(a.id) &&
+   328→            f.investigation_status === "Under Investigation"
+   329→        ).length,
+   330→      }))
+   331→      .sort((a, b) => b.risk - a.risk);
+   332→  }, [crimeData]);
+   333→
+   334→  // ─── Loading state ──────────────────────────────────────────────
+   335→  if (!crimeData || !stats) {
+   336→    return <LoadingSpinner message="Loading crime intelligence data..." />;
+   337→  }
+   338→
+   339→  // Stat card config
+   340→  const statCards = [
+   341→    { icon: FileText, label: "Total FIRs", value: stats.totalFIRs },
+   342→    { icon: Search, label: "Active Cases", value: stats.activeCases },
+   343→    { icon: UserX, label: "Arrested Accused", value: stats.arrestedCount },
+   344→    {
+   345→      icon: AlertTriangle,
+   346→      label: "High Risk Offenders",
+   347→      value: stats.highRiskCount,
+   348→    },
+   349→    { icon: MapPin, label: "Districts Covered", value: stats.districtCount },
+   350→    { icon: Users, label: "Gang Networks", value: stats.gangCount },
+   351→  ];
+   352→
+   353→  const staggerClasses = [
+   354→    "stagger-1",
+   355→    "stagger-2",
+   356→    "stagger-3",
+   357→    "stagger-4",
+   358→    "stagger-5",
+   359→    "stagger-6",
+   360→  ];
+   361→
+   362→  return (
+   363→    <div className="ambient-bg relative z-10">
+   364→      <div className="space-y-6 relative z-10">
+   365→        {/* ═══ Row 1: Sparkline Stat Cards ═════════════════════════ */}
+   366→        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+   367→          {statCards.map((card, i) => (
+   368→            <SparklineStatCard
+   369→              key={card.label}
+   370→              icon={card.icon}
+   371→              label={card.label}
+   372→              value={card.value}
+   373→              sparkData={crimeTrend}
+   374→              stagger={staggerClasses[i]}
+   375→            />
+   376→          ))}
+   377→        </div>
+   378→
+   379→        {/* ═══ Row 2: Chart (60%) + Recent FIRs (40%) ═════════════ */}
+   380→        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+   381→          {/* Bar Chart */}
+   382→          <motion.div
+   383→            className="glass-card p-4 md:col-span-3"
+   384→            initial={{ opacity: 0, y: 16 }}
+   385→            animate={{ opacity: 1, y: 0 }}
+   386→            transition={{ delay: 0.3, duration: 0.4 }}
+   387→          >
+   388→            <h3 className="text-sm font-semibold text-[#e2e8f0] mb-4 tracking-wide">
+   389→              FIRs by Crime Type
+   390→            </h3>
+   391→            <div className="h-72">
+   392→              <ResponsiveContainer width="100%" height="100%">
+   393→                <BarChart
+   394→                  data={chartData}
+   395→                  margin={{ top: 0, right: 0, left: -20, bottom: 40 }}
+   396→                >
+   397→                  <XAxis
+   398→                    dataKey="name"
+   399→                    tick={{ fill: "#94a3b8", fontSize: 11 }}
+   400→                    axisLine={{ stroke: "#2a3550" }}
+   401→                    tickLine={false}
+   402→                    angle={-35}
+   403→                    textAnchor="end"
+   404→                    interval={0}
+   405→                  />
+   406→                  <YAxis
+   407→                    tick={{ fill: "#94a3b8", fontSize: 11 }}
+   408→                    axisLine={{ stroke: "#2a3550" }}
+   409→                    tickLine={false}
+   410→                    allowDecimals={false}
+   411→                  />
+   412→                  <Tooltip
+   413→                    content={<ChartTooltip />}
+   414→                    cursor={{ fill: "#3b82f610" }}
+   415→                  />
+   416→                  <Bar
+   417→                    dataKey="count"
+   418→                    fill="#3b82f6"
+   419→                    radius={[4, 4, 0, 0]}
+   420→                    maxBarSize={40}
+   421→                  />
+   422→                </BarChart>
+   423→              </ResponsiveContainer>
+   424→            </div>
+   425→          </motion.div>
+   426→
+   427→          {/* Recent FIRs */}
+   428→          <motion.div
+   429→            className="glass-card p-4 md:col-span-2"
+   430→            initial={{ opacity: 0, y: 16 }}
+   431→            animate={{ opacity: 1, y: 0 }}
+   432→            transition={{ delay: 0.4, duration: 0.4 }}
+   433→          >
+   434→            <h3 className="text-sm font-semibold text-[#e2e8f0] mb-4 tracking-wide">
+   435→              Recent FIRs
+   436→            </h3>
+   437→            <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+   438→              {recentFIRs.map((fir) => (
+   439→                <div
+   440→                  key={fir.fir_id}
+   441→                  className="bg-[#0d1424] border border-[#2a3550]/60 rounded-lg p-3"
+   442→                >
+   443→                  <div className="flex items-center justify-between mb-1">
+   444→                    <span className="text-xs font-mono text-[#3b82f6]">
+   445→                      {fir.fir_id}
+   446→                    </span>
+   447→                    <SeverityBadge severity={fir.severity} />
+   448→                  </div>
+   449→                  <p className="text-sm text-[#e2e8f0] font-medium">
+   450→                    {fir.crime_type}
+   451→                  </p>
+   452→                  <div className="flex items-center gap-3 mt-1 text-xs text-[#94a3b8]">
+   453→                    <span>{fir.date}</span>
+   454→                    <span>•</span>
+   455→                    <span>{fir.district}</span>
+   456→                  </div>
+   457→                </div>
+   458→              ))}
+   459→            </div>
+   460→          </motion.div>
+   461→        </div>
+   462→
+   463→        {/* ═══ Row 3: Intel Feed (40%) + AI Recommendations (60%) ══ */}
+   464→        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+   465→          {/* Live Intelligence Feed */}
+   466→          <motion.div
+   467→            className="glass-card p-4 md:col-span-2 animate-fade-in-up stagger-3"
+   468→          >
+   469→            <div className="flex items-center gap-2 mb-4">
+   470→              <Radio className="h-4 w-4 text-[#3b82f6]" />
+   471→              <h3 className="text-sm font-semibold text-[#e2e8f0] tracking-wider">
+   472→                LIVE INTELLIGENCE FEED
+   473→              </h3>
+   474→              <span className="relative flex h-2.5 w-2.5">
+   475→                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+   476→                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+   477→              </span>
+   478→            </div>
+   479→            <div className="space-y-3 max-h-[280px] overflow-y-auto pr-1">
+   480→              {intelFeed.map((item) => (
+   481→                <div
+   482→                  key={item.id}
+   483→                  className="bg-[#0d1424] border border-[#2a3550]/40 rounded-lg p-3"
+   484→                >
+   485→                  <div className="flex items-center gap-2 mb-1">
+   486→                    <SeverityBadge severity={item.severity} />
+   487→                    <span className="text-[10px] text-[#475569] uppercase tracking-wider">
+   488→                      {item.type}
+   489→                    </span>
+   490→                    <span className="ml-auto text-[10px] text-[#64748b]">
+   491→                      {relativeTime(item.timestamp)}
+   492→                    </span>
+   493→                  </div>
+   494→                  <p className="text-sm text-[#e2e8f0] font-medium leading-snug">
+   495→                    {item.title}
+   496→                  </p>
+   497→                  <p className="text-xs text-[#94a3b8] mt-1 line-clamp-2">
+   498→                    {item.description}
+   499→                  </p>
+   500→                </div>
+   501→              ))}
+   502→            </div>
+   503→          </motion.div>
+   504→
+   505→          {/* AI Recommendations */}
+   506→          <motion.div
+   507→            className="glass-card p-4 md:col-span-3"
+   508→            initial={{ opacity: 0, y: 16 }}
+   509→            animate={{ opacity: 1, y: 0 }}
+   510→            transition={{ delay: 0.5, duration: 0.4 }}
+   511→          >
+   512→            <div className="flex items-center gap-2 mb-4">
+   513→              <Brain className="h-4 w-4 text-[#3b82f6]" />
+   514→              <h3 className="text-sm font-semibold text-[#e2e8f0] tracking-wider">
+   515→                AI RECOMMENDATIONS
+   516→              </h3>
+   517→            </div>
+   518→            <div className="space-y-3">
+   519→              {recommendations.slice(0, 4).map((rec, idx) => (
+   520→                <motion.div
+   521→                  key={idx}
+   522→                  className={`bg-[#0d1424] rounded-lg p-3 border-l-2 ${
+   523→                    rec.priority === "high"
+   524→                      ? "border-l-pink-500"
+   525→                      : "border-l-yellow-500"
+   526→                  }`}
+   527→                  initial={{ opacity: 0, x: -8 }}
+   528→                  animate={{ opacity: 1, x: 0 }}
+   529→                  transition={{ delay: 0.5 + idx * 0.1, duration: 0.3 }}
+   530→                >
+   531→                  <div className="flex items-center gap-2 mb-1">
+   532→                    <Badge
+   533→                      variant="outline"
+   534→                      className={
+   535→                        rec.priority === "high"
+   536→                          ? "border-pink-500/40 text-pink-400 text-[10px] px-1.5 py-0"
+   537→                          : "border-yellow-500/40 text-yellow-400 text-[10px] px-1.5 py-0"
+   538→                      }
+   539→                    >
+   540→                      {rec.priority}
+   541→                    </Badge>
+   542→                    <p className="text-sm text-[#e2e8f0] font-medium">
+   543→                      {rec.title}
+   544→                    </p>
+   545→                  </div>
+   546→                  <p className="text-xs text-[#94a3b8] leading-relaxed">
+   547→                    {rec.description}
+   548→                  </p>
+   549→                  <p className="text-[10px] text-[#3b82f6] mt-1.5 font-medium">
+   550→                    → {rec.action}
+   551→                  </p>
+   552→                </motion.div>
+   553→              ))}
+   554→            </div>
+   555→          </motion.div>
+   556→        </div>
+   557→
+   558→        {/* ═══ Row 4: Investigation Queue (60%) + Risk Alerts (40%) */}
+   559→        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+   560→          {/* Investigation Queue */}
+   561→          <motion.div
+   562→            className="glass-card p-4 md:col-span-3"
+   563→            initial={{ opacity: 0, y: 16 }}
+   564→            animate={{ opacity: 1, y: 0 }}
+   565→            transition={{ delay: 0.6, duration: 0.4 }}
+   566→          >
+   567→            <div className="flex items-center gap-2 mb-4">
+   568→              <Clock className="h-4 w-4 text-[#3b82f6]" />
+   569→              <h3 className="text-sm font-semibold text-[#e2e8f0] tracking-wider">
+   570→                INVESTIGATION QUEUE
+   571→              </h3>
+   572→            </div>
+   573→            <div className="max-h-[320px] overflow-y-auto">
+   574→              <Table>
+   575→                <TableHeader>
+   576→                  <TableRow className="border-[#2a3550] hover:bg-transparent">
+   577→                    <TableHead className="text-[#94a3b8] text-xs">
+   578→                      FIR ID
+   579→                    </TableHead>
+   580→                    <TableHead className="text-[#94a3b8] text-xs">
+   581→                      Crime Type
+   582→                    </TableHead>
+   583→                    <TableHead className="text-[#94a3b8] text-xs">
+   584→                      District
+   585→                    </TableHead>
+   586→                    <TableHead className="text-[#94a3b8] text-xs text-center">
+   587→                      Days
+   588→                    </TableHead>
+   589→                    <TableHead className="text-[#94a3b8] text-xs text-right">
+   590→                      Priority
+   591→                    </TableHead>
+   592→                  </TableRow>
+   593→                </TableHeader>
+   594→                <TableBody>
+   595→                  {investigationQueue.slice(0, 10).map((item) => (
+   596→                    <TableRow
+   597→                      key={item.firId}
+   598→                      className="border-[#2a3550]/50 hover:bg-[#0d1424]"
+   599→                    >
+   600→                      <TableCell className="text-[#3b82f6] font-mono text-xs">
+   601→                        {item.firId}
+   602→                      </TableCell>
+   603→                      <TableCell className="text-[#e2e8f0] text-xs">
+   604→                        {item.crimeType}
+   605→                      </TableCell>
+   606→                      <TableCell className="text-[#94a3b8] text-xs">
+   607→                        {item.district}
+   608→                      </TableCell>
+   609→                      <TableCell className="text-[#e2e8f0] text-xs text-center">
+   610→                        {item.daysOpen}
+   611→                      </TableCell>
+   612→                      <TableCell className="text-right">
+   613→                        <PriorityBadge score={item.priority} />
+   614→                      </TableCell>
+   615→                    </TableRow>
+   616→                  ))}
+   617→                </TableBody>
+   618→              </Table>
+   619→            </div>
+   620→          </motion.div>
+   621→
+   622→          {/* Risk Alerts */}
+   623→          <motion.div
+   624→            className="glass-card p-4 md:col-span-2"
+   625→            initial={{ opacity: 0, y: 16 }}
+   626→            animate={{ opacity: 1, y: 0 }}
+   627→            transition={{ delay: 0.7, duration: 0.4 }}
+   628→          >
+   629→            <div className="flex items-center gap-2 mb-4">
+   630→              <ShieldAlert className="h-4 w-4 text-red-400" />
+   631→              <h3 className="text-sm font-semibold text-[#e2e8f0] tracking-wider">
+   632→                RISK ALERTS
+   633→              </h3>
+   634→            </div>
+   635→            <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
+   636→              {riskAlerts.map((alert) => (
+   637→                <div
+   638→                  key={alert.id}
+   639→                  className={`rounded-lg p-3 border-l-2 ${
+   640→                    alert.risk >= 90
+   641→                      ? "bg-red-500/5 border-l-red-500"
+   642→                      : "bg-[#0d1424] border-l-orange-500/60"
+   643→                  }`}
+   644→                >
+   645→                  <div className="flex items-center gap-2">
+   646→                    {alert.risk >= 90 && (
+   647→                      <span className="relative flex h-2 w-2 shrink-0">
+   648→                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+   649→                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+   650→                      </span>
+   651→                    )}
+   652→                    <p className="text-sm text-[#e2e8f0] font-medium truncate">
+   653→                      {alert.name}
+   654→                    </p>
+   655→                    <span className="ml-auto text-xs font-mono font-bold text-red-400 shrink-0">
+   656→                      {alert.risk}
+   657→                    </span>
+   658→                  </div>
+   659→                  <div className="flex items-center gap-2 mt-1 text-xs text-[#94a3b8]">
+   660→                    <span>{alert.activeCases} active case{alert.activeCases > 1 ? "s" : ""}</span>
+   661→                    <span className="text-[#475569]">•</span>
+   662→                    <span>{alert.prior_firs} prior FIRs</span>
+   663→                  </div>
+   664→                </div>
+   665→              ))}
+   666→              {riskAlerts.length === 0 && (
+   667→                <p className="text-xs text-[#64748b] text-center py-6">
+   668→                  No critical risk alerts at this time
+   669→                </p>
+   670→              )}
+   671→            </div>
+   672→          </motion.div>
+   673→        </div>
+   674→
+   675→        {/* ═══ Row 5: High Risk Accused Table ═════════════════════ */}
+   676→        <motion.div
+   677→          className="glass-card p-4"
+   678→          initial={{ opacity: 0, y: 16 }}
+   679→          animate={{ opacity: 1, y: 0 }}
+   680→          transition={{ delay: 0.8, duration: 0.4 }}
+   681→        >
+   682→          <h3 className="text-sm font-semibold text-[#e2e8f0] mb-4 tracking-wide">
+   683→            High Risk Accused
+   684→          </h3>
+   685→          <div className="max-h-96 overflow-y-auto">
+   686→            <Table>
+   687→              <TableHeader>
+   688→                <TableRow className="border-[#2a3550] hover:bg-transparent">
+   689→                  <TableHead className="text-[#94a3b8]">Name</TableHead>
+   690→                  <TableHead className="text-[#94a3b8]">Age</TableHead>
+   691→                  <TableHead className="text-[#94a3b8]">Gang</TableHead>
+   692→                  <TableHead className="text-[#94a3b8]">Risk Score</TableHead>
+   693→                  <TableHead className="text-[#94a3b8]">Prior FIRs</TableHead>
+   694→                </TableRow>
+   695→              </TableHeader>
+   696→              <TableBody>
+   697→                {highRiskAccused.map((a) => (
+   698→                  <TableRow
+   699→                    key={a.id}
+   700→                    className="border-[#2a3550] hover:bg-[#0d1424] cursor-pointer"
+   701→                    onClick={() => {
+   702→                      setSelectedAccusedId(a.id);
+   703→                      setView("accused");
+   704→                    }}
+   705→                  >
+   706→                    <TableCell className="text-[#e2e8f0] font-medium text-[#3b82f6] hover:underline">
+   707→                      {a.name}
+   708→                    </TableCell>
+   709→                    <TableCell className="text-[#94a3b8]">{a.age}</TableCell>
+   710→                    <TableCell className="text-[#94a3b8]">
+   711→                      {a.gang ?? (
+   712→                        <span className="text-[#475569] italic">Unknown</span>
+   713→                      )}
+   714→                    </TableCell>
+   715→                    <TableCell>
+   716→                      <RiskBar score={a.risk} />
+   717→                    </TableCell>
+   718→                    <TableCell className="text-[#94a3b8]">
+   719→                      {a.prior_firs}
+   720→                    </TableCell>
+   721→                  </TableRow>
+   722→                ))}
+   723→              </TableBody>
+   724→            </Table>
+   725→          </div>
+   726→        </motion.div>
+   727→      </div>
+   728→    </div>
+   729→  );
+   730→}
