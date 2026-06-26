@@ -163,7 +163,7 @@ export const VIEW_PERMISSIONS: Record<string, string> = {
  * Falls back to `false` for unknown roles/permissions.
  */
 export function hasPermission(role: string, permission: string): boolean {
-  const rolePerms = DEFAULT_PERMISSIONS[role];
+  const rolePerms = DEFAULT_PERMISSIONS[role.toLowerCase()];
   if (!rolePerms) return false;
   return rolePerms[permission] === true;
 }
@@ -173,7 +173,7 @@ export function hasPermission(role: string, permission: string): boolean {
  * Returns an empty object for unknown roles.
  */
 export function getPermissions(role: string): Record<string, boolean> {
-  return DEFAULT_PERMISSIONS[role] ?? {};
+  return DEFAULT_PERMISSIONS[role.toLowerCase()] ?? {};
 }
 
 /**
