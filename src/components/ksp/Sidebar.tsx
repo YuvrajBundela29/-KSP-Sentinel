@@ -34,6 +34,7 @@ import {
   Radar,
   FileSearch,
   BadgeCheck,
+  BookOpen,
 } from "lucide-react";
 import { useState, memo, useCallback, useEffect } from "react";
 import type { ViewType } from "@/lib/types";
@@ -71,6 +72,7 @@ const LABELS: Record<string, Record<string, string>> = {
     intelligence: "Intelligence",
     analytics: "Analytics & AI",
     commandPalette: "Command Palette",
+    helpGuide: "Help Guide",
   },
   kn: {
     dashboard: "ಮಿಷನ್ ಕಂಟ್ರೋಲ್",
@@ -99,6 +101,7 @@ const LABELS: Record<string, Record<string, string>> = {
     intelligence: "ಗುಪ್ತಚರ",
     analytics: "ವಿಶ್ಲೇಷಣೆ & AI",
     commandPalette: "ಕಮಾಂಡ್ ಪ್ಯಾಲೆಟ್",
+    helpGuide: "ಸಹಾಯ ಮಾರ್ಗದರ್ಶಿ",
   },
 };
 
@@ -325,6 +328,7 @@ export default function Sidebar() {
   const sidebarCollapsed = useAppStore((s) => s.sidebarCollapsed);
   const setSidebarCollapsed = useAppStore((s) => s.setSidebarCollapsed);
   const notifications = useAppStore((s) => s.notifications);
+  const setShowOnboarding = useAppStore((s) => s.setShowOnboarding);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dmOpen, setDmOpen] = useState(true);
   const [analyticsOpen, setAnalyticsOpen] = useState(true);
@@ -612,6 +616,51 @@ export default function Sidebar() {
               Ctrl+K
             </kbd>
           </motion.button>
+        )}
+
+        {/* Help Guide button — desktop, expanded only */}
+        {!sidebarCollapsed && (
+          <button
+            onClick={() => setShowOnboarding(true)}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] cursor-pointer transition-all duration-200"
+            style={{
+              color: "#3d4659",
+              border: "1px dashed rgba(255,255,255,0.05)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
+              e.currentTarget.style.color = "#5a657a";
+              e.currentTarget.style.background = "rgba(255,255,255,0.01)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "rgba(255,255,255,0.05)";
+              e.currentTarget.style.color = "#3d4659";
+              e.currentTarget.style.background = "transparent";
+            }}
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            <span className="flex-1 text-left">{labels.helpGuide || "Help Guide"}</span>
+          </button>
+        )}
+
+        {/* Collapsed help guide — icon only */}
+        {sidebarCollapsed && (
+          <button
+            onClick={() => setShowOnboarding(true)}
+            className="w-full flex items-center justify-center py-2 rounded-lg cursor-pointer transition-all duration-200"
+            style={{ color: "#3d4659" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+              e.currentTarget.style.color = "#8b97b0";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "#3d4659";
+            }}
+            title="Help Guide"
+          >
+            <BookOpen className="w-4 h-4" />
+          </button>
         )}
 
         {/* User Info — desktop, expanded only */}

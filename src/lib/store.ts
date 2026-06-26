@@ -51,6 +51,11 @@ interface AppState {
   notifications: { id: string; title: string; message: string; timestamp: string; read: boolean; type: "info" | "warning" | "error" | "success" }[];
   addNotification: (n: Omit<{ id: string; title: string; message: string; timestamp: string; read: boolean; type: "info" | "warning" | "error" | "success" }, "id" | "timestamp">) => void;
   markNotificationRead: (id: string) => void;
+
+  // Onboarding
+  showOnboarding: boolean;
+  setShowOnboarding: (show: boolean) => void;
+  completeOnboarding: () => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -146,4 +151,14 @@ export const useAppStore = create<AppState>((set) => ({
         n.id === id ? { ...n, read: true } : n
       ),
     })),
+
+  // Onboarding
+  showOnboarding: typeof window !== "undefined" ? !localStorage.getItem("ksp_onboarding_done") : true,
+  setShowOnboarding: (show) => set({ showOnboarding: show }),
+  completeOnboarding: () => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("ksp_onboarding_done", "1");
+    }
+    set({ showOnboarding: false });
+  },
 }));

@@ -14,6 +14,7 @@ import InvestigationTimeline from "@/components/ksp/InvestigationTimeline";
 import ReportGenerator from "@/components/ksp/ReportGenerator";
 import CommandPalette from "@/components/ksp/CommandPalette";
 import LoadingSpinner from "@/components/ksp/LoadingSpinner";
+import WelcomeOnboarding from "@/components/ksp/WelcomeOnboarding";
 
 // Lazy load DM components for code splitting
 const DataManagementDashboard = lazy(() => import("@/components/ksp/dm/DataManagementDashboard"));
@@ -181,6 +182,9 @@ export default function Home() {
 
       {/* Command palette overlay */}
       <CommandPalette />
+
+      {/* Onboarding guide overlay */}
+      <WelcomeOnboarding />
     </div>
   );
 }
