@@ -151,6 +151,9 @@ export const VIEW_PERMISSIONS: Record<string, string> = {
   "dm-audit": "view_audit",
   "dm-ai-queue": "run_ai",
   "dm-settings": "manage_settings",
+  "dm-sociological": "view_analytics",
+  "dm-forecasting": "view_analytics",
+  "dm-financial-network": "view_analytics",
 };
 
 // ─── Permission Functions ───────────────────────────────────────
