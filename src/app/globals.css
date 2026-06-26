@@ -176,6 +176,11 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html, body {
+    overflow: auto;
+    height: auto;
+    min-height: 100vh;
+  }
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-geist-sans), "Inter", system-ui, -apple-system, sans-serif;
@@ -280,7 +285,7 @@
 
 .ambient-bg {
   position: relative;
-  overflow: hidden;
+  overflow: auto;
 }
 .ambient-bg::before {
   content: "";
