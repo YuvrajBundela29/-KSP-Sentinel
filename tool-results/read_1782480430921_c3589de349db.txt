@@ -1,0 +1,1503 @@
+     1→"use client";
+     2→
+     3→import dynamic from "next/dynamic";
+     4→import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+     5→import { useAppStore } from "@/lib/store";
+     6→import { getNetworkEdges } from "@/lib/data";
+     7→import {
+     8→  Select,
+     9→  SelectContent,
+    10→  SelectItem,
+    11→  SelectTrigger,
+    12→  SelectValue,
+    13→} from "@/components/ui/select";
+    14→import {
+    15→  X,
+    16→  User,
+    17→  Shield,
+    18→  FileText,
+    19→  Car,
+    20→  MapPin,
+    21→  Users,
+    22→  ZoomIn,
+    23→  ZoomOut,
+    24→  RotateCcw,
+    25→  LayoutGrid,
+    26→  Maximize2,
+    27→} from "lucide-react";
+    28→import type { FIR, Accused, Gang, Vehicle, District } from "@/lib/types";
+    29→import LoadingSpinner from "./LoadingSpinner";
+    30→
+    31→/* ------------------------------------------------------------------ */
+    32→/*  Types                                                              */
+    33→/* ------------------------------------------------------------------ */
+    34→
+    35→interface SimNode {
+    36→  id: string;
+    37→  name: string;
+    38→  type: "accused" | "gang" | "fir" | "vehicle" | "district";
+    39→  color: string;
+    40→  size: number;
+    41→  x: number;
+    42→  y: number;
+    43→  vx: number;
+    44→  vy: number;
+    45→  _accused?: Accused;
+    46→  _gang?: Gang;
+    47→  _fir?: FIR;
+    48→  _vehicle?: Vehicle;
+    49→  _district?: District;
+    50→  _firCount?: number;
+    51→}
+    52→
+    53→interface SimLink {
+    54→  source: string;
+    55→  target: string;
+    56→  type: string;
+    57→  color: string;
+    58→}
+    59→
+    60→/* ------------------------------------------------------------------ */
+    61→/*  Constants                                                          */
+    62→/* ------------------------------------------------------------------ */
+    63→
+    64→const LINK_COLORS: Record<string, string> = {
+    65→  involved_in: "#5a657a",
+    66→  member_of: "#fbbf24",
+    67→  occurred_in: "#818cf8",
+    68→  used_vehicle: "#22d3ee",
+    69→  gang_associate: "#fbbf24",
+    70→};
+    71→
+    72→const CRIME_TYPES = [
+    73→  "Chain Snatching",
+    74→  "Vehicle Theft",
+    75→  "Cyber Fraud",
+    76→  "Jewellery Heist",
+    77→  "Drug Trafficking",
+    78→];
+    79→
+    80→const NODE_TYPE_CONFIG: Record<
+    81→  string,
+    82→  { color: string; label: string; icon: string; baseSize: number }
+    83→> = {
+    84→  accused: { color: "#f87171", label: "Accused", icon: "●", baseSize: 6 },
+    85→  gang: { color: "#fbbf24", label: "Gang", icon: "◆", baseSize: 8 },
+    86→  fir: { color: "#eab308", label: "FIR", icon: "■", baseSize: 4 },
+    87→  vehicle: { color: "#22d3ee", label: "Vehicle", icon: "▲", baseSize: 5 },
+    88→  district: { color: "#818cf8", label: "District", icon: "◉", baseSize: 7 },
+    89→};
+    90→
+    91→/* ------------------------------------------------------------------ */
+    92→/*  Glass Card Styles                                                  */
+    93→/* ------------------------------------------------------------------ */
+    94→
+    95→const glassCard: React.CSSProperties = {
+    96→  background: "rgba(15, 21, 36, 0.92)",
+    97→  backdropFilter: "blur(24px)",
+    98→  WebkitBackdropFilter: "blur(24px)",
+    99→  border: "1px solid rgba(255, 255, 255, 0.06)",
+   100→  borderRadius: "12px",
+   101→  boxShadow:
+   102→    "0 16px 48px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.03)",
+   103→};
+   104→
+   105→/* ------------------------------------------------------------------ */
+   106→/*  Info Panel sub-components                                          */
+   107→/* ------------------------------------------------------------------ */
+   108→
+   109→function InfoRow({
+   110→  icon: Icon,
+   111→  label,
+   112→  value,
+   113→}: {
+   114→  icon: React.ElementType;
+   115→  label: string;
+   116→  value: React.ReactNode;
+   117→}) {
+   118→  return (
+   119→    <div className="flex items-start gap-2 py-1.5">
+   120→      <Icon className="size-4 mt-0.5 shrink-0 text-[#8b97b0]" />
+   121→      <div className="min-w-0">
+   122→        <p className="text-[11px] uppercase tracking-wider text-[#5a657a]">
+   123→          {label}
+   124→        </p>
+   125→        <p className="text-sm text-[#f1f5f9] break-words">{value}</p>
+   126→      </div>
+   127→    </div>
+   128→  );
+   129→}
+   130→
+   131→function AccusedPanel({ node }: { node: SimNode }) {
+   132→  const a = node._accused!;
+   133→  const crimeData = useAppStore((s) => s.crimeData);
+   134→  const firs =
+   135→    crimeData?.firs.filter((f) => f.accused.includes(a.id)) ?? [];
+   136→  const gang = crimeData?.gangs.find((g) => g.id === a.gang);
+   137→  return (
+   138→    <div className="space-y-3">
+   139→      <div className="flex items-center gap-2">
+   140→        <div className="w-9 h-9 rounded-full bg-[#f87171]/20 flex items-center justify-center">
+   141→          <User className="size-4 text-[#f87171]" />
+   142→        </div>
+   143→        <div>
+   144→          <h3 className="text-base font-semibold text-white leading-tight">
+   145→            {a.name}
+   146→          </h3>
+   147→          <span className="text-[11px] text-[#5a657a] uppercase">
+   148→            Accused &bull; {a.id}
+   149→          </span>
+   150→        </div>
+   151→      </div>
+   152→      <InfoRow icon={User} label="Age" value={`${a.age} years`} />
+   153→      <InfoRow icon={Users} label="Gender" value={a.gender} />
+   154→      <InfoRow
+   155→        icon={Shield}
+   156→        label="Risk Score"
+   157→        value={
+   158→          <span
+   159→            className={
+   160→              a.risk > 80
+   161→                ? "text-[#f87171] font-bold"
+   162→                : a.risk > 60
+   163→                ? "text-[#fbbf24] font-bold"
+   164→                : "text-[#34d399] font-bold"
+   165→            }
+   166→          >
+   167→            {a.risk}/100
+   168→          </span>
+   169→        }
+   170→      />
+   171→      <InfoRow
+   172→        icon={Shield}
+   173→        label="Gang"
+   174→        value={gang ? gang.name : "None"}
+   175→      />
+   176→      <InfoRow
+   177→        icon={FileText}
+   178→        label="Prior FIRs"
+   179→        value={String(a.prior_firs)}
+   180→      />
+   181→      {firs.length > 0 && (
+   182→        <div className="mt-2">
+   183→          <p className="text-[11px] uppercase tracking-wider text-[#5a657a] mb-1">
+   184→            Linked FIRs
+   185→          </p>
+   186→          <div className="flex flex-wrap gap-1">
+   187→            {firs.map((f) => (
+   188→              <span
+   189→                key={f.fir_id}
+   190→                className="px-1.5 py-0.5 bg-[#fbbf24]/10 text-[#fbbf24] text-[11px] rounded"
+   191→              >
+   192→                {f.fir_id}
+   193→              </span>
+   194→            ))}
+   195→          </div>
+   196→        </div>
+   197→      )}
+   198→    </div>
+   199→  );
+   200→}
+   201→
+   202→function GangPanel({ node }: { node: SimNode }) {
+   203→  const g = node._gang!;
+   204→  const crimeData = useAppStore((s) => s.crimeData);
+   205→  return (
+   206→    <div className="space-y-3">
+   207→      <div className="flex items-center gap-2">
+   208→        <div className="w-9 h-9 rounded-full bg-[#fbbf24]/20 flex items-center justify-center">
+   209→          <Shield className="size-4 text-[#fbbf24]" />
+   210→        </div>
+   211→        <div>
+   212→          <h3 className="text-base font-semibold text-white leading-tight">
+   213→            {g.name}
+   214→          </h3>
+   215→          <span className="text-[11px] text-[#5a657a] uppercase">
+   216→            Gang &bull; {g.id}
+   217→          </span>
+   218→        </div>
+   219→      </div>
+   220→      <InfoRow icon={Shield} label="Type" value={g.type} />
+   221→      <InfoRow icon={MapPin} label="Base" value={g.base} />
+   222→      <InfoRow
+   223→        icon={Users}
+   224→        label="Members"
+   225→        value={
+   226→          <div className="space-y-0.5">
+   227→            {g.members.map((mid) => {
+   228→              const acc = crimeData?.accused.find((a) => a.id === mid);
+   229→              return (
+   230→                <div key={mid}>
+   231→                  {acc ? acc.name : mid}{" "}
+   232→                  <span className="text-[#5a657a]">({mid})</span>
+   233→                </div>
+   234→              );
+   235→            })}
+   236→          </div>
+   237→        }
+   238→      />
+   239→    </div>
+   240→  );
+   241→}
+   242→
+   243→function FIRPanel({ node }: { node: SimNode }) {
+   244→  const f = node._fir!;
+   245→  return (
+   246→    <div className="space-y-3">
+   247→      <div className="flex items-center gap-2">
+   248→        <div className="w-9 h-9 rounded-full bg-[#fbbf24]/20 flex items-center justify-center">
+   249→          <FileText className="size-4 text-[#fbbf24]" />
+   250→        </div>
+   251→        <div>
+   252→          <h3 className="text-base font-semibold text-white leading-tight">
+   253→            {f.fir_id}
+   254→          </h3>
+   255→          <span className="text-[11px] text-[#5a657a] uppercase">
+   256→            FIR &bull; {f.crime_type}
+   257→          </span>
+   258→        </div>
+   259→      </div>
+   260→      <InfoRow icon={FileText} label="Date" value={`${f.date} ${f.time}`} />
+   261→      <InfoRow icon={MapPin} label="District" value={f.district} />
+   262→      <InfoRow
+   263→        icon={Shield}
+   264→        label="Severity"
+   265→        value={
+   266→          <span
+   267→            className={
+   268→              f.severity === "critical"
+   269→                ? "text-[#f87171]"
+   270→                : f.severity === "high"
+   271→                ? "text-[#fbbf24]"
+   272→                : "text-[#fbbf24]"
+   273→            }
+   274→          >
+   275→            {f.severity.toUpperCase()}
+   276→          </span>
+   277→        }
+   278→      />
+   279→      <InfoRow
+   280→        icon={Shield}
+   281→        label="Status"
+   282→        value={f.investigation_status}
+   283→      />
+   284→      <InfoRow icon={MapPin} label="Location" value={f.location.place} />
+   285→      <InfoRow
+   286→        icon={Users}
+   287→        label="Accused"
+   288→        value={
+   289→          <div className="space-y-0.5">
+   290→            {f.accused.map((a) => (
+   291→              <div key={a}>{a}</div>
+   292→            ))}
+   293→          </div>
+   294→        }
+   295→      />
+   296→    </div>
+   297→  );
+   298→}
+   299→
+   300→function VehiclePanel({ node }: { node: SimNode }) {
+   301→  const v = node._vehicle!;
+   302→  return (
+   303→    <div className="space-y-3">
+   304→      <div className="flex items-center gap-2">
+   305→        <div className="w-9 h-9 rounded-full bg-[#22d3ee]/20 flex items-center justify-center">
+   306→          <Car className="size-4 text-[#22d3ee]" />
+   307→        </div>
+   308→        <div>
+   309→          <h3 className="text-base font-semibold text-white leading-tight">
+   310→            {v.reg}
+   311→          </h3>
+   312→          <span className="text-[11px] text-[#5a657a] uppercase">
+   313→            Vehicle &bull; {v.id}
+   314→          </span>
+   315→        </div>
+   316→      </div>
+   317→      <InfoRow icon={Car} label="Type" value={v.type} />
+   318→      <InfoRow icon={Car} label="Make" value={v.make} />
+   319→      <InfoRow icon={Shield} label="Color" value={v.color} />
+   320→    </div>
+   321→  );
+   322→}
+   323→
+   324→function DistrictPanel({ node }: { node: SimNode }) {
+   325→  const d = node._district!;
+   326→  return (
+   327→    <div className="space-y-3">
+   328→      <div className="flex items-center gap-2">
+   329→        <div className="w-9 h-9 rounded-full bg-[#818cf8]/20 flex items-center justify-center">
+   330→          <MapPin className="size-4 text-[#818cf8]" />
+   331→        </div>
+   332→        <div>
+   333→          <h3 className="text-base font-semibold text-white leading-tight">
+   334→            {d.name}
+   335→          </h3>
+   336→          <span className="text-[11px] text-[#5a657a] uppercase">
+   337→            District
+   338→          </span>
+   339→        </div>
+   340→      </div>
+   341→      <InfoRow icon={MapPin} label="Name" value={d.name} />
+   342→      <InfoRow
+   343→        icon={FileText}
+   344→        label="FIR Count"
+   345→        value={
+   346→          <span className="font-bold text-[#818cf8]">
+   347→            {node._firCount ?? 0}
+   348→          </span>
+   349→        }
+   350→      />
+   351→    </div>
+   352→  );
+   353→}
+   354→
+   355→/* ------------------------------------------------------------------ */
+   356→/*  2D Force Simulation (no D3 dependency)                             */
+   357→/* ------------------------------------------------------------------ */
+   358→
+   359→function simulateForce2D(
+   360→  nodes: SimNode[],
+   361→  links: SimLink[],
+   362→  width: number,
+   363→  height: number,
+   364→  iterations: number = 300
+   365→) {
+   366→  const cx = width / 2;
+   367→  const cy = height / 2;
+   368→  const spread = Math.min(width, height) * 0.35;
+   369→
+   370→  for (const n of nodes) {
+   371→    n.x = cx + (Math.random() - 0.5) * spread * 2;
+   372→    n.y = cy + (Math.random() - 0.5) * spread * 2;
+   373→    n.vx = 0;
+   374→    n.vy = 0;
+   375→  }
+   376→
+   377→  const nodeMap = new Map<string, SimNode>();
+   378→  for (const n of nodes) nodeMap.set(n.id, n);
+   379→
+   380→  for (let iter = 0; iter < iterations; iter++) {
+   381→    const alpha = 1 - iter / iterations;
+   382→    const repulsion = 6000;
+   383→    const attraction = 0.005;
+   384→    const centerForce = 0.01;
+   385→    const damping = 0.82;
+   386→
+   387→    // Repulsion between all pairs
+   388→    for (let i = 0; i < nodes.length; i++) {
+   389→      for (let j = i + 1; j < nodes.length; j++) {
+   390→        const a = nodes[i];
+   391→        const b = nodes[j];
+   392→        let dx = a.x - b.x;
+   393→        let dy = a.y - b.y;
+   394→        let dist = Math.sqrt(dx * dx + dy * dy);
+   395→        if (dist < 1) {
+   396→          dist = 1;
+   397→          dx = Math.random() - 0.5;
+   398→          dy = Math.random() - 0.5;
+   399→        }
+   400→        const force = (repulsion * alpha) / (dist * dist);
+   401→        const fx = (dx / dist) * force;
+   402→        const fy = (dy / dist) * force;
+   403→        a.vx += fx;
+   404→        a.vy += fy;
+   405→        b.vx -= fx;
+   406→        b.vy -= fy;
+   407→      }
+   408→    }
+   409→
+   410→    // Attraction along links
+   411→    for (const link of links) {
+   412→      const s = nodeMap.get(link.source);
+   413→      const t = nodeMap.get(link.target);
+   414→      if (!s || !t) continue;
+   415→      const dx = t.x - s.x;
+   416→      const dy = t.y - s.y;
+   417→      const dist = Math.sqrt(dx * dx + dy * dy);
+   418→      if (dist < 1) continue;
+   419→      const force = dist * attraction * alpha;
+   420→      const fx = (dx / dist) * force;
+   421→      const fy = (dy / dist) * force;
+   422→      s.vx += fx;
+   423→      s.vy += fy;
+   424→      t.vx -= fx;
+   425→      t.vy -= fy;
+   426→    }
+   427→
+   428→    // Center gravity
+   429→    for (const n of nodes) {
+   430→      n.vx += (cx - n.x) * centerForce * alpha;
+   431→      n.vy += (cy - n.y) * centerForce * alpha;
+   432→    }
+   433→
+   434→    // Apply velocity with damping
+   435→    for (const n of nodes) {
+   436→      n.vx *= damping;
+   437→      n.vy *= damping;
+   438→      n.x += n.vx;
+   439→      n.y += n.vy;
+   440→    }
+   441→  }
+   442→}
+   443→
+   444→/* ------------------------------------------------------------------ */
+   445→/*  Canvas Graph Renderer                                              */
+   446→/* ------------------------------------------------------------------ */
+   447→
+   448→function GraphCanvas({
+   449→  nodes,
+   450→  links,
+   451→  selectedNode,
+   452→  hoveredNode,
+   453→  onSelectNode,
+   454→  onHoverNode,
+   455→  zoom,
+   456→  panX,
+   457→  panY,
+   458→}: {
+   459→  nodes: SimNode[];
+   460→  links: SimLink[];
+   461→  selectedNode: SimNode | null;
+   462→  hoveredNode: SimNode | null;
+   463→  onSelectNode: (node: SimNode | null) => void;
+   464→  onHoverNode: (node: SimNode | null) => void;
+   465→  zoom: number;
+   466→  panX: number;
+   467→  panY: number;
+   468→}) {
+   469→  const canvasRef = useRef<HTMLCanvasElement>(null);
+   470→  const containerRef = useRef<HTMLDivElement>(null);
+   471→  const nodeMap = useMemo(() => {
+   472→    const m = new Map<string, SimNode>();
+   473→    for (const n of nodes) m.set(n.id, n);
+   474→    return m;
+   475→  }, [nodes]);
+   476→
+   477→  // Canvas sizing
+   478→  const [canvasSize, setCanvasSize] = useState({ w: 800, h: 600 });
+   479→
+   480→  useEffect(() => {
+   481→    const container = containerRef.current;
+   482→    if (!container) return;
+   483→    const observer = new ResizeObserver((entries) => {
+   484→      for (const entry of entries) {
+   485→        setCanvasSize({
+   486→          w: entry.contentRect.width,
+   487→          h: entry.contentRect.height,
+   488→        });
+   489→      }
+   490→    });
+   491→    observer.observe(container);
+   492→    return () => observer.disconnect();
+   493→  }, []);
+   494→
+   495→  // Draw
+   496→  useEffect(() => {
+   497→    const canvas = canvasRef.current;
+   498→    if (!canvas) return;
+   499→    const ctx = canvas.getContext("2d");
+   500→    if (!ctx) return;
+   501→
+   502→    const dpr = window.devicePixelRatio || 1;
+   503→    canvas.width = canvasSize.w * dpr;
+   504→    canvas.height = canvasSize.h * dpr;
+   505→    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+   506→
+   507→    // Background
+   508→    ctx.fillStyle = "#050810";
+   509→    ctx.fillRect(0, 0, canvasSize.w, canvasSize.h);
+   510→
+   511→    // Subtle grid
+   512→    ctx.save();
+   513→    ctx.strokeStyle = "rgba(255,255,255,0.015)";
+   514→    ctx.lineWidth = 1;
+   515→    const gridSize = 40 * zoom;
+   516→    const offsetX = (panX % gridSize + gridSize) % gridSize;
+   517→    const offsetY = (panY % gridSize + gridSize) % gridSize;
+   518→    for (let x = offsetX; x < canvasSize.w; x += gridSize) {
+   519→      ctx.beginPath();
+   520→      ctx.moveTo(x, 0);
+   521→      ctx.lineTo(x, canvasSize.h);
+   522→      ctx.stroke();
+   523→    }
+   524→    for (let y = offsetY; y < canvasSize.h; y += gridSize) {
+   525→      ctx.beginPath();
+   526→      ctx.moveTo(0, y);
+   527→      ctx.lineTo(canvasSize.w, y);
+   528→      ctx.stroke();
+   529→    }
+   530→    ctx.restore();
+   531→
+   532→    // Transform
+   533→    ctx.save();
+   534→    ctx.translate(canvasSize.w / 2 + panX, canvasSize.h / 2 + panY);
+   535→    ctx.scale(zoom, zoom);
+   536→    ctx.translate(-canvasSize.w / 2, -canvasSize.h / 2);
+   537→
+   538→    // Draw links
+   539→    for (const link of links) {
+   540→      const s = nodeMap.get(link.source);
+   541→      const t = nodeMap.get(link.target);
+   542→      if (!s || !t) continue;
+   543→
+   544→      const isGangAssociate = link.type === "gang_associate";
+   545→      const isHighlighted =
+   546→        selectedNode &&
+   547→        (link.source === selectedNode.id || link.target === selectedNode.id);
+   548→
+   549→      ctx.beginPath();
+   550→      ctx.moveTo(s.x, s.y);
+   551→      ctx.lineTo(t.x, t.y);
+   552→
+   553→      if (isHighlighted) {
+   554→        ctx.strokeStyle = link.color;
+   555→        ctx.lineWidth = 2;
+   556→        ctx.globalAlpha = 0.7;
+   557→      } else if (selectedNode) {
+   558→        ctx.strokeStyle = link.color;
+   559→        ctx.lineWidth = 0.5;
+   560→        ctx.globalAlpha = 0.08;
+   561→      } else {
+   562→        ctx.strokeStyle = link.color;
+   563→        ctx.lineWidth = isGangAssociate ? 0.5 : 1;
+   564→        ctx.globalAlpha = isGangAssociate ? 0.1 : 0.25;
+   565→      }
+   566→
+   567→      if (isGangAssociate) {
+   568→        ctx.setLineDash([4, 4]);
+   569→      }
+   570→
+   571→      ctx.stroke();
+   572→      ctx.setLineDash([]);
+   573→      ctx.globalAlpha = 1;
+   574→    }
+   575→
+   576→    // Draw nodes
+   577→    for (const node of nodes) {
+   578→      const cfg = NODE_TYPE_CONFIG[node.type];
+   579→      if (!cfg) continue;
+   580→
+   581→      const isSelected = selectedNode?.id === node.id;
+   582→      const isHovered = hoveredNode?.id === node.id;
+   583→      const isConnected =
+   584→        selectedNode &&
+   585→        links.some(
+   586→          (l) =>
+   587→            (l.source === selectedNode.id && l.target === node.id) ||
+   588→            (l.target === selectedNode.id && l.source === node.id)
+   589→        );
+   590→
+   591→      const dimmed = selectedNode && !isSelected && !isConnected;
+   592→
+   593→      // Node size
+   594→      let nodeSize = cfg.baseSize;
+   595→      if (node.type === "accused" && node._accused) {
+   596→        nodeSize = Math.max(4, node._accused.risk / 8);
+   597→      }
+   598→      if (node.type === "district" && node._firCount) {
+   599→        nodeSize = Math.max(5, Math.min(12, 4 + node._firCount * 0.8));
+   600→      }
+   601→
+   602→      const drawSize = isHovered || isSelected ? nodeSize * 1.3 : nodeSize;
+   603→
+   604→      // Outer glow for selected/hovered
+   605→      if (isSelected || isHovered) {
+   606→        ctx.beginPath();
+   607→        ctx.arc(node.x, node.y, drawSize + 8, 0, Math.PI * 2);
+   608→        const glow = ctx.createRadialGradient(
+   609→          node.x,
+   610→          node.y,
+   611→          drawSize,
+   612→          node.x,
+   613→          node.y,
+   614→          drawSize + 8
+   615→        );
+   616→        glow.addColorStop(0, `${node.color}40`);
+   617→        glow.addColorStop(1, `${node.color}00`);
+   618→        ctx.fillStyle = glow;
+   619→        ctx.fill();
+   620→      }
+   621→
+   622→      // Selection ring
+   623→      if (isSelected) {
+   624→        ctx.beginPath();
+   625→        ctx.arc(node.x, node.y, drawSize + 4, 0, Math.PI * 2);
+   626→        ctx.strokeStyle = "#ffffff";
+   627→        ctx.lineWidth = 1.5;
+   628→        ctx.globalAlpha = 0.5;
+   629→        ctx.stroke();
+   630→        ctx.globalAlpha = 1;
+   631→      }
+   632→
+   633→      // Node shape
+   634→      ctx.globalAlpha = dimmed ? 0.15 : 1;
+   635→      ctx.beginPath();
+   636→
+   637→      if (node.type === "accused") {
+   638→        ctx.arc(node.x, node.y, drawSize, 0, Math.PI * 2);
+   639→      } else if (node.type === "gang") {
+   640→        // Diamond shape
+   641→        ctx.moveTo(node.x, node.y - drawSize * 1.2);
+   642→        ctx.lineTo(node.x + drawSize, node.y);
+   643→        ctx.lineTo(node.x, node.y + drawSize * 1.2);
+   644→        ctx.lineTo(node.x - drawSize, node.y);
+   645→        ctx.closePath();
+   646→      } else if (node.type === "fir") {
+   647→        // Box shape
+   648→        const s = drawSize * 0.9;
+   649→        ctx.rect(node.x - s, node.y - s, s * 2, s * 2);
+   650→      } else if (node.type === "vehicle") {
+   651→        // Triangle
+   652→        ctx.moveTo(node.x, node.y - drawSize * 1.2);
+   653→        ctx.lineTo(node.x + drawSize, node.y + drawSize * 0.8);
+   654→        ctx.lineTo(node.x - drawSize, node.y + drawSize * 0.8);
+   655→        ctx.closePath();
+   656→      } else if (node.type === "district") {
+   657→        ctx.arc(node.x, node.y, drawSize, 0, Math.PI * 2);
+   658→      }
+   659→
+   660→      if (node.type === "district") {
+   661→        ctx.fillStyle = node.color;
+   662→        ctx.globalAlpha = dimmed ? 0.06 : 0.3;
+   663→        ctx.fill();
+   664→        ctx.globalAlpha = dimmed ? 0.2 : 1;
+   665→        ctx.strokeStyle = node.color;
+   666→        ctx.lineWidth = 2;
+   667→        ctx.stroke();
+   668→      } else {
+   669→        ctx.fillStyle = node.color;
+   670→        ctx.fill();
+   671→      }
+   672→
+   673→      // Node label
+   674→      if (!dimmed && (zoom > 0.6 || isSelected || isHovered)) {
+   675→        const label =
+   676→          node.name.length > 16 ? node.name.slice(0, 16) + "…" : node.name;
+   677→        ctx.font = `${isSelected || isHovered ? "600" : "500"} 10px Inter, system-ui, sans-serif`;
+   678→        ctx.textAlign = "center";
+   679→        ctx.textBaseline = "top";
+   680→
+   681→        const textY = node.y + drawSize + 6;
+   682→        const textW = ctx.measureText(label).width;
+   683→
+   684→        // Label background
+   685→        ctx.fillStyle = "rgba(5, 8, 16, 0.85)";
+   686→        ctx.beginPath();
+   687→        const pad = 4;
+   688→        const lx = node.x - textW / 2 - pad;
+   689→        const ly = textY - 2;
+   690→        const lw = textW + pad * 2;
+   691→        const lh = 16;
+   692→        const lr = 4;
+   693→        ctx.moveTo(lx + lr, ly);
+   694→        ctx.lineTo(lx + lw - lr, ly);
+   695→        ctx.quadraticCurveTo(lx + lw, ly, lx + lw, ly + lr);
+   696→        ctx.lineTo(lx + lw, ly + lh - lr);
+   697→        ctx.quadraticCurveTo(lx + lw, ly + lh, lx + lw - lr, ly + lh);
+   698→        ctx.lineTo(lx + lr, ly + lh);
+   699→        ctx.quadraticCurveTo(lx, ly + lh, lx, ly + lh - lr);
+   700→        ctx.lineTo(lx, ly + lr);
+   701→        ctx.quadraticCurveTo(lx, ly, lx + lr, ly);
+   702→        ctx.closePath();
+   703→        ctx.fill();
+   704→        ctx.strokeStyle = "rgba(255,255,255,0.06)";
+   705→        ctx.lineWidth = 0.5;
+   706→        ctx.stroke();
+   707→
+   708→        ctx.fillStyle = isSelected || isHovered ? "#f1f5f9" : "#8b97b0";
+   709→        ctx.fillText(label, node.x, textY);
+   710→      }
+   711→
+   712→      ctx.globalAlpha = 1;
+   713→    }
+   714→
+   715→    ctx.restore();
+   716→  }, [nodes, links, selectedNode, hoveredNode, nodeMap, zoom, panX, panY, canvasSize]);
+   717→
+   718→  // Hit testing
+   719→  const hitTest = useCallback(
+   720→    (clientX: number, clientY: number): SimNode | null => {
+   721→      const canvas = canvasRef.current;
+   722→      if (!canvas) return null;
+   723→      const rect = canvas.getBoundingClientRect();
+   724→
+   725→      // Convert screen coords to graph coords
+   726→      const screenX = clientX - rect.left;
+   727→      const screenY = clientY - rect.top;
+   728→      const graphX =
+   729→        (screenX - canvasSize.w / 2 - panX) / zoom + canvasSize.w / 2;
+   730→      const graphY =
+   731→        (screenY - canvasSize.h / 2 - panY) / zoom + canvasSize.h / 2;
+   732→
+   733→      // Search in reverse so top-drawn nodes are hit first
+   734→      for (let i = nodes.length - 1; i >= 0; i--) {
+   735→        const n = nodes[i];
+   736→        const cfg = NODE_TYPE_CONFIG[n.type];
+   737→        if (!cfg) continue;
+   738→        let hitRadius = cfg.baseSize * 1.5;
+   739→        if (n.type === "accused" && n._accused) {
+   740→          hitRadius = Math.max(6, n._accused.risk / 8) * 1.5;
+   741→        }
+   742→        const dx = graphX - n.x;
+   743→        const dy = graphY - n.y;
+   744→        if (dx * dx + dy * dy < hitRadius * hitRadius) {
+   745→          return n;
+   746→        }
+   747→      }
+   748→      return null;
+   749→    },
+   750→    [nodes, zoom, panX, panY, canvasSize]
+   751→  );
+   752→
+   753→  // Mouse handlers
+   754→  const handleMouseMove = useCallback(
+   755→    (e: React.MouseEvent) => {
+   756→      const node = hitTest(e.clientX, e.clientY);
+   757→      onHoverNode(node);
+   758→      canvasRef.current!.style.cursor = node ? "pointer" : "grab";
+   759→    },
+   760→    [hitTest, onHoverNode]
+   761→  );
+   762→
+   763→  const handleClick = useCallback(
+   764→    (e: React.MouseEvent) => {
+   765→      const node = hitTest(e.clientX, e.clientY);
+   766→      onSelectNode(node);
+   767→    },
+   768→    [hitTest, onSelectNode]
+   769→  );
+   770→
+   771→  return (
+   772→    <div ref={containerRef} className="h-full w-full relative">
+   773→      <canvas
+   774→        ref={canvasRef}
+   775→        style={{
+   776→          width: canvasSize.w,
+   777→          height: canvasSize.h,
+   778→          display: "block",
+   779→        }}
+   780→        onMouseMove={handleMouseMove}
+   781→        onClick={handleClick}
+   782→        onWheel={(e) => {
+   783→          // Handled by parent
+   784→        }}
+   785→      />
+   786→    </div>
+   787→  );
+   788→}
+   789→
+   790→/* ------------------------------------------------------------------ */
+   791→/*  Main Component                                                     */
+   792→/* ------------------------------------------------------------------ */
+   793→
+   794→function NetworkGraphInner() {
+   795→  const crimeData = useAppStore((s) => s.crimeData);
+   796→  const [crimeTypeFilter, setCrimeTypeFilter] = useState<string>("all");
+   797→  const [gangFilter, setGangFilter] = useState<string>("all");
+   798→  const [selectedNode, setSelectedNode] = useState<SimNode | null>(null);
+   799→  const [hoveredNode, setHoveredNode] = useState<SimNode | null>(null);
+   800→  const [zoom, setZoom] = useState(1);
+   801→  const [panX, setPanX] = useState(0);
+   802→  const [panY, setPanY] = useState(0);
+   803→  const [layoutVersion, setLayoutVersion] = useState(0);
+   804→  const containerRef = useRef<HTMLDivElement>(null);
+   805→  const isPanning = useRef(false);
+   806→  const panStart = useRef({ x: 0, y: 0, px: 0, py: 0 });
+   807→
+   808→  /* derive unique crime types & gang names */
+   809→  const crimeTypes = useMemo(() => {
+   810→    if (!crimeData) return CRIME_TYPES;
+   811→    const set = new Set(crimeData.firs.map((f) => f.crime_type));
+   812→    return CRIME_TYPES.filter((t) => set.has(t));
+   813→  }, [crimeData]);
+   814→
+   815→  const gangNames = useMemo(() => {
+   816→    if (!crimeData) return [];
+   817→    return crimeData.gangs.map((g) => g.name);
+   818→  }, [crimeData]);
+   819→
+   820→  /* build filtered nodes & links */
+   821→  const { nodes, links } = useMemo(() => {
+   822→    if (!crimeData)
+   823→      return { nodes: [] as SimNode[], links: [] as SimLink[] };
+   824→
+   825→    const firs = crimeData.firs;
+   826→    const accused = crimeData.accused;
+   827→    const gangs = crimeData.gangs;
+   828→    const vehicles = crimeData.vehicles;
+   829→    const districts = crimeData.districts;
+   830→
+   831→    let visibleFirIds: Set<string> | null = null;
+   832→    let visibleAccusedIds: Set<string> | null = null;
+   833→    let visibleGangIds: Set<string> | null = null;
+   834→
+   835→    if (crimeTypeFilter !== "all") {
+   836→      visibleFirIds = new Set(
+   837→        firs.filter((f) => f.crime_type === crimeTypeFilter).map((f) => f.fir_id)
+   838→      );
+   839→      visibleAccusedIds = new Set<string>();
+   840→      for (const fir of firs) {
+   841→        if (visibleFirIds.has(fir.fir_id)) {
+   842→          for (const aid of fir.accused) visibleAccusedIds.add(aid);
+   843→          if (fir.vehicle_used) visibleAccusedIds.add(fir.vehicle_used);
+   844→          visibleAccusedIds.add(fir.district);
+   845→          if (fir.gang_id) visibleAccusedIds.add(fir.gang_id);
+   846→        }
+   847→      }
+   848→    }
+   849→
+   850→    if (gangFilter !== "all") {
+   851→      const gang = gangs.find((g) => g.name === gangFilter);
+   852→      if (gang) {
+   853→        visibleGangIds = new Set([gang.id]);
+   854→        const memberIds = new Set(gang.members);
+   855→        const gangFirIds = new Set(
+   856→          firs.filter((f) => f.gang_id === gang.id).map((f) => f.fir_id)
+   857→        );
+   858→        visibleFirIds = visibleFirIds
+   859→          ? new Set([...visibleFirIds].filter((id) => gangFirIds.has(id)))
+   860→          : gangFirIds;
+   861→        visibleAccusedIds = memberIds;
+   862→        for (const fir of firs) {
+   863→          if (visibleFirIds.has(fir.fir_id)) {
+   864→            if (fir.vehicle_used) memberIds.add(fir.vehicle_used);
+   865→            memberIds.add(fir.district);
+   866→          }
+   867→        }
+   868→      }
+   869→    }
+   870→
+   871→    const isFiltered =
+   872→      visibleFirIds !== null || visibleAccusedIds !== null;
+   873→    const nodeMap = new Map<string, SimNode>();
+   874→
+   875→    for (const a of accused) {
+   876→      if (isFiltered && visibleAccusedIds && !visibleAccusedIds.has(a.id))
+   877→        continue;
+   878→      nodeMap.set(a.id, {
+   879→        id: a.id,
+   880→        name: a.name,
+   881→        type: "accused",
+   882→        color: "#f87171",
+   883→        size: a.risk / 10,
+   884→        x: 0,
+   885→        y: 0,
+   886→        vx: 0,
+   887→        vy: 0,
+   888→        _accused: a,
+   889→      });
+   890→    }
+   891→    for (const g of gangs) {
+   892→      if (isFiltered && visibleGangIds && !visibleGangIds.has(g.id))
+   893→        continue;
+   894→      if (isFiltered && visibleAccusedIds && !visibleAccusedIds.has(g.id))
+   895→        continue;
+   896→      nodeMap.set(g.id, {
+   897→        id: g.id,
+   898→        name: g.name,
+   899→        type: "gang",
+   900→        color: "#fbbf24",
+   901→        size: 6,
+   902→        x: 0,
+   903→        y: 0,
+   904→        vx: 0,
+   905→        vy: 0,
+   906→        _gang: g,
+   907→      });
+   908→    }
+   909→    for (const f of firs) {
+   910→      if (isFiltered && visibleFirIds && !visibleFirIds.has(f.fir_id))
+   911→        continue;
+   912→      nodeMap.set(f.fir_id, {
+   913→        id: f.fir_id,
+   914→        name: f.fir_id,
+   915→        type: "fir",
+   916→        color: "#eab308",
+   917→        size: 2,
+   918→        x: 0,
+   919→        y: 0,
+   920→        vx: 0,
+   921→        vy: 0,
+   922→        _fir: f,
+   923→      });
+   924→    }
+   925→    for (const v of vehicles) {
+   926→      if (isFiltered && visibleAccusedIds && !visibleAccusedIds.has(v.id))
+   927→        continue;
+   928→      nodeMap.set(v.id, {
+   929→        id: v.id,
+   930→        name: v.reg,
+   931→        type: "vehicle",
+   932→        color: "#22d3ee",
+   933→        size: 3,
+   934→        x: 0,
+   935→        y: 0,
+   936→        vx: 0,
+   937→        vy: 0,
+   938→        _vehicle: v,
+   939→      });
+   940→    }
+   941→    for (const d of districts) {
+   942→      if (isFiltered && visibleAccusedIds && !visibleAccusedIds.has(d.name))
+   943→        continue;
+   944→      const firCount = firs.filter(
+   945→        (f) =>
+   946→          (!visibleFirIds || visibleFirIds.has(f.fir_id)) &&
+   947→          f.district === d.name
+   948→      ).length;
+   949→      if (isFiltered && firCount === 0) continue;
+   950→      nodeMap.set(d.name, {
+   951→        id: d.name,
+   952→        name: d.name,
+   953→        type: "district",
+   954→        color: "#818cf8",
+   955→        size: 4,
+   956→        x: 0,
+   957→        y: 0,
+   958→        vx: 0,
+   959→        vy: 0,
+   960→        _district: d,
+   961→        _firCount: firCount,
+   962→      });
+   963→    }
+   964→
+   965→    const allEdges = getNetworkEdges(crimeData);
+   966→    const nodeIds = new Set(nodeMap.keys());
+   967→    const filteredEdges = allEdges.filter(
+   968→      (e) => nodeIds.has(e.source) && nodeIds.has(e.target)
+   969→    );
+   970→    const filteredLinks: SimLink[] = filteredEdges.map((e) => ({
+   971→      source: e.source,
+   972→      target: e.target,
+   973→      type: e.type,
+   974→      color: LINK_COLORS[e.type] || "#5a657a",
+   975→    }));
+   976→
+   977→    return { nodes: Array.from(nodeMap.values()), links: filteredLinks };
+   978→  }, [crimeData, crimeTypeFilter, gangFilter]);
+   979→
+   980→  /* Run 2D force simulation */
+   981→  const [canvasW, setCanvasW] = useState(800);
+   982→  const [canvasH, setCanvasH] = useState(600);
+   983→
+   984→  useEffect(() => {
+   985→    const container = containerRef.current;
+   986→    if (!container) return;
+   987→    const observer = new ResizeObserver((entries) => {
+   988→      for (const entry of entries) {
+   989→        setCanvasW(entry.contentRect.width);
+   990→        setCanvasH(entry.contentRect.height);
+   991→      }
+   992→    });
+   993→    observer.observe(container);
+   994→    return () => observer.disconnect();
+   995→  }, []);
+   996→
+   997→  const simNodes = useMemo(() => {
+   998→    if (nodes.length === 0) return [];
+   999→    const result = nodes.map((n) => ({ ...n }));
+  1000→    simulateForce2D(result, links, canvasW, canvasH, 300);
+  1001→    return result;
+  1002→  }, [nodes, links, layoutVersion, canvasW, canvasH]);
+  1003→
+  1004→  const simReady = simNodes.length > 0;
+  1005→
+  1006→  const handleSelectNode = useCallback((node: SimNode | null) => {
+  1007→    setSelectedNode((prev) => (prev?.id === node?.id ? null : node ?? null));
+  1008→  }, []);
+  1009→
+  1010→  const handleHoverNode = useCallback((node: SimNode | null) => {
+  1011→    setHoveredNode(node);
+  1012→  }, []);
+  1013→
+  1014→  const handleReset = useCallback(() => {
+  1015→    setCrimeTypeFilter("all");
+  1016→    setGangFilter("all");
+  1017→    setSelectedNode(null);
+  1018→    setZoom(1);
+  1019→    setPanX(0);
+  1020→    setPanY(0);
+  1021→    setLayoutVersion((v) => v + 1);
+  1022→  }, []);
+  1023→
+  1024→  // Zoom via wheel
+  1025→  const handleWheel = useCallback((e: React.WheelEvent) => {
+  1026→    e.preventDefault();
+  1027→    const delta = e.deltaY > 0 ? -0.08 : 0.08;
+  1028→    setZoom((z) => Math.min(4, Math.max(0.2, z + delta)));
+  1029→  }, []);
+  1030→
+  1031→  // Pan via mouse drag
+  1032→  const handleMouseDown = useCallback(
+  1033→    (e: React.MouseEvent) => {
+  1034→      if (e.button === 0) {
+  1035→        isPanning.current = true;
+  1036→        panStart.current = { x: e.clientX, y: e.clientY, px: panX, py: panY };
+  1037→      }
+  1038→    },
+  1039→    [panX, panY]
+  1040→  );
+  1041→
+  1042→  const handleMouseMovePan = useCallback(
+  1043→    (e: React.MouseEvent) => {
+  1044→      if (!isPanning.current) return;
+  1045→      const dx = e.clientX - panStart.current.x;
+  1046→      const dy = e.clientY - panStart.current.y;
+  1047→      setPanX(panStart.current.px + dx);
+  1048→      setPanY(panStart.current.py + dy);
+  1049→    },
+  1050→    []
+  1051→  );
+  1052→
+  1053→  const handleMouseUp = useCallback(() => {
+  1054→    isPanning.current = false;
+  1055→  }, []);
+  1056→
+  1057→  if (!crimeData) {
+  1058→    return <LoadingSpinner message="Loading network data..." />;
+  1059→  }
+  1060→
+  1061→  const displayNode = hoveredNode || selectedNode;
+  1062→
+  1063→  return (
+  1064→    <div className="flex flex-col h-full w-full">
+  1065→      {/* Filter Controls Bar */}
+  1066→      <div className="flex flex-wrap items-center gap-3 px-4 py-2.5 border-b border-[rgba(255,255,255,0.06)] shrink-0 bg-[#080c18]/80">
+  1067→        <div className="flex items-center gap-2">
+  1068→          <label className="text-[10px] font-semibold text-[#5a657a] uppercase tracking-wider">
+  1069→            Crime
+  1070→          </label>
+  1071→          <Select
+  1072→            value={crimeTypeFilter}
+  1073→            onValueChange={(v) => {
+  1074→              setCrimeTypeFilter(v);
+  1075→              setSelectedNode(null);
+  1076→              setLayoutVersion((l) => l + 1);
+  1077→            }}
+  1078→          >
+  1079→            <SelectTrigger className="w-40 h-7 text-xs bg-[rgba(10,15,28,0.8)] border-[rgba(255,255,255,0.06)] text-[#f1f5f9]">
+  1080→              <SelectValue placeholder="All Types" />
+  1081→            </SelectTrigger>
+  1082→            <SelectContent className="bg-[rgba(15,21,36,0.95)] border-[rgba(255,255,255,0.06)]">
+  1083→              <SelectItem value="all" className="text-[#f1f5f9]">
+  1084→                All Types
+  1085→              </SelectItem>
+  1086→              {crimeTypes.map((ct) => (
+  1087→                <SelectItem key={ct} value={ct} className="text-[#f1f5f9]">
+  1088→                  {ct}
+  1089→                </SelectItem>
+  1090→              ))}
+  1091→            </SelectContent>
+  1092→          </Select>
+  1093→        </div>
+  1094→        <div className="flex items-center gap-2">
+  1095→          <label className="text-[10px] font-semibold text-[#5a657a] uppercase tracking-wider">
+  1096→            Gang
+  1097→          </label>
+  1098→          <Select
+  1099→            value={gangFilter}
+  1100→            onValueChange={(v) => {
+  1101→              setGangFilter(v);
+  1102→              setSelectedNode(null);
+  1103→              setLayoutVersion((l) => l + 1);
+  1104→            }}
+  1105→          >
+  1106→            <SelectTrigger className="w-48 h-7 text-xs bg-[rgba(10,15,28,0.8)] border-[rgba(255,255,255,0.06)] text-[#f1f5f9]">
+  1107→              <SelectValue placeholder="All Gangs" />
+  1108→            </SelectTrigger>
+  1109→            <SelectContent className="bg-[rgba(15,21,36,0.95)] border-[rgba(255,255,255,0.06)]">
+  1110→              <SelectItem value="all" className="text-[#f1f5f9]">
+  1111→                All Gangs
+  1112→              </SelectItem>
+  1113→              {gangNames.map((gn) => (
+  1114→                <SelectItem key={gn} value={gn} className="text-[#f1f5f9]">
+  1115→                  {gn}
+  1116→                </SelectItem>
+  1117→              ))}
+  1118→            </SelectContent>
+  1119→          </Select>
+  1120→        </div>
+  1121→
+  1122→        {/* Spacer */}
+  1123→        <div className="flex-1" />
+  1124→
+  1125→        {/* Node/Link count in toolbar */}
+  1126→        {simReady && (
+  1127→          <span className="text-[10px] text-[#5a657a] font-medium tabular-nums mr-2">
+  1128→            <span className="text-[#8b97b0]">{simNodes.length}</span> nodes
+  1129→            <span className="mx-1 text-[#3d4659]">·</span>
+  1130→            <span className="text-[#8b97b0]">{links.length}</span> links
+  1131→          </span>
+  1132→        )}
+  1133→      </div>
+  1134→
+  1135→      {/* Canvas Area */}
+  1136→      <div
+  1137→        ref={containerRef}
+  1138→        className="flex-1 relative overflow-hidden"
+  1139→        style={{ background: "#050810" }}
+  1140→        onWheel={handleWheel}
+  1141→        onMouseDown={handleMouseDown}
+  1142→        onMouseMove={handleMouseMovePan}
+  1143→        onMouseUp={handleMouseUp}
+  1144→        onMouseLeave={handleMouseUp}
+  1145→      >
+  1146→        {/* 2D Canvas */}
+  1147→        {simReady && (
+  1148→          <GraphCanvas
+  1149→            nodes={simNodes}
+  1150→            links={links}
+  1151→            selectedNode={selectedNode}
+  1152→            hoveredNode={hoveredNode}
+  1153→            onSelectNode={handleSelectNode}
+  1154→            onHoverNode={handleHoverNode}
+  1155→            zoom={zoom}
+  1156→            panX={panX}
+  1157→            panY={panY}
+  1158→          />
+  1159→        )}
+  1160→
+  1161→        {!simReady && nodes.length > 0 && (
+  1162→          <div className="absolute inset-0 flex items-center justify-center">
+  1163→            <LoadingSpinner message="Computing layout..." />
+  1164→          </div>
+  1165→        )}
+  1166→
+  1167→        {/* ── Floating Toolbar — Top Left ── */}
+  1168→        {simReady && (
+  1169→          <div
+  1170→            className="absolute top-3 left-3 z-10 flex flex-col gap-1 p-1.5"
+  1171→            style={glassCard}
+  1172→          >
+  1173→            <ToolbarButton
+  1174→              icon={<ZoomIn className="size-4" />}
+  1175→              tooltip="Zoom In"
+  1176→              onClick={() => setZoom((z) => Math.min(4, z + 0.2))}
+  1177→            />
+  1178→            <ToolbarButton
+  1179→              icon={<ZoomOut className="size-4" />}
+  1180→              tooltip="Zoom Out"
+  1181→              onClick={() => setZoom((z) => Math.max(0.2, z - 0.2))}
+  1182→            />
+  1183→            <div className="w-full h-px bg-[rgba(255,255,255,0.06)] my-0.5" />
+  1184→            <ToolbarButton
+  1185→              icon={<RotateCcw className="size-4" />}
+  1186→              tooltip="Reset View"
+  1187→              onClick={() => {
+  1188→                setZoom(1);
+  1189→                setPanX(0);
+  1190→                setPanY(0);
+  1191→              }}
+  1192→            />
+  1193→            <ToolbarButton
+  1194→              icon={<LayoutGrid className="size-4" />}
+  1195→              tooltip="Re-layout"
+  1196→              onClick={() => setLayoutVersion((v) => v + 1)}
+  1197→            />
+  1198→            <ToolbarButton
+  1199→              icon={<Maximize2 className="size-4" />}
+  1200→              tooltip="Fit to Screen"
+  1201→              onClick={() => {
+  1202→                setZoom(1);
+  1203→                setPanX(0);
+  1204→                setPanY(0);
+  1205→                setLayoutVersion((v) => v + 1);
+  1206→              }}
+  1207→            />
+  1208→          </div>
+  1209→        )}
+  1210→
+  1211→        {/* ── Legend Overlay — Bottom Left ── */}
+  1212→        {simReady && (
+  1213→          <div
+  1214→            className="absolute bottom-3 left-3 z-10 px-3 py-2.5"
+  1215→            style={{
+  1216→              ...glassCard,
+  1217→              borderRadius: "10px",
+  1218→            }}
+  1219→          >
+  1220→            <p className="text-[9px] font-semibold text-[#5a657a] uppercase tracking-wider mb-2">
+  1221→              Node Types
+  1222→            </p>
+  1223→            <div className="flex flex-col gap-1.5">
+  1224→              {Object.entries(NODE_TYPE_CONFIG).map(([type, cfg]) => (
+  1225→                <div key={type} className="flex items-center gap-2">
+  1226→                  <span
+  1227→                    className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+  1228→                    style={{
+  1229→                      backgroundColor: cfg.color,
+  1230→                      boxShadow: `0 0 6px ${cfg.color}50`,
+  1231→                    }}
+  1232→                  />
+  1233→                  <span className="text-[11px] text-[#8b97b0]">
+  1234→                    {cfg.label}
+  1235→                  </span>
+  1236→                </div>
+  1237→              ))}
+  1238→            </div>
+  1239→            <div className="mt-2 pt-2 border-t border-[rgba(255,255,255,0.04)]">
+  1240→              <p className="text-[9px] font-semibold text-[#5a657a] uppercase tracking-wider mb-1.5">
+  1241→                Link Types
+  1242→              </p>
+  1243→              <div className="flex flex-col gap-1">
+  1244→                {[
+  1245→                  { color: "#5a657a", label: "Involved In" },
+  1246→                  { color: "#fbbf24", label: "Member Of" },
+  1247→                  { color: "#818cf8", label: "Occurred In" },
+  1248→                  { color: "#22d3ee", label: "Used Vehicle" },
+  1249→                ].map((l) => (
+  1250→                  <div key={l.label} className="flex items-center gap-2">
+  1251→                    <span
+  1252→                      className="inline-block w-3 h-0.5 shrink-0 rounded-full"
+  1253→                      style={{ backgroundColor: l.color }}
+  1254→                    />
+  1255→                    <span className="text-[10px] text-[#5a657a]">
+  1256→                      {l.label}
+  1257→                    </span>
+  1258→                  </div>
+  1259→                ))}
+  1260→              </div>
+  1261→            </div>
+  1262→          </div>
+  1263→        )}
+  1264→
+  1265→        {/* ── Controls Hint — Bottom Right ── */}
+  1266→        {simReady && (
+  1267→          <div
+  1268→            className="absolute bottom-3 right-3 z-10 px-3 py-2"
+  1269→            style={{
+  1270→              ...glassCard,
+  1271→              borderRadius: "8px",
+  1272→            }}
+  1273→          >
+  1274→            <p className="text-[9px] text-[#3d4659] leading-relaxed">
+  1275→              Scroll: zoom &bull; Drag: pan &bull; Click: select
+  1276→            </p>
+  1277→          </div>
+  1278→        )}
+  1279→
+  1280→        {/* ── Hover Tooltip (glass-card) ── */}
+  1281→        {displayNode && !selectedNode && (
+  1282→          <div
+  1283→            className="absolute z-20 pointer-events-none px-3 py-2.5 max-w-xs"
+  1284→            style={{
+  1285→              ...glassCard,
+  1286→              borderRadius: "10px",
+  1287→              left: "50%",
+  1288→              top: "12px",
+  1289→              transform: "translateX(-50%)",
+  1290→            }}
+  1291→          >
+  1292→            <div className="flex items-center gap-2 mb-1.5">
+  1293→              <span
+  1294→                className="w-2 h-2 rounded-full shrink-0"
+  1295→                style={{
+  1296→                  backgroundColor: displayNode.color,
+  1297→                  boxShadow: `0 0 8px ${displayNode.color}60`,
+  1298→                }}
+  1299→              />
+  1300→              <span className="text-[12px] font-semibold text-[#f1f5f9] truncate">
+  1301→                {displayNode.name}
+  1302→              </span>
+  1303→              <span className="text-[9px] text-[#5a657a] uppercase tracking-wider ml-auto">
+  1304→                {displayNode.type}
+  1305→              </span>
+  1306→            </div>
+  1307→            {displayNode.type === "accused" && displayNode._accused && (
+  1308→              <div className="flex items-center gap-3 text-[11px]">
+  1309→                <span className="text-[#8b97b0]">
+  1310→                  Risk:{" "}
+  1311→                  <span
+  1312→                    className={
+  1313→                      displayNode._accused.risk > 80
+  1314→                        ? "text-[#f87171] font-bold"
+  1315→                        : displayNode._accused.risk > 60
+  1316→                        ? "text-[#fbbf24] font-bold"
+  1317→                        : "text-[#34d399] font-bold"
+  1318→                    }
+  1319→                  >
+  1320→                    {displayNode._accused.risk}/100
+  1321→                  </span>
+  1322→                </span>
+  1323→                <span className="text-[#5a657a]">·</span>
+  1324→                <span className="text-[#8b97b0]">
+  1325→                  Age: {displayNode._accused.age}
+  1326→                </span>
+  1327→              </div>
+  1328→            )}
+  1329→            {displayNode.type === "fir" && displayNode._fir && (
+  1330→              <div className="flex items-center gap-3 text-[11px]">
+  1331→                <span className="text-[#8b97b0]">
+  1332→                  {displayNode._fir.crime_type}
+  1333→                </span>
+  1334→                <span className="text-[#5a657a]">·</span>
+  1335→                <span
+  1336→                  className={
+  1337→                    displayNode._fir.severity === "critical"
+  1338→                      ? "text-[#f87171]"
+  1339→                      : displayNode._fir.severity === "high"
+  1340→                      ? "text-[#fbbf24]"
+  1341→                      : "text-[#fbbf24]"
+  1342→                  }
+  1343→                >
+  1344→                  {displayNode._fir.severity.toUpperCase()}
+  1345→                </span>
+  1346→              </div>
+  1347→            )}
+  1348→            {displayNode.type === "gang" && displayNode._gang && (
+  1349→              <div className="flex items-center gap-3 text-[11px]">
+  1350→                <span className="text-[#8b97b0]">
+  1351→                  {displayNode._gang.type}
+  1352→                </span>
+  1353→                <span className="text-[#5a657a]">·</span>
+  1354→                <span className="text-[#8b97b0]">
+  1355→                  {displayNode._gang.members.length} members
+  1356→                </span>
+  1357→              </div>
+  1358→            )}
+  1359→            {displayNode.type === "vehicle" && displayNode._vehicle && (
+  1360→              <div className="flex items-center gap-3 text-[11px]">
+  1361→                <span className="text-[#8b97b0]">
+  1362→                  {displayNode._vehicle.make} {displayNode._vehicle.type}
+  1363→                </span>
+  1364→                <span className="text-[#5a657a]">·</span>
+  1365→                <span className="text-[#8b97b0]">
+  1366→                  {displayNode._vehicle.color}
+  1367→                </span>
+  1368→              </div>
+  1369→            )}
+  1370→            {displayNode.type === "district" && (
+  1371→              <div className="flex items-center gap-3 text-[11px]">
+  1372→                <span className="text-[#8b97b0]">
+  1373→                  {displayNode._firCount ?? 0} FIRs
+  1374→                </span>
+  1375→              </div>
+  1376→            )}
+  1377→          </div>
+  1378→        )}
+  1379→
+  1380→        {/* ── Right Side Info Panel ── */}
+  1381→        {selectedNode && (
+  1382→          <div
+  1383→            className="absolute top-0 right-0 w-80 h-full z-10 flex flex-col overflow-hidden"
+  1384→            style={{
+  1385→              background: "rgba(7, 10, 20, 0.96)",
+  1386→              backdropFilter: "blur(24px)",
+  1387→              WebkitBackdropFilter: "blur(24px)",
+  1388→              borderLeft: "1px solid rgba(255,255,255,0.06)",
+  1389→              boxShadow:
+  1390→                "-8px 0 32px rgba(0,0,0,0.4)",
+  1391→            }}
+  1392→          >
+  1393→            <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(255,255,255,0.06)] shrink-0">
+  1394→              <div className="flex items-center gap-2">
+  1395→                <span
+  1396→                  className="w-2 h-2 rounded-full"
+  1397→                  style={{
+  1398→                    backgroundColor: selectedNode.color,
+  1399→                    boxShadow: `0 0 8px ${selectedNode.color}60`,
+  1400→                  }}
+  1401→                />
+  1402→                <h2 className="text-xs font-semibold text-white uppercase tracking-wider">
+  1403→                  Node Details
+  1404→                </h2>
+  1405→              </div>
+  1406→              <button
+  1407→                onClick={() => setSelectedNode(null)}
+  1408→                className="w-7 h-7 rounded-md flex items-center justify-center text-[#5a657a] hover:text-white hover:bg-[rgba(34,211,238,0.08)] transition-colors"
+  1409→              >
+  1410→                <X className="size-4" />
+  1411→              </button>
+  1412→            </div>
+  1413→            <div className="flex-1 overflow-y-auto px-4 py-4">
+  1414→              {selectedNode.type === "accused" && (
+  1415→                <AccusedPanel node={selectedNode} />
+  1416→              )}
+  1417→              {selectedNode.type === "gang" && (
+  1418→                <GangPanel node={selectedNode} />
+  1419→              )}
+  1420→              {selectedNode.type === "fir" && (
+  1421→                <FIRPanel node={selectedNode} />
+  1422→              )}
+  1423→              {selectedNode.type === "vehicle" && (
+  1424→                <VehiclePanel node={selectedNode} />
+  1425→              )}
+  1426→              {selectedNode.type === "district" && (
+  1427→                <DistrictPanel node={selectedNode} />
+  1428→              )}
+  1429→            </div>
+  1430→            <div className="px-4 py-2.5 border-t border-[rgba(255,255,255,0.06)] shrink-0">
+  1431→              <div className="flex items-center gap-2">
+  1432→                <div
+  1433→                  className="w-3 h-3 rounded-full"
+  1434→                  style={{ backgroundColor: selectedNode.color }}
+  1435→                />
+  1436→                <span className="text-[11px] text-[#5a657a] uppercase">
+  1437→                  {selectedNode.type}
+  1438→                </span>
+  1439→                <span className="text-[11px] text-[#334155]">·</span>
+  1440→                <span className="text-[11px] text-[#3d4659] truncate">
+  1441→                  {selectedNode.id}
+  1442→                </span>
+  1443→              </div>
+  1444→            </div>
+  1445→          </div>
+  1446→        )}
+  1447→      </div>
+  1448→    </div>
+  1449→  );
+  1450→}
+  1451→
+  1452→/* ------------------------------------------------------------------ */
+  1453→/*  Toolbar Button                                                     */
+  1454→/* ------------------------------------------------------------------ */
+  1455→
+  1456→function ToolbarButton({
+  1457→  icon,
+  1458→  tooltip,
+  1459→  onClick,
+  1460→}: {
+  1461→  icon: React.ReactNode;
+  1462→  tooltip: string;
+  1463→  onClick: () => void;
+  1464→}) {
+  1465→  const [hovered, setHovered] = useState(false);
+  1466→  return (
+  1467→    <button
+  1468→      onClick={onClick}
+  1469→      onMouseEnter={() => setHovered(true)}
+  1470→      onMouseLeave={() => setHovered(false)}
+  1471→      className="w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-150 relative group"
+  1472→      style={{
+  1473→        color: hovered ? "#22d3ee" : "#8b97b0",
+  1474→        background: hovered ? "rgba(34,211,238,0.08)" : "transparent",
+  1475→      }}
+  1476→      title={tooltip}
+  1477→    >
+  1478→      {icon}
+  1479→      {/* Tooltip */}
+  1480→      {hovered && (
+  1481→        <span
+  1482→          className="absolute left-full ml-2 whitespace-nowrap text-[10px] font-medium px-2 py-1 rounded-md z-50 pointer-events-none"
+  1483→          style={{
+  1484→            background: "rgba(15,21,36,0.95)",
+  1485→            border: "1px solid rgba(255,255,255,0.06)",
+  1486→            color: "#f1f5f9",
+  1487→            boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+  1488→          }}
+  1489→        >
+  1490→          {tooltip}
+  1491→        </span>
+  1492→      )}
+  1493→    </button>
+  1494→  );
+  1495→}
+  1496→
+  1497→/* ------------------------------------------------------------------ */
+  1498→/*  Dynamic wrapper for SSR safety                                     */
+  1499→/* ------------------------------------------------------------------ */
+  1500→
+  1501→export default dynamic(() => Promise.resolve(NetworkGraphInner), {
+  1502→  ssr: false,
+  1503→});
