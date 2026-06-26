@@ -177,15 +177,20 @@
     @apply border-border outline-ring/50;
   }
   html, body {
-    overflow: auto;
-    height: auto;
-    min-height: 100vh;
+    overflow: hidden;
+    height: 100%;
+    margin: 0;
+    padding: 0;
   }
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-geist-sans), "Inter", system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+  #__next {
+    height: 100%;
+    overflow: hidden;
   }
 
   /* Focus ring — accessible, cyan-tinted */
@@ -285,7 +290,7 @@
 
 .ambient-bg {
   position: relative;
-  overflow: auto;
+  overflow: hidden;
 }
 .ambient-bg::before {
   content: "";

@@ -1,0 +1,1014 @@
+     1→     1→"use client";
+     2→     2→
+     3→     3→import { useState, useMemo } from "react";
+     4→     4→import {
+     5→     5→  FileText,
+     6→     6→  Download,
+     7→     7→  Shield,
+     8→     8→  Clock,
+     9→     9→  AlertTriangle,
+    10→    10→  CheckCircle2,
+    11→    11→  XCircle,
+    12→    12→  Lock,
+    13→    13→  User,
+    14→    14→  Network,
+    15→    15→} from "lucide-react";
+    16→    16→import { Button } from "@/components/ui/button";
+    17→    17→import {
+    18→    18→  Select,
+    19→    19→  SelectContent,
+    20→    20→  SelectItem,
+    21→    21→  SelectTrigger,
+    22→    22→  SelectValue,
+    23→    23→} from "@/components/ui/select";
+    24→    24→import { Badge } from "@/components/ui/badge";
+    25→    25→import jsPDF from "jspdf";
+    26→    26→import { useAppStore } from "@/lib/store";
+    27→    27→import {
+    28→    28→  generateInvestigationBrief,
+    29→    29→  computeSimilarCrimes,
+    30→    30→  generateTimeline,
+    31→    31→  getIntelFeedItems,
+    32→    32→} from "@/lib/intelligence";
+    33→    33→import type {
+    34→    34→  FIR,
+    35→    35→  Accused,
+    36→    36→  InvestigationBrief,
+    37→    37→  SimilarCrimeResult,
+    38→    38→  TimelineEvent,
+    39→    39→  IntelFeedItem,
+    40→    40→} from "@/lib/types";
+    41→    41→import { motion } from "framer-motion";
+    42→    42→
+    43→    43→// ─── Confidence Ring SVG ────────────────────────────────────────────
+    44→    44→function ConfidenceRing({ score }: { score: number }) {
+    45→    45→  const r = 40;
+    46→    46→  const c = 2 * Math.PI * r;
+    47→    47→  const offset = c - (score / 100) * c;
+    48→    48→  const color =
+    49→    49→    score >= 80 ? "#34d399" : score >= 60 ? "#fbbf24" : "#f87171";
+    50→    50→
+    51→    51→  return (
+    52→    52→    <svg width="100" height="100" className="confidence-ring">
+    53→    53→      <circle
+    54→    54→        cx="50"
+    55→    55→        cy="50"
+    56→    56→        r={r}
+    57→    57→        fill="none"
+    58→    58→        stroke="rgba(255,255,255,0.08)"
+    59→    59→        strokeWidth="6"
+    60→    60→      />
+    61→    61→      <circle
+    62→    62→        cx="50"
+    63→    63→        cy="50"
+    64→    64→        r={r}
+    65→    65→        fill="none"
+    66→    66→        stroke={color}
+    67→    67→        strokeWidth="6"
+    68→    68→        strokeDasharray={c}
+    69→    69→        strokeDashoffset={offset}
+    70→    70→        strokeLinecap="round"
+    71→    71→        className="confidence-ring-circle"
+    72→    72→      />
+    73→    73→      <text
+    74→    74→        x="50"
+    75→    75→        y="50"
+    76→    76→        textAnchor="middle"
+    77→    77→        dominantBaseline="central"
+    78→    78→        fill="#f1f5f9"
+    79→    79→        fontSize="20"
+    80→    80→        fontWeight="bold"
+    81→    81→        className="!transform-none"
+    82→    82→      >
+    83→    83→        {score}%
+    84→    84→      </text>
+    85→    85→    </svg>
+    86→    86→  );
+    87→    87→}
+    88→    88→
+    89→    89→// ─── Status Badge Helper ────────────────────────────────────────────
+    90→    90→function StatusBadge({ status }: { status: string }) {
+    91→    91→  const styles: Record<string, React.CSSProperties> = {
+    92→    92→    completed: { background: "rgba(52,211,153,0.1)", color: "#34d399", borderColor: "rgba(52,211,153,0.15)" },
+    93→    93→    in_progress: { background: "rgba(251,191,36,0.1)", color: "#fbbf24", borderColor: "rgba(251,191,36,0.15)" },
+    94→    94→    pending: { background: "rgba(90,101,122,0.1)", color: "#8b97b0", borderColor: "rgba(255,255,255,0.08)" },
+    95→    95→  };
+    96→    96→  const s = styles[status] || { background: "rgba(248,113,113,0.1)", color: "#f87171", borderColor: "rgba(248,113,113,0.15)" };
+    97→    97→
+    98→    98→  return (
+    99→    99→    <span
+   100→   100→      style={{
+   101→   101→        display: "inline-flex", alignItems: "center", padding: "2px 10px",
+   102→   102→        borderRadius: "9999px", fontSize: "11px", fontWeight: 500,
+   103→   103→        border: `1px solid ${s.borderColor}`, ...s,
+   104→   104→      }}
+   105→   105→    >
+   106→   106→      {status.replace(/_/g, " ")}
+   107→   107→    </span>
+   108→   108→  );
+   109→   109→}
+   110→   110→
+   111→   111→// ─── Timeline Icon Helper ───────────────────────────────────────────
+   112→   112→function TimelineIcon({ type }: { type: TimelineEvent["type"] }) {
+   113→   113→  switch (type) {
+   114→   114→    case "fir_filed":
+   115→   115→    case "complaint":
+   116→   116→      return <FileText className="w-4 h-4 text-[#22d3ee]" />;
+   117→   117→    case "witness":
+   118→   118→      return <User className="w-4 h-4 text-[#818cf8]" />;
+   119→   119→    case "cctv":
+   120→   120→      return <Shield className="w-4 h-4 text-[#22d3ee]" />;
+   121→   121→    case "phone":
+   122→   122→      return <Network className="w-4 h-4 text-[#34d399]" />;
+   123→   123→    case "vehicle":
+   124→   124→      return <Clock className="w-4 h-4 text-[#fbbf24]" />;
+   125→   125→    case "financial":
+   126→   126→      return <AlertTriangle className="w-4 h-4 text-[#fbbf24]" />;
+   127→   127→    case "investigation":
+   128→   128→      return <CheckCircle2 className="w-4 h-4" style={{ color: "#2dd4bf" }} />;
+   129→   129→    case "arrest":
+   130→   130→      return <XCircle className="w-4 h-4 text-[#f87171]" />;
+   131→   131→    default:
+   132→   132→      return <Clock className="w-4 h-4 text-[#8b97b0]" />;
+   133→   133→  }
+   134→   134→}
+   135→   135→
+   136→   136→// ─── Main Component ─────────────────────────────────────────────────
+   137→   137→export default function ReportGenerator() {
+   138→   138→  const { crimeData, user } = useAppStore();
+   139→   139→
+   140→   140→  const [selectedFirId, setSelectedFirId] = useState<string>("");
+   141→   141→  const [selectedAccusedId, setSelectedAccusedId] = useState<string>("");
+   142→   142→  const [reportType, setReportType] = useState<string>("full");
+   143→   143→  const [reportGenerated, setReportGenerated] = useState(false);
+   144→   144→  const [isGenerating, setIsGenerating] = useState(false);
+   145→   145→  const [reportId, setReportId] = useState<string>("");
+   146→   146→
+   147→   147→  // Derived data
+   148→   148→  const firs = useMemo(() => crimeData?.firs ?? [], [crimeData]);
+   149→   149→  const accusedList = useMemo(
+   150→   150→    () => crimeData?.accused ?? [],
+   151→   151→    [crimeData],
+   152→   152→  );
+   153→   153→
+   154→   154→  // Selected FIR and accused objects
+   155→   155→  const selectedFir = useMemo(
+   156→   156→    () => firs.find((f) => f.fir_id === selectedFirId) ?? null,
+   157→   157→    [firs, selectedFirId],
+   158→   158→  );
+   159→   159→  const selectedAccused = useMemo(
+   160→   160→    () => accusedList.find((a) => a.id === selectedAccusedId) ?? null,
+   161→   161→    [accusedList, selectedAccusedId],
+   162→   162→  );
+   163→   163→
+   164→   164→  // Computed report data
+   165→   165→  const brief: InvestigationBrief | null = useMemo(() => {
+   166→   166→    if (!crimeData || !reportGenerated) return null;
+   167→   167→    if (selectedAccusedId) {
+   168→   168→      return generateInvestigationBrief(crimeData, selectedAccusedId, "accused");
+   169→   169→    }
+   170→   170→    if (selectedFirId) {
+   171→   171→      return generateInvestigationBrief(crimeData, selectedFirId, "fir");
+   172→   172→    }
+   173→   173→    return null;
+   174→   174→  }, [crimeData, selectedAccusedId, selectedFirId, reportGenerated]);
+   175→   175→
+   176→   176→  const timeline: TimelineEvent[] = useMemo(() => {
+   177→   177→    if (!crimeData || !selectedFirId || !reportGenerated) return [];
+   178→   178→    return generateTimeline(crimeData, selectedFirId);
+   179→   179→  }, [crimeData, selectedFirId, reportGenerated]);
+   180→   180→
+   181→   181→  const similarCrimes: SimilarCrimeResult[] = useMemo(() => {
+   182→   182→    if (!crimeData || !selectedFirId || !reportGenerated) return [];
+   183→   183→    return computeSimilarCrimes(crimeData, selectedFirId, 3);
+   184→   184→  }, [crimeData, selectedFirId, reportGenerated]);
+   185→   185→
+   186→   186→  const intelFeed: IntelFeedItem[] = useMemo(() => {
+   187→   187→    if (!crimeData || !reportGenerated) return [];
+   188→   188→    return getIntelFeedItems(crimeData);
+   189→   189→  }, [crimeData, reportGenerated]);
+   190→   190→
+   191→   191→  // Generate handler
+   192→   192→  const handleGenerate = () => {
+   193→   193→    if (!selectedFirId && !selectedAccusedId) return;
+   194→   194→    setIsGenerating(true);
+   195→   195→    setReportId(crypto.randomUUID().slice(0, 8).toUpperCase());
+   196→   196→    setTimeout(() => {
+   197→   197→      setIsGenerating(false);
+   198→   198→      setReportGenerated(true);
+   199→   199→    }, 1200);
+   200→   200→  };
+   201→   201→
+   202→   202→  // PDF Export
+   203→   203→  const handleExportPDF = () => {
+   204→   204→    const doc = new jsPDF();
+   205→   205→    const now = new Date().toLocaleString("en-IN", {
+   206→   206→      dateStyle: "medium",
+   207→   207→      timeStyle: "short",
+   208→   208→    });
+   209→   209→
+   210→   210→    doc.setFont("helvetica", "bold");
+   211→   211→    doc.setFontSize(18);
+   212→   212→    doc.text("KSP SENTINEL AI — INTELLIGENCE REPORT", 20, 25);
+   213→   213→
+   214→   214→    doc.setFont("helvetica", "normal");
+   215→   215→    doc.setFontSize(10);
+   216→   216→    doc.setTextColor(200, 0, 0);
+   217→   217→    doc.text("CLASSIFICATION: CONFIDENTIAL", 20, 33);
+   218→   218→
+   219→   219→    doc.setTextColor(0, 0, 0);
+   220→   220→    doc.text(`Report ID: RPT-${reportId}`, 20, 42);
+   221→   221→    doc.text(`Generated: ${now}`, 20, 48);
+   222→   222→    doc.text(`Officer: ${user?.username ?? "Unknown"} (${user?.role ?? "N/A"})`, 20, 54);
+   223→   223→
+   224→   224→    if (selectedFir) {
+   225→   225→      doc.setFontSize(12);
+   226→   226→      doc.setFont("helvetica", "bold");
+   227→   227→      doc.text(`FIR: ${selectedFir.fir_id}`, 20, 66);
+   228→   228→      doc.text(`Crime: ${selectedFir.crime_type} — ${selectedFir.ipc_section}`, 20, 73);
+   229→   229→      doc.text(`District: ${selectedFir.district} | Station: ${selectedFir.police_station}`, 20, 80);
+   230→   230→    }
+   231→   231→
+   232→   232→    if (brief) {
+   233→   233→      doc.setFontSize(13);
+   234→   234→      doc.setFont("helvetica", "bold");
+   235→   235→      doc.text("Executive Summary", 20, 94);
+   236→   236→
+   237→   237→      doc.setFont("helvetica", "normal");
+   238→   238→      doc.setFontSize(10);
+   239→   239→      const lines = doc.splitTextToSize(brief.executiveSummary, 170);
+   240→   240→      doc.text(lines, 20, 102);
+   241→   241→
+   242→   242→      let y = 102 + lines.length * 5 + 10;
+   243→   243→
+   244→   244→      if (brief.suggestedActions.length > 0) {
+   245→   245→        doc.setFont("helvetica", "bold");
+   246→   246→        doc.setFontSize(12);
+   247→   247→        doc.text("Suggested Actions", 20, y);
+   248→   248→        y += 7;
+   249→   249→        doc.setFontSize(10);
+   250→   250→        doc.setFont("helvetica", "normal");
+   251→   251→        for (const action of brief.suggestedActions) {
+   252→   252→          const actionLines = doc.splitTextToSize(
+   253→   253→            `• ${action.action} — ${action.rationale}`,
+   254→   254→            170,
+   255→   255→          );
+   256→   256→          doc.text(actionLines, 20, y);
+   257→   257→          y += actionLines.length * 5 + 2;
+   258→   258→        }
+   259→   259→      }
+   260→   260→
+   261→   261→      y += 6;
+   262→   262→      if (brief.missingEvidence.length > 0) {
+   263→   263→        doc.setFont("helvetica", "bold");
+   264→   264→        doc.setFontSize(12);
+   265→   265→        doc.text("Missing Evidence", 20, y);
+   266→   266→        y += 7;
+   267→   267→        doc.setFontSize(10);
+   268→   268→        doc.setFont("helvetica", "normal");
+   269→   269→        for (const ev of brief.missingEvidence) {
+   270→   270→          doc.text(`• [${ev.priority}] ${ev.description}`, 20, y);
+   271→   271→          y += 6;
+   272→   272→        }
+   273→   273→      }
+   274→   274→    }
+   275→   275→
+   276→   276→    doc.setFontSize(8);
+   277→   277→    doc.setTextColor(120, 120, 120);
+   278→   278→    const pageH = doc.internal.pageSize.height;
+   279→   279→    doc.text(
+   280→   280→      "This report was auto-generated by KSP Sentinel AI. CLASSIFICATION: CONFIDENTIAL — FOR AUTHORIZED PERSONNEL ONLY",
+   281→   281→      20,
+   282→   282→      pageH - 10,
+   283→   283→    );
+   284→   284→
+   285→   285→    const dateStr = new Date().toISOString().slice(0, 10);
+   286→   286→    doc.save(`ksp_intelligence_report_${dateStr}.pdf`);
+   287→   287→  };
+   288→   288→
+   289→   289→  return (
+   290→   290→    <div className="min-h-screen bg-[rgba(10,15,28,0.6)] text-[#f1f5f9] p-4 md:p-6 lg:p-8 space-y-6">
+   291→   291→      {/* ─── Header ─────────────────────────────────────────────── */}
+   292→   292→      <motion.div
+   293→   293→        initial={{ opacity: 0, y: -12 }}
+   294→   294→        animate={{ opacity: 1, y: 0 }}
+   295→   295→        transition={{ duration: 0.4 }}
+   296→   296→        className="flex items-center gap-3"
+   297→   297→      >
+   298→   298→        <div className="p-2.5 rounded-lg bg-[#22d3ee]/10 border border-[#22d3ee]/20">
+   299→   299→          <FileText className="w-6 h-6 text-[#22d3ee]" />
+   300→   300→        </div>
+   301→   301→        <div>
+   302→   302→          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+   303→   303→            INTELLIGENCE REPORT GENERATOR
+   304→   304→          </h1>
+   305→   305→          <p className="text-sm text-[#8b97b0]">
+   306→   306→            Generate professional investigation reports with AI analysis
+   307→   307→          </p>
+   308→   308→        </div>
+   309→   309→      </motion.div>
+   310→   310→
+   311→   311→      {/* ─── Configuration Panel ─────────────────────────────────── */}
+   312→   312→      <motion.div
+   313→   313→        initial={{ opacity: 0, y: 12 }}
+   314→   314→        animate={{ opacity: 1, y: 0 }}
+   315→   315→        transition={{ duration: 0.4, delay: 0.1 }}
+   316→   316→        className="glass-card rounded-xl border border-[rgba(255,255,255,0.08)] p-5 md:p-6 space-y-5"
+   317→   317→      >
+   318→   318→        <h2 className="text-lg font-semibold flex items-center gap-2">
+   319→   319→          <Lock className="w-4 h-4 text-[#22d3ee]" />
+   320→   320→          Report Configuration
+   321→   321→        </h2>
+   322→   322→
+   323→   323→        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+   324→   324→          {/* FIR Selector */}
+   325→   325→          <div className="space-y-2">
+   326→   326→            <label className="text-sm font-medium text-[#8b97b0]">
+   327→   327→              FIR Reference
+   328→   328→            </label>
+   329→   329→            <Select value={selectedFirId} onValueChange={setSelectedFirId}>
+   330→   330→              <SelectTrigger className="bg-[rgba(10,15,28,0.8)] border-[rgba(255,255,255,0.06)] text-[#f1f5f9]">
+   331→   331→                <SelectValue placeholder="Select an FIR…" />
+   332→   332→              </SelectTrigger>
+   333→   333→              <SelectContent className="bg-[rgba(15,21,36,0.85)] border-[rgba(255,255,255,0.06)]">
+   334→   334→                {firs.map((fir) => (
+   335→   335→                  <SelectItem key={fir.fir_id} value={fir.fir_id}>
+   336→   336→                    {fir.fir_id} — {fir.crime_type}
+   337→   337→                  </SelectItem>
+   338→   338→                ))}
+   339→   339→              </SelectContent>
+   340→   340→            </Select>
+   341→   341→          </div>
+   342→   342→
+   343→   343→          {/* Accused Focus */}
+   344→   344→          <div className="space-y-2">
+   345→   345→            <label className="text-sm font-medium text-[#8b97b0]">
+   346→   346→              Accused Focus{" "}
+   347→   347→              <span className="text-xs opacity-50">(optional)</span>
+   348→   348→            </label>
+   349→   349→            <Select
+   350→   350→              value={selectedAccusedId}
+   351→   351→              onValueChange={setSelectedAccusedId}
+   352→   352→            >
+   353→   353→              <SelectTrigger className="bg-[rgba(10,15,28,0.8)] border-[rgba(255,255,255,0.06)] text-[#f1f5f9]">
+   354→   354→                <SelectValue placeholder="Select an accused…" />
+   355→   355→              </SelectTrigger>
+   356→   356→              <SelectContent className="bg-[rgba(15,21,36,0.85)] border-[rgba(255,255,255,0.06)]">
+   357→   357→                {accusedList.map((a) => (
+   358→   358→                  <SelectItem key={a.id} value={a.id}>
+   359→   359→                    {a.name} (Risk: {a.risk})
+   360→   360→                  </SelectItem>
+   361→   361→                ))}
+   362→   362→              </SelectContent>
+   363→   363→            </Select>
+   364→   364→          </div>
+   365→   365→
+   366→   366→          {/* Report Type */}
+   367→   367→          <div className="space-y-2">
+   368→   368→            <label className="text-sm font-medium text-[#8b97b0]">
+   369→   369→              Report Type
+   370→   370→            </label>
+   371→   371→            <Select value={reportType} onValueChange={setReportType}>
+   372→   372→              <SelectTrigger className="bg-[rgba(10,15,28,0.8)] border-[rgba(255,255,255,0.06)] text-[#f1f5f9]">
+   373→   373→                <SelectValue />
+   374→   374→              </SelectTrigger>
+   375→   375→              <SelectContent className="bg-[rgba(15,21,36,0.85)] border-[rgba(255,255,255,0.06)]">
+   376→   376→                <SelectItem value="full">Full Intelligence Brief</SelectItem>
+   377→   377→                <SelectItem value="similar">Similar Crimes Analysis</SelectItem>
+   378→   378→                <SelectItem value="timeline">
+   379→   379→                  Investigation Timeline Report
+   380→   380→                </SelectItem>
+   381→   381→              </SelectContent>
+   382→   382→            </Select>
+   383→   383→          </div>
+   384→   384→        </div>
+   385→   385→
+   386→   386→        <Button
+   387→   387→          onClick={handleGenerate}
+   388→   388→          disabled={
+   389→   389→            (!selectedFirId && !selectedAccusedId) || isGenerating
+   390→   390→          }
+   391→   391→          className="px-8 py-3 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer"
+   392→   392→          style={{
+   393→   393→            background: "linear-gradient(135deg, #22d3ee, #06b6d4)",
+   394→   394→            color: "#050810",
+   395→   395→            boxShadow: "0 0 24px rgba(34,211,238,0.2)",
+   396→   396→          }}
+   397→   397→        >
+   398→   398→          {isGenerating ? (
+   399→   399→            <span className="flex items-center gap-2">
+   400→   400→              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+   401→   401→              Generating Report…
+   402→   402→            </span>
+   403→   403→          ) : (
+   404→   404→            <span className="flex items-center gap-2">
+   405→   405→              <FileText className="w-4 h-4" />
+   406→   406→              Generate Report
+   407→   407→            </span>
+   408→   408→          )}
+   409→   409→        </Button>
+   410→   410→      </motion.div>
+   411→   411→
+   412→   412→      {/* ─── Report Preview ──────────────────────────────────────── */}
+   413→   413→      {reportGenerated && (
+   414→   414→        <div className="space-y-5 animate-fade-in-up">
+   415→   415→          {/* Export Button */}
+   416→   416→          <div className="flex justify-end">
+   417→   417→            <Button
+   418→   418→              onClick={handleExportPDF}
+   419→   419→              className="px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer"
+   420→   420→              style={{
+   421→   421→                background: "rgba(52,211,153,0.12)",
+   422→   422→                color: "#34d399",
+   423→   423→                border: "1px solid rgba(52,211,153,0.2)",
+   424→   424→              }}
+   425→   425→            >
+   426→   426→              <Download className="w-4 h-4 mr-2" />
+   427→   427→              Export PDF
+   428→   428→            </Button>
+   429→   429→          </div>
+   430→   430→
+   431→   431→          {/* a. Report Header */}
+   432→   432→          <motion.div
+   433→   433→            initial={{ opacity: 0, y: 16 }}
+   434→   434→            animate={{ opacity: 1, y: 0 }}
+   435→   435→            transition={{ duration: 0.35 }}
+   436→   436→            className="glass-card rounded-xl border border-[rgba(255,255,255,0.08)] p-6"
+   437→   437→          >
+   438→   438→            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+   439→   439→              <div className="space-y-1">
+   440→   440→                <h2 className="text-xl md:text-2xl font-bold tracking-wide">
+   441→   441→                  KSP SENTINEL AI — INTELLIGENCE REPORT
+   442→   442→                </h2>
+   443→   443→                <p className="text-xs text-[#8b97b0]">
+   444→   444→                  Karnataka State Police — Crime Intelligence Division
+   445→   445→                </p>
+   446→   446→              </div>
+   447→   447→              <div className="flex flex-col items-start md:items-end gap-1 text-sm text-[#8b97b0]">
+   448→   448→                <span>
+   449→   449→                  Report ID:{" "}
+   450→   450→                  <span className="text-[#f1f5f9] font-mono">
+   451→   451→                    RPT-{reportId}
+   452→   452→                  </span>
+   453→   453→                </span>
+   454→   454→                <span>
+   455→   455→                  Generated:{" "}
+   456→   456→                  <span className="text-[#f1f5f9]">
+   457→   457→                    {new Date().toLocaleString("en-IN")}
+   458→   458→                  </span>
+   459→   459→                </span>
+   460→   460→                <span>
+   461→   461→                  Officer:{" "}
+   462→   462→                  <span className="text-[#f1f5f9]">
+   463→   463→                    {user?.username ?? "Unknown"} ({user?.role ?? "N/A"})
+   464→   464→                  </span>
+   465→   465→                </span>
+   466→   466→              </div>
+   467→   467→            </div>
+   468→   468→            <div className="mt-4 flex items-center gap-2">
+   469→   469→              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-[#f87171]/15 border border-[rgba(248,113,113,0.15)] text-[#f87171] text-xs font-bold tracking-widest">
+   470→   470→                <Lock className="w-3 h-3" />
+   471→   471→                CLASSIFICATION: CONFIDENTIAL
+   472→   472→              </span>
+   473→   473→              <Badge
+   474→   474→                variant="outline"
+   475→   475→                className="border-[#22d3ee]/40 text-[#22d3ee]"
+   476→   476→              >
+   477→   477→                {reportType === "full"
+   478→   478→                  ? "Full Intelligence Brief"
+   479→   479→                  : reportType === "similar"
+   480→   480→                    ? "Similar Crimes Analysis"
+   481→   481→                    : "Investigation Timeline Report"}
+   482→   482→              </Badge>
+   483→   483→            </div>
+   484→   484→          </motion.div>
+   485→   485→
+   486→   486→          {/* b. Executive Summary */}
+   487→   487→          {brief && (
+   488→   488→            <motion.div
+   489→   489→              initial={{ opacity: 0, y: 16 }}
+   490→   490→              animate={{ opacity: 1, y: 0 }}
+   491→   491→              transition={{ duration: 0.35, delay: 0.08 }}
+   492→   492→              className="glass-card rounded-xl border border-[rgba(255,255,255,0.08)] p-6"
+   493→   493→            >
+   494→   494→              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+   495→   495→                <Shield className="w-5 h-5 text-[#22d3ee]" />
+   496→   496→                Executive Summary
+   497→   497→              </h3>
+   498→   498→              <div className="flex flex-col md:flex-row gap-6">
+   499→   499→                <div className="flex-1">
+   500→   500→                  <p className="text-sm text-[#8b97b0] leading-relaxed">
+   501→   501→                    {brief.executiveSummary}
+   502→   502→                  </p>
+   503→   503→                  {selectedFir && (
+   504→   504→                    <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+   505→   505→                      <div>
+   506→   506→                        <span className="text-[#8b97b0]">FIR:</span>{" "}
+   507→   507→                        <span className="text-[#f1f5f9] font-medium">
+   508→   508→                          {selectedFir.fir_id}
+   509→   509→                        </span>
+   510→   510→                      </div>
+   511→   511→                      <div>
+   512→   512→                        <span className="text-[#8b97b0]">Crime:</span>{" "}
+   513→   513→                        <span className="text-[#f1f5f9]">
+   514→   514→                          {selectedFir.crime_type}
+   515→   515→                        </span>
+   516→   516→                      </div>
+   517→   517→                      <div>
+   518→   518→                        <span className="text-[#8b97b0]">District:</span>{" "}
+   519→   519→                        <span className="text-[#f1f5f9]">
+   520→   520→                          {selectedFir.district}
+   521→   521→                        </span>
+   522→   522→                      </div>
+   523→   523→                      <div>
+   524→   524→                        <span className="text-[#8b97b0]">Status:</span>{" "}
+   525→   525→                        <Badge
+   526→   526→                          variant="outline"
+   527→   527→                          className="border-amber-500/40 text-[#fbbf24] text-xs"
+   528→   528→                        >
+   529→   529→                          {selectedFir.investigation_status}
+   530→   530→                        </Badge>
+   531→   531→                      </div>
+   532→   532→                    </div>
+   533→   533→                  )}
+   534→   534→                </div>
+   535→   535→                <div className="flex flex-col items-center gap-1">
+   536→   536→                  <ConfidenceRing score={brief.confidenceScore} />
+   537→   537→                  <span className="text-xs text-[#8b97b0] mt-1">
+   538→   538→                    Confidence
+   539→   539→                  </span>
+   540→   540→                </div>
+   541→   541→              </div>
+   542→   542→            </motion.div>
+   543→   543→          )}
+   544→   544→
+   545→   545→          {/* c. Timeline Section */}
+   546→   546→          {timeline.length > 0 && (
+   547→   547→            <motion.div
+   548→   548→              initial={{ opacity: 0, y: 16 }}
+   549→   549→              animate={{ opacity: 1, y: 0 }}
+   550→   550→              transition={{ duration: 0.35, delay: 0.16 }}
+   551→   551→              className="glass-card rounded-xl border border-[rgba(255,255,255,0.08)] p-6"
+   552→   552→            >
+   553→   553→              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+   554→   554→                <Clock className="w-5 h-5 text-[#22d3ee]" />
+   555→   555→                Investigation Timeline
+   556→   556→                <Badge
+   557→   557→                  variant="outline"
+   558→   558→                  className="border-[rgba(255,255,255,0.08)] text-[#8b97b0] text-xs ml-1"
+   559→   559→                >
+   560→   560→                  {timeline.length} events
+   561→   561→                </Badge>
+   562→   562→              </h3>
+   563→   563→              <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+   564→   564→                {timeline.map((event, idx) => (
+   565→   565→                  <div
+   566→   566→                    key={event.id}
+   567→   567→                    className="flex items-start gap-3 p-3 rounded-lg bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.06)]"
+   568→   568→                  >
+   569→   569→                    <div className="mt-0.5 p-1.5 rounded-md bg-[rgba(15,21,36,0.6)]">
+   570→   570→                      <TimelineIcon type={event.type} />
+   571→   571→                    </div>
+   572→   572→                    <div className="flex-1 min-w-0">
+   573→   573→                      <div className="flex items-center gap-2 flex-wrap">
+   574→   574→                        <span className="text-sm font-medium text-[#f1f5f9]">
+   575→   575→                          {event.title}
+   576→   576→                        </span>
+   577→   577→                        <StatusBadge status={event.status} />
+   578→   578→                      </div>
+   579→   579→                      <p className="text-xs text-[#8b97b0] mt-1 line-clamp-2">
+   580→   580→                        {event.description}
+   581→   581→                      </p>
+   582→   582→                    </div>
+   583→   583→                    <span className="text-xs text-[#5a657a] whitespace-nowrap">
+   584→   584→                      {event.timestamp}
+   585→   585→                    </span>
+   586→   586→                  </div>
+   587→   587→                ))}
+   588→   588→              </div>
+   589→   589→            </motion.div>
+   590→   590→          )}
+   591→   591→
+   592→   592→          {/* d. Similar Crimes Section */}
+   593→   593→          {similarCrimes.length > 0 && (
+   594→   594→            <motion.div
+   595→   595→              initial={{ opacity: 0, y: 16 }}
+   596→   596→              animate={{ opacity: 1, y: 0 }}
+   597→   597→              transition={{ duration: 0.35, delay: 0.24 }}
+   598→   598→              className="glass-card rounded-xl border border-[rgba(255,255,255,0.08)] p-6"
+   599→   599→            >
+   600→   600→              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+   601→   601→                <AlertTriangle className="w-5 h-5 text-[#fbbf24]" />
+   602→   602→                Similar Crimes Analysis
+   603→   603→              </h3>
+   604→   604→              <div className="space-y-4">
+   605→   605→                {similarCrimes.map((result) => (
+   606→   606→                  <div
+   607→   607→                    key={result.fir.fir_id}
+   608→   608→                    className="p-4 rounded-lg bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.06)] space-y-3"
+   609→   609→                  >
+   610→   610→                    <div className="flex items-center justify-between flex-wrap gap-2">
+   611→   611→                      <div>
+   612→   612→                        <span className="font-mono text-sm font-bold text-[#22d3ee]">
+   613→   613→                          {result.fir.fir_id}
+   614→   614→                        </span>
+   615→   615→                        <span className="text-sm text-[#8b97b0] ml-2">
+   616→   616→                          {result.fir.crime_type} — {result.fir.district}
+   617→   617→                        </span>
+   618→   618→                      </div>
+   619→   619→                      <span className="text-sm font-bold text-[#f1f5f9]">
+   620→   620→                        {result.similarityScore}% match
+   621→   621→                      </span>
+   622→   622→                    </div>
+   623→   623→
+   624→   624→                    {/* Similarity Bar */}
+   625→   625→                    <div className="w-full h-2 rounded-full bg-[rgba(15,21,36,0.6)] overflow-hidden">
+   626→   626→                      <div
+   627→   627→                        className="h-full rounded-full transition-all duration-700"
+   628→   628→                        style={{
+   629→   629→                          width: `${result.similarityScore}%`,
+   630→   630→                          backgroundColor:
+   631→   631→                            result.similarityScore >= 75
+   632→   632→                              ? "#f87171"
+   633→   633→                              : result.similarityScore >= 50
+   634→   634→                                ? "#fbbf24"
+   635→   635→                                : "#34d399",
+   636→   636→                        }}
+   637→   637→                      />
+   638→   638→                    </div>
+   639→   639→
+   640→   640→                    {/* Matched Factors */}
+   641→   641→                    <div className="flex flex-wrap gap-1.5">
+   642→   642→                      {result.matchedFactors
+   643→   643→                        .filter((f) => f.matched)
+   644→   644→                        .map((f) => (
+   645→   645→                          <Badge
+   646→   646→                            key={f.factor}
+   647→   647→                            variant="outline"
+   648→   648→                            className="border-[rgba(52,211,153,0.15)] text-[#34d399] text-xs"
+   649→   649→                          >
+   650→   650→                            <CheckCircle2 className="w-3 h-3 mr-1" />
+   651→   651→                            {f.factor}
+   652→   652→                          </Badge>
+   653→   653→                        ))}
+   654→   654→                      {result.matchedFactors
+   655→   655→                        .filter((f) => !f.matched)
+   656→   656→                        .map((f) => (
+   657→   657→                          <Badge
+   658→   658→                            key={f.factor}
+   659→   659→                            variant="outline"
+   660→   660→                            className="border-red-500/20 text-[#f87171]/60 text-xs"
+   661→   661→                          >
+   662→   662→                            <XCircle className="w-3 h-3 mr-1" />
+   663→   663→                            {f.factor}
+   664→   664→                          </Badge>
+   665→   665→                        ))}
+   666→   666→                    </div>
+   667→   667→
+   668→   668→                    <p className="text-xs text-[#8b97b0]">
+   669→   669→                      {result.explanation}
+   670→   670→                    </p>
+   671→   671→                  </div>
+   672→   672→                ))}
+   673→   673→              </div>
+   674→   674→            </motion.div>
+   675→   675→          )}
+   676→   676→
+   677→   677→          {/* e. Network Intelligence */}
+   678→   678→          {brief && (brief.relatedCases.length > 0 || brief.likelyAssociates.length > 0) && (
+   679→   679→            <motion.div
+   680→   680→              initial={{ opacity: 0, y: 16 }}
+   681→   681→              animate={{ opacity: 1, y: 0 }}
+   682→   682→              transition={{ duration: 0.35, delay: 0.32 }}
+   683→   683→              className="glass-card rounded-xl border border-[rgba(255,255,255,0.08)] p-6"
+   684→   684→            >
+   685→   685→              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+   686→   686→                <Network className="w-5 h-5 text-[#818cf8]" />
+   687→   687→                Network Intelligence
+   688→   688→              </h3>
+   689→   689→
+   690→   690→              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+   691→   691→                {/* Associated Gang Members */}
+   692→   692→                {brief.likelyAssociates.length > 0 && (
+   693→   693→                  <div>
+   694→   694→                    <h4 className="text-sm font-medium text-[#8b97b0] mb-3">
+   695→   695→                      Likely Associates
+   696→   696→                    </h4>
+   697→   697→                    <div className="space-y-2 max-h-72 overflow-y-auto">
+   698→   698→                      {brief.likelyAssociates.map((assoc) => (
+   699→   699→                        <div
+   700→   700→                          key={assoc.id}
+   701→   701→                          className="flex items-center justify-between p-2.5 rounded-lg bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.06)]"
+   702→   702→                        >
+   703→   703→                          <div className="flex items-center gap-2">
+   704→   704→                            <User className="w-4 h-4 text-[#8b97b0]" />
+   705→   705→                            <div>
+   706→   706→                              <span className="text-sm font-medium text-[#f1f5f9]">
+   707→   707→                                {assoc.name}
+   708→   708→                              </span>
+   709→   709→                              <p className="text-xs text-[#8b97b0]">
+   710→   710→                                {assoc.connection}
+   711→   711→                              </p>
+   712→   712→                            </div>
+   713→   713→                          </div>
+   714→   714→                          <Badge
+   715→   715→                            variant="outline"
+   716→   716→                            className={
+   717→   717→                              assoc.strength === "strong"
+   718→   718→                                ? "border-[rgba(248,113,113,0.15)] text-[#f87171] text-xs"
+   719→   719→                                : assoc.strength === "moderate"
+   720→   720→                                  ? "border-[rgba(251,191,36,0.15)] text-[#fbbf24] text-xs"
+   721→   721→                                  : "border-[rgba(255,255,255,0.08)] text-[#8b97b0] text-xs"
+   722→   722→                            }
+   723→   723→                          >
+   724→   724→                            {assoc.strength}
+   725→   725→                          </Badge>
+   726→   726→                        </div>
+   727→   727→                      ))}
+   728→   728→                    </div>
+   729→   729→                  </div>
+   730→   730→                )}
+   731→   731→
+   732→   732→                {/* Linked FIRs & Financial Links */}
+   733→   733→                <div className="space-y-4">
+   734→   734→                  {brief.relatedCases.length > 0 && (
+   735→   735→                    <div>
+   736→   736→                      <h4 className="text-sm font-medium text-[#8b97b0] mb-3">
+   737→   737→                        Linked Cases
+   738→   738→                      </h4>
+   739→   739→                      <div className="space-y-2 max-h-36 overflow-y-auto">
+   740→   740→                        {brief.relatedCases.map((rc) => (
+   741→   741→                          <div
+   742→   742→                            key={rc.firId}
+   743→   743→                            className="flex items-center gap-2 p-2 rounded-lg bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.06)] text-sm"
+   744→   744→                          >
+   745→   745→                            <FileText className="w-3.5 h-3.5 text-[#22d3ee] shrink-0" />
+   746→   746→                            <span className="font-mono text-xs text-[#22d3ee]">
+   747→   747→                              {rc.firId}
+   748→   748→                            </span>
+   749→   749→                            <span className="text-[#8b97b0] text-xs truncate">
+   750→   750→                              {rc.crimeType} — {rc.relevance}
+   751→   751→                            </span>
+   752→   752→                          </div>
+   753→   753→                        ))}
+   754→   754→                      </div>
+   755→   755→                    </div>
+   756→   756→                  )}
+   757→   757→
+   758→   758→                  {brief.financialLinks.length > 0 && (
+   759→   759→                    <div>
+   760→   760→                      <h4 className="text-sm font-medium text-[#8b97b0] mb-3">
+   761→   761→                        Financial Links
+   762→   762→                      </h4>
+   763→   763→                      <div className="space-y-2 max-h-36 overflow-y-auto">
+   764→   764→                        {brief.financialLinks.map((fl, i) => (
+   765→   765→                          <div
+   766→   766→                            key={i}
+   767→   767→                            className="p-2 rounded-lg bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.06)] text-xs"
+   768→   768→                          >
+   769→   769→                            <div className="flex items-center justify-between">
+   770→   770→                              <span className="font-medium text-[#f1f5f9]">
+   771→   771→                                {fl.bank} — {fl.holder}
+   772→   772→                              </span>
+   773→   773→                              <span className="text-[#34d399] font-mono">
+   774→   774→                                ₹{fl.totalAmount.toLocaleString("en-IN")}
+   775→   775→                              </span>
+   776→   776→                            </div>
+   777→   777→                            <p className="text-[#8b97b0] mt-1">
+   778→   778→                              {fl.transactions} transactions — {fl.details}
+   779→   779→                            </p>
+   780→   780→                          </div>
+   781→   781→                        ))}
+   782→   782→                      </div>
+   783→   783→                    </div>
+   784→   784→                  )}
+   785→   785→                </div>
+   786→   786→              </div>
+   787→   787→            </motion.div>
+   788→   788→          )}
+   789→   789→
+   790→   790→          {/* f. AI Findings */}
+   791→   791→          {brief && (
+   792→   792→            <motion.div
+   793→   793→              initial={{ opacity: 0, y: 16 }}
+   794→   794→              animate={{ opacity: 1, y: 0 }}
+   795→   795→              transition={{ duration: 0.35, delay: 0.4 }}
+   796→   796→              className="glass-card rounded-xl border border-[rgba(255,255,255,0.08)] p-6"
+   797→   797→            >
+   798→   798→              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+   799→   799→                <Shield className="w-5 h-5 text-[#22d3ee]" />
+   800→   800→                AI Findings &amp; Recommendations
+   801→   801→              </h3>
+   802→   802→
+   803→   803→              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+   804→   804→                {/* Suggested Actions */}
+   805→   805→                {brief.suggestedActions.length > 0 && (
+   806→   806→                  <div>
+   807→   807→                    <h4 className="text-sm font-medium text-[#8b97b0] mb-3">
+   808→   808→                      Suggested Actions
+   809→   809→                    </h4>
+   810→   810→                    <div className="space-y-2">
+   811→   811→                      {brief.suggestedActions.map((sa, i) => (
+   812→   812→                        <div
+   813→   813→                          key={i}
+   814→   814→                          className="flex items-start gap-2 p-2.5 rounded-lg bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.06)]"
+   815→   815→                        >
+   816→   816→                          <div
+   817→   817→                            className={`mt-1 w-2 h-2 rounded-full shrink-0 ${
+   818→   818→                              sa.priority === "immediate"
+   819→   819→                                ? "bg-[#f87171]"
+   820→   820→                                : sa.priority === "short_term"
+   821→   821→                                  ? "bg-[#fbbf24]"
+   822→   822→                                  : "bg-[#22d3ee]"
+   823→   823→                            }`}
+   824→   824→                          />
+   825→   825→                          <div>
+   826→   826→                            <p className="text-sm text-[#f1f5f9]">
+   827→   827→                              {sa.action}
+   828→   828→                            </p>
+   829→   829→                            <p className="text-xs text-[#8b97b0]">
+   830→   830→                              {sa.rationale}
+   831→   831→                            </p>
+   832→   832→                          </div>
+   833→   833→                        </div>
+   834→   834→                      ))}
+   835→   835→                    </div>
+   836→   836→                  </div>
+   837→   837→                )}
+   838→   838→
+   839→   839→                <div className="space-y-6">
+   840→   840→                  {/* Missing Evidence */}
+   841→   841→                  {brief.missingEvidence.length > 0 && (
+   842→   842→                    <div>
+   843→   843→                      <h4 className="text-sm font-medium text-[#8b97b0] mb-3">
+   844→   844→                        Missing Evidence
+   845→   845→                      </h4>
+   846→   846→                      <div className="space-y-2">
+   847→   847→                        {brief.missingEvidence.map((me, i) => (
+   848→   848→                          <div
+   849→   849→                            key={i}
+   850→   850→                            className="flex items-start gap-2 text-sm"
+   851→   851→                          >
+   852→   852→                            <XCircle
+   853→   853→                              className={`w-4 h-4 shrink-0 mt-0.5 ${
+   854→   854→                                me.priority === "high"
+   855→   855→                                  ? "text-[#f87171]"
+   856→   856→                                  : me.priority === "medium"
+   857→   857→                                    ? "text-[#fbbf24]"
+   858→   858→                                    : "text-[#8b97b0]"
+   859→   859→                              }`}
+   860→   860→                            />
+   861→   861→                            <div>
+   862→   862→                              <span className="text-[#f1f5f9]">
+   863→   863→                                {me.type}
+   864→   864→                              </span>
+   865→   865→                              <p className="text-xs text-[#8b97b0]">
+   866→   866→                                {me.description}
+   867→   867→                              </p>
+   868→   868→                            </div>
+   869→   869→                          </div>
+   870→   870→                        ))}
+   871→   871→                      </div>
+   872→   872→                    </div>
+   873→   873→                  )}
+   874→   874→
+   875→   875→                  {/* Behavioral Analysis */}
+   876→   876→                  {brief.behavioralAnalysis.length > 0 && (
+   877→   877→                    <div>
+   878→   878→                      <h4 className="text-sm font-medium text-[#8b97b0] mb-3">
+   879→   879→                        Behavioral Analysis
+   880→   880→                      </h4>
+   881→   881→                      <div className="space-y-2">
+   882→   882→                        {brief.behavioralAnalysis.map((ba, i) => (
+   883→   883→                          <div
+   884→   884→                            key={i}
+   885→   885→                            className="p-2.5 rounded-lg bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.06)] text-sm"
+   886→   886→                          >
+   887→   887→                            <div className="flex items-center gap-2">
+   888→   888→                              <span className="font-medium text-[#f1f5f9]">
+   889→   889→                                {ba.pattern}
+   890→   890→                              </span>
+   891→   891→                              <Badge
+   892→   892→                                variant="outline"
+   893→   893→                                className="border-[rgba(255,255,255,0.08)] text-[#8b97b0] text-xs"
+   894→   894→                              >
+   895→   895→                                {ba.frequency}
+   896→   896→                              </Badge>
+   897→   897→                            </div>
+   898→   898→                            <p className="text-xs text-[#8b97b0] mt-1">
+   899→   899→                              {ba.description}
+   900→   900→                            </p>
+   901→   901→                          </div>
+   902→   902→                        ))}
+   903→   903→                      </div>
+   904→   904→                    </div>
+   905→   905→                  )}
+   906→   906→                </div>
+   907→   907→              </div>
+   908→   908→            </motion.div>
+   909→   909→          )}
+   910→   910→
+   911→   911→          {/* g. Evidence Summary */}
+   912→   912→          {brief && (
+   913→   913→            <motion.div
+   914→   914→              initial={{ opacity: 0, y: 16 }}
+   915→   915→              animate={{ opacity: 1, y: 0 }}
+   916→   916→              transition={{ duration: 0.35, delay: 0.48 }}
+   917→   917→              className="glass-card rounded-xl border border-[rgba(255,255,255,0.08)] p-6"
+   918→   918→            >
+   919→   919→              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+   920→   920→                <CheckCircle2 className="w-5 h-5 text-[#34d399]" />
+   921→   921→                Evidence Summary
+   922→   922→              </h3>
+   923→   923→
+   924→   924→              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+   925→   925→                <div className="p-4 rounded-lg bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.06)] text-center">
+   926→   926→                  <p className="text-3xl font-bold text-[#22d3ee]">
+   927→   927→                    {brief.relatedCases.length}
+   928→   928→                  </p>
+   929→   929→                  <p className="text-xs text-[#8b97b0] mt-1">
+   930→   930→                    FIRs Referenced
+   931→   931→                  </p>
+   932→   932→                </div>
+   933→   933→                <div className="p-4 rounded-lg bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.06)] text-center">
+   934→   934→                  <p className="text-3xl font-bold text-[#34d399]">
+   935→   935→                    {brief.missingEvidence.length === 0
+   936→   936→                      ? "Strong"
+   937→   937→                      : brief.missingEvidence.filter((m) => m.priority === "high")
+   938→   938→                            .length === 0
+   939→   939→                        ? "Moderate"
+   940→   940→                        : "Weak"}
+   941→   941→                  </p>
+   942→   942→                  <p className="text-xs text-[#8b97b0] mt-1">
+   943→   943→                    Evidence Chain
+   944→   944→                  </p>
+   945→   945→                </div>
+   946→   946→                <div className="p-4 rounded-lg bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.06)] flex flex-col items-center justify-center">
+   947→   947→                  <ConfidenceRing score={brief.confidenceScore} />
+   948→   948→                  <p className="text-xs text-[#8b97b0] mt-1">
+   949→   949→                    Overall Confidence
+   950→   950→                  </p>
+   951→   951→                </div>
+   952→   952→              </div>
+   953→   953→
+   954→   954→              {/* Evidence Chain Items */}
+   955→   955→              {brief.relatedCases.length > 0 && (
+   956→   956→                <div className="mt-4">
+   957→   957→                  <h4 className="text-sm font-medium text-[#8b97b0] mb-2">
+   958→   958→                    Evidence Chain
+   959→   959→                  </h4>
+   960→   960→                  <div className="flex flex-wrap gap-2">
+   961→   961→                    {brief.relatedCases.map((rc) => (
+   962→   962→                      <Badge
+   963→   963→                        key={rc.firId}
+   964→   964→                        variant="outline"
+   965→   965→                        className="border-[rgba(255,255,255,0.08)] text-[#f1f5f9] text-xs"
+   966→   966→                      >
+   967→   967→                        {rc.firId} — {rc.relevance}
+   968→   968→                      </Badge>
+   969→   969→                    ))}
+   970→   970→                  </div>
+   971→   971→                </div>
+   972→   972→              )}
+   973→   973→            </motion.div>
+   974→   974→          )}
+   975→   975→
+   976→   976→          {/* h. Footer */}
+   977→   977→          <motion.div
+   978→   978→            initial={{ opacity: 0, y: 16 }}
+   979→   979→            animate={{ opacity: 1, y: 0 }}
+   980→   980→            transition={{ duration: 0.35, delay: 0.56 }}
+   981→   981→            className="glass-card rounded-xl border border-[rgba(255,255,255,0.08)] p-6"
+   982→   982→          >
+   983→   983→            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+   984→   984→              <div className="flex-1 text-center md:text-left">
+   985→   985→                <p className="text-sm text-[#8b97b0]">
+   986→   986→                  This report was auto-generated by{" "}
+   987→   987→                  <span className="text-[#f1f5f9] font-medium">
+   988→   988→                    KSP Sentinel AI
+   989→   989→                  </span>
+   990→   990→                </p>
+   991→   991→                <p className="text-xs text-[#5a657a] mt-1">
+   992→   992→                  Generated: {new Date().toLocaleString("en-IN")}
+   993→   993→                </p>
+   994→   994→                <p className="text-xs text-[#f87171]/70 mt-2 font-medium tracking-wide">
+   995→   995→                  CLASSIFICATION: CONFIDENTIAL — FOR AUTHORIZED PERSONNEL ONLY
+   996→   996→                </p>
+   997→   997→              </div>
+   998→   998→
+   999→   999→              {/* QR Code Placeholder */}
+  1000→  1000→              <div className="flex flex-col items-center gap-1">
+  1001→  1001→                <div className="bg-[rgba(15,21,36,0.5)] border-2 border-dashed border-[rgba(255,255,255,0.06)]">
+  1002→  1002→                  <span className="text-xs font-mono text-[#8b97b0]">QR</span>
+  1003→  1003→                </div>
+  1004→  1004→                <span className="text-[10px] text-[#5a657a]">
+  1005→  1005→                  Verification Code
+  1006→  1006→                </span>
+  1007→  1007→              </div>
+  1008→  1008→            </div>
+  1009→  1009→          </motion.div>
+  1010→  1010→        </div>
+  1011→  1011→      )}
+  1012→  1012→    </div>
+  1013→  1013→  );
+  1014→  1014→}

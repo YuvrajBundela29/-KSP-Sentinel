@@ -13,7 +13,6 @@ import {
   FileText,
   Database,
   ChevronDown,
-  Sheet,
   Fingerprint,
   Users,
   Car,
@@ -153,18 +152,15 @@ const SectionHeader = memo(function SectionHeader({
   label,
   icon: Icon,
   color,
-  collapsed,
   open,
   onToggle,
 }: {
   label: string;
   icon: React.ElementType;
   color: string;
-  collapsed: boolean;
   open: boolean;
   onToggle: () => void;
 }) {
-  if (collapsed) return null;
   return (
     <button
       onClick={onToggle}
@@ -261,14 +257,6 @@ const NavItem = memo(function NavItem({
         />
       )}
 
-      {/* Hover inner glow */}
-      {!isActive && (
-        <div
-          className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-          style={{ boxShadow: `inset 0 0 20px ${glowColor}` }}
-        />
-      )}
-
       {/* Icon */}
       <div className="relative flex-shrink-0">
         <Icon
@@ -322,50 +310,6 @@ const NavItem = memo(function NavItem({
     </motion.button>
   );
 });
-
-/* ═══════════════════════════════════════════════════════════════════════
-   COLLAPSIBLE SECTION — Wraps items with AnimatePresence
-   ═══════════════════════════════════════════════════════════════════════ */
-
-function NavSection({
-  items,
-  currentView,
-  labels,
-  collapsed,
-  accentColor,
-  onNav,
-}: {
-  items: NavItemDef[];
-  currentView: ViewType;
-  labels: Record<string, string>;
-  collapsed: boolean;
-  accentColor: string;
-  onNav: (view: ViewType) => void;
-}) {
-  return (
-    <div className="space-y-0.5">
-      {items.map((item) => {
-        const isActive = currentView === item.view;
-        const accessible = canAccessView(
-          useAppStore.getState().user?.role || "demo_user",
-          item.view
-        );
-        if (!accessible) return null;
-        return (
-          <NavItem
-            key={item.key}
-            item={item}
-            isActive={isActive}
-            labels={labels}
-            collapsed={collapsed}
-            accentColor={accentColor}
-            onClick={() => onNav(item.view)}
-          />
-        );
-      })}
-    </div>
-  );
-}
 
 /* ═══════════════════════════════════════════════════════════════════════
    MAIN SIDEBAR COMPONENT
@@ -462,6 +406,7 @@ export default function Sidebar() {
             )}
           </AnimatePresence>
         </div>
+        {/* Collapse toggle — desktop only */}
         <button
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
           className="hidden lg:flex items-center justify-center w-6 h-6 rounded-md transition-colors cursor-pointer"
@@ -482,6 +427,7 @@ export default function Sidebar() {
             <ChevronDown className="w-3.5 h-3.5" />
           </motion.div>
         </button>
+        {/* Close button — mobile only */}
         <button
           onClick={() => setMobileOpen(false)}
           className="lg:hidden flex items-center justify-center w-6 h-6 rounded-md cursor-pointer"
@@ -492,7 +438,7 @@ export default function Sidebar() {
       </div>
 
       {/* ── Scrollable Navigation ─────────────────────────────────── */}
-      <nav className="flex-1 overflow-y-auto px-2.5 py-2 space-y-0">
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2.5 py-2 space-y-0">
         {/* INTELLIGENCE Section — always visible */}
         {!sidebarCollapsed && (
           <div className="flex items-center gap-2 px-2 py-1.5 mb-1">
@@ -533,7 +479,6 @@ export default function Sidebar() {
             label={labels.analytics}
             icon={BrainCircuit}
             color="#34d399"
-            collapsed={sidebarCollapsed}
             open={analyticsOpen}
             onToggle={() => setAnalyticsOpen(!analyticsOpen)}
           />
@@ -555,14 +500,22 @@ export default function Sidebar() {
               transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
               className="overflow-hidden"
             >
-              <NavSection
-                items={ANALYTICS_ITEMS}
-                currentView={currentView}
-                labels={labels}
-                collapsed={sidebarCollapsed}
-                accentColor="#34d399"
-                onNav={handleNav}
-              />
+              {ANALYTICS_ITEMS.map((item) => {
+                const isActive = currentView === item.view;
+                const accessible = canAccessView(user?.role || "demo_user", item.view);
+                if (!accessible) return null;
+                return (
+                  <NavItem
+                    key={item.key}
+                    item={item}
+                    isActive={isActive}
+                    labels={labels}
+                    collapsed={sidebarCollapsed}
+                    accentColor="#34d399"
+                    onClick={() => handleNav(item.view)}
+                  />
+                );
+              })}
             </motion.div>
           )}
         </AnimatePresence>
@@ -575,7 +528,6 @@ export default function Sidebar() {
             label={labels.dataMgmt}
             icon={Database}
             color="#818cf8"
-            collapsed={sidebarCollapsed}
             open={dmOpen}
             onToggle={() => setDmOpen(!dmOpen)}
           />
@@ -597,14 +549,22 @@ export default function Sidebar() {
               transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
               className="overflow-hidden"
             >
-              <NavSection
-                items={DATA_MGMT_ITEMS}
-                currentView={currentView}
-                labels={labels}
-                collapsed={sidebarCollapsed}
-                accentColor="#818cf8"
-                onNav={handleNav}
-              />
+              {DATA_MGMT_ITEMS.map((item) => {
+                const isActive = currentView === item.view;
+                const accessible = canAccessView(user?.role || "demo_user", item.view);
+                if (!accessible) return null;
+                return (
+                  <NavItem
+                    key={item.key}
+                    item={item}
+                    isActive={isActive}
+                    labels={labels}
+                    collapsed={sidebarCollapsed}
+                    accentColor="#818cf8"
+                    onClick={() => handleNav(item.view)}
+                  />
+                );
+              })}
             </motion.div>
           )}
         </AnimatePresence>
@@ -618,7 +578,7 @@ export default function Sidebar() {
         className="px-2.5 pb-3 space-y-1 flex-shrink-0"
         style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}
       >
-        {/* Command Palette */}
+        {/* Command Palette — desktop, expanded only */}
         {!sidebarCollapsed && (
           <motion.button
             onClick={() => setCommandPaletteOpen(true)}
@@ -654,7 +614,7 @@ export default function Sidebar() {
           </motion.button>
         )}
 
-        {/* User Info */}
+        {/* User Info — desktop, expanded only */}
         {user && !sidebarCollapsed && (
           <div className="flex items-center gap-3 px-3 py-2">
             <div
@@ -726,7 +686,7 @@ export default function Sidebar() {
         )}
       </AnimatePresence>
 
-      {/* Mobile hamburger */}
+      {/* Mobile hamburger trigger */}
       <button
         onClick={() => setMobileOpen(true)}
         className="fixed top-3 left-3 z-50 lg:hidden w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-200"
@@ -747,11 +707,12 @@ export default function Sidebar() {
         )}
       </button>
 
-      {/* Desktop Sidebar */}
+      {/* Desktop Sidebar — always visible on lg+ screens */}
       <aside
-        className="hidden lg:flex flex-col h-screen flex-shrink-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+        className="hidden lg:flex flex-col h-full flex-shrink-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
         style={{
           width: sidebarCollapsed ? 60 : 256,
+          minWidth: sidebarCollapsed ? 60 : 256,
           background: "linear-gradient(180deg, rgba(7,10,20,0.92) 0%, rgba(5,8,16,0.96) 100%)",
           backdropFilter: "blur(32px)",
           borderRight: "1px solid rgba(255,255,255,0.04)",
@@ -763,7 +724,7 @@ export default function Sidebar() {
         {navContent}
       </aside>
 
-      {/* Mobile Sidebar */}
+      {/* Mobile Sidebar — slide in overlay */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.aside

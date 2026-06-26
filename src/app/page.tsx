@@ -53,7 +53,7 @@ export default function Home() {
     }
   }, []);
 
-  // Not logged in — show login
+  // Not logged in — show login (full-screen, handles own layout)
   if (!user) {
     return <LoginView />;
   }
@@ -164,16 +164,22 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: "#050810" }}>
+    <div className="flex h-full w-full overflow-hidden" style={{ backgroundColor: "#050810" }}>
+      {/* Sidebar — fixed width, full height */}
       <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+
+      {/* Main content area — takes remaining space */}
+      <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden">
+        {/* Header — sticky top, no vertical overflow */}
         <Header />
-        <main className="flex-1 overflow-auto relative ambient-bg">
-          <div className="relative z-10">
-            {renderContent()}
-          </div>
+
+        {/* Scrollable content area — only this scrolls */}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden relative">
+          {renderContent()}
         </main>
       </div>
+
+      {/* Command palette overlay */}
       <CommandPalette />
     </div>
   );

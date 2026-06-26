@@ -1,0 +1,610 @@
+     1→     1→     1→"use client";
+     2→     2→     2→
+     3→     3→     3→import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+     4→     4→     4→import {
+     5→     5→     5→  Send,
+     6→     6→     6→  Mic,
+     7→     7→     7→  MicOff,
+     8→     8→     8→  FileText,
+     9→     9→     9→  Shield,
+    10→    10→    10→  User,
+    11→    11→    11→  Trash2,
+    12→    12→    12→  Loader2,
+    13→    13→    13→  ChevronDown,
+    14→    14→    14→  ChevronUp,
+    15→    15→    15→  Link,
+    16→    16→    16→  Brain,
+    17→    17→    17→  Sparkles,
+    18→    18→    18→  Zap,
+    19→    19→    19→  Lightbulb,
+    20→    20→    20→  ArrowRight,
+    21→    21→    21→} from "lucide-react";
+    22→    22→    22→import { Input } from "@/components/ui/input";
+    23→    23→    23→import { useAppStore } from "@/lib/store";
+    24→    24→    24→import type { ChatMessage, FIR, ExplainableResponse } from "@/lib/types";
+    25→    25→    25→import { searchFIRs } from "@/lib/data";
+    26→    26→    26→import { motion, AnimatePresence } from "framer-motion";
+    27→    27→    27→import jsPDF from "jspdf";
+    28→    28→    28→
+    29→    29→    29→const EXAMPLE_QUERIES = [
+    30→    30→    30→  "Show all chain snatching cases in Mysuru",
+    31→    31→    31→  "Who are the members of the Silk City Gang?",
+    32→    32→    32→  "Which accused has the highest risk score?",
+    33→    33→    33→  "Are there patterns in vehicle theft crimes?",
+    34→    34→    34→  "Show financial links in jewellery heist cases",
+    35→    35→    35→];
+    36→    36→    36→
+    37→    37→    37→const SEVERITY_BORDER: Record<string, string> = {
+    38→    38→    38→  critical: "#f87171",
+    39→    39→    39→  high: "#fbbf24",
+    40→    40→    40→  medium: "#fbbf24",
+    41→    41→    41→  low: "#34d399",
+    42→    42→    42→};
+    43→    43→    43→
+    44→    44→    44→const SEVERITY_BADGE: Record<string, { bg: string; color: string; border: string }> = {
+    45→    45→    45→  critical: { bg: "rgba(248,113,113,0.1)", color: "#f87171", border: "rgba(248,113,113,0.2)" },
+    46→    46→    46→  high: { bg: "rgba(251,191,36,0.1)", color: "#fbbf24", border: "rgba(251,191,36,0.2)" },
+    47→    47→    47→  medium: { bg: "rgba(251,191,36,0.1)", color: "#fbbf24", border: "rgba(251,191,36,0.2)" },
+    48→    48→    48→  low: { bg: "rgba(52,211,153,0.1)", color: "#34d399", border: "rgba(52,211,153,0.2)" },
+    49→    49→    49→};
+    50→    50→    50→
+    51→    51→    51→function extractFIRIds(text: string): string[] {
+    52→    52→    52→  const m = text.match(/FIR-\d{4}-KA-\d{4}/g);
+    53→    53→    53→  return m ? [...new Set(m)] : [];
+    54→    54→    54→}
+    55→    55→    55→
+    56→    56→    56→function fmtTime(d: Date): string {
+    57→    57→    57→  return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+    58→    58→    58→}
+    59→    59→    59→
+    60→    60→    60→/* ─── Explainable AI Panel ──────────────────────────────────────────── */
+    61→    61→    61→function ExplainablePanel({ exp }: { exp: ExplainableResponse }) {
+    62→    62→    62→  const [open, setOpen] = useState(false);
+    63→    63→    63→  const confColor = exp.confidenceScore >= 80 ? "#34d399" : exp.confidenceScore >= 60 ? "#fbbf24" : "#f87171";
+    64→    64→    64→  return (
+    65→    65→    65→    <motion.div
+    66→    66→    66→      initial={{ opacity: 0, height: 0 }}
+    67→    67→    67→      animate={{ opacity: 1, height: "auto" }}
+    68→    68→    68→      className="mt-2 rounded-xl overflow-hidden"
+    69→    69→    69→      style={{ border: "1px solid rgba(255,255,255,0.06)", backgroundColor: "rgba(15,21,36,0.6)", backdropFilter: "blur(12px)" }}
+    70→    70→    70→    >
+    71→    71→    71→      <button
+    72→    72→    72→        onClick={() => setOpen(!open)}
+    73→    73→    73→        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left cursor-pointer transition-colors duration-200"
+    74→    74→    74→        style={{ borderBottom: open ? "1px solid rgba(255,255,255,0.04)" : "none" }}
+    75→    75→    75→        onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
+    76→    76→    76→        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+    77→    77→    77→      >
+    78→    78→    78→        <Brain className="w-3.5 h-3.5 flex-shrink-0" style={{ color: confColor }} />
+    79→    79→    79→        <span className="text-[11px] font-semibold tracking-wider uppercase" style={{ color: "#8b97b0" }}>Explainable AI</span>
+    80→    80→    80→        <span
+    81→    81→    81→          className="text-[10px] px-2 py-0.5 rounded-full font-bold"
+    82→    82→    82→          style={{ backgroundColor: `${confColor}15`, color: confColor, border: `1px solid ${confColor}25` }}
+    83→    83→    83→        >
+    84→    84→    84→          {exp.confidenceScore}% confidence
+    85→    85→    85→        </span>
+    86→    86→    86→        {exp.evidenceChain.length > 0 && (
+    87→    87→    87→          <span className="text-[10px] flex items-center gap-1" style={{ color: "#5a657a" }}>
+    88→    88→    88→            <Link className="w-3 h-3" /> {exp.evidenceChain.length} source{exp.evidenceChain.length > 1 ? "s" : ""}
+    89→    89→    89→          </span>
+    90→    90→    90→        )}
+    91→    91→    91→        <motion.div
+    92→    92→    92→          animate={{ rotate: open ? 180 : 0 }}
+    93→    93→    93→          transition={{ duration: 0.2 }}
+    94→    94→    94→          className="ml-auto"
+    95→    95→    95→        >
+    96→    96→    96→          <ChevronDown className="w-3.5 h-3.5" style={{ color: "#5a657a" }} />
+    97→    97→    97→        </motion.div>
+    98→    98→    98→      </button>
+    99→    99→    99→      <AnimatePresence>
+   100→   100→   100→        {open && (
+   101→   101→   101→          <motion.div
+   102→   102→   102→            initial={{ opacity: 0, height: 0 }}
+   103→   103→   103→            animate={{ opacity: 1, height: "auto" }}
+   104→   104→   104→            exit={{ opacity: 0, height: 0 }}
+   105→   105→   105→            transition={{ duration: 0.2 }}
+   106→   106→   106→            className="px-4 py-3 space-y-3 overflow-hidden"
+   107→   107→   107→          >
+   108→   108→   108→            {exp.evidenceChain.length > 0 && (
+   109→   109→   109→              <div>
+   110→   110→   110→                <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "#5a657a" }}>Evidence Chain</p>
+   111→   111→   111→                <div className="flex flex-wrap gap-1.5">
+   112→   112→   112→                  {exp.evidenceChain.map((e, i) => (
+   113→   113→   113→                    <span
+   114→   114→   114→                      key={i}
+   115→   115→   115→                      className="text-[10px] px-2.5 py-1 rounded-lg font-mono"
+   116→   116→   116→                      style={{ backgroundColor: "rgba(34,211,238,0.08)", color: "#22d3ee", border: "1px solid rgba(34,211,238,0.15)" }}
+   117→   117→   117→                    >
+   118→   118→   118→                      {e.firId}
+   119→   119→   119→                    </span>
+   120→   120→   120→                  ))}
+   121→   121→   121→                </div>
+   122→   122→   122→              </div>
+   123→   123→   123→            )}
+   124→   124→   124→            <div>
+   125→   125→   125→              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "#5a657a" }}>Reasoning</p>
+   126→   126→   126→              <p className="text-[12px] leading-relaxed" style={{ color: "#8b97b0" }}>{exp.reasoningSummary}</p>
+   127→   127→   127→            </div>
+   128→   128→   128→            {exp.evidenceChain.map((e, i) => (
+   129→   129→   129→              <div key={i} className="flex items-start gap-2.5">
+   130→   130→   130→                <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: "#22d3ee" }} />
+   131→   131→   131→                <div>
+   132→   132→   132→                  <span className="text-[11px] font-mono font-bold" style={{ color: "#f1f5f9" }}>{e.firId}</span>
+   133→   133→   133→                  <span className="text-[11px] ml-2" style={{ color: "#8b97b0" }}>{e.relevance}</span>
+   134→   134→   134→                </div>
+   135→   135→   135→              </div>
+   136→   136→   136→            ))}
+   137→   137→   137→            {exp.alternativeExplanations && exp.alternativeExplanations.length > 0 && (
+   138→   138→   138→              <div>
+   139→   139→   139→                <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#fbbf24" }}>Alternative Explanations</p>
+   140→   140→   140→                {exp.alternativeExplanations.map((alt, i) => (
+   141→   141→   141→                  <p key={i} className="text-[11px] leading-relaxed pl-3" style={{ color: "#8b97b0", borderLeft: "2px solid rgba(251,191,36,0.2)" }}>
+   142→   142→   142→                    {alt}
+   143→   143→   143→                  </p>
+   144→   144→   144→                ))}
+   145→   145→   145→              </div>
+   146→   146→   146→            )}
+   147→   147→   147→          </motion.div>
+   148→   148→   148→        )}
+   149→   149→   149→      </AnimatePresence>
+   150→   150→   150→    </motion.div>
+   151→   151→   151→  );
+   152→   152→   152→}
+   153→   153→   153→
+   154→   154→   154→/* ─── Typing Indicator ──────────────────────────────────────────────── */
+   155→   155→   155→function TypingIndicator() {
+   156→   156→   156→  return (
+   157→   157→   157→    <div className="flex items-center gap-1.5">
+   158→   158→   158→      <span className="w-1.5 h-1.5 rounded-full typing-dot" style={{ backgroundColor: "#22d3ee" }} />
+   159→   159→   159→      <span className="w-1.5 h-1.5 rounded-full typing-dot" style={{ backgroundColor: "#22d3ee", animationDelay: "0.15s" }} />
+   160→   160→   160→      <span className="w-1.5 h-1.5 rounded-full typing-dot" style={{ backgroundColor: "#22d3ee", animationDelay: "0.3s" }} />
+   161→   161→   161→    </div>
+   162→   162→   162→  );
+   163→   163→   163→}
+   164→   164→   164→
+   165→   165→   165→/* ─── Thinking State ─────────────────────────────────────────────────── */
+   166→   166→   166→function ThinkingState() {
+   167→   167→   167→  const steps = ["Parsing query semantics...", "Searching crime database...", "Cross-referencing FIRs...", "Generating response..."];
+   168→   168→   168→  const [step, setStep] = useState(0);
+   169→   169→   169→
+   170→   170→   170→  useEffect(() => {
+   171→   171→   171→    const iv = setInterval(() => {
+   172→   172→   172→      setStep((s) => (s + 1) % steps.length);
+   173→   173→   173→    }, 1200);
+   174→   174→   174→    return () => clearInterval(iv);
+   175→   175→   175→  }, [steps.length]);
+   176→   176→   176→
+   177→   177→   177→  return (
+   178→   178→   178→    <div className="flex items-center gap-2.5 px-1">
+   179→   179→   179→      <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.15)" }}>
+   180→   180→   180→        <Sparkles className="w-3 h-3" style={{ color: "#22d3ee" }} />
+   181→   181→   181→      </div>
+   182→   182→   182→      <div>
+   183→   183→   183→        <p className="text-[11px] font-medium" style={{ color: "#22d3ee" }}>{steps[step]}</p>
+   184→   184→   184→        <TypingIndicator />
+   185→   185→   185→      </div>
+   186→   186→   186→    </div>
+   187→   187→   187→  );
+   188→   188→   188→}
+   189→   189→   189→
+   190→   190→   190→/* ─── Main Chat View ─────────────────────────────────────────────────── */
+   191→   191→   191→export default function ChatView() {
+   192→   192→   192→  const crimeData = useAppStore((s) => s.crimeData);
+   193→   193→   193→  const chatMessages = useAppStore((s) => s.chatMessages);
+   194→   194→   194→  const addChatMessage = useAppStore((s) => s.addChatMessage);
+   195→   195→   195→  const clearChat = useAppStore((s) => s.clearChat);
+   196→   196→   196→  const chatLoading = useAppStore((s) => s.chatLoading);
+   197→   197→   197→  const setChatLoading = useAppStore((s) => s.setChatLoading);
+   198→   198→   198→  const user = useAppStore((s) => s.user);
+   199→   199→   199→
+   200→   200→   200→  const [input, setInput] = useState("");
+   201→   201→   201→  const [voiceLang, setVoiceLang] = useState<"en" | "kn">("en");
+   202→   202→   202→  const [isListening, setIsListening] = useState(false);
+   203→   203→   203→
+   204→   204→   204→  const endRef = useRef<HTMLDivElement>(null);
+   205→   205→   205→  const inputRef = useRef<HTMLInputElement>(null);
+   206→   206→   206→  const recogRef = useRef<any>(null);
+   207→   207→   207→
+   208→   208→   208→  useEffect(() => {
+   209→   209→   209→    endRef.current?.scrollIntoView({ behavior: "smooth" });
+   210→   210→   210→  }, [chatMessages, chatLoading]);
+   211→   211→   211→
+   212→   212→   212→  const extractedFIRs = useMemo(() => {
+   213→   213→   213→    if (!crimeData) return [];
+   214→   214→   214→    const lastAI = [...chatMessages].reverse().find((m) => m.role === "assistant");
+   215→   215→   215→    if (!lastAI) return [];
+   216→   216→   216→    const ids = extractFIRIds(lastAI.content);
+   217→   217→   217→    const matched: FIR[] = [];
+   218→   218→   218→    for (const id of ids) {
+   219→   219→   219→      matched.push(...searchFIRs(crimeData, { fir_id: id }));
+   220→   220→   220→    }
+   221→   221→   221→    return matched;
+   222→   222→   222→  }, [chatMessages, crimeData]);
+   223→   223→   223→
+   224→   224→   224→  const handleSend = useCallback(async () => {
+   225→   225→   225→    const trimmed = input.trim();
+   226→   226→   226→    if (!trimmed || chatLoading) return;
+   227→   227→   227→    setInput("");
+   228→   228→   228→    addChatMessage({ role: "user", content: trimmed });
+   229→   229→   229→    setChatLoading(true);
+   230→   230→   230→    try {
+   231→   231→   231→      const res = await fetch("/api/chat?XTransformPort=3000", {
+   232→   232→   232→        method: "POST",
+   233→   233→   233→        headers: { "Content-Type": "application/json" },
+   234→   234→   234→        body: JSON.stringify({ message: trimmed, history: chatMessages }),
+   235→   235→   235→      });
+   236→   236→   236→      if (!res.ok) throw new Error("Failed");
+   237→   237→   237→      const data = await res.json();
+   238→   238→   238→      addChatMessage({ role: "assistant", content: data.response ?? "No response.", explainable: data.explainable });
+   239→   239→   239→    } catch {
+   240→   240→   240→      addChatMessage({ role: "assistant", content: "Unable to reach the intelligence server. Please try again." });
+   241→   241→   241→    } finally {
+   242→   242→   242→      setChatLoading(false);
+   243→   243→   243→      inputRef.current?.focus();
+   244→   244→   244→    }
+   245→   245→   245→  }, [input, chatLoading, chatMessages, addChatMessage, setChatLoading]);
+   246→   246→   246→
+   247→   247→   247→  const handleKeyDown = (e: React.KeyboardEvent) => {
+   248→   248→   248→    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
+   249→   249→   249→  };
+   250→   250→   250→
+   251→   251→   251→  const toggleVoice = useCallback(() => {
+   252→   252→   252→    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+   253→   253→   253→    if (!SR) { alert("Speech recognition not supported."); return; }
+   254→   254→   254→    if (isListening && recogRef.current) { recogRef.current.stop(); setIsListening(false); recogRef.current = null; return; }
+   255→   255→   255→    const r = new SR();
+   256→   256→   256→    r.lang = voiceLang === "en" ? "en-IN" : "kn-IN";
+   257→   257→   257→    r.continuous = false;
+   258→   258→   258→    r.interimResults = false;
+   259→   259→   259→    r.onresult = (ev: any) => { setInput(ev.results[0][0].transcript); setIsListening(false); recogRef.current = null; };
+   260→   260→   260→    r.onerror = () => { setIsListening(false); recogRef.current = null; };
+   261→   261→   261→    r.onend = () => { setIsListening(false); recogRef.current = null; };
+   262→   262→   262→    recogRef.current = r;
+   263→   263→   263→    r.start();
+   264→   264→   264→    setIsListening(true);
+   265→   265→   265→  }, [isListening, voiceLang]);
+   266→   266→   266→
+   267→   267→   267→  const exportPDF = useCallback(() => {
+   268→   268→   268→    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+   269→   269→   269→    const pw = doc.internal.pageSize.getWidth();
+   270→   270→   270→    const mg = 20;
+   271→   271→   271→    const cw = pw - mg * 2;
+   272→   272→   272→    let y = 20;
+   273→   273→   273→    doc.setFontSize(20);
+   274→   274→   274→    doc.setFont("helvetica", "bold");
+   275→   275→   275→    doc.text("KSP Intelligence Briefing", pw / 2, y, { align: "center" });
+   276→   276→   276→    y += 10;
+   277→   277→   277→    doc.setFontSize(10);
+   278→   278→   278→    doc.setFont("helvetica", "normal");
+   279→   279→   279→    doc.setTextColor(120, 120, 120);
+   280→   280→   280→    const ds = new Date().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+   281→   281→   281→    doc.text(`Generated: ${ds}${user?.role ? ` | Role: ${user.role}` : ""}`, pw / 2, y, { align: "center" });
+   282→   282→   282→    y += 12;
+   283→   283→   283→    doc.setDrawColor(200, 200, 200);
+   284→   284→   284→    doc.line(mg, y, pw - mg, y);
+   285→   285→   285→    y += 8;
+   286→   286→   286→    doc.setTextColor(40, 40, 40);
+   287→   287→   287→    doc.setFontSize(11);
+   288→   288→   288→    for (const msg of chatMessages) {
+   289→   289→   289→      if (y > 270) { doc.addPage(); y = 20; }
+   290→   290→   290→      doc.setFont("helvetica", "bold");
+   291→   291→   291→      doc.text(msg.role === "user" ? "OFFICER QUERY:" : "AI COPILOT RESPONSE:", mg, y);
+   292→   292→   292→      y += 5;
+   293→   293→   293→      doc.setFont("helvetica", "normal");
+   294→   294→   294→      for (const line of doc.splitTextToSize(msg.content, cw)) {
+   295→   295→   295→        if (y > 275) { doc.addPage(); y = 20; }
+   296→   296→   296→        doc.text(line, mg, y);
+   297→   297→   297→        y += 4.5;
+   298→   298→   298→      }
+   299→   299→   299→      y += 6;
+   300→   300→   300→    }
+   301→   301→   301→    const tp = doc.getNumberOfPages();
+   302→   302→   302→    for (let i = 1; i <= tp; i++) {
+   303→   303→   303→      doc.setPage(i);
+   304→   304→   304→      doc.setFontSize(8);
+   305→   305→   305→      doc.setTextColor(150, 150, 150);
+   306→   306→   306→      doc.text("KSP Sentinel AI - Confidential", pw / 2, doc.internal.pageSize.getHeight() - 8, { align: "center" });
+   307→   307→   307→    }
+   308→   308→   308→    doc.save(`ksp_briefing_${new Date().toISOString().slice(0, 10)}.pdf`);
+   309→   309→   309→  }, [chatMessages, user]);
+   310→   310→   310→
+   311→   311→   311→  return (
+   312→   312→   312→    <div className="flex h-full w-full">
+   313→   313→   313→      {/* Left Column — Chat */}
+   314→   314→   314→      <div className="flex flex-col h-full w-full lg:w-[60%]">
+   315→   315→   315→        {/* Chat Header */}
+   316→   316→   316→        <div
+   317→   317→   317→          className="flex items-center justify-between px-5 h-12 flex-shrink-0"
+   318→   318→   318→          style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
+   319→   319→   319→        >
+   320→   320→   320→          <div className="flex items-center gap-2.5">
+   321→   321→   321→            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, rgba(34,211,238,0.15), rgba(34,211,238,0.05))", border: "1px solid rgba(34,211,238,0.12)" }}>
+   322→   322→   322→              <Shield className="w-3.5 h-3.5" style={{ color: "#22d3ee" }} />
+   323→   323→   323→            </div>
+   324→   324→   324→            <span className="text-[13px] font-semibold tracking-wide" style={{ color: "#f1f5f9" }}>AI Copilot</span>
+   325→   325→   325→            <span className="text-[9px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider" style={{ background: "rgba(34,211,238,0.08)", color: "#22d3ee", border: "1px solid rgba(34,211,238,0.12)" }}>Live</span>
+   326→   326→   326→          </div>
+   327→   327→   327→          {chatMessages.length > 0 && (
+   328→   328→   328→            <motion.button
+   329→   329→   329→              onClick={() => clearChat()}
+   330→   330→   330→              whileHover={{ scale: 1.02 }}
+   331→   331→   331→              whileTap={{ scale: 0.98 }}
+   332→   332→   332→              className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] rounded-lg cursor-pointer transition-all duration-200"
+   333→   333→   333→              style={{ color: "#5a657a", border: "1px solid rgba(255,255,255,0.06)" }}
+   334→   334→   334→              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(248,113,113,0.06)"; e.currentTarget.style.color = "#f87171"; e.currentTarget.style.borderColor = "rgba(248,113,113,0.15)"; }}
+   335→   335→   335→              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#5a657a"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; }}
+   336→   336→   336→            >
+   337→   337→   337→              <Trash2 className="w-3 h-3" /> Clear
+   338→   338→   338→            </motion.button>
+   339→   339→   339→          )}
+   340→   340→   340→        </div>
+   341→   341→   341→
+   342→   342→   342→        {/* Messages */}
+   343→   343→   343→        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
+   344→   344→   344→          {/* Welcome Screen */}
+   345→   345→   345→          {chatMessages.length === 0 && !chatLoading && (
+   346→   346→   346→            <div className="flex flex-col items-center justify-center h-full text-center gap-8 animate-fade-in">
+   347→   347→   347→              <motion.div
+   348→   348→   348→                initial={{ scale: 0.9, opacity: 0 }}
+   349→   349→   349→                animate={{ scale: 1, opacity: 1 }}
+   350→   350→   350→                transition={{ duration: 0.5 }}
+   351→   351→   351→                className="relative"
+   352→   352→   352→              >
+   353→   353→   353→                <div className="w-20 h-20 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, rgba(34,211,238,0.12), rgba(129,140,248,0.08))", border: "1px solid rgba(34,211,238,0.15)" }}>
+   354→   354→   354→                  <Shield className="w-9 h-9" style={{ color: "#22d3ee" }} />
+   355→   355→   355→                </div>
+   356→   356→   356→                <div className="absolute -inset-4 rounded-3xl animate-pulse-glow" style={{ background: "radial-gradient(circle, rgba(34,211,238,0.06) 0%, transparent 70%)" }} />
+   357→   357→   357→              </motion.div>
+   358→   358→   358→
+   359→   359→   359→              <div className="space-y-2">
+   360→   360→   360→                <h2 className="text-xl font-bold" style={{ color: "#f1f5f9" }}>KSP AI Copilot</h2>
+   361→   361→   361→                <p className="text-sm max-w-sm mx-auto leading-relaxed" style={{ color: "#8b97b0" }}>
+   362→   362→   362→                  Ask about crimes, patterns, gang connections, or specific FIRs. Intelligence analysis powered by pattern recognition.
+   363→   363→   363→                </p>
+   364→   364→   364→              </div>
+   365→   365→   365→
+   366→   366→   366→              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-lg px-4">
+   367→   367→   367→                {EXAMPLE_QUERIES.map((q, i) => (
+   368→   368→   368→                  <motion.button
+   369→   369→   369→                    key={i}
+   370→   370→   370→                    initial={{ opacity: 0, y: 8 }}
+   371→   371→   371→                    animate={{ opacity: 1, y: 0 }}
+   372→   372→   372→                    transition={{ delay: 0.1 + i * 0.05, duration: 0.3 }}
+   373→   373→   373→                    whileHover={{ y: -2, transition: { duration: 0.15 } }}
+   374→   374→   374→                    onClick={() => { setInput(q); inputRef.current?.focus(); }}
+   375→   375→   375→                    className="text-left p-3.5 rounded-xl cursor-pointer transition-all duration-200 group"
+   376→   376→   376→                    style={{ backgroundColor: "rgba(15,21,36,0.45)", border: "1px solid rgba(255,255,255,0.06)" }}
+   377→   377→   377→                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(34,211,238,0.15)"; e.currentTarget.style.background = "rgba(15,21,36,0.6)"; e.currentTarget.style.boxShadow = "0 8px 32px rgba(34,211,238,0.04)"; }}
+   378→   378→   378→                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; e.currentTarget.style.background = "rgba(15,21,36,0.45)"; e.currentTarget.style.boxShadow = "none"; }}
+   379→   379→   379→                  >
+   380→   380→   380→                    <div className="flex items-start gap-2.5">
+   381→   381→   381→                      <Lightbulb className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 transition-colors duration-200" style={{ color: "#3d4659" }} />
+   382→   382→   382→                      <span className="text-[12px] leading-relaxed" style={{ color: "#8b97b0" }}>{q}</span>
+   383→   383→   383→                    </div>
+   384→   384→   384→                  </motion.button>
+   385→   385→   385→                ))}
+   386→   386→   386→              </div>
+   387→   387→   387→
+   388→   388→   388→              {/* Quick actions */}
+   389→   389→   389→              <div className="flex items-center gap-2">
+   390→   390→   390→                <span className="text-[10px] uppercase tracking-wider" style={{ color: "#3d4659" }}>Try:</span>
+   391→   391→   391→                {["High risk analysis", "Gang mapping", "Crime trends"].map((chip) => (
+   392→   392→   392→                  <button
+   393→   393→   393→                    key={chip}
+   394→   394→   394→                    onClick={() => { setInput(chip); inputRef.current?.focus(); }}
+   395→   395→   395→                    className="text-[10px] px-2.5 py-1 rounded-full cursor-pointer transition-all duration-200"
+   396→   396→   396→                    style={{ color: "#5a657a", border: "1px solid rgba(255,255,255,0.06)" }}
+   397→   397→   397→                    onMouseEnter={(e) => { e.currentTarget.style.color = "#22d3ee"; e.currentTarget.style.borderColor = "rgba(34,211,238,0.2)"; e.currentTarget.style.background = "rgba(34,211,238,0.06)"; }}
+   398→   398→   398→                    onMouseLeave={(e) => { e.currentTarget.style.color = "#5a657a"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; e.currentTarget.style.background = "transparent"; }}
+   399→   399→   399→                  >
+   400→   400→   400→                    {chip}
+   401→   401→   401→                  </button>
+   402→   402→   402→                ))}
+   403→   403→   403→              </div>
+   404→   404→   404→            </div>
+   405→   405→   405→          )}
+   406→   406→   406→
+   407→   407→   407→          {/* Chat Bubbles */}
+   408→   408→   408→          <AnimatePresence>
+   409→   409→   409→            {chatMessages.map((msg, idx) => (
+   410→   410→   410→              <motion.div
+   411→   411→   411→                key={idx}
+   412→   412→   412→                initial={{ opacity: 0, y: 12 }}
+   413→   413→   413→                animate={{ opacity: 1, y: 0 }}
+   414→   414→   414→                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+   415→   415→   415→                className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+   416→   416→   416→              >
+   417→   417→   417→                {msg.role === "assistant" && (
+   418→   418→   418→                  <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-1" style={{ background: "linear-gradient(135deg, rgba(34,211,238,0.15), rgba(129,140,248,0.1))", border: "1px solid rgba(34,211,238,0.15)" }}>
+   419→   419→   419→                    <Shield className="w-3.5 h-3.5" style={{ color: "#22d3ee" }} />
+   420→   420→   420→                  </div>
+   421→   421→   421→                )}
+   422→   422→   422→                <div className="flex flex-col max-w-[80%]">
+   423→   423→   423→                  <div
+   424→   424→   424→                    className="px-4 py-3 text-[13px] leading-relaxed whitespace-pre-wrap"
+   425→   425→   425→                    style={msg.role === "user"
+   426→   426→   426→                      ? { background: "linear-gradient(135deg, rgba(34,211,238,0.12), rgba(34,211,238,0.06))", color: "#f1f5f9", borderRadius: "16px 16px 4px 16px", border: "1px solid rgba(34,211,238,0.15)" }
+   427→   427→   427→                      : { backgroundColor: "rgba(15,21,36,0.45)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.06)", color: "#e8edf5", borderRadius: "16px 16px 16px 4px" }
+   428→   428→   428→                  }
+   429→   429→   429→                  >
+   430→   430→   430→                    {msg.content}
+   431→   431→   431→                  </div>
+   432→   432→   432→                  {msg.role === "assistant" && msg.explainable && (
+   433→   433→   433→                    <ExplainablePanel exp={msg.explainable} />
+   434→   434→   434→                  )}
+   435→   435→   435→                  {msg.role === "assistant" && idx === chatMessages.length - 1 && (
+   436→   436→   436→                    <div className="flex items-center gap-1.5 mt-1.5 ml-1">
+   437→   437→   437→                      <Zap className="w-3 h-3" style={{ color: "#3d4659" }} />
+   438→   438→   438→                      <span className="text-[10px]" style={{ color: "#3d4659" }}>AI Generated — Verify with sources</span>
+   439→   439→   439→                    </div>
+   440→   440→   440→                  )}
+   441→   441→   441→                  <span className="text-[10px] mt-1.5 px-1" style={{ color: "#3d4659" }}>{fmtTime(new Date())}</span>
+   442→   442→   442→                </div>
+   443→   443→   443→                {msg.role === "user" && (
+   444→   444→   444→                  <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-1" style={{ background: "rgba(129,140,248,0.1)", border: "1px solid rgba(129,140,248,0.15)" }}>
+   445→   445→   445→                    <User className="w-3.5 h-3.5" style={{ color: "#818cf8" }} />
+   446→   446→   446→                  </div>
+   447→   447→   447→                )}
+   448→   448→   448→              </motion.div>
+   449→   449→   449→            ))}
+   450→   450→   450→          </AnimatePresence>
+   451→   451→   451→
+   452→   452→   452→          {/* Loading / Thinking State */}
+   453→   453→   453→          <AnimatePresence>
+   454→   454→   454→            {chatLoading && (
+   455→   455→   455→              <motion.div
+   456→   456→   456→                initial={{ opacity: 0, y: 8 }}
+   457→   457→   457→                animate={{ opacity: 1, y: 0 }}
+   458→   458→   458→                exit={{ opacity: 0, y: -8 }}
+   459→   459→   459→                className="flex gap-3 justify-start"
+   460→   460→   460→              >
+   461→   461→   461→                <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-1" style={{ background: "linear-gradient(135deg, rgba(34,211,238,0.15), rgba(129,140,248,0.1))", border: "1px solid rgba(34,211,238,0.15)" }}>
+   462→   462→   462→                  <Shield className="w-3.5 h-3.5" style={{ color: "#22d3ee" }} />
+   463→   463→   463→                </div>
+   464→   464→   464→                <div className="px-4 py-3.5 rounded-2xl" style={{ backgroundColor: "rgba(15,21,36,0.45)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.06)" }}>
+   465→   465→   465→                  <ThinkingState />
+   466→   466→   466→                </div>
+   467→   467→   467→              </motion.div>
+   468→   468→   468→            )}
+   469→   469→   469→          </AnimatePresence>
+   470→   470→   470→          <div ref={endRef} />
+   471→   471→   471→        </div>
+   472→   472→   472→
+   473→   473→   473→        {/* Input Area */}
+   474→   474→   474→        <div
+   475→   475→   475→          className="flex items-center gap-2 px-5 py-3 flex-shrink-0"
+   476→   476→   476→          style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}
+   477→   477→   477→        >
+   478→   478→   478→          <div className="flex-1 relative">
+   479→   479→   479→            <Input
+   480→   480→   480→              ref={inputRef}
+   481→   481→   481→              value={input}
+   482→   482→   482→              onChange={(e) => setInput(e.target.value)}
+   483→   483→   483→              onKeyDown={handleKeyDown}
+   484→   484→   484→              placeholder={voiceLang === "en" ? "Ask about crimes, FIRs, gangs..." : "ಅಪರಾಧ, FIR, ಗ್ಯಾಂಗ್ ಬಗ್ಗೆ ಕೇಳಿ..."}
+   485→   485→   485→              disabled={chatLoading}
+   486→   486→   486→              className="h-11 rounded-xl text-[13px]"
+   487→   487→   487→              style={{ backgroundColor: "rgba(10,15,28,0.6)", border: "1px solid rgba(255,255,255,0.06)", color: "#f1f5f9" }}
+   488→   488→   488→            />
+   489→   489→   489→          </div>
+   490→   490→   490→          <motion.button
+   491→   491→   491→            onClick={handleSend}
+   492→   492→   492→            disabled={chatLoading || !input.trim()}
+   493→   493→   493→            whileHover={{ scale: 1.04 }}
+   494→   494→   494→            whileTap={{ scale: 0.96 }}
+   495→   495→   495→            className="flex items-center justify-center w-11 h-11 rounded-xl cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200"
+   496→   496→   496→            style={{ background: "linear-gradient(135deg, #22d3ee, #06b6d4)", color: "#050810", boxShadow: (!chatLoading && input.trim()) ? "0 0 20px rgba(34,211,238,0.15)" : "none" }}
+   497→   497→   497→          >
+   498→   498→   498→            <Send className="w-4 h-4" />
+   499→   499→   499→          </motion.button>
+   500→   500→   500→          <motion.button
+   501→   501→   501→            whileHover={{ scale: 1.04 }}
+   502→   502→   502→            whileTap={{ scale: 0.96 }}
+   503→   503→   503→            onClick={toggleVoice}
+   504→   504→   504→            className="flex items-center justify-center w-11 h-11 rounded-xl cursor-pointer transition-all duration-200 relative"
+   505→   505→   505→            style={{ border: isListening ? "1px solid rgba(248,113,113,0.3)" : "1px solid rgba(255,255,255,0.06)", backgroundColor: isListening ? "rgba(248,113,113,0.08)" : "rgba(15,21,36,0.45)" }}
+   506→   506→   506→          >
+   507→   507→   507→            {isListening && <span className="absolute inset-0 rounded-xl animate-ping" style={{ backgroundColor: "rgba(248,113,113,0.1)", animationDuration: "1.5s" }} />}
+   508→   508→   508→            {isListening ? <Mic className="w-4 h-4" style={{ color: "#f87171" }} /> : <MicOff className="w-4 h-4" style={{ color: "#5a657a" }} />}
+   509→   509→   509→          </motion.button>
+   510→   510→   510→          <motion.button
+   511→   511→   511→            whileHover={{ scale: 1.04 }}
+   512→   512→   512→            whileTap={{ scale: 0.96 }}
+   513→   513→   513→            onClick={() => setVoiceLang((v) => v === "en" ? "kn" : "en")}
+   514→   514→   514→            className="flex items-center justify-center w-11 h-11 rounded-xl cursor-pointer transition-all duration-200"
+   515→   515→   515→            style={{ border: voiceLang === "kn" ? "1px solid rgba(34,211,238,0.2)" : "1px solid rgba(255,255,255,0.06)", backgroundColor: voiceLang === "kn" ? "rgba(34,211,238,0.06)" : "rgba(15,21,36,0.45)", color: voiceLang === "kn" ? "#22d3ee" : "#5a657a" }}
+   516→   516→   516→          >
+   517→   517→   517→            <span className="text-[10px] font-bold">{voiceLang.toUpperCase()}</span>
+   518→   518→   518→          </motion.button>
+   519→   519→   519→          <motion.button
+   520→   520→   520→            whileHover={{ scale: 1.04 }}
+   521→   521→   521→            whileTap={{ scale: 0.96 }}
+   522→   522→   522→            onClick={exportPDF}
+   523→   523→   523→            disabled={chatMessages.length === 0}
+   524→   524→   524→            className="flex items-center justify-center w-11 h-11 rounded-xl cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed transition-all duration-200"
+   525→   525→   525→            style={{ border: "1px solid rgba(255,255,255,0.06)", backgroundColor: "rgba(15,21,36,0.45)" }}
+   526→   526→   526→            onMouseEnter={(e) => { if (chatMessages.length > 0) { e.currentTarget.style.borderColor = "rgba(34,211,238,0.15)"; e.currentTarget.style.background = "rgba(34,211,238,0.06)"; }}}
+   527→   527→   527→            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; e.currentTarget.style.background = "rgba(15,21,36,0.45)"; }}
+   528→   528→   528→          >
+   529→   529→   529→            <FileText className="w-4 h-4" style={{ color: chatMessages.length > 0 ? "#8b97b0" : "#3d4659" }} />
+   530→   530→   530→          </motion.button>
+   531→   531→   531→        </div>
+   532→   532→   532→      </div>
+   533→   533→   533→
+   534→   534→   534→      {/* Right Column — Evidence Panel */}
+   535→   535→   535→      <div
+   536→   536→   536→        className="hidden lg:flex flex-col h-full w-[40%] flex-shrink-0"
+   537→   537→   537→        style={{ borderLeft: "1px solid rgba(255,255,255,0.04)" }}
+   538→   538→   538→      >
+   539→   539→   539→        <div
+   540→   540→   540→          className="flex items-center gap-2.5 px-5 h-12 flex-shrink-0"
+   541→   541→   541→          style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
+   542→   542→   542→        >
+   543→   543→   543→          <FileText className="w-4 h-4" style={{ color: "#818cf8" }} />
+   544→   544→   544→          <span className="text-[13px] font-semibold tracking-wide" style={{ color: "#f1f5f9" }}>Evidence Panel</span>
+   545→   545→   545→          {extractedFIRs.length > 0 && (
+   546→   546→   546→            <motion.span
+   547→   547→   547→              initial={{ scale: 0.8, opacity: 0 }}
+   548→   548→   548→              animate={{ scale: 1, opacity: 1 }}
+   549→   549→   549→              className="ml-auto text-[10px] px-2.5 py-0.5 rounded-full font-semibold"
+   550→   550→   550→              style={{ backgroundColor: "rgba(129,140,248,0.08)", color: "#818cf8", border: "1px solid rgba(129,140,248,0.12)" }}
+   551→   551→   551→            >
+   552→   552→   552→              {extractedFIRs.length} FIR{extractedFIRs.length > 1 ? "s" : ""} linked
+   553→   553→   553→            </motion.span>
+   554→   554→   554→          )}
+   555→   555→   555→        </div>
+   556→   556→   556→        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+   557→   557→   557→          {extractedFIRs.length === 0 ? (
+   558→   558→   558→            <div className="flex flex-col items-center justify-center h-full text-center gap-3">
+   559→   559→   559→              <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" }}>
+   560→   560→   560→                <Shield className="w-5 h-5" style={{ color: "#3d4659" }} />
+   561→   561→   561→              </div>
+   562→   562→   562→              <div>
+   563→   563→   563→                <p className="text-[13px] font-medium" style={{ color: "#3d4659" }}>No evidence linked</p>
+   564→   564→   564→                <p className="text-[11px] mt-1" style={{ color: "#3d4659" }}>FIR references will appear here when you ask a question</p>
+   565→   565→   565→              </div>
+   566→   566→   566→            </div>
+   567→   567→   567→          ) : (
+   568→   568→   568→            extractedFIRs.map((fir, idx) => {
+   569→   569→   569→              const sev = SEVERITY_BADGE[fir.severity] || SEVERITY_BADGE.low;
+   570→   570→   570→              return (
+   571→   571→   571→                <motion.div
+   572→   572→   572→                  key={fir.fir_id}
+   573→   573→   573→                  initial={{ opacity: 0, x: 8 }}
+   574→   574→   574→                  animate={{ opacity: 1, x: 0 }}
+   575→   575→   575→                  transition={{ delay: idx * 0.05, duration: 0.2 }}
+   576→   576→   576→                  className="p-4 rounded-xl cursor-default transition-all duration-200 group"
+   577→   577→   577→                  style={{
+   578→   578→   578→                    backgroundColor: "rgba(15,21,36,0.45)",
+   579→   579→   579→                    border: "1px solid rgba(255,255,255,0.06)",
+   580→   580→   580→                    borderLeft: `3px solid ${SEVERITY_BORDER[fir.severity] || "#fbbf24"}`,
+   581→   581→   581→                  }}
+   582→   582→   582→                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(15,21,36,0.6)"; e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.2)"; }}
+   583→   583→   583→                  onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(15,21,36,0.45)"; e.currentTarget.style.boxShadow = "none"; }}
+   584→   584→   584→                >
+   585→   585→   585→                  <div className="flex items-center justify-between mb-2">
+   586→   586→   586→                    <span className="text-[12px] font-mono font-bold" style={{ color: "#f1f5f9" }}>{fir.fir_id}</span>
+   587→   587→   587→                    <span
+   588→   588→   588→                      className="text-[9px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider"
+   589→   589→   589→                      style={{ backgroundColor: sev.bg, color: sev.color, border: `1px solid ${sev.border}` }}
+   590→   590→   590→                    >
+   591→   591→   591→                      {fir.severity}
+   592→   592→   592→                    </span>
+   593→   593→   593→                  </div>
+   594→   594→   594→                  <p className="text-[11px] mb-1.5" style={{ color: "#5a657a" }}>{fir.date} {fir.time}</p>
+   595→   595→   595→                  <p className="text-[12px] mb-1" style={{ color: "#e8edf5" }}>
+   596→   596→   596→                    <span style={{ color: "#5a657a" }}>Crime: </span>{fir.crime_type}
+   597→   597→   597→                  </p>
+   598→   598→   598→                  <p className="text-[12px] mb-1" style={{ color: "#e8edf5" }}>
+   599→   599→   599→                    <span style={{ color: "#5a657a" }}>District: </span>{fir.district}
+   600→   600→   600→                  </p>
+   601→   601→   601→                  <p className="text-[11px]" style={{ color: "#5a657a" }}>IPC: {fir.ipc_section}</p>
+   602→   602→   602→                </motion.div>
+   603→   603→   603→              );
+   604→   604→   604→            })
+   605→   605→   605→          )}
+   606→   606→   606→        </div>
+   607→   607→   607→      </div>
+   608→   608→   608→    </div>
+   609→   609→   609→  );
+   610→   610→   610→}

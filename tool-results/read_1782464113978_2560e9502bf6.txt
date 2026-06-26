@@ -1,0 +1,853 @@
+     1→"use client";
+     2→
+     3→import { useState, useMemo } from "react";
+     4→import { motion } from "framer-motion";
+     5→import dynamic from "next/dynamic";
+     6→import { useAppStore } from "@/lib/store";
+     7→import type { FIR } from "@/lib/types";
+     8→import { Checkbox } from "@/components/ui/checkbox";
+     9→import {
+    10→  Select,
+    11→  SelectContent,
+    12→  SelectItem,
+    13→  SelectTrigger,
+    14→  SelectValue,
+    15→} from "@/components/ui/select";
+    16→import LoadingSpinner from "@/components/ksp/LoadingSpinner";
+    17→
+    18→// Dynamic imports for Leaflet (requires window)
+    19→const MapContainer = dynamic(
+    20→  () => import("react-leaflet").then((mod) => mod.MapContainer),
+    21→  { ssr: false }
+    22→);
+    23→const TileLayer = dynamic(
+    24→  () => import("react-leaflet").then((mod) => mod.TileLayer),
+    25→  { ssr: false }
+    26→);
+    27→const CircleMarker = dynamic(
+    28→  () => import("react-leaflet").then((mod) => mod.CircleMarker),
+    29→  { ssr: false }
+    30→);
+    31→const Popup = dynamic(
+    32→  () => import("react-leaflet").then((mod) => mod.Popup),
+    33→  { ssr: false }
+    34→);
+    35→const Circle = dynamic(
+    36→  () => import("react-leaflet").then((mod) => mod.Circle),
+    37→  { ssr: false }
+    38→);
+    39→
+    40→// --- Constants ---
+    41→
+    42→const CRIME_TYPES = [
+    43→  "Chain Snatching",
+    44→  "Vehicle Theft",
+    45→  "Cyber Fraud",
+    46→  "Jewellery Heist",
+    47→  "Drug Trafficking",
+    48→] as const;
+    49→
+    50→const SEVERITY_CONFIG: Record<
+    51→  string,
+    52→  { color: string; radius: number }
+    53→> = {
+    54→  critical: { color: "#f87171", radius: 12 },
+    55→  high: { color: "#fbbf24", radius: 10 },
+    56→  medium: { color: "#eab308", radius: 8 },
+    57→  low: { color: "#34d399", radius: 6 },
+    58→};
+    59→
+    60→const SEVERITY_LABELS: Record<string, string> = {
+    61→  critical: "Critical",
+    62→  high: "High",
+    63→  medium: "Medium",
+    64→  low: "Low",
+    65→};
+    66→
+    67→// --- Styles ---
+    68→
+    69→const glassPanel: React.CSSProperties = {
+    70→  background: "rgba(15, 21, 36, 0.85)",
+    71→  backdropFilter: "blur(32px)",
+    72→  WebkitBackdropFilter: "blur(32px)",
+    73→  border: "1px solid rgba(255, 255, 255, 0.06)",
+    74→  borderRadius: "16px",
+    75→  boxShadow: "0 24px 48px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.03)",
+    76→};
+    77→
+    78→const selectTriggerStyle: React.CSSProperties = {
+    79→  background: "rgba(10, 15, 28, 0.8)",
+    80→  border: "1px solid rgba(255, 255, 255, 0.06)",
+    81→  color: "#f1f5f9",
+    82→  fontSize: "12px",
+    83→  height: "32px",
+    84→};
+    85→
+    86→const densityBoxStyle: React.CSSProperties = {
+    87→  background: "rgba(10, 15, 28, 0.6)",
+    88→  border: "1px solid rgba(255, 255, 255, 0.04)",
+    89→  borderRadius: "10px",
+    90→  padding: "10px",
+    91→};
+    92→
+    93→export default function CrimeMap() {
+    94→  const crimeData = useAppStore((s) => s.crimeData);
+    95→
+    96→  // --- Filter State ---
+    97→  const [selectedTypes, setSelectedTypes] = useState<string[]>(
+    98→    [...CRIME_TYPES]
+    99→  );
+   100→  const [selectedYear, setSelectedYear] = useState<string>("all");
+   101→  const [selectedSeverity, setSelectedSeverity] = useState<string>("all");
+   102→  const [viewMode, setViewMode] = useState<"markers" | "heatmap">("markers");
+   103→
+   104→  // --- Handlers ---
+   105→  const toggleType = (type: string) => {
+   106→    setSelectedTypes((prev) =>
+   107→      prev.includes(type)
+   108→        ? prev.filter((t) => t !== type)
+   109→        : [...prev, type]
+   110→    );
+   111→  };
+   112→
+   113→  // --- Filtered FIRs ---
+   114→  const filteredFirs = useMemo<FIR[]>(() => {
+   115→    if (!crimeData) return [];
+   116→
+   117→    return crimeData.firs.filter((fir) => {
+   118→      if (!selectedTypes.includes(fir.crime_type)) return false;
+   119→      if (selectedYear !== "all") {
+   120→        const firYear = new Date(fir.date).getFullYear().toString();
+   121→        if (firYear !== selectedYear) return false;
+   122→      }
+   123→      if (selectedSeverity !== "all" && fir.severity !== selectedSeverity)
+   124→        return false;
+   125→      return true;
+   126→    });
+   127→  }, [crimeData, selectedTypes, selectedYear, selectedSeverity]);
+   128→
+   129→  // --- Stats ---
+   130→  const stats = useMemo(() => {
+   131→    if (filteredFirs.length === 0) {
+   132→      return {
+   133→        topDistricts: [] as { name: string; count: number }[],
+   134→        commonCrime: "N/A",
+   135→      };
+   136→    }
+   137→
+   138→    const districtMap = new Map<string, number>();
+   139→    const crimeTypeMap = new Map<string, number>();
+   140→
+   141→    for (const fir of filteredFirs) {
+   142→      districtMap.set(fir.district, (districtMap.get(fir.district) ?? 0) + 1);
+   143→      crimeTypeMap.set(
+   144→        fir.crime_type,
+   145→        (crimeTypeMap.get(fir.crime_type) ?? 0) + 1
+   146→      );
+   147→    }
+   148→
+   149→    const topDistricts = [...districtMap.entries()]
+   150→      .sort((a, b) => b[1] - a[1])
+   151→      .slice(0, 3)
+   152→      .map(([name, count]) => ({ name, count }));
+   153→
+   154→    let commonCrime = "N/A";
+   155→    let maxCount = 0;
+   156→    for (const [type, count] of crimeTypeMap.entries()) {
+   157→      if (count > maxCount) {
+   158→        maxCount = count;
+   159→        commonCrime = type;
+   160→      }
+   161→    }
+   162→
+   163→    return { topDistricts, commonCrime };
+   164→  }, [filteredFirs]);
+   165→
+   166→  // --- District Table ---
+   167→  const districtTable = useMemo(() => {
+   168→    const map = new Map<string, number>();
+   169→    for (const fir of filteredFirs) {
+   170→      map.set(fir.district, (map.get(fir.district) ?? 0) + 1);
+   171→    }
+   172→    return [...map.entries()]
+   173→      .sort((a, b) => b[1] - a[1])
+   174→      .map(([district, count]) => ({ district, count }));
+   175→  }, [filteredFirs]);
+   176→
+   177→  // --- Cluster Detection ---
+   178→  const clusters = useMemo(() => {
+   179→    if (filteredFirs.length === 0) return [];
+   180→
+   181→    const visited = new Set<string>();
+   182→    const result: { firs: FIR[]; center: [number, number]; locationName: string }[] = [];
+   183→
+   184→    for (const fir of filteredFirs) {
+   185→      if (visited.has(fir.fir_id)) continue;
+   186→
+   187→      const clusterFirs: FIR[] = [fir];
+   188→      visited.add(fir.fir_id);
+   189→
+   190→      let changed = true;
+   191→      while (changed) {
+   192→        changed = false;
+   193→        for (const other of filteredFirs) {
+   194→          if (visited.has(other.fir_id)) continue;
+   195→          const latDiff = Math.abs(other.location.lat - fir.location.lat);
+   196→          const lngDiff = Math.abs(other.location.lng - fir.location.lng);
+   197→          if (latDiff <= 0.05 && lngDiff <= 0.05) {
+   198→            for (const member of clusterFirs) {
+   199→              const dLat = Math.abs(other.location.lat - member.location.lat);
+   200→              const dLng = Math.abs(other.location.lng - member.location.lng);
+   201→              if (dLat <= 0.05 && dLng <= 0.05) {
+   202→                clusterFirs.push(other);
+   203→                visited.add(other.fir_id);
+   204→                changed = true;
+   205→                break;
+   206→              }
+   207→            }
+   208→          }
+   209→        }
+   210→      }
+   211→
+   212→      if (clusterFirs.length >= 3) {
+   213→        const avgLat =
+   214→          clusterFirs.reduce((s, f) => s + f.location.lat, 0) / clusterFirs.length;
+   215→        const avgLng =
+   216→          clusterFirs.reduce((s, f) => s + f.location.lng, 0) / clusterFirs.length;
+   217→        const nameCounts = new Map<string, number>();
+   218→        for (const f of clusterFirs) {
+   219→          nameCounts.set(f.district, (nameCounts.get(f.district) ?? 0) + 1);
+   220→        }
+   221→        const topName = [...nameCounts.entries()].sort((a, b) => b[1] - a[1])[0][0];
+   222→        result.push({ firs: clusterFirs, center: [avgLat, avgLng], locationName: topName });
+   223→      }
+   224→    }
+   225→
+   226→    return result.sort((a, b) => b.firs.length - a.firs.length);
+   227→  }, [filteredFirs]);
+   228→
+   229→  // --- Heat Points ---
+   230→  const heatPoints = useMemo(() => {
+   231→    if (filteredFirs.length === 0) return [];
+   232→
+   233→    const THRESHOLD = 0.05;
+   234→    const assigned = new Set<string>();
+   235→    const points: { center: [number, number]; intensity: number }[] = [];
+   236→
+   237→    for (const cluster of clusters) {
+   238→      points.push({
+   239→        center: cluster.center,
+   240→        intensity: cluster.firs.length,
+   241→      });
+   242→      for (const f of cluster.firs) {
+   243→        assigned.add(f.fir_id);
+   244→      }
+   245→    }
+   246→
+   247→    const remaining = filteredFirs.filter((f) => !assigned.has(f.fir_id));
+   248→    const grouped = new Set<string>();
+   249→
+   250→    for (const fir of remaining) {
+   251→      if (grouped.has(fir.fir_id)) continue;
+   252→      const group = [fir];
+   253→      grouped.add(fir.fir_id);
+   254→
+   255→      for (const other of remaining) {
+   256→        if (grouped.has(other.fir_id)) continue;
+   257→        const dLat = Math.abs(other.location.lat - fir.location.lat);
+   258→        const dLng = Math.abs(other.location.lng - fir.location.lng);
+   259→        if (dLat <= THRESHOLD && dLng <= THRESHOLD) {
+   260→          group.push(other);
+   261→          grouped.add(other.fir_id);
+   262→        }
+   263→      }
+   264→
+   265→      if (group.length >= 2) {
+   266→        const avgLat =
+   267→          group.reduce((s, f) => s + f.location.lat, 0) / group.length;
+   268→        const avgLng =
+   269→          group.reduce((s, f) => s + f.location.lng, 0) / group.length;
+   270→        points.push({ center: [avgLat, avgLng], intensity: group.length });
+   271→      } else {
+   272→        points.push({
+   273→          center: [fir.location.lat, fir.location.lng],
+   274→          intensity: 1,
+   275→        });
+   276→      }
+   277→    }
+   278→
+   279→    return points;
+   280→  }, [filteredFirs, clusters]);
+   281→
+   282→  // --- Crime Density Stats ---
+   283→  const densityStats = useMemo(() => {
+   284→    if (filteredFirs.length === 0) {
+   285→      return {
+   286→        highestDensity: "N/A",
+   287→        avgCrimesPerLocation: 0,
+   288→        numClusters: 0,
+   289→        topClusters: [] as { name: string; count: number }[],
+   290→      };
+   291→    }
+   292→
+   293→    const topClusters = clusters.slice(0, 3).map((c) => ({
+   294→      name: c.locationName,
+   295→      count: c.firs.length,
+   296→    }));
+   297→
+   298→    const uniqueLocations = new Set(
+   299→      filteredFirs.map((f) => `${f.location.lat.toFixed(4)},${f.location.lng.toFixed(4)}`)
+   300→    ).size;
+   301→
+   302→    return {
+   303→      highestDensity:
+   304→        clusters.length > 0
+   305→          ? `${clusters[0].locationName} (${clusters[0].firs.length} FIRs)`
+   306→          : "N/A",
+   307→      avgCrimesPerLocation:
+   308→        Math.round((filteredFirs.length / Math.max(uniqueLocations, 1)) * 10) / 10,
+   309→      numClusters: clusters.length,
+   310→      topClusters,
+   311→    };
+   312→  }, [filteredFirs, clusters]);
+   313→
+   314→  // --- Loading State ---
+   315→  if (!crimeData) {
+   316→    return <LoadingSpinner message="Loading crime map data..." />;
+   317→  }
+   318→
+   319→  return (
+   320→    <div className="flex flex-col w-full" style={{ height: "calc(100vh - 14rem)" }}>
+   321→      {/* Map Container */}
+   322→      <div className="relative flex-1 min-h-0">
+   323→        <MapContainer
+   324→          center={[15.3173, 75.7139]}
+   325→          zoom={7}
+   326→          style={{ height: "100%", width: "100%" }}
+   327→          className="z-0"
+   328→        >
+   329→          <TileLayer
+   330→            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+   331→            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+   332→          />
+   333→          {viewMode === "markers" &&
+   334→            filteredFirs.map((fir) => {
+   335→              const cfg = SEVERITY_CONFIG[fir.severity];
+   336→              if (!cfg) return null;
+   337→              return (
+   338→                <CircleMarker
+   339→                  key={fir.fir_id}
+   340→                  center={[fir.location.lat, fir.location.lng]}
+   341→                  radius={cfg.radius}
+   342→                  pathOptions={{
+   343→                    color: cfg.color,
+   344→                    weight: 1.5,
+   345→                    fillColor: cfg.color,
+   346→                    fillOpacity: 0.5,
+   347→                    opacity: 0.9,
+   348→                  }}
+   349→                >
+   350→                  <Popup>
+   351→                    <div style={{ padding: "12px 14px", minWidth: "200px" }}>
+   352→                      <p style={{ fontWeight: 700, fontSize: "13px", color: "#f1f5f9", marginBottom: "6px" }}>
+   353→                        {fir.fir_id}
+   354→                      </p>
+   355→                      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+   356→                        {[
+   357→                          ["Date", fir.date],
+   358→                          ["Type", fir.crime_type],
+   359→                          ["District", fir.district],
+   360→                          ["Status", fir.investigation_status],
+   361→                        ].map(([label, val]) => (
+   362→                          <div key={label} style={{ display: "flex", justifyContent: "space-between" }}>
+   363→                            <span style={{ color: "#5a657a", fontSize: "11px" }}>{label}</span>
+   364→                            <span style={{ color: "#c8d0e0", fontSize: "11px" }}>{val}</span>
+   365→                          </div>
+   366→                        ))}
+   367→                      </div>
+   368→                      <div style={{
+   369→                        marginTop: "8px",
+   370→                        paddingTop: "8px",
+   371→                        borderTop: "1px solid rgba(255,255,255,0.06)",
+   372→                        display: "inline-flex",
+   373→                        alignItems: "center",
+   374→                        gap: "6px",
+   375→                        padding: "2px 8px",
+   376→                        borderRadius: "6px",
+   377→                        background: `${cfg.color}15`,
+   378→                        border: `1px solid ${cfg.color}30`,
+   379→                        fontSize: "10px",
+   380→                        fontWeight: 600,
+   381→                        color: cfg.color,
+   382→                        textTransform: "uppercase",
+   383→                        letterSpacing: "0.05em",
+   384→                      }}>
+   385→                        <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: cfg.color }} />
+   386→                        {fir.severity}
+   387→                      </div>
+   388→                    </div>
+   389→                  </Popup>
+   390→                </CircleMarker>
+   391→              );
+   392→            })}
+   393→          {viewMode === "heatmap" &&
+   394→            heatPoints.map((hp, idx) => {
+   395→              const maxIntensity = Math.max(
+   396→                ...heatPoints.map((p) => p.intensity),
+   397→                1
+   398→              );
+   399→              const normalized = hp.intensity / maxIntensity;
+   400→              const radius = 500 + normalized * 4500;
+   401→              const opacity = 0.15 + normalized * 0.2;
+   402→              const fillColor =
+   403→                normalized > 0.6
+   404→                  ? "#f87171"
+   405→                  : normalized > 0.3
+   406→                  ? "#fbbf24"
+   407→                  : "#fbbf24";
+   408→              return (
+   409→                <Circle
+   410→                  key={`heat-${idx}`}
+   411→                  center={hp.center}
+   412→                  radius={radius}
+   413→                  pathOptions={{
+   414→                    color: "transparent",
+   415→                    weight: 0,
+   416→                    fillColor,
+   417→                    fillOpacity: opacity,
+   418→                  }}
+   419→                />
+   420→              );
+   421→            })}
+   422→        </MapContainer>
+   423→
+   424→        {/* ── Filter Panel — Left ── */}
+   425→        <motion.div
+   426→          initial={{ opacity: 0, x: -20 }}
+   427→          animate={{ opacity: 1, x: 0 }}
+   428→          transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+   429→          className="absolute top-4 left-4 z-[1000] w-64 p-5"
+   430→          style={glassPanel}
+   431→        >
+   432→          {/* Panel title */}
+   433→          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
+   434→            <div style={{
+   435→              width: "6px",
+   436→              height: "6px",
+   437→              borderRadius: "50%",
+   438→              background: "#22d3ee",
+   439→              boxShadow: "0 0 8px rgba(34,211,238,0.4)",
+   440→            }} />
+   441→            <h3 style={{ color: "#f1f5f9", fontWeight: 600, fontSize: "13px", letterSpacing: "0.02em" }}>
+   442→              Filters
+   443→            </h3>
+   444→          </div>
+   445→
+   446→          {/* Crime Type Checkboxes */}
+   447→          <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "16px" }}>
+   448→            {CRIME_TYPES.map((type) => (
+   449→              <label
+   450→                key={type}
+   451→                style={{
+   452→                  display: "flex",
+   453→                  alignItems: "center",
+   454→                  gap: "10px",
+   455→                  cursor: "pointer",
+   456→                  padding: "5px 8px",
+   457→                  borderRadius: "8px",
+   458→                  transition: "background 0.15s ease",
+   459→                }}
+   460→                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+   461→                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+   462→              >
+   463→                <Checkbox
+   464→                  checked={selectedTypes.includes(type)}
+   465→                  onCheckedChange={() => toggleType(type)}
+   466→                  style={{
+   467→                    width: "14px",
+   468→                    height: "14px",
+   469→                    borderColor: "rgba(255,255,255,0.12)",
+   470→                  }}
+   471→                />
+   472→                <span style={{ color: "#c8d0e0", fontSize: "12px" }}>{type}</span>
+   473→              </label>
+   474→            ))}
+   475→          </div>
+   476→
+   477→          {/* Year Dropdown */}
+   478→          <div style={{ marginBottom: "14px" }}>
+   479→            <p style={{ color: "#5a657a", fontSize: "10px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>
+   480→              Year
+   481→            </p>
+   482→            <Select value={selectedYear} onValueChange={setSelectedYear}>
+   483→              <SelectTrigger style={selectTriggerStyle}>
+   484→                <SelectValue placeholder="All" />
+   485→              </SelectTrigger>
+   486→              <SelectContent>
+   487→                <SelectItem value="all">All</SelectItem>
+   488→                <SelectItem value="2022">2022</SelectItem>
+   489→                <SelectItem value="2023">2023</SelectItem>
+   490→                <SelectItem value="2024">2024</SelectItem>
+   491→                <SelectItem value="2025">2025</SelectItem>
+   492→              </SelectContent>
+   493→            </Select>
+   494→          </div>
+   495→
+   496→          {/* Severity Dropdown */}
+   497→          <div style={{ marginBottom: "14px" }}>
+   498→            <p style={{ color: "#5a657a", fontSize: "10px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>
+   499→              Severity
+   500→            </p>
+   501→            <Select
+   502→              value={selectedSeverity}
+   503→              onValueChange={setSelectedSeverity}
+   504→            >
+   505→              <SelectTrigger style={selectTriggerStyle}>
+   506→                <SelectValue placeholder="All" />
+   507→              </SelectTrigger>
+   508→              <SelectContent>
+   509→                <SelectItem value="all">All</SelectItem>
+   510→                <SelectItem value="critical">Critical</SelectItem>
+   511→                <SelectItem value="high">High</SelectItem>
+   512→                <SelectItem value="medium">Medium</SelectItem>
+   513→                <SelectItem value="low">Low</SelectItem>
+   514→              </SelectContent>
+   515→            </Select>
+   516→          </div>
+   517→
+   518→          {/* View Mode Toggle */}
+   519→          <div>
+   520→            <p style={{ color: "#5a657a", fontSize: "10px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>
+   521→              View Mode
+   522→            </p>
+   523→            <div style={{
+   524→              display: "flex",
+   525→              borderRadius: "10px",
+   526→              overflow: "hidden",
+   527→              border: "1px solid rgba(255,255,255,0.06)",
+   528→            }}>
+   529→              <button
+   530→                onClick={() => setViewMode("markers")}
+   531→                style={{
+   532→                  flex: 1,
+   533→                  fontSize: "11px",
+   534→                  padding: "7px 0",
+   535→                  fontWeight: 600,
+   536→                  letterSpacing: "0.02em",
+   537→                  cursor: "pointer",
+   538→                  transition: "all 0.2s ease",
+   539→                  background: viewMode === "markers" ? "rgba(34,211,238,0.12)" : "transparent",
+   540→                  color: viewMode === "markers" ? "#22d3ee" : "#5a657a",
+   541→                  border: "none",
+   542→                }}
+   543→                onMouseEnter={(e) => {
+   544→                  if (viewMode !== "markers") e.currentTarget.style.color = "#8b97b0";
+   545→                }}
+   546→                onMouseLeave={(e) => {
+   547→                  if (viewMode !== "markers") e.currentTarget.style.color = "#5a657a";
+   548→                }}
+   549→              >
+   550→                Markers
+   551→              </button>
+   552→              <button
+   553→                onClick={() => setViewMode("heatmap")}
+   554→                style={{
+   555→                  flex: 1,
+   556→                  fontSize: "11px",
+   557→                  padding: "7px 0",
+   558→                  fontWeight: 600,
+   559→                  letterSpacing: "0.02em",
+   560→                  cursor: "pointer",
+   561→                  transition: "all 0.2s ease",
+   562→                  background: viewMode === "heatmap" ? "rgba(248,113,113,0.12)" : "transparent",
+   563→                  color: viewMode === "heatmap" ? "#f87171" : "#5a657a",
+   564→                  border: "none",
+   565→                  borderLeft: "1px solid rgba(255,255,255,0.06)",
+   566→                }}
+   567→                onMouseEnter={(e) => {
+   568→                  if (viewMode !== "heatmap") e.currentTarget.style.color = "#8b97b0";
+   569→                }}
+   570→                onMouseLeave={(e) => {
+   571→                  if (viewMode !== "heatmap") e.currentTarget.style.color = "#5a657a";
+   572→                }}
+   573→              >
+   574→                Heatmap
+   575→              </button>
+   576→            </div>
+   577→          </div>
+   578→
+   579→          {/* Severity Legend */}
+   580→          <div style={{
+   581→            marginTop: "16px",
+   582→            paddingTop: "14px",
+   583→            borderTop: "1px solid rgba(255,255,255,0.04)",
+   584→            display: "flex",
+   585→            flexWrap: "wrap",
+   586→            gap: "10px",
+   587→          }}>
+   588→            {Object.entries(SEVERITY_CONFIG).map(([key, cfg]) => (
+   589→              <div key={key} style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+   590→                <span style={{
+   591→                  width: "7px",
+   592→                  height: "7px",
+   593→                  borderRadius: "50%",
+   594→                  background: cfg.color,
+   595→                  boxShadow: `0 0 6px ${cfg.color}60`,
+   596→                }} />
+   597→                <span style={{ color: "#5a657a", fontSize: "10px" }}>{SEVERITY_LABELS[key]}</span>
+   598→              </div>
+   599→            ))}
+   600→          </div>
+   601→        </motion.div>
+   602→
+   603→        {/* ── Stats Panel — Right ── */}
+   604→        <motion.div
+   605→          initial={{ opacity: 0, x: 20 }}
+   606→          animate={{ opacity: 1, x: 0 }}
+   607→          transition={{ duration: 0.4, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
+   608→          className="absolute top-4 right-4 z-[1000] w-64 p-5"
+   609→          style={glassPanel}
+   610→        >
+   611→          {/* Panel title */}
+   612→          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
+   613→            <div style={{
+   614→              width: "6px",
+   615→              height: "6px",
+   616→              borderRadius: "50%",
+   617→              background: "#818cf8",
+   618→              boxShadow: "0 0 8px rgba(129,140,248,0.4)",
+   619→            }} />
+   620→            <h3 style={{ color: "#f1f5f9", fontWeight: 600, fontSize: "13px", letterSpacing: "0.02em" }}>
+   621→              Statistics
+   622→            </h3>
+   623→            <span style={{
+   624→              marginLeft: "auto",
+   625→              fontSize: "10px",
+   626→              fontWeight: 700,
+   627→              color: "#22d3ee",
+   628→              background: "rgba(34,211,238,0.08)",
+   629→              padding: "2px 8px",
+   630→              borderRadius: "6px",
+   631→              border: "1px solid rgba(34,211,238,0.12)",
+   632→            }}>
+   633→              {filteredFirs.length} FIRs
+   634→            </span>
+   635→          </div>
+   636→
+   637→          {/* Top 3 Districts */}
+   638→          <div style={{ marginBottom: "16px" }}>
+   639→            <p style={{ color: "#5a657a", fontSize: "10px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "8px" }}>
+   640→              Top Districts
+   641→            </p>
+   642→            {stats.topDistricts.length === 0 ? (
+   643→              <p style={{ color: "#3d4659", fontSize: "12px" }}>No data</p>
+   644→            ) : (
+   645→              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+   646→                {stats.topDistricts.map((d, i) => (
+   647→                  <div
+   648→                    key={d.name}
+   649→                    style={{
+   650→                      display: "flex",
+   651→                      alignItems: "center",
+   652→                      justifyContent: "space-between",
+   653→                      padding: "4px 0",
+   654→                    }}
+   655→                  >
+   656→                    <span style={{ color: "#c8d0e0", fontSize: "12px", display: "flex", alignItems: "center", gap: "10px" }}>
+   657→                      <span
+   658→                        style={{
+   659→                          display: "inline-flex",
+   660→                          alignItems: "center",
+   661→                          justifyContent: "center",
+   662→                          width: "20px",
+   663→                          height: "20px",
+   664→                          borderRadius: "8px",
+   665→                          fontSize: "10px",
+   666→                          fontWeight: 700,
+   667→                          background: i === 0 ? "rgba(248,113,113,0.15)" : i === 1 ? "rgba(251,191,36,0.15)" : "rgba(234,179,8,0.12)",
+   668→                          color: i === 0 ? "#f87171" : i === 1 ? "#fbbf24" : "#eab308",
+   669→                        }}
+   670→                      >
+   671→                        {i + 1}
+   672→                      </span>
+   673→                      {d.name}
+   674→                    </span>
+   675→                    <span style={{
+   676→                      color: "#f1f5f9",
+   677→                      fontSize: "13px",
+   678→                      fontWeight: 700,
+   679→                      fontVariantNumeric: "tabular-nums",
+   680→                    }}>
+   681→                      {d.count}
+   682→                    </span>
+   683→                  </div>
+   684→                ))}
+   685→              </div>
+   686→            )}
+   687→          </div>
+   688→
+   689→          {/* Most Common Crime */}
+   690→          <div style={{ marginBottom: "16px" }}>
+   691→            <p style={{ color: "#5a657a", fontSize: "10px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "4px" }}>
+   692→              Most Common Crime
+   693→            </p>
+   694→            <p style={{ color: "#f1f5f9", fontSize: "14px", fontWeight: 600 }}>
+   695→              {stats.commonCrime}
+   696→            </p>
+   697→          </div>
+   698→
+   699→          {/* Crime Density Info */}
+   700→          <div style={{ ...densityBoxStyle, marginBottom: "14px" }}>
+   701→            <p style={{ color: "#8b97b0", fontSize: "10px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "10px" }}>
+   702→              Crime Density
+   703→            </p>
+   704→            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+   705→              <div style={{ display: "flex", justifyContent: "space-between" }}>
+   706→                <span style={{ color: "#5a657a", fontSize: "11px" }}>Highest Density</span>
+   707→                <span style={{ color: "#c8d0e0", fontSize: "11px", fontWeight: 500, textAlign: "right", maxWidth: "120px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+   708→                  {densityStats.highestDensity}
+   709→                </span>
+   710→              </div>
+   711→              <div style={{ display: "flex", justifyContent: "space-between" }}>
+   712→                <span style={{ color: "#5a657a", fontSize: "11px" }}>Avg / Location</span>
+   713→                <span style={{ color: "#c8d0e0", fontSize: "11px", fontWeight: 500 }}>
+   714→                  {densityStats.avgCrimesPerLocation}
+   715→                </span>
+   716→              </div>
+   717→              <div style={{ display: "flex", justifyContent: "space-between" }}>
+   718→                <span style={{ color: "#5a657a", fontSize: "11px" }}>Crime Clusters</span>
+   719→                <span style={{ color: "#f87171", fontSize: "11px", fontWeight: 700 }}>
+   720→                  {densityStats.numClusters}
+   721→                </span>
+   722→              </div>
+   723→            </div>
+   724→          </div>
+   725→
+   726→          {/* Cluster Analysis */}
+   727→          <div>
+   728→            <p style={{ color: "#5a657a", fontSize: "10px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "8px" }}>
+   729→              Cluster Analysis
+   730→            </p>
+   731→            {densityStats.topClusters.length === 0 ? (
+   732→              <p style={{ color: "#3d4659", fontSize: "11px" }}>No clusters detected</p>
+   733→            ) : (
+   734→              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+   735→                {densityStats.topClusters.map((c, i) => (
+   736→                  <div
+   737→                    key={c.name}
+   738→                    style={{
+   739→                      display: "flex",
+   740→                      alignItems: "center",
+   741→                      justifyContent: "space-between",
+   742→                    }}
+   743→                  >
+   744→                    <span style={{ color: "#c8d0e0", fontSize: "11px", display: "flex", alignItems: "center", gap: "8px" }}>
+   745→                      <span
+   746→                        style={{
+   747→                          display: "inline-flex",
+   748→                          alignItems: "center",
+   749→                          justifyContent: "center",
+   750→                          width: "16px",
+   751→                          height: "16px",
+   752→                          borderRadius: "6px",
+   753→                          fontSize: "9px",
+   754→                          fontWeight: 700,
+   755→                          background: i === 0 ? "rgba(248,113,113,0.15)" : i === 1 ? "rgba(251,191,36,0.15)" : "rgba(234,179,8,0.12)",
+   756→                          color: i === 0 ? "#f87171" : i === 1 ? "#fbbf24" : "#eab308",
+   757→                        }}
+   758→                      >
+   759→                        {i + 1}
+   760→                      </span>
+   761→                      {c.name}
+   762→                    </span>
+   763→                    <span style={{ color: "#f1f5f9", fontSize: "11px", fontWeight: 600 }}>
+   764→                      {c.count} FIRs
+   765→                    </span>
+   766→                  </div>
+   767→                ))}
+   768→              </div>
+   769→            )}
+   770→          </div>
+   771→        </motion.div>
+   772→      </div>
+   773→
+   774→      {/* ── District Summary Table ── */}
+   775→      <motion.div
+   776→        initial={{ opacity: 0, y: 16 }}
+   777→        animate={{ opacity: 1, y: 0 }}
+   778→        transition={{ duration: 0.4, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
+   779→        className="mt-3 max-h-48 overflow-y-auto"
+   780→        style={{
+   781→          ...glassPanel,
+   782→          borderRadius: "14px",
+   783→        }}
+   784→      >
+   785→        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+   786→          <thead>
+   787→            <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+   788→              <th style={{ textAlign: "left", padding: "12px 16px", color: "#5a657a", fontSize: "10px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+   789→                District
+   790→              </th>
+   791→              <th style={{ textAlign: "right", padding: "12px 16px", color: "#5a657a", fontSize: "10px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+   792→                Crime Count
+   793→              </th>
+   794→            </tr>
+   795→          </thead>
+   796→          <tbody>
+   797→            {districtTable.length === 0 ? (
+   798→              <tr>
+   799→                <td
+   800→                  colSpan={2}
+   801→                  style={{
+   802→                    textAlign: "center",
+   803→                    padding: "24px 16px",
+   804→                    color: "#3d4659",
+   805→                    fontSize: "12px",
+   806→                  }}
+   807→                >
+   808→                  No matching records
+   809→                </td>
+   810→              </tr>
+   811→            ) : (
+   812→              districtTable.map((row, i) => (
+   813→                <tr
+   814→                  key={row.district}
+   815→                  style={{
+   816→                    borderBottom: "1px solid rgba(255,255,255,0.03)",
+   817→                    transition: "background 0.15s ease",
+   818→                    cursor: "default",
+   819→                  }}
+   820→                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(34,211,238,0.04)"; }}
+   821→                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+   822→                >
+   823→                  <td style={{ padding: "10px 16px", color: "#c8d0e0", fontSize: "12px" }}>
+   824→                    <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+   825→                      <span style={{
+   826→                        width: "16px",
+   827→                        height: "16px",
+   828→                        borderRadius: "6px",
+   829→                        display: "flex",
+   830→                        alignItems: "center",
+   831→                        justifyContent: "center",
+   832→                        fontSize: "9px",
+   833→                        fontWeight: 700,
+   834→                        background: i < 3 ? "rgba(34,211,238,0.08)" : "transparent",
+   835→                        color: i < 3 ? "#22d3ee" : "#3d4659",
+   836→                      }}>
+   837→                        {i + 1}
+   838→                      </span>
+   839→                      {row.district}
+   840→                    </span>
+   841→                  </td>
+   842→                  <td style={{ padding: "10px 16px", color: "#f1f5f9", fontSize: "12px", textAlign: "right", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+   843→                    {row.count}
+   844→                  </td>
+   845→                </tr>
+   846→              ))
+   847→            )}
+   848→          </tbody>
+   849→        </table>
+   850→      </motion.div>
+   851→    </div>
+   852→  );
+   853→}

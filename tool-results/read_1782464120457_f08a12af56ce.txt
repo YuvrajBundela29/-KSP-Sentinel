@@ -1,0 +1,568 @@
+     1→     1→"use client";
+     2→     2→
+     3→     3→import { useEffect, useMemo } from "react";
+     4→     4→import {
+     5→     5→  BarChart,
+     6→     6→  Bar,
+     7→     7→  XAxis,
+     8→     8→  YAxis,
+     9→     9→  Tooltip,
+    10→    10→  ResponsiveContainer,
+    11→    11→} from "recharts";
+    12→    12→import {
+    13→    13→  FileText,
+    14→    14→  Search,
+    15→    15→  UserX,
+    16→    16→  AlertTriangle,
+    17→    17→  MapPin,
+    18→    18→  Users,
+    19→    19→  Brain,
+    20→    20→  Clock,
+    21→    21→  Radio,
+    22→    22→  ShieldAlert,
+    23→    23→} from "lucide-react";
+    24→    24→import { motion } from "framer-motion";
+    25→    25→import { useAppStore } from "@/lib/store";
+    26→    26→import { loadCrimeData } from "@/lib/data";
+    27→    27→import {
+    28→    28→  getIntelFeedItems,
+    29→    29→  getInvestigationQueue,
+    30→    30→  getAIRecommendations,
+    31→    31→  getCrimeTrendByMonth,
+    32→    32→} from "@/lib/intelligence";
+    33→    33→import LoadingSpinner from "@/components/ksp/LoadingSpinner";
+    34→    34→import {
+    35→    35→  Table,
+    36→    36→  TableHeader,
+    37→    37→  TableBody,
+    38→    38→  TableHead,
+    39→    39→  TableRow,
+    40→    40→  TableCell,
+    41→    41→} from "@/components/ui/table";
+    42→    42→
+    43→    43→// ─── Sparkline helper ────────────────────────────────────────────
+    44→    44→function Sparkline({ data, color = "#22d3ee" }: { data: { month: string; count: number }[]; color?: string }) {
+    45→    45→  if (data.length < 2) return null;
+    46→    46→  const max = Math.max(...data.map((d) => d.count), 1);
+    47→    47→  const w = 80, h = 24, pad = 2;
+    48→    48→  const points = data
+    49→    49→    .map((d, i) => {
+    50→    50→      const x = pad + (i / (data.length - 1)) * (w - pad * 2);
+    51→    51→      const y = h - pad - (d.count / max) * (h - pad * 2);
+    52→    52→      return `${x},${y}`;
+    53→    53→    })
+    54→    54→    .join(" ");
+    55→    55→  return (
+    56→    56→    <svg width={w} height={h} className="mt-2 opacity-40">
+    57→    57→      <defs>
+    58→    58→        <linearGradient id={`spark-grad-${color.replace('#','')}`} x1="0" y1="0" x2="0" y2="1">
+    59→    59→          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+    60→    60→          <stop offset="100%" stopColor={color} stopOpacity="0" />
+    61→    61→        </linearGradient>
+    62→    62→      </defs>
+    63→    63→      <polyline
+    64→    64→        points={points}
+    65→    65→        fill="none"
+    66→    66→        stroke={color}
+    67→    67→        strokeWidth="1.5"
+    68→    68→        strokeLinecap="round"
+    69→    69→        strokeLinejoin="round"
+    70→    70→        className="sparkline-path"
+    71→    71→      />
+    72→    72→    </svg>
+    73→    73→  );
+    74→    74→}
+    75→    75→
+    76→    76→// ─── Severity Badge ──────────────────────────────────────────────
+    77→    77→function SeverityBadge({ severity }: { severity: string }) {
+    78→    78→  const config: Record<string, { color: string; bg: string; border: string }> = {
+    79→    79→    critical: { color: "#f87171", bg: "rgba(248,113,113,0.08)", border: "rgba(248,113,113,0.15)" },
+    80→    80→    high: { color: "#fbbf24", bg: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.15)" },
+    81→    81→    medium: { color: "#fbbf24", bg: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.15)" },
+    82→    82→    low: { color: "#34d399", bg: "rgba(52,211,153,0.08)", border: "rgba(52,211,153,0.15)" },
+    83→    83→  };
+    84→    84→  const c = config[severity] || config.low;
+    85→    85→  return (
+    86→    86→    <span
+    87→    87→      className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider capitalize"
+    88→    88→      style={{ color: c.color, backgroundColor: c.bg, border: `1px solid ${c.border}` }}
+    89→    89→    >
+    90→    90→      {severity}
+    91→    91→    </span>
+    92→    92→  );
+    93→    93→}
+    94→    94→
+    95→    95→// ─── Premium Stat Card ───────────────────────────────────────────
+    96→    96→function StatCard({
+    97→    97→  icon: Icon,
+    98→    98→  label,
+    99→    99→  value,
+   100→   100→  sparkData,
+   101→   101→  gradientClass,
+   102→   102→  accentColor,
+   103→   103→  stagger,
+   104→   104→}: {
+   105→   105→  icon: React.ElementType;
+   106→   106→  label: string;
+   107→   107→  value: number;
+   108→   108→  sparkData: { month: string; count: number }[];
+   109→   109→  gradientClass: string;
+   110→   110→  accentColor: string;
+   111→   111→  stagger: string;
+   112→   112→}) {
+   113→   113→  return (
+   114→   114→    <motion.div
+   115→   115→      className={`glass-card p-5 ${stagger}`}
+   116→   116→      whileHover={{ y: -2, transition: { duration: 0.2 } }}
+   117→   117→      style={{ position: "relative", overflow: "hidden" }}
+   118→   118→    >
+   119→   119→      {/* Gradient overlay */}
+   120→   120→      <div className={`absolute inset-0 ${gradientClass} pointer-events-none`} style={{ borderRadius: "inherit" }} />
+   121→   121→
+   122→   122→      <div className="relative z-10">
+   123→   123→        <div className="flex items-start justify-between mb-3">
+   124→   124→          <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: `${accentColor}12`, border: `1px solid ${accentColor}18` }}>
+   125→   125→            <Icon className="w-4.5 h-4.5" style={{ color: accentColor }} />
+   126→   126→          </div>
+   127→   127→          <span className="text-[9px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider" style={{ color: accentColor, backgroundColor: `${accentColor}08`, border: `1px solid ${accentColor}12` }}>
+   128→   128→            {value > 0 ? "+" : ""}{value}
+   129→   129→          </span>
+   130→   130→        </div>
+   131→   131→        <p className="text-2xl font-bold animate-count-up" style={{ color: "#f1f5f9" }}>{value}</p>
+   132→   132→        <p className="text-[11px] mt-0.5 uppercase tracking-wider font-medium" style={{ color: "#5a657a" }}>{label}</p>
+   133→   133→        <Sparkline data={sparkData} color={accentColor} />
+   134→   134→      </div>
+   135→   135→    </motion.div>
+   136→   136→  );
+   137→   137→}
+   138→   138→
+   139→   139→// ─── Risk Bar ────────────────────────────────────────────────────
+   140→   140→function RiskBar({ score }: { score: number }) {
+   141→   141→  const color = score > 80 ? "#f87171" : score > 60 ? "#fbbf24" : "#34d399";
+   142→   142→  return (
+   143→   143→    <div className="flex items-center gap-2.5 min-w-[120px]">
+   144→   144→      <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.04)" }}>
+   145→   145→        <motion.div
+   146→   146→          className="h-full rounded-full"
+   147→   147→          style={{ backgroundColor: color, width: `${Math.min(score, 100)}%` }}
+   148→   148→          initial={{ width: 0 }}
+   149→   149→          animate={{ width: `${Math.min(score, 100)}%` }}
+   150→   150→          transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+   151→   151→        />
+   152→   152→      </div>
+   153→   153→      <span className="text-[11px] font-mono w-7 text-right" style={{ color: color }}>{score}</span>
+   154→   154→    </div>
+   155→   155→  );
+   156→   156→}
+   157→   157→
+   158→   158→// ─── Chart Tooltip ───────────────────────────────────────────────
+   159→   159→function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
+   160→   160→  if (!active || !payload?.length) return null;
+   161→   161→  return (
+   162→   162→    <div className="rounded-lg px-3.5 py-2.5" style={{ background: "rgba(15,21,36,0.95)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(16px)", boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}>
+   163→   163→      <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a657a" }}>{label}</p>
+   164→   164→      <p className="text-sm font-bold mt-0.5" style={{ color: "#f1f5f9" }}>{payload[0].value} FIRs</p>
+   165→   165→    </div>
+   166→   166→  );
+   167→   167→}
+   168→   168→
+   169→   169→// ─── Relative timestamp ──────────────────────────────────────────
+   170→   170→function relativeTime(isoStr: string): string {
+   171→   171→  const diff = Date.now() - new Date(isoStr).getTime();
+   172→   172→  const mins = Math.floor(diff / 60000);
+   173→   173→  if (mins < 1) return "just now";
+   174→   174→  if (mins < 60) return `${mins}m ago`;
+   175→   175→  const hrs = Math.floor(mins / 60);
+   176→   176→  if (hrs < 24) return `${hrs}h ago`;
+   177→   177→  const days = Math.floor(hrs / 24);
+   178→   178→  return `${days}d ago`;
+   179→   179→}
+   180→   180→
+   181→   181→// ─── Priority Badge ──────────────────────────────────────────────
+   182→   182→function PriorityBadge({ score }: { score: number }) {
+   183→   183→  if (score > 90) return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold" style={{ backgroundColor: "rgba(248,113,113,0.1)", color: "#f87171", border: "1px solid rgba(248,113,113,0.15)" }}>{score}</span>;
+   184→   184→  if (score > 70) return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold" style={{ backgroundColor: "rgba(251,191,36,0.1)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.15)" }}>{score}</span>;
+   185→   185→  return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold" style={{ backgroundColor: "rgba(52,211,153,0.1)", color: "#34d399", border: "1px solid rgba(52,211,153,0.15)" }}>{score}</span>;
+   186→   186→}
+   187→   187→
+   188→   188→// ─── Main Dashboard ──────────────────────────────────────────────
+   189→   189→export default function DashboardHome() {
+   190→   190→  const crimeData = useAppStore((s) => s.crimeData);
+   191→   191→  const setCrimeData = useAppStore((s) => s.setCrimeData);
+   192→   192→  const setDataLoading = useAppStore((s) => s.setDataLoading);
+   193→   193→  const dataLoading = useAppStore((s) => s.dataLoading);
+   194→   194→  const setView = useAppStore((s) => s.setView);
+   195→   195→  const setSelectedAccusedId = useAppStore((s) => s.setSelectedAccusedId);
+   196→   196→
+   197→   197→  useEffect(() => {
+   198→   198→    if (!crimeData && !dataLoading) {
+   199→   199→      setDataLoading(true);
+   200→   200→      loadCrimeData()
+   201→   201→        .then((data) => setCrimeData(data))
+   202→   202→        .catch((err) => console.error("Failed to load crime data:", err))
+   203→   203→        .finally(() => setDataLoading(false));
+   204→   204→    }
+   205→   205→  }, [crimeData, dataLoading, setCrimeData, setDataLoading]);
+   206→   206→
+   207→   207→  const stats = useMemo(() => {
+   208→   208→    if (!crimeData) return null;
+   209→   209→    const { firs, accused, gangs, districts } = crimeData;
+   210→   210→    const totalFIRs = firs.length;
+   211→   211→    const activeCases = firs.filter((f) => f.investigation_status === "Under Investigation").length;
+   212→   212→    const arrestedAccusedIds = new Set<string>();
+   213→   213→    firs.filter((f) => f.investigation_status === "Arrested").forEach((f) => f.accused.forEach((id) => arrestedAccusedIds.add(id)));
+   214→   214→    const arrestedCount = arrestedAccusedIds.size;
+   215→   215→    const highRiskCount = accused.filter((a) => a.risk > 80).length;
+   216→   216→    return { totalFIRs, activeCases, arrestedCount, highRiskCount, districtCount: districts.length, gangCount: gangs.length };
+   217→   217→  }, [crimeData]);
+   218→   218→
+   219→   219→  const chartData = useMemo(() => {
+   220→   220→    if (!crimeData) return [];
+   221→   221→    const map: Record<string, number> = {};
+   222→   222→    crimeData.firs.forEach((f) => { map[f.crime_type] = (map[f.crime_type] ?? 0) + 1; });
+   223→   223→    return Object.entries(map).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+   224→   224→  }, [crimeData]);
+   225→   225→
+   226→   226→  const recentFIRs = useMemo(() => {
+   227→   227→    if (!crimeData) return [];
+   228→   228→    return [...crimeData.firs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
+   229→   229→  }, [crimeData]);
+   230→   230→
+   231→   231→  const highRiskAccused = useMemo(() => {
+   232→   232→    if (!crimeData) return [];
+   233→   233→    return crimeData.accused.filter((a) => a.risk > 60).sort((a, b) => b.risk - a.risk);
+   234→   234→  }, [crimeData]);
+   235→   235→
+   236→   236→  const crimeTrend = useMemo(() => { if (!crimeData) return []; return getCrimeTrendByMonth(crimeData); }, [crimeData]);
+   237→   237→  const intelFeed = useMemo(() => { if (!crimeData) return []; return getIntelFeedItems(crimeData); }, [crimeData]);
+   238→   238→  const recommendations = useMemo(() => { if (!crimeData) return []; return getAIRecommendations(crimeData); }, [crimeData]);
+   239→   239→  const investigationQueue = useMemo(() => { if (!crimeData) return []; return getInvestigationQueue(crimeData); }, [crimeData]);
+   240→   240→
+   241→   241→  const riskAlerts = useMemo(() => {
+   242→   242→    if (!crimeData) return [];
+   243→   243→    return crimeData.accused
+   244→   244→      .filter((a) => {
+   245→   245→        if (a.risk < 80) return false;
+   246→   246→        return crimeData.firs.some((f) => f.accused.includes(a.id) && f.investigation_status === "Under Investigation");
+   247→   247→      })
+   248→   248→      .map((a) => ({
+   249→   249→        ...a,
+   250→   250→        activeCases: crimeData.firs.filter((f) => f.accused.includes(a.id) && f.investigation_status === "Under Investigation").length,
+   251→   251→      }))
+   252→   252→      .sort((a, b) => b.risk - a.risk);
+   253→   253→  }, [crimeData]);
+   254→   254→
+   255→   255→  if (!crimeData || !stats) return <LoadingSpinner message="Loading crime intelligence data..." />;
+   256→   256→
+   257→   257→  const statCards = [
+   258→   258→    { icon: FileText, label: "Total FIRs", value: stats.totalFIRs, gradientClass: "gradient-cyan", accentColor: "#22d3ee" },
+   259→   259→    { icon: Search, label: "Active Cases", value: stats.activeCases, gradientClass: "gradient-indigo", accentColor: "#818cf8" },
+   260→   260→    { icon: UserX, label: "Arrested", value: stats.arrestedCount, gradientClass: "gradient-emerald", accentColor: "#34d399" },
+   261→   261→    { icon: AlertTriangle, label: "High Risk", value: stats.highRiskCount, gradientClass: "gradient-rose", accentColor: "#f87171" },
+   262→   262→    { icon: MapPin, label: "Districts", value: stats.districtCount, gradientClass: "gradient-amber", accentColor: "#fbbf24" },
+   263→   263→    { icon: Users, label: "Gang Networks", value: stats.gangCount, gradientClass: "gradient-indigo", accentColor: "#818cf8" },
+   264→   264→  ];
+   265→   265→
+   266→   266→  const staggerClasses = ["stagger-1", "stagger-2", "stagger-3", "stagger-4", "stagger-5", "stagger-6"];
+   267→   267→
+   268→   268→  return (
+   269→   269→    <div className="relative z-10">
+   270→   270→      <div className="space-y-5 p-5">
+   271→   271→        {/* ═══ Row 1: Premium Stat Cards ════════════════════════════ */}
+   272→   272→        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+   273→   273→          {statCards.map((card, i) => (
+   274→   274→            <StatCard
+   275→   275→              key={card.label}
+   276→   276→              icon={card.icon}
+   277→   277→              label={card.label}
+   278→   278→              value={card.value}
+   279→   279→              sparkData={crimeTrend}
+   280→   280→              gradientClass={card.gradientClass}
+   281→   281→              accentColor={card.accentColor}
+   282→   282→              stagger={staggerClasses[i]}
+   283→   283→            />
+   284→   284→          ))}
+   285→   285→        </div>
+   286→   286→
+   287→   287→        {/* ═══ Row 2: Chart + Recent FIRs ══════════════════════════ */}
+   288→   288→        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+   289→   289→          {/* Bar Chart */}
+   290→   290→          <motion.div
+   291→   291→            className="glass-card p-5 md:col-span-3"
+   292→   292→            initial={{ opacity: 0, y: 16 }}
+   293→   293→            animate={{ opacity: 1, y: 0 }}
+   294→   294→            transition={{ delay: 0.3, duration: 0.4 }}
+   295→   295→          >
+   296→   296→            <div className="flex items-center gap-2 mb-5">
+   297→   297→              <div className="w-1.5 h-4 rounded-full" style={{ backgroundColor: "#22d3ee" }} />
+   298→   298→              <h3 className="text-[13px] font-semibold tracking-wide" style={{ color: "#f1f5f9" }}>FIRs by Crime Type</h3>
+   299→   299→            </div>
+   300→   300→            <div className="h-72">
+   301→   301→              <ResponsiveContainer width="100%" height="100%">
+   302→   302→                <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 40 }}>
+   303→   303→                  <XAxis dataKey="name" tick={{ fill: "#5a657a", fontSize: 10 }} axisLine={{ stroke: "rgba(255,255,255,0.06)" }} tickLine={false} angle={-35} textAnchor="end" interval={0} />
+   304→   304→                  <YAxis tick={{ fill: "#5a657a", fontSize: 10 }} axisLine={{ stroke: "rgba(255,255,255,0.06)" }} tickLine={false} allowDecimals={false} />
+   305→   305→                  <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(34,211,238,0.04)" }} />
+   306→   306→                  <defs>
+   307→   307→                    <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+   308→   308→                      <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.8" />
+   309→   309→                      <stop offset="100%" stopColor="#22d3ee" stopOpacity="0.3" />
+   310→   310→                    </linearGradient>
+   311→   311→                  </defs>
+   312→   312→                  <Bar dataKey="count" fill="url(#barGrad)" radius={[6, 6, 0, 0]} maxBarSize={40} />
+   313→   313→                </BarChart>
+   314→   314→              </ResponsiveContainer>
+   315→   315→            </div>
+   316→   316→          </motion.div>
+   317→   317→
+   318→   318→          {/* Recent FIRs */}
+   319→   319→          <motion.div
+   320→   320→            className="glass-card p-5 md:col-span-2"
+   321→   321→            initial={{ opacity: 0, y: 16 }}
+   322→   322→            animate={{ opacity: 1, y: 0 }}
+   323→   323→            transition={{ delay: 0.4, duration: 0.4 }}
+   324→   324→          >
+   325→   325→            <div className="flex items-center gap-2 mb-5">
+   326→   326→              <div className="w-1.5 h-4 rounded-full" style={{ backgroundColor: "#818cf8" }} />
+   327→   327→              <h3 className="text-[13px] font-semibold tracking-wide" style={{ color: "#f1f5f9" }}>Recent FIRs</h3>
+   328→   328→            </div>
+   329→   329→            <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+   330→   330→              {recentFIRs.map((fir) => (
+   331→   331→                <motion.div
+   332→   332→                  key={fir.fir_id}
+   333→   333→                  whileHover={{ x: 2 }}
+   334→   334→                  className="rounded-lg p-3.5 cursor-pointer transition-all duration-200"
+   335→   335→                  style={{ backgroundColor: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" }}
+   336→   336→                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}
+   337→   337→                  onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.02)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.04)"; }}
+   338→   338→                >
+   339→   339→                  <div className="flex items-center justify-between mb-1.5">
+   340→   340→                    <span className="text-[11px] font-mono font-bold" style={{ color: "#22d3ee" }}>{fir.fir_id}</span>
+   341→   341→                    <SeverityBadge severity={fir.severity} />
+   342→   342→                  </div>
+   343→   343→                  <p className="text-[13px] font-medium" style={{ color: "#e8edf5" }}>{fir.crime_type}</p>
+   344→   344→                  <div className="flex items-center gap-2.5 mt-1.5 text-[11px]" style={{ color: "#5a657a" }}>
+   345→   345→                    <span>{fir.date}</span>
+   346→   346→                    <span style={{ color: "#3d4659" }}>·</span>
+   347→   347→                    <span>{fir.district}</span>
+   348→   348→                  </div>
+   349→   349→                </motion.div>
+   350→   350→              ))}
+   351→   351→            </div>
+   352→   352→          </motion.div>
+   353→   353→        </div>
+   354→   354→
+   355→   355→        {/* ═══ Row 3: Intel Feed + AI Recommendations ═══════════════ */}
+   356→   356→        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+   357→   357→          {/* Live Intelligence Feed */}
+   358→   358→          <motion.div className="glass-card p-5 md:col-span-2 animate-fade-in-up stagger-3">
+   359→   359→            <div className="flex items-center gap-2.5 mb-5">
+   360→   360→              <div className="w-1.5 h-4 rounded-full" style={{ backgroundColor: "#f87171" }} />
+   361→   361→              <Radio className="w-4 h-4" style={{ color: "#f87171" }} />
+   362→   362→              <h3 className="text-[13px] font-semibold tracking-wider" style={{ color: "#f1f5f9" }}>LIVE INTELLIGENCE</h3>
+   363→   363→              <span className="relative flex h-2 w-2 ml-auto">
+   364→   364→                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: "#f87171" }} />
+   365→   365→                <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: "#f87171" }} />
+   366→   366→              </span>
+   367→   367→            </div>
+   368→   368→            <div className="space-y-2.5 max-h-[280px] overflow-y-auto pr-1">
+   369→   369→              {intelFeed.map((item) => (
+   370→   370→                <div key={item.id} className="rounded-lg p-3.5" style={{ backgroundColor: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" }}>
+   371→   371→                  <div className="flex items-center gap-2 mb-1.5">
+   372→   372→                    <SeverityBadge severity={item.severity} />
+   373→   373→                    <span className="text-[9px] uppercase tracking-wider" style={{ color: "#3d4659" }}>{item.type}</span>
+   374→   374→                    <span className="ml-auto text-[10px]" style={{ color: "#3d4659" }}>{relativeTime(item.timestamp)}</span>
+   375→   375→                  </div>
+   376→   376→                  <p className="text-[12px] font-medium leading-snug" style={{ color: "#e8edf5" }}>{item.title}</p>
+   377→   377→                  <p className="text-[11px] mt-1 line-clamp-2" style={{ color: "#8b97b0" }}>{item.description}</p>
+   378→   378→                </div>
+   379→   379→              ))}
+   380→   380→            </div>
+   381→   381→          </motion.div>
+   382→   382→
+   383→   383→          {/* AI Recommendations */}
+   384→   384→          <motion.div
+   385→   385→            className="glass-card p-5 md:col-span-3"
+   386→   386→            initial={{ opacity: 0, y: 16 }}
+   387→   387→            animate={{ opacity: 1, y: 0 }}
+   388→   388→            transition={{ delay: 0.5, duration: 0.4 }}
+   389→   389→          >
+   390→   390→            <div className="flex items-center gap-2.5 mb-5">
+   391→   391→              <div className="w-1.5 h-4 rounded-full" style={{ backgroundColor: "#22d3ee" }} />
+   392→   392→              <Brain className="w-4 h-4" style={{ color: "#22d3ee" }} />
+   393→   393→              <h3 className="text-[13px] font-semibold tracking-wider" style={{ color: "#f1f5f9" }}>AI RECOMMENDATIONS</h3>
+   394→   394→            </div>
+   395→   395→            <div className="space-y-2.5">
+   396→   396→              {recommendations.slice(0, 4).map((rec, idx) => (
+   397→   397→                <motion.div
+   398→   398→                  key={idx}
+   399→   399→                  initial={{ opacity: 0, x: -8 }}
+   400→   400→                  animate={{ opacity: 1, x: 0 }}
+   401→   401→                  transition={{ delay: 0.5 + idx * 0.1, duration: 0.3 }}
+   402→   402→                  className="rounded-lg p-3.5"
+   403→   403→                  style={{ backgroundColor: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)", borderLeft: `3px solid ${rec.priority === "high" ? "#f87171" : "#fbbf24"}` }}
+   404→   404→                >
+   405→   405→                  <div className="flex items-center gap-2 mb-1.5">
+   406→   406→                    <span
+   407→   407→                      className="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider"
+   408→   408→                      style={{
+   409→   409→                        color: rec.priority === "high" ? "#f87171" : "#fbbf24",
+   410→   410→                        backgroundColor: rec.priority === "high" ? "rgba(248,113,113,0.08)" : "rgba(251,191,36,0.08)",
+   411→   411→                        border: `1px solid ${rec.priority === "high" ? "rgba(248,113,113,0.15)" : "rgba(251,191,36,0.15)"}`,
+   412→   412→                      }}
+   413→   413→                    >
+   414→   414→                      {rec.priority}
+   415→   415→                    </span>
+   416→   416→                    <p className="text-[12px] font-medium" style={{ color: "#e8edf5" }}>{rec.title}</p>
+   417→   417→                  </div>
+   418→   418→                  <p className="text-[11px] leading-relaxed" style={{ color: "#8b97b0" }}>{rec.description}</p>
+   419→   419→                  <p className="text-[11px] mt-2 font-medium flex items-center gap-1" style={{ color: "#22d3ee" }}>
+   420→   420→                    → {rec.action}
+   421→   421→                  </p>
+   422→   422→                </motion.div>
+   423→   423→              ))}
+   424→   424→            </div>
+   425→   425→          </motion.div>
+   426→   426→        </div>
+   427→   427→
+   428→   428→        {/* ═══ Row 4: Investigation Queue + Risk Alerts ════════════ */}
+   429→   429→        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+   430→   430→          {/* Investigation Queue */}
+   431→   431→          <motion.div
+   432→   432→            className="glass-card p-5 md:col-span-3"
+   433→   433→            initial={{ opacity: 0, y: 16 }}
+   434→   434→            animate={{ opacity: 1, y: 0 }}
+   435→   435→            transition={{ delay: 0.6, duration: 0.4 }}
+   436→   436→          >
+   437→   437→            <div className="flex items-center gap-2.5 mb-5">
+   438→   438→              <div className="w-1.5 h-4 rounded-full" style={{ backgroundColor: "#818cf8" }} />
+   439→   439→              <Clock className="w-4 h-4" style={{ color: "#818cf8" }} />
+   440→   440→              <h3 className="text-[13px] font-semibold tracking-wider" style={{ color: "#f1f5f9" }}>INVESTIGATION QUEUE</h3>
+   441→   441→            </div>
+   442→   442→            <div className="max-h-[320px] overflow-y-auto">
+   443→   443→              <Table>
+   444→   444→                <TableHeader>
+   445→   445→                  <TableRow style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+   446→   446→                    <TableHead className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "#5a657a" }}>FIR ID</TableHead>
+   447→   447→                    <TableHead className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "#5a657a" }}>Crime Type</TableHead>
+   448→   448→                    <TableHead className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "#5a657a" }}>District</TableHead>
+   449→   449→                    <TableHead className="text-[10px] uppercase tracking-wider font-semibold text-center" style={{ color: "#5a657a" }}>Days</TableHead>
+   450→   450→                    <TableHead className="text-[10px] uppercase tracking-wider font-semibold text-right" style={{ color: "#5a657a" }}>Priority</TableHead>
+   451→   451→                  </TableRow>
+   452→   452→                </TableHeader>
+   453→   453→                <TableBody>
+   454→   454→                  {investigationQueue.slice(0, 10).map((item) => (
+   455→   455→                    <TableRow
+   456→   456→                      key={item.firId}
+   457→   457→                      className="cursor-pointer transition-colors duration-150"
+   458→   458→                      style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}
+   459→   459→                      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
+   460→   460→                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+   461→   461→                    >
+   462→   462→                      <TableCell className="text-[11px] font-mono font-bold" style={{ color: "#22d3ee" }}>{item.firId}</TableCell>
+   463→   463→                      <TableCell className="text-[12px]" style={{ color: "#e8edf5" }}>{item.crimeType}</TableCell>
+   464→   464→                      <TableCell className="text-[11px]" style={{ color: "#8b97b0" }}>{item.district}</TableCell>
+   465→   465→                      <TableCell className="text-[12px] text-center" style={{ color: "#e8edf5" }}>{item.daysOpen}</TableCell>
+   466→   466→                      <TableCell className="text-right"><PriorityBadge score={item.priority} /></TableCell>
+   467→   467→                    </TableRow>
+   468→   468→                  ))}
+   469→   469→                </TableBody>
+   470→   470→              </Table>
+   471→   471→            </div>
+   472→   472→          </motion.div>
+   473→   473→
+   474→   474→          {/* Risk Alerts */}
+   475→   475→          <motion.div
+   476→   476→            className="glass-card p-5 md:col-span-2"
+   477→   477→            initial={{ opacity: 0, y: 16 }}
+   478→   478→            animate={{ opacity: 1, y: 0 }}
+   479→   479→            transition={{ delay: 0.7, duration: 0.4 }}
+   480→   480→          >
+   481→   481→            <div className="flex items-center gap-2.5 mb-5">
+   482→   482→              <div className="w-1.5 h-4 rounded-full" style={{ backgroundColor: "#f87171" }} />
+   483→   483→              <ShieldAlert className="w-4 h-4" style={{ color: "#f87171" }} />
+   484→   484→              <h3 className="text-[13px] font-semibold tracking-wider" style={{ color: "#f1f5f9" }}>RISK ALERTS</h3>
+   485→   485→            </div>
+   486→   486→            <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
+   487→   487→              {riskAlerts.map((alert) => (
+   488→   488→                <motion.div
+   489→   489→                  key={alert.id}
+   490→   490→                  whileHover={{ x: 2 }}
+   491→   491→                  className="rounded-lg p-3.5 cursor-pointer transition-all duration-200"
+   492→   492→                  style={{
+   493→   493→                    backgroundColor: alert.risk >= 90 ? "rgba(248,113,113,0.04)" : "rgba(255,255,255,0.02)",
+   494→   494→                    border: `1px solid ${alert.risk >= 90 ? "rgba(248,113,113,0.12)" : "rgba(255,255,255,0.04)"}`,
+   495→   495→                    borderLeft: `3px solid ${alert.risk >= 90 ? "#f87171" : "#fbbf24"}`,
+   496→   496→                  }}
+   497→   497→                >
+   498→   498→                  <div className="flex items-center gap-2">
+   499→   499→                    {alert.risk >= 90 && (
+   500→   500→                      <span className="relative flex h-2 w-2 shrink-0">
+   501→   501→                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: "#f87171" }} />
+   502→   502→                        <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: "#f87171" }} />
+   503→   503→                      </span>
+   504→   504→                    )}
+   505→   505→                    <p className="text-[12px] font-medium truncate" style={{ color: "#e8edf5" }}>{alert.name}</p>
+   506→   506→                    <span className="ml-auto text-[11px] font-mono font-bold shrink-0" style={{ color: alert.risk >= 90 ? "#f87171" : "#fbbf24" }}>{alert.risk}</span>
+   507→   507→                  </div>
+   508→   508→                  <div className="flex items-center gap-2 mt-1.5 text-[11px]" style={{ color: "#5a657a" }}>
+   509→   509→                    <span>{alert.activeCases} active case{alert.activeCases > 1 ? "s" : ""}</span>
+   510→   510→                    <span style={{ color: "#3d4659" }}>·</span>
+   511→   511→                    <span>{alert.prior_firs} prior FIRs</span>
+   512→   512→                  </div>
+   513→   513→                </motion.div>
+   514→   514→              ))}
+   515→   515→              {riskAlerts.length === 0 && (
+   516→   516→                <p className="text-[11px] text-center py-8" style={{ color: "#3d4659" }}>No critical risk alerts at this time</p>
+   517→   517→              )}
+   518→   518→            </div>
+   519→   519→          </motion.div>
+   520→   520→        </div>
+   521→   521→
+   522→   522→        {/* ═══ Row 5: High Risk Accused Table ══════════════════════ */}
+   523→   523→        <motion.div
+   524→   524→          className="glass-card p-5"
+   525→   525→          initial={{ opacity: 0, y: 16 }}
+   526→   526→          animate={{ opacity: 1, y: 0 }}
+   527→   527→          transition={{ delay: 0.8, duration: 0.4 }}
+   528→   528→        >
+   529→   529→          <div className="flex items-center gap-2.5 mb-5">
+   530→   530→            <div className="w-1.5 h-4 rounded-full" style={{ backgroundColor: "#fbbf24" }} />
+   531→   531→            <h3 className="text-[13px] font-semibold tracking-wide" style={{ color: "#f1f5f9" }}>High Risk Accused</h3>
+   532→   532→          </div>
+   533→   533→          <div className="max-h-96 overflow-y-auto">
+   534→   534→            <Table>
+   535→   535→              <TableHeader>
+   536→   536→                <TableRow style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+   537→   537→                  <TableHead className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "#5a657a" }}>Name</TableHead>
+   538→   538→                  <TableHead className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "#5a657a" }}>Age</TableHead>
+   539→   539→                  <TableHead className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "#5a657a" }}>Gang</TableHead>
+   540→   540→                  <TableHead className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "#5a657a" }}>Risk Score</TableHead>
+   541→   541→                  <TableHead className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "#5a657a" }}>Prior FIRs</TableHead>
+   542→   542→                </TableRow>
+   543→   543→              </TableHeader>
+   544→   544→              <TableBody>
+   545→   545→                {highRiskAccused.map((a) => (
+   546→   546→                  <TableRow
+   547→   547→                    key={a.id}
+   548→   548→                    className="cursor-pointer transition-colors duration-150"
+   549→   549→                    style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}
+   550→   550→                    onClick={() => { setSelectedAccusedId(a.id); setView("accused"); }}
+   551→   551→                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
+   552→   552→                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+   553→   553→                  >
+   554→   554→                    <TableCell className="text-[12px] font-bold cursor-pointer" style={{ color: "#22d3ee" }}>{a.name}</TableCell>
+   555→   555→                    <TableCell className="text-[12px]" style={{ color: "#8b97b0" }}>{a.age}</TableCell>
+   556→   556→                    <TableCell className="text-[12px]" style={{ color: a.gang ? "#8b97b0" : "#3d4659" }}>{a.gang ?? <span className="italic">Unknown</span>}</TableCell>
+   557→   557→                    <TableCell><RiskBar score={a.risk} /></TableCell>
+   558→   558→                    <TableCell className="text-[12px]" style={{ color: "#8b97b0" }}>{a.prior_firs}</TableCell>
+   559→   559→                  </TableRow>
+   560→   560→                ))}
+   561→   561→              </TableBody>
+   562→   562→            </Table>
+   563→   563→          </div>
+   564→   564→        </motion.div>
+   565→   565→      </div>
+   566→   566→    </div>
+   567→   567→  );
+   568→   568→}
