@@ -39,7 +39,7 @@ export default function Home() {
   // Auto-login — skip password panel
   useEffect(() => {
     if (!user) {
-      useAppStore.getState().login("admin", "admin");
+      useAppStore.getState().login("admin", "super_admin");
       useAppStore.getState().setView("dashboard");
     }
   }, [user]);
