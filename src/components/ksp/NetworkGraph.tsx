@@ -363,13 +363,13 @@ function DistrictPanel({ node }: { node: SimNode }) {
 function simulateForce3D(
   nodes: SimNode[],
   links: SimLink[],
-  iterations: number = 400
+  iterations: number = 500
 ) {
-  const spread = 30;
+  const spread = 10;
 
   for (const n of nodes) {
     n.x = (Math.random() - 0.5) * spread * 2;
-    n.y = (Math.random() - 0.5) * spread * 2;
+    n.y = (Math.random() - 0.5) * spread;
     n.z = (Math.random() - 0.5) * spread * 2;
     n.vx = 0;
     n.vy = 0;
@@ -381,10 +381,10 @@ function simulateForce3D(
 
   for (let iter = 0; iter < iterations; iter++) {
     const alpha = 1 - iter / iterations;
-    const repulsion = 8000;
-    const attraction = 0.004;
-    const centerForce = 0.008;
-    const damping = 0.8;
+    const repulsion = 3000;
+    const attraction = 0.008;
+    const centerForce = 0.015;
+    const damping = 0.75;
 
     // Repulsion between all pairs
     for (let i = 0; i < nodes.length; i++) {
@@ -455,12 +455,12 @@ function simulateForce3D(
 function getNodeRadius(node: SimNode): number {
   let r = NODE_TYPE_CONFIG[node.type]?.baseSize ?? 4;
   if (node.type === "accused" && node._accused) {
-    r = Math.max(0.4, node._accused.risk / 25);
+    r = Math.max(3, node._accused.risk / 8);
   }
   if (node.type === "district" && node._firCount) {
-    r = Math.max(0.6, Math.min(2.0, 0.5 + node._firCount * 0.15));
+    r = Math.max(3, Math.min(6, 2 + node._firCount * 0.4));
   }
-  return r * 0.15;
+  return r * 0.12;
 }
 
 // A single node mesh
@@ -499,8 +499,8 @@ function NodeMesh({
     }
   });
 
-  const baseOpacity = isDimmed ? 0.08 : 1;
-  const emissiveIntensity = isSelected || isHovered || hoveredLocal ? 1.5 : 0.6;
+  const baseOpacity = isDimmed ? 0.12 : 1;
+  const emissiveIntensity = isSelected || isHovered || hoveredLocal ? 2.0 : 1.0;
   const color = new THREE.Color(node.color);
 
   const geometry = useMemo(() => {
@@ -547,9 +547,9 @@ function NodeMesh({
           emissive={color}
           emissiveIntensity={emissiveIntensity}
           transparent
-          opacity={node.type === "district" ? baseOpacity * 0.3 : baseOpacity}
-          roughness={0.2}
-          metalness={0.8}
+          opacity={node.type === "district" ? baseOpacity * 0.35 : baseOpacity}
+          roughness={0.3}
+          metalness={0.5}
           toneMapped={false}
         />
       </mesh>
@@ -628,8 +628,8 @@ function LinkLine({
     selectedNodeId &&
     (link.source === selectedNodeId || link.target === selectedNodeId);
   const isDashed = link.type === "gang_associate";
-  const opacity = selectedNodeId ? (isHighlighted ? 0.6 : 0.03) : isDashed ? 0.08 : 0.2;
-  const lineWidth = isHighlighted ? 2 : 1;
+  const opacity = selectedNodeId ? (isHighlighted ? 0.7 : 0.04) : isDashed ? 0.12 : 0.35;
+  const lineWidth = isHighlighted ? 3 : 1.5;
 
   if (opacity < 0.02) return null;
 
@@ -665,7 +665,7 @@ function CameraController({
     if (controlsRef.current) {
       controlsRef.current.reset();
     }
-    camera.position.set(0, 20, 40);
+    camera.position.set(0, 8, 18);
     camera.lookAt(0, 0, 0);
     if (controlsRef.current) {
       controlsRef.current.target.set(0, 0, 0);
@@ -679,12 +679,12 @@ function CameraController({
       ref={controlsRef}
       makeDefault
       enableDamping
-      dampingFactor={0.08}
-      rotateSpeed={0.6}
-      zoomSpeed={0.8}
-      minDistance={5}
-      maxDistance={120}
-      maxPolarAngle={Math.PI * 0.85}
+      dampingFactor={0.12}
+      rotateSpeed={0.8}
+      zoomSpeed={1.2}
+      minDistance={4}
+      maxDistance={60}
+      maxPolarAngle={Math.PI * 0.9}
     />
   );
 }
@@ -727,30 +727,29 @@ function GraphScene3D({
     <>
       {/* Environment */}
       <color attach="background" args={["#050810"]} />
-      <fog attach="fog" args={["#050810", 60, 120]} />
+      <fog attach="fog" args={["#050810", 40, 80]} />
 
-      {/* Lighting */}
-      <ambientLight intensity={0.25} />
-      <pointLight position={[30, 40, 20]} intensity={0.8} color="#22d3ee" />
-      <pointLight position={[-30, -20, -30]} intensity={0.4} color="#818cf8" />
-      <pointLight position={[0, 50, 0]} intensity={0.3} color="#fbbf24" />
+      {/* Lighting — brighter for visibility */}
+      <ambientLight intensity={0.6} />
+      <pointLight position={[15, 20, 15]} intensity={1.2} color="#22d3ee" />
+      <pointLight position={[-15, -10, -15]} intensity={0.8} color="#818cf8" />
+      <pointLight position={[0, 25, 0]} intensity={0.5} color="#fbbf24" />
 
       {/* Stars background */}
       <Stars
-        radius={100}
-        depth={60}
-        count={2000}
-        factor={3}
+        radius={80}
+        depth={50}
+        count={1500}
+        factor={2}
         saturation={0}
         fade
-        speed={0.5}
+        speed={0.3}
       />
 
-      {/* Grid helper — subtle 3D grid */}
+      {/* Grid helper */}
       <gridHelper
-        args={[80, 40, "#0f1628", "#0a0f1c"]}
-        position={[0, -12, 0]}
-        rotation={[0, 0, 0]}
+        args={[40, 20, "#0f1628", "#0a0f1c"]}
+        position={[0, -6, 0]}
       />
 
       {/* Camera */}
@@ -780,12 +779,12 @@ function GraphScene3D({
         />
       ))}
 
-      {/* Post-processing — Bloom for the glow effect */}
+      {/* Post-processing — subtle Bloom */}
       <EffectComposer>
         <Bloom
-          intensity={1.2}
-          luminanceThreshold={0.2}
-          luminanceSmoothing={0.9}
+          intensity={0.5}
+          luminanceThreshold={0.6}
+          luminanceSmoothing={0.4}
           mipmapBlur
         />
       </EffectComposer>
@@ -1087,7 +1086,7 @@ function NetworkGraphInner() {
         {/* Three.js Canvas */}
         {simReady && (
           <Canvas
-            camera={{ position: [0, 20, 40], fov: 50, near: 0.1, far: 200 }}
+            camera={{ position: [0, 8, 18], fov: 60, near: 0.1, far: 200 }}
             gl={{
               antialias: true,
               alpha: false,
