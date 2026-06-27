@@ -36,28 +36,13 @@ export default function Home() {
   const user = useAppStore((s) => s.user);
   const currentView = useAppStore((s) => s.currentView);
 
-  // Restore auth from localStorage on mount
+  // Auto-login — skip password panel
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("ksp_user");
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          if (parsed.username && parsed.role) {
-            useAppStore.getState().login(parsed.username, parsed.role);
-            useAppStore.getState().setView("dashboard");
-          }
-        } catch {
-          // Invalid stored data
-        }
-      }
+    if (!user) {
+      useAppStore.getState().login("admin", "admin");
+      useAppStore.getState().setView("dashboard");
     }
-  }, []);
-
-  // Not logged in — show login (full-screen, handles own layout)
-  if (!user) {
-    return <LoginView />;
-  }
+  }, [user]);
 
   const renderContent = () => {
     switch (currentView) {
