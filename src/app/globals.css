@@ -459,6 +459,18 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
+   RADIX PORTAL — Ensure all dropdowns/popovers are always on top
+   ═══════════════════════════════════════════════════════════════════════ */
+
+[data-radix-popper-content-wrapper] {
+  z-index: 9999 !important;
+  position: fixed !important;
+}
+[data-radix-portal] {
+  z-index: 9999 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
    BASE LAYER
    ═══════════════════════════════════════════════════════════════════════ */
 
