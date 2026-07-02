@@ -162,7 +162,7 @@ export default function Home() {
       <Sidebar />
 
       {/* Main content area — takes remaining space */}
-      <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden">
+      <div className="flex flex-col flex-1 min-w-0 h-full relative">
         {/* Header — sticky top, no vertical overflow */}
         <Header />
 

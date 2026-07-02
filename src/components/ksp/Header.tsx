@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppStore } from "@/lib/store";
-import { Languages, Bell, X, Check, Wifi, Activity, ChevronDown } from "lucide-react";
+import { Languages, Bell, X, Check, Wifi, Activity } from "lucide-react";
 import { LANGUAGES, getLabel, type LangCode } from "@/lib/translations";
 
 export default function Header() {
@@ -16,8 +17,16 @@ export default function Header() {
   const [clock, setClock] = useState("");
   const [notifOpen, setNotifOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
-  const notifRef = useRef<HTMLDivElement>(null);
-  const langRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+  const [langPos, setLangPos] = useState({ top: 0, right: 0 });
+  const [notifPos, setNotifPos] = useState({ top: 0, right: 0 });
+  const langRef = useRef<HTMLButtonElement>(null);
+  const notifRef = useRef<HTMLButtonElement>(null);
+  const langPanelRef = useRef<HTMLDivElement>(null);
+  const notifPanelRef = useRef<HTMLDivElement>(null);
+
+  // Portal mount
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     const update = () => {
@@ -35,18 +44,69 @@ export default function Header() {
     return () => clearInterval(iv);
   }, []);
 
+  // Compute fixed positions for portaled dropdowns
+  const updateLangPos = useCallback(() => {
+    if (langRef.current) {
+      const rect = langRef.current.getBoundingClientRect();
+      setLangPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+    }
+  }, []);
+
+  const updateNotifPos = useCallback(() => {
+    if (notifRef.current) {
+      const rect = notifRef.current.getBoundingClientRect();
+      setNotifPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+    }
+  }, []);
+
+  // Update positions when dropdowns open
+  useEffect(() => {
+    if (langOpen) updateLangPos();
+  }, [langOpen, updateLangPos]);
+
+  useEffect(() => {
+    if (notifOpen) updateNotifPos();
+  }, [notifOpen, updateNotifPos]);
+
+  // Recompute on scroll/resize
+  useEffect(() => {
+    const onScroll = () => {
+      if (langOpen) updateLangPos();
+      if (notifOpen) updateNotifPos();
+    };
+    const onResize = onScroll;
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [langOpen, notifOpen, updateLangPos, updateNotifPos]);
+
+  // Close on outside click (works with portals)
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
-        setNotifOpen(false);
-      }
-      if (langRef.current && !langRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      // Close lang if click is outside trigger + panel
+      if (
+        langOpen &&
+        langRef.current && !langRef.current.contains(target) &&
+        langPanelRef.current && !langPanelRef.current.contains(target)
+      ) {
         setLangOpen(false);
+      }
+      // Close notif if click is outside trigger + panel
+      if (
+        notifOpen &&
+        notifRef.current && !notifRef.current.contains(target) &&
+        notifPanelRef.current && !notifPanelRef.current.contains(target)
+      ) {
+        setNotifOpen(false);
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  }, [langOpen, notifOpen]);
 
   const viewTitle = getLabel(lang, currentView);
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -64,6 +124,131 @@ export default function Header() {
   const breadcrumbs = isDM
     ? [{ label: getLabel(lang, "dataMgmt"), view: "dm-dashboard" as const }, { label: viewTitle }]
     : [{ label: viewTitle }];
+
+  // Shared dropdown panel style
+  const panelStyle: React.CSSProperties = {
+    background: "var(--bg-card)",
+    backdropFilter: "blur(32px)",
+    boxShadow: "0 24px 48px -8px rgba(0,0,0,0.5), 0 0 0 1px var(--border-subtle)",
+    zIndex: 9999,
+  };
+
+  // ─── Language dropdown portal ───────────────────────────────────
+  const langDropdown = langOpen && mounted ? createPortal(
+    <AnimatePresence>
+      {langOpen && (
+        <motion.div
+          ref={langPanelRef}
+          initial={{ opacity: 0, y: -8, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -8, scale: 0.96 }}
+          transition={{ duration: 0.15 }}
+          className="fixed w-56 max-w-[calc(100vw-2rem)] rounded-xl overflow-hidden"
+          style={{ ...panelStyle, top: langPos.top, right: langPos.right }}
+        >
+          <div className="px-3 py-2.5" style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+            <span className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>{getLabel(lang, "language")}</span>
+          </div>
+          <div className="max-h-72 overflow-y-auto py-1">
+            {LANGUAGES.map((l) => (
+              <button
+                key={l.code}
+                onClick={() => { setLang(l.code); setLangOpen(false); }}
+                className="w-full flex items-center justify-between px-3 py-2 text-left cursor-pointer transition-colors"
+                style={{
+                  background: lang === l.code ? "var(--primary-glow)" : "transparent",
+                }}
+                onMouseEnter={(e) => { if (lang !== l.code) e.currentTarget.style.background = "var(--border-subtle)"; }}
+                onMouseLeave={(e) => { if (lang !== l.code) e.currentTarget.style.background = "transparent"; }}
+              >
+                <span className="text-xs font-medium" style={{ color: lang === l.code ? "var(--text-primary)" : "var(--text-secondary)" }}>
+                  {l.label}
+                </span>
+                <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+                  {l.labelEn}
+                </span>
+              </button>
+            ))}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>,
+    document.body
+  ) : null;
+
+  // ─── Notification dropdown portal ───────────────────────────────
+  const notifDropdown = notifOpen && mounted ? createPortal(
+    <AnimatePresence>
+      {notifOpen && (
+        <motion.div
+          ref={notifPanelRef}
+          initial={{ opacity: 0, y: -8, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -8, scale: 0.96 }}
+          transition={{ duration: 0.15 }}
+          className="fixed w-80 max-w-[calc(100vw-2rem)] rounded-xl overflow-hidden"
+          style={{ ...panelStyle, top: notifPos.top, right: notifPos.right }}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+            <span className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>{getLabel(lang, "notifications")}</span>
+            {notifications.some((n) => !n.read) && (
+              <button
+                onClick={() => notifications.forEach((n) => markNotificationRead(n.id))}
+                className="flex items-center gap-1 text-[10px] cursor-pointer transition-colors"
+                style={{ color: "var(--primary)" }}
+              >
+                <Check className="w-3 h-3" /> {getLabel(lang, "markAllRead")}
+              </button>
+            )}
+          </div>
+
+          {/* List */}
+          <div className="max-h-72 overflow-y-auto">
+            {notifications.length === 0 ? (
+              <div className="py-8 text-center">
+                <Bell className="w-5 h-5 mx-auto mb-2" style={{ color: "var(--text-muted)" }} />
+                <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>{getLabel(lang, "noNotifications")}</p>
+              </div>
+            ) : (
+              notifications.slice(0, 10).map((n) => (
+                <motion.div
+                  key={n.id}
+                  initial={false}
+                  whileHover={{ background: "var(--border-subtle)" }}
+                  onClick={() => markNotificationRead(n.id)}
+                  className="px-4 py-3 cursor-pointer transition-colors"
+                  style={{
+                    borderBottom: "1px solid var(--border-subtle)",
+                    background: !n.read ? "var(--primary-subtle)" : "transparent",
+                  }}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: NOTIF_COLORS[n.type] || "var(--text-tertiary)" }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate" style={{ color: "var(--text-primary)" }}>{n.title}</p>
+                      <p className="text-[11px] mt-0.5 line-clamp-2" style={{ color: "var(--text-tertiary)" }}>{n.message}</p>
+                      <p className="text-[10px] mt-1" style={{ color: "var(--text-muted)" }}>{formatTime(n.timestamp)}</p>
+                    </div>
+                    {!n.read && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); markNotificationRead(n.id); }}
+                        className="cursor-pointer transition-colors flex-shrink-0"
+                        style={{ color: "var(--text-muted)" }}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              ))
+            )}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>,
+    document.body
+  ) : null;
 
   return (
     <header
@@ -109,159 +294,40 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Language Dropdown */}
-        <div className="relative" ref={langRef}>
-          <button
-            onClick={() => { setLangOpen(!langOpen); setNotifOpen(false); }}
-            className="flex items-center justify-center gap-1 w-8 h-8 rounded-lg cursor-pointer transition-all duration-200"
-            style={{ color: langOpen ? "var(--text-primary)" : "var(--text-tertiary)" }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--border-subtle)"; e.currentTarget.style.color = "var(--text-primary)"; }}
-            onMouseLeave={(e) => { if (!langOpen) e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-tertiary)"; }}
-            title={currentLangInfo.label}
-          >
-            <Languages className="w-3.5 h-3.5" />
-          </button>
+        {/* Language Dropdown — trigger only, panel is portaled */}
+        <button
+          ref={langRef}
+          onClick={() => { setLangOpen(!langOpen); setNotifOpen(false); }}
+          className="flex items-center justify-center gap-1 w-8 h-8 rounded-lg cursor-pointer transition-all duration-200"
+          style={{ color: langOpen ? "var(--text-primary)" : "var(--text-tertiary)" }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "var(--border-subtle)"; e.currentTarget.style.color = "var(--text-primary)"; }}
+          onMouseLeave={(e) => { if (!langOpen) e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-tertiary)"; }}
+          title={currentLangInfo.label}
+        >
+          <Languages className="w-3.5 h-3.5" />
+        </button>
 
-          <AnimatePresence>
-            {langOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: -8, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -8, scale: 0.96 }}
-                transition={{ duration: 0.15 }}
-                className="absolute right-0 top-11 w-56 max-w-[calc(100vw-2rem)] rounded-xl overflow-hidden border-glow"
-                style={{
-                  background: "var(--bg-card)",
-                  backdropFilter: "blur(32px)",
-                  boxShadow: "0 24px 48px -8px rgba(0,0,0,0.5), 0 0 0 1px var(--border-subtle)",
-                  zIndex: 100,
-                }}
-              >
-                <div className="px-3 py-2.5" style={{ borderBottom: "1px solid var(--border-subtle)" }}>
-                  <span className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>{getLabel(lang, "language")}</span>
-                </div>
-                <div className="max-h-72 overflow-y-auto py-1">
-                  {LANGUAGES.map((l) => (
-                    <button
-                      key={l.code}
-                      onClick={() => { setLang(l.code); setLangOpen(false); }}
-                      className="w-full flex items-center justify-between px-3 py-2 text-left cursor-pointer transition-colors"
-                      style={{
-                        background: lang === l.code ? "var(--primary-glow)" : "transparent",
-                      }}
-                      onMouseEnter={(e) => { if (lang !== l.code) e.currentTarget.style.background = "var(--border-subtle)"; }}
-                      onMouseLeave={(e) => { if (lang !== l.code) e.currentTarget.style.background = "transparent"; }}
-                    >
-                      <span className="text-xs font-medium" style={{ color: lang === l.code ? "var(--text-primary)" : "var(--text-secondary)" }}>
-                        {l.label}
-                      </span>
-                      <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-                        {l.labelEn}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Notification Bell */}
-        <div className="relative" ref={notifRef}>
-          <button
-            onClick={() => { setNotifOpen(!notifOpen); setLangOpen(false); }}
-            className="flex items-center justify-center w-8 h-8 rounded-lg cursor-pointer transition-all duration-200 relative"
-            style={{ color: notifOpen ? "var(--text-primary)" : "var(--text-tertiary)" }}
-            onMouseEnter={(e) => { if (!notifOpen) e.currentTarget.style.background = "var(--border-subtle)"; e.currentTarget.style.color = "var(--text-primary)"; }}
-            onMouseLeave={(e) => { if (!notifOpen) e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-tertiary)"; }}
-          >
-            <Bell className="w-3.5 h-3.5" />
-            {unreadCount > 0 && (
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-bold"
-                style={{ background: "var(--critical)", color: "var(--primary-foreground)" }}
-              >
-                {unreadCount}
-              </motion.span>
-            )}
-          </button>
-
-          <AnimatePresence>
-            {notifOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: -8, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -8, scale: 0.96 }}
-                transition={{ duration: 0.15 }}
-                className="absolute right-0 top-11 w-80 max-w-[calc(100vw-2rem)] rounded-xl overflow-hidden border-glow"
-                style={{
-                  background: "var(--bg-card)",
-                  backdropFilter: "blur(32px)",
-                  boxShadow: "0 24px 48px -8px rgba(0,0,0,0.5), 0 0 0 1px var(--border-subtle)",
-                  zIndex: 100,
-                }}
-              >
-                {/* Header */}
-                <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--border-subtle)" }}>
-                  <span className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>{getLabel(lang, "notifications")}</span>
-                  {notifications.some((n) => !n.read) && (
-                    <button
-                      onClick={() => notifications.forEach((n) => markNotificationRead(n.id))}
-                      className="flex items-center gap-1 text-[10px] cursor-pointer transition-colors"
-                      style={{ color: "var(--primary)" }}
-                    >
-                      <Check className="w-3 h-3" /> {getLabel(lang, "markAllRead")}
-                    </button>
-                  )}
-                </div>
-
-                {/* List */}
-                <div className="max-h-72 overflow-y-auto">
-                  {notifications.length === 0 ? (
-                    <div className="py-8 text-center">
-                      <Bell className="w-5 h-5 mx-auto mb-2" style={{ color: "var(--text-muted)" }} />
-                      <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>{getLabel(lang, "noNotifications")}</p>
-                    </div>
-                  ) : (
-                    notifications.slice(0, 10).map((n) => (
-                      <motion.div
-                        key={n.id}
-                        initial={false}
-                        whileHover={{ background: "var(--border-subtle)" }}
-                        onClick={() => markNotificationRead(n.id)}
-                        className="px-4 py-3 cursor-pointer transition-colors"
-                        style={{
-                          borderBottom: "1px solid var(--border-subtle)",
-                          background: !n.read ? "var(--primary-subtle)" : "transparent",
-                        }}
-                      >
-                        <div className="flex items-start gap-2.5">
-                          <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: NOTIF_COLORS[n.type] || "var(--text-tertiary)" }} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium truncate" style={{ color: "var(--text-primary)" }}>{n.title}</p>
-                            <p className="text-[11px] mt-0.5 line-clamp-2" style={{ color: "var(--text-tertiary)" }}>{n.message}</p>
-                            <p className="text-[10px] mt-1" style={{ color: "var(--text-muted)" }}>{formatTime(n.timestamp)}</p>
-                          </div>
-                          {!n.read && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); markNotificationRead(n.id); }}
-                              className="cursor-pointer transition-colors flex-shrink-0"
-                              style={{ color: "var(--text-muted)" }}
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          )}
-                        </div>
-                      </motion.div>
-                    ))
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+        {/* Notification Bell — trigger only, panel is portaled */}
+        <button
+          ref={notifRef}
+          onClick={() => { setNotifOpen(!notifOpen); setLangOpen(false); }}
+          className="flex items-center justify-center w-8 h-8 rounded-lg cursor-pointer transition-all duration-200 relative"
+          style={{ color: notifOpen ? "var(--text-primary)" : "var(--text-tertiary)" }}
+          onMouseEnter={(e) => { if (!notifOpen) e.currentTarget.style.background = "var(--border-subtle)"; e.currentTarget.style.color = "var(--text-primary)"; }}
+          onMouseLeave={(e) => { if (!notifOpen) e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-tertiary)"; }}
+        >
+          <Bell className="w-3.5 h-3.5" />
+          {unreadCount > 0 && (
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-bold"
+              style={{ background: "var(--critical)", color: "var(--primary-foreground)" }}
+            >
+              {unreadCount}
+            </motion.span>
+          )}
+        </button>
 
         {/* User Avatar */}
         {user && (
@@ -275,6 +341,10 @@ export default function Header() {
           </div>
         )}
       </div>
+
+      {/* Portaled dropdown panels */}
+      {langDropdown}
+      {notifDropdown}
     </header>
   );
 }
