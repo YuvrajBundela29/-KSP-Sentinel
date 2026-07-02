@@ -88,7 +88,7 @@ export default function Header() {
         ))}
         {isDM && (
           <span className="hidden sm:inline-flex items-center text-[9px] px-2 py-0.5 rounded-full font-semibold tracking-wider uppercase flex-shrink-0"
-            style={{ background: "rgba(129,140,248,0.08)", color: "#818cf8", border: "1px solid rgba(129,140,248,0.12)" }}>
+            style={{ background: "var(--secondary-glow)", color: "var(--secondary)", border: "1px solid var(--secondary-glow)" }}>
             Data Mgmt
           </span>
         )}
@@ -97,14 +97,14 @@ export default function Header() {
       {/* Right: Controls */}
       <div className="flex items-center gap-1.5">
         {/* System Status */}
-        <div className="hidden md:flex items-center gap-2 mr-2 px-2.5 py-1 rounded-lg" style={{ background: "rgba(52,211,153,0.05)" }}>
+        <div className="hidden md:flex items-center gap-2 mr-2 px-2.5 py-1 rounded-lg" style={{ background: "var(--success-glow)" }}>
           <div className="flex items-center gap-1">
-            <Wifi className="w-3 h-3" style={{ color: "#34d399" }} />
-            <span className="text-[10px] font-medium" style={{ color: "#34d399" }}>{getLabel(lang, "online")}</span>
+            <Wifi className="w-3 h-3" style={{ color: "var(--success)" }} />
+            <span className="text-[10px] font-medium" style={{ color: "var(--success)" }}>{getLabel(lang, "online")}</span>
           </div>
           <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>|</span>
           <div className="flex items-center gap-1">
-            <Activity className="w-3 h-3" style={{ color: "#22d3ee" }} />
+            <Activity className="w-3 h-3" style={{ color: "var(--primary)" }} />
             <span className="text-[10px] font-mono" style={{ color: "var(--text-tertiary)" }}>{clock}</span>
           </div>
         </div>
@@ -147,7 +147,7 @@ export default function Header() {
                       onClick={() => { setLang(l.code); setLangOpen(false); }}
                       className="w-full flex items-center justify-between px-3 py-2 text-left cursor-pointer transition-colors"
                       style={{
-                        background: lang === l.code ? "rgba(34,211,238,0.06)" : "transparent",
+                        background: lang === l.code ? "var(--primary-glow)" : "transparent",
                       }}
                       onMouseEnter={(e) => { if (lang !== l.code) e.currentTarget.style.background = "var(--border-subtle)"; }}
                       onMouseLeave={(e) => { if (lang !== l.code) e.currentTarget.style.background = "transparent"; }}
@@ -181,7 +181,7 @@ export default function Header() {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-bold"
-                style={{ background: "#f87171", color: "#050810" }}
+                style={{ background: "var(--critical)", color: "var(--primary-foreground)" }}
               >
                 {unreadCount}
               </motion.span>
@@ -210,7 +210,7 @@ export default function Header() {
                     <button
                       onClick={() => notifications.forEach((n) => markNotificationRead(n.id))}
                       className="flex items-center gap-1 text-[10px] cursor-pointer transition-colors"
-                      style={{ color: "#22d3ee" }}
+                      style={{ color: "var(--primary)" }}
                     >
                       <Check className="w-3 h-3" /> {getLabel(lang, "markAllRead")}
                     </button>
@@ -229,16 +229,16 @@ export default function Header() {
                       <motion.div
                         key={n.id}
                         initial={false}
-                        whileHover={{ background: "rgba(255,255,255,0.02)" }}
+                        whileHover={{ background: "var(--border-subtle)" }}
                         onClick={() => markNotificationRead(n.id)}
                         className="px-4 py-3 cursor-pointer transition-colors"
                         style={{
                           borderBottom: "1px solid var(--border-subtle)",
-                          background: !n.read ? "rgba(34,211,238,0.02)" : "transparent",
+                          background: !n.read ? "var(--primary-subtle)" : "transparent",
                         }}
                       >
                         <div className="flex items-start gap-2.5">
-                          <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: NOTIF_COLORS[n.type] || "#5a657a" }} />
+                          <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: NOTIF_COLORS[n.type] || "var(--text-tertiary)" }} />
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium truncate" style={{ color: "var(--text-primary)" }}>{n.title}</p>
                             <p className="text-[11px] mt-0.5 line-clamp-2" style={{ color: "var(--text-tertiary)" }}>{n.message}</p>
@@ -266,10 +266,10 @@ export default function Header() {
         {/* User Avatar */}
         {user && (
           <div className="hidden sm:flex items-center justify-center w-8 h-8 rounded-lg cursor-pointer transition-all duration-200"
-            style={{ background: "linear-gradient(135deg, rgba(34,211,238,0.12), rgba(129,140,248,0.08))", border: "1px solid rgba(34,211,238,0.1)" }}
+            style={{ background: "var(--primary-glow-strong)", border: "1px solid var(--border-accent)" }}
             title={`${user.username} (${user.role})`}
           >
-            <span className="text-[10px] font-bold" style={{ color: "#22d3ee" }}>
+            <span className="text-[10px] font-bold" style={{ color: "var(--primary)" }}>
               {user.username.slice(0, 2).toUpperCase()}
             </span>
           </div>
@@ -280,8 +280,8 @@ export default function Header() {
 }
 
 const NOTIF_COLORS: Record<string, string> = {
-  info: "#22d3ee",
-  warning: "#fbbf24",
-  error: "#f87171",
-  success: "#34d399",
+  info: "var(--primary)",
+  warning: "var(--warning)",
+  error: "var(--critical)",
+  success: "var(--success)",
 };

@@ -351,10 +351,10 @@ export default function AuditLogs() {
   const openDetail = (log: AuditLogEntry) => { setSelectedLog(log); setShowDetail(true); };
 
   const statCards = [
-    { label: "Total Actions", value: animTotal, icon: <Activity className="h-5 w-5" />, color: "#22d3ee", delay: 0 },
-    { label: "Success Rate", value: animRate, suffix: "%", icon: <CheckCircle2 className="h-5 w-5" />, color: "#34d399", delay: 1 },
-    { label: "Failed Actions", value: animFailed, icon: <XCircle className="h-5 w-5" />, color: "#f87171", delay: 2 },
-    { label: "Active Users", value: animUsers, icon: <Users className="h-5 w-5" />, color: "#fbbf24", delay: 3 },
+    { label: "Total Actions", value: animTotal, icon: <Activity className="h-5 w-5" />, color: "var(--primary)", delay: 0 },
+    { label: "Success Rate", value: animRate, suffix: "%", icon: <CheckCircle2 className="h-5 w-5" />, color: "var(--success)", delay: 1 },
+    { label: "Failed Actions", value: animFailed, icon: <XCircle className="h-5 w-5" />, color: "var(--critical)", delay: 2 },
+    { label: "Active Users", value: animUsers, icon: <Users className="h-5 w-5" />, color: "var(--warning)", delay: 3 },
   ];
 
   if (loading) {

@@ -46,14 +46,14 @@ import LoadingSpinner from "@/components/ksp/LoadingSpinner";
 
 // ─── Pipeline Stages ────────────────────────────────────────────────
 const PIPELINE_STAGES = [
-  { key: "queued", label: "Queued", icon: Inbox, color: "#5a657a" },
-  { key: "ocr", label: "OCR", icon: ScanLine, color: "#06b6d4" },
-  { key: "entity_extraction", label: "Entity Extraction", icon: FileSearch, color: "#818cf8" },
-  { key: "relationship_detection", label: "Relationship Detection", icon: GitBranch, color: "#ec4899" },
-  { key: "risk_scoring", label: "Risk Scoring", icon: BarChart3, color: "#fbbf24" },
-  { key: "network_update", label: "Network Update", icon: Network, color: "#22d3ee" },
-  { key: "embedding", label: "Embedding", icon: Cpu, color: "#34d399" },
-  { key: "completed", label: "Completed", icon: CheckCircle2, color: "#34d399" },
+  { key: "queued", label: "Queued", icon: Inbox, color: "var(--text-tertiary)" },
+  { key: "ocr", label: "OCR", icon: ScanLine, color: "var(--primary)" },
+  { key: "entity_extraction", label: "Entity Extraction", icon: FileSearch, color: "var(--secondary)" },
+  { key: "relationship_detection", label: "Relationship Detection", icon: GitBranch, color: "#db2777" },
+  { key: "risk_scoring", label: "Risk Scoring", icon: BarChart3, color: "var(--warning)" },
+  { key: "network_update", label: "Network Update", icon: Network, color: "var(--primary)" },
+  { key: "embedding", label: "Embedding", icon: Cpu, color: "var(--success)" },
+  { key: "completed", label: "Completed", icon: CheckCircle2, color: "var(--success)" },
 ] as const;
 
 type StageKey = AIQueueItem["stage"];
@@ -485,11 +485,11 @@ export default function AIProcessingQueue() {
   }
 
   const statCards = [
-    { label: "Total in Queue", value: animTotal, icon: <Layers className="h-5 w-5" />, color: "#22d3ee", delay: 0 },
-    { label: "Processing Now", value: animProcessing, icon: <Loader2 className="h-5 w-5" />, color: "#fbbf24", delay: 1 },
-    { label: "Completed Today", value: animCompleted, icon: <CheckCircle2 className="h-5 w-5" />, color: "#34d399", delay: 2 },
-    { label: "Failed", value: animFailed, icon: <XCircle className="h-5 w-5" />, color: "#f87171", delay: 3 },
-    { label: "Avg Process Time", value: stats.avgTime, suffix: "s", icon: <Timer className="h-5 w-5" />, color: "#818cf8", delay: 4, isRaw: true },
+    { label: "Total in Queue", value: animTotal, icon: <Layers className="h-5 w-5" />, color: "var(--primary)", delay: 0 },
+    { label: "Processing Now", value: animProcessing, icon: <Loader2 className="h-5 w-5" />, color: "var(--warning)", delay: 1 },
+    { label: "Completed Today", value: animCompleted, icon: <CheckCircle2 className="h-5 w-5" />, color: "var(--success)", delay: 2 },
+    { label: "Failed", value: animFailed, icon: <XCircle className="h-5 w-5" />, color: "var(--critical)", delay: 3 },
+    { label: "Avg Process Time", value: stats.avgTime, suffix: "s", icon: <Timer className="h-5 w-5" />, color: "var(--secondary)", delay: 4, isRaw: true },
   ];
 
   if (loading) {

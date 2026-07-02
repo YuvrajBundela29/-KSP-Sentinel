@@ -48,10 +48,10 @@ const SEVERITY_BORDER: Record<string, string> = {
 };
 
 const SEVERITY_BADGE: Record<string, { bg: string; color: string; border: string }> = {
-  critical: { bg: "rgba(248,113,113,0.1)", color: "#f87171", border: "rgba(248,113,113,0.2)" },
-  high: { bg: "rgba(251,191,36,0.1)", color: "#fbbf24", border: "rgba(251,191,36,0.2)" },
-  medium: { bg: "rgba(251,191,36,0.1)", color: "#fbbf24", border: "rgba(251,191,36,0.2)" },
-  low: { bg: "rgba(52,211,153,0.1)", color: "#34d399", border: "rgba(52,211,153,0.2)" },
+  critical: { bg: "rgba(248,113,113,0.1)", color: "var(--critical)", border: "rgba(248,113,113,0.2)" },
+  high: { bg: "rgba(251,191,36,0.1)", color: "var(--warning)", border: "rgba(251,191,36,0.2)" },
+  medium: { bg: "rgba(251,191,36,0.1)", color: "var(--warning)", border: "rgba(251,191,36,0.2)" },
+  low: { bg: "rgba(52,211,153,0.1)", color: "var(--success)", border: "rgba(52,211,153,0.2)" },
 };
 
 function extractFIRIds(text: string): string[] {
@@ -193,7 +193,7 @@ function ExplainablePanel({ exp }: { exp: ExplainableResponse }) {
                       className="text-[10px] px-2.5 py-1 rounded-lg font-mono font-medium"
                       style={{
                         backgroundColor: "rgba(34,211,238,0.08)",
-                        color: "#22d3ee",
+                        color: "var(--primary)",
                         border: "1px solid rgba(34,211,238,0.15)",
                       }}
                     >
@@ -227,7 +227,7 @@ function ExplainablePanel({ exp }: { exp: ExplainableResponse }) {
                         className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 text-[9px] font-bold mt-0.5"
                         style={{
                           backgroundColor: "rgba(34,211,238,0.08)",
-                          color: "#22d3ee",
+                          color: "var(--primary)",
                           border: "1px solid rgba(34,211,238,0.12)",
                         }}
                       >
@@ -245,7 +245,7 @@ function ExplainablePanel({ exp }: { exp: ExplainableResponse }) {
                                 className="text-[9px] px-1.5 py-0.5 rounded font-mono"
                                 style={{
                                   backgroundColor: "rgba(129,140,248,0.06)",
-                                  color: "#818cf8",
+                                  color: "var(--secondary)",
                                   border: "1px solid rgba(129,140,248,0.1)",
                                 }}
                               >
@@ -295,14 +295,14 @@ function ExplainablePanel({ exp }: { exp: ExplainableResponse }) {
             {/* Alternative Explanations */}
             {exp.alternativeExplanations && exp.alternativeExplanations.length > 0 && (
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#fbbf24" }}>
+                <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--warning)" }}>
                   Alternative Explanations
                 </p>
                 {exp.alternativeExplanations.map((alt, i) => (
                   <p
                     key={i}
                     className="text-[11px] leading-relaxed pl-3 py-0.5"
-                    style={{ color: "#8b97b0", borderLeft: "2px solid rgba(251,191,36,0.2)" }}
+                    style={{ color: "var(--text-secondary)", borderLeft: "2px solid rgba(251,191,36,0.2)" }}
                   >
                     {alt}
                   </p>
@@ -357,13 +357,13 @@ function ThinkingState() {
         style={{
           background: "rgba(34,211,238,0.1)",
           border: "1px solid rgba(34,211,238,0.15)",
-          boxShadow: "0 0 12px rgba(34,211,238,0.08)",
+          boxShadow: "0 0 12px var(--primary-glow)",
         }}
       >
-        <Sparkles className="w-3.5 h-3.5" style={{ color: "#22d3ee" }} />
+        <Sparkles className="w-3.5 h-3.5" style={{ color: "var(--primary)" }} />
       </div>
       <div className="flex flex-col gap-0.5">
-        <p className="text-[11px] font-medium" style={{ color: "#22d3ee" }}>
+        <p className="text-[11px] font-medium" style={{ color: "var(--primary)" }}>
           {steps[step]}
         </p>
         <TypingIndicator />
@@ -400,7 +400,7 @@ function WelcomeScreen({
             boxShadow: "0 0 40px rgba(34,211,238,0.06), inset 0 1px 0 rgba(255,255,255,0.04)",
           }}
         >
-          <Shield className="w-8 h-8" style={{ color: "#22d3ee" }} />
+          <Shield className="w-8 h-8" style={{ color: "var(--primary)" }} />
         </div>
         {/* Ambient glow */}
         <div
@@ -421,7 +421,7 @@ function WelcomeScreen({
             className="text-[9px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider animate-pulse-glow"
             style={{
               background: "rgba(34,211,238,0.08)",
-              color: "#22d3ee",
+              color: "var(--primary)",
               border: "1px solid rgba(34,211,238,0.12)",
             }}
           >
@@ -555,7 +555,7 @@ function FIREvidenceCard({ fir, index }: { fir: FIR; index: number }) {
                 className="text-[10px] px-2 py-0.5 rounded-md font-mono"
                 style={{
                   backgroundColor: "rgba(248,113,113,0.06)",
-                  color: "#f87171",
+                  color: "var(--critical)",
                   border: "1px solid rgba(248,113,113,0.1)",
                 }}
               >
@@ -781,7 +781,7 @@ export default function ChatView() {
               border: "1px solid rgba(34,211,238,0.12)",
             }}
           >
-            <Shield className="w-3 h-3" style={{ color: "#22d3ee" }} />
+            <Shield className="w-3 h-3" style={{ color: "var(--primary)" }} />
           </div>
           <span className="text-[13px] font-semibold tracking-wide" style={{ color: "var(--text-primary)" }}>
             AI Copilot
@@ -790,7 +790,7 @@ export default function ChatView() {
             className="text-[9px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider"
             style={{
               background: "rgba(34,211,238,0.08)",
-              color: "#22d3ee",
+              color: "var(--primary)",
               border: "1px solid rgba(34,211,238,0.12)",
             }}
           >
@@ -824,7 +824,7 @@ export default function ChatView() {
                 className="text-[9px] px-1.5 py-0.5 rounded-full font-bold"
                 style={{
                   backgroundColor: "rgba(129,140,248,0.1)",
-                  color: "#818cf8",
+                  color: "var(--secondary)",
                 }}
               >
                 {extractedFIRs.length}
@@ -894,7 +894,7 @@ export default function ChatView() {
                           boxShadow: "0 0 12px rgba(34,211,238,0.06)",
                         }}
                       >
-                        <Shield className="w-3.5 h-3.5" style={{ color: "#22d3ee" }} />
+                        <Shield className="w-3.5 h-3.5" style={{ color: "var(--primary)" }} />
                       </div>
                     )}
 
@@ -954,7 +954,7 @@ export default function ChatView() {
                           border: "1px solid rgba(129,140,248,0.15)",
                         }}
                       >
-                        <User className="w-3.5 h-3.5" style={{ color: "#818cf8" }} />
+                        <User className="w-3.5 h-3.5" style={{ color: "var(--secondary)" }} />
                       </div>
                     )}
                   </motion.div>
@@ -979,7 +979,7 @@ export default function ChatView() {
                         boxShadow: "0 0 12px rgba(34,211,238,0.06)",
                       }}
                     >
-                      <Shield className="w-3.5 h-3.5" style={{ color: "#22d3ee" }} />
+                      <Shield className="w-3.5 h-3.5" style={{ color: "var(--primary)" }} />
                     </div>
                     <div
                       className="px-4 py-3.5 rounded-2xl glass"
@@ -1013,7 +1013,7 @@ export default function ChatView() {
                 className="flex items-center gap-2.5 px-4 h-11 flex-shrink-0"
                 style={{ borderBottom: "1px solid var(--border-subtle)" }}
               >
-                <FileText className="w-3.5 h-3.5" style={{ color: "#818cf8" }} />
+                <FileText className="w-3.5 h-3.5" style={{ color: "var(--secondary)" }} />
                 <span className="text-[12px] font-semibold tracking-wide" style={{ color: "var(--text-primary)" }}>
                   Linked Evidence
                 </span>
@@ -1023,7 +1023,7 @@ export default function ChatView() {
                   className="ml-auto text-[10px] px-2 py-0.5 rounded-full font-semibold"
                   style={{
                     backgroundColor: "rgba(129,140,248,0.08)",
-                    color: "#818cf8",
+                    color: "var(--secondary)",
                     border: "1px solid rgba(129,140,248,0.12)",
                   }}
                 >
@@ -1127,7 +1127,7 @@ export default function ChatView() {
                   />
                 )}
                 {isListening ? (
-                  <Mic className="w-4 h-4" style={{ color: "#f87171" }} />
+                  <Mic className="w-4 h-4" style={{ color: "var(--critical)" }} />
                 ) : (
                   <MicOff className="w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
                 )}
@@ -1192,7 +1192,7 @@ export default function ChatView() {
               Press <kbd className="px-1.5 py-0.5 rounded text-[9px] font-mono" style={{ backgroundColor: "var(--border-subtle)", border: "1px solid var(--border-default)" }}>Enter</kbd> to send
             </span>
             {voiceLang === "kn" && (
-              <span className="text-[10px]" style={{ color: "#22d3ee" }}>
+              <span className="text-[10px]" style={{ color: "var(--primary)" }}>
                 · Kannada mode active
               </span>
             )}

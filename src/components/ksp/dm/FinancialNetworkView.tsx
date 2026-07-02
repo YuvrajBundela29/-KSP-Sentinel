@@ -599,23 +599,23 @@ export default function FinancialNetworkView() {
         <div
           className="flex flex-col items-center gap-4 px-8 py-12 max-w-md text-center"
           style={{
-            background: "rgba(255,255,255,0.05)",
+            background: "var(--border-subtle)",
             backdropFilter: "blur(24px)",
-            border: "1px solid rgba(255,255,255,0.1)",
+            border: "1px solid var(--border-default)",
             borderRadius: 16,
           }}
         >
           <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: "rgba(16,185,129,0.15)" }}>
             <Network className="w-8 h-8 text-[#34d399]" />
           </div>
-          <h3 className="text-lg font-semibold" style={{ color: "#f1f5f9" }}>No Financial Network Data</h3>
-          <p className="text-sm leading-relaxed" style={{ color: "#8b97b0" }}>
+          <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>No Financial Network Data</h3>
+          <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
             No financial transactions have been linked to FIR records yet. Once bank accounts and
             transaction amounts are associated with cases, the financial network graph will appear here.
           </p>
           <div className="flex items-center gap-2 mt-2">
-            <IndianRupee className="w-4 h-4" style={{ color: "#5a657a" }} />
-            <span className="text-xs" style={{ color: "#5a657a" }}>
+            <IndianRupee className="w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
+            <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>
               Link financial transactions to FIRs to see the network
             </span>
           </div>
@@ -631,18 +631,18 @@ export default function FinancialNetworkView() {
         {/* Stats Cards */}
         <div className="grid grid-cols-4 gap-3 shrink-0">
           {[
-            { label: "Total Accounts", value: stats.accounts, icon: Building2, color: "#fbbf24" },
-            { label: "Transactions", value: stats.transactions, icon: ArrowRight, color: "#34d399" },
-            { label: "Total Value", value: `₹${stats.totalValue.toLocaleString("en-IN")}`, icon: IndianRupee, color: "#34d399" },
-            { label: "Gangs Involved", value: stats.gangs, icon: Users, color: "#818cf8" },
+            { label: "Total Accounts", value: stats.accounts, icon: Building2, color: "var(--warning)" },
+            { label: "Transactions", value: stats.transactions, icon: ArrowRight, color: "var(--success)" },
+            { label: "Total Value", value: `₹${stats.totalValue.toLocaleString("en-IN")}`, icon: IndianRupee, color: "var(--success)" },
+            { label: "Gangs Involved", value: stats.gangs, icon: Users, color: "var(--secondary)" },
           ].map((stat) => (
             <div
               key={stat.label}
               className="flex items-center gap-3 px-4 py-3"
               style={{
-                background: "rgba(255,255,255,0.05)",
+                background: "var(--border-subtle)",
                 backdropFilter: "blur(24px)",
-                border: "1px solid rgba(255,255,255,0.1)",
+                border: "1px solid var(--border-default)",
                 borderRadius: 12,
               }}
             >
@@ -653,10 +653,10 @@ export default function FinancialNetworkView() {
                 <stat.icon className="w-4 h-4" style={{ color: stat.color }} />
               </div>
               <div className="min-w-0">
-                <p className="text-xs truncate" style={{ color: "#5a657a" }}>
+                <p className="text-xs truncate" style={{ color: "var(--text-tertiary)" }}>
                   {stat.label}
                 </p>
-                <p className="text-sm font-bold truncate" style={{ color: "#f1f5f9" }}>
+                <p className="text-sm font-bold truncate" style={{ color: "var(--text-primary)" }}>
                   {stat.value}
                 </p>
               </div>
@@ -665,20 +665,20 @@ export default function FinancialNetworkView() {
         </div>
 
         {/* Canvas */}
-        <div className="flex-1 relative rounded-2xl overflow-hidden min-h-0" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
+        <div className="flex-1 relative rounded-2xl overflow-hidden min-h-0" style={{ border: "1px solid var(--border-default)" }}>
           <div ref={containerRef} className="absolute inset-0" style={{ background: "rgba(10,15,28,0.6)" }}>
             <canvas ref={canvasRef} onMouseMove={handleMouseMove} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onMouseLeave={() => { setHoveredNode(null); setDragNode(null); dragStartRef.current = null; }} className="absolute inset-0 w-full h-full" />
           </div>
 
           {/* Controls overlay */}
           <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
-            <button onClick={handleZoomIn} className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors" style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.1)", color: "#f1f5f9" }}>
+            <button onClick={handleZoomIn} className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors" style={{ background: "var(--border-default)", border: "1px solid var(--border-default)", color: "var(--text-primary)" }}>
               <ZoomIn className="w-4 h-4" />
             </button>
-            <button onClick={handleZoomOut} className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors" style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.1)", color: "#f1f5f9" }}>
+            <button onClick={handleZoomOut} className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors" style={{ background: "var(--border-default)", border: "1px solid var(--border-default)", color: "var(--text-primary)" }}>
               <ZoomOut className="w-4 h-4" />
             </button>
-            <button onClick={handleResetLayout} className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors" style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.1)", color: "#f1f5f9" }}>
+            <button onClick={handleResetLayout} className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors" style={{ background: "var(--border-default)", border: "1px solid var(--border-default)", color: "var(--text-primary)" }}>
               <RotateCcw className="w-4 h-4" />
             </button>
           </div>
@@ -689,13 +689,13 @@ export default function FinancialNetworkView() {
             style={{
               background: "rgba(10,15,30,0.85)",
               backdropFilter: "blur(16px)",
-              border: "1px solid rgba(255,255,255,0.1)",
+              border: "1px solid var(--border-default)",
               borderRadius: 12,
             }}
           >
             {/* Filters */}
             <div className="flex flex-col gap-1.5">
-              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#5a657a" }}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
                 Filter Nodes
               </p>
               <div className="flex gap-2">
@@ -718,18 +718,18 @@ export default function FinancialNetworkView() {
               </div>
             </div>
 
-            <Separator orientation="vertical" className="h-auto" style={{ background: "rgba(255,255,255,0.1)" }} />
+            <Separator orientation="vertical" className="h-auto" style={{ background: "var(--border-default)" }} />
 
             {/* Legend */}
             <div className="flex flex-col gap-1.5">
-              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#5a657a" }}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
                 Edge Types
               </p>
               <div className="flex gap-3">
                 {(["transaction", "account_holder", "used_in", "gang_member"] as const).map((type) => (
                   <div key={type} className="flex items-center gap-1.5">
                     <div className="w-4 h-0.5 rounded" style={{ background: EDGE_COLORS[type] }} />
-                    <span className="text-[10px]" style={{ color: "#5a657a" }}>
+                    <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
                       {EDGE_LABELS[type]}
                     </span>
                   </div>
@@ -753,14 +753,14 @@ export default function FinancialNetworkView() {
             <div
               className="h-full flex flex-col"
               style={{
-                background: "rgba(255,255,255,0.05)",
+                background: "var(--border-subtle)",
                 backdropFilter: "blur(24px)",
-                border: "1px solid rgba(255,255,255,0.1)",
+                border: "1px solid var(--border-default)",
                 borderRadius: 16,
               }}
             >
               {/* Header */}
-              <div className="flex items-center justify-between px-5 py-4 shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+              <div className="flex items-center justify-between px-5 py-4 shrink-0" style={{ borderBottom: "1px solid var(--border-subtle)" }}>
                 <div className="flex items-center gap-3 min-w-0">
                   <div
                     className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
@@ -778,7 +778,7 @@ export default function FinancialNetworkView() {
                     >
                       {NODE_LABELS[selectedNode.type]}
                     </Badge>
-                    <p className="text-sm font-semibold truncate mt-0.5" style={{ color: "#f1f5f9" }}>
+                    <p className="text-sm font-semibold truncate mt-0.5" style={{ color: "var(--text-primary)" }}>
                       {selectedNode.label}
                     </p>
                   </div>
@@ -786,7 +786,7 @@ export default function FinancialNetworkView() {
                 <button
                   onClick={() => setSelectedNode(null)}
                   className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors"
-                  style={{ color: "#5a657a" }}
+                  style={{ color: "var(--text-tertiary)" }}
                   onMouseEnter={(e) => (e.currentTarget.style.color = "#f1f5f9")}
                   onMouseLeave={(e) => (e.currentTarget.style.color = "#5a657a")}
                 >
@@ -798,25 +798,25 @@ export default function FinancialNetworkView() {
               <ScrollArea className="flex-1 px-5 py-4">
                 {/* Details */}
                 <div className="space-y-2.5 mb-5">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#5a657a" }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
                     Details
                   </p>
                   {Object.entries(selectedNode.details).map(([key, val]) => (
                     <div key={key} className="flex justify-between items-start gap-2">
-                      <span className="text-xs capitalize shrink-0" style={{ color: "#8b97b0" }}>
+                      <span className="text-xs capitalize shrink-0" style={{ color: "var(--text-secondary)" }}>
                         {key.replace(/_/g, " ")}
                       </span>
-                      <span className="text-xs font-medium text-right" style={{ color: "#f1f5f9" }}>
+                      <span className="text-xs font-medium text-right" style={{ color: "var(--text-primary)" }}>
                         {val}
                       </span>
                     </div>
                   ))}
                   {selectedNode.value > 0 && (
                     <div className="flex justify-between items-start gap-2">
-                      <span className="text-xs capitalize shrink-0" style={{ color: "#8b97b0" }}>
+                      <span className="text-xs capitalize shrink-0" style={{ color: "var(--text-secondary)" }}>
                         Value
                       </span>
-                      <span className="text-xs font-medium" style={{ color: "#34d399" }}>
+                      <span className="text-xs font-medium" style={{ color: "var(--success)" }}>
                         {selectedNode.type === "account" || selectedNode.type === "fir"
                           ? `₹${selectedNode.value.toLocaleString("en-IN")}`
                           : selectedNode.value}
@@ -825,12 +825,12 @@ export default function FinancialNetworkView() {
                   )}
                 </div>
 
-                <Separator className="my-3" style={{ background: "rgba(255,255,255,0.08)" }} />
+                <Separator className="my-3" style={{ background: "var(--border-default)" }} />
 
                 {/* Connected Nodes */}
                 {selectedConnections.nodes.length > 0 && (
                   <div className="mb-5">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "#5a657a" }}>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
                       Connected Nodes ({selectedConnections.nodes.length})
                     </p>
                     <div className="space-y-1.5">
@@ -839,7 +839,7 @@ export default function FinancialNetworkView() {
                           key={node.id}
                           onClick={() => setSelectedNode(node)}
                           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-colors group"
-                          style={{ background: "rgba(255,255,255,0.03)" }}
+                          style={{ background: "var(--border-subtle)" }}
                           onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
                           onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
                         >
@@ -848,7 +848,7 @@ export default function FinancialNetworkView() {
                             fill={NODE_COLORS[node.type]}
                             stroke={NODE_COLORS[node.type]}
                           />
-                          <span className="text-xs font-medium truncate flex-1" style={{ color: "#f1f5f9" }}>
+                          <span className="text-xs font-medium truncate flex-1" style={{ color: "var(--text-primary)" }}>
                             {node.label}
                           </span>
                           <Badge
@@ -857,7 +857,7 @@ export default function FinancialNetworkView() {
                           >
                             {NODE_LABELS[node.type]}
                           </Badge>
-                          <ChevronRight className="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "#5a657a" }} />
+                          <ChevronRight className="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--text-tertiary)" }} />
                         </button>
                       ))}
                     </div>
@@ -867,7 +867,7 @@ export default function FinancialNetworkView() {
                 {/* Connected Edges */}
                 {selectedConnections.edges.length > 0 && (
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "#5a657a" }}>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
                       Connections ({selectedConnections.edges.length})
                     </p>
                     <div className="space-y-1.5">
@@ -879,7 +879,7 @@ export default function FinancialNetworkView() {
                           <div
                             key={i}
                             className="flex items-center gap-2.5 px-3 py-2 rounded-lg"
-                            style={{ background: "rgba(255,255,255,0.03)" }}
+                            style={{ background: "var(--border-subtle)" }}
                           >
                             <div className="w-3 h-0.5 rounded shrink-0" style={{ background: EDGE_COLORS[edge.type] }} />
                             <div className="min-w-0 flex-1">
@@ -888,18 +888,18 @@ export default function FinancialNetworkView() {
                                   {edge.type}
                                 </span>
                                 {edge.amount != null && (
-                                  <span className="text-[10px] font-semibold" style={{ color: "#34d399" }}>
+                                  <span className="text-[10px] font-semibold" style={{ color: "var(--success)" }}>
                                     ₹{edge.amount.toLocaleString("en-IN")}
                                   </span>
                                 )}
                               </div>
                               {edge.label && (
-                                <p className="text-[10px] truncate mt-0.5" style={{ color: "#5a657a" }}>
+                                <p className="text-[10px] truncate mt-0.5" style={{ color: "var(--text-tertiary)" }}>
                                   {edge.label}
                                 </p>
                               )}
                               {otherNode && (
-                                <p className="text-[10px] truncate mt-0.5" style={{ color: "#8b97b0" }}>
+                                <p className="text-[10px] truncate mt-0.5" style={{ color: "var(--text-secondary)" }}>
                                   {isOutgoing ? "→" : "←"} {otherNode.label}
                                 </p>
                               )}

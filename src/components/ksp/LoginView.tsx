@@ -89,16 +89,16 @@ export default function LoginView() {
           className="text-center mb-10"
         >
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-5 relative" style={{ background: "linear-gradient(135deg, rgba(34,211,238,0.12), rgba(129,140,248,0.08))", border: "1px solid rgba(34,211,238,0.15)" }}>
-            <Shield className="w-8 h-8" style={{ color: "#22d3ee" }} />
+            <Shield className="w-8 h-8" style={{ color: "var(--primary)" }} />
             <div className="absolute inset-0 rounded-2xl" style={{ boxShadow: "0 0 40px rgba(34,211,238,0.08)" }} />
           </div>
-          <h1 className="text-2xl font-bold tracking-[0.15em] uppercase" style={{ color: "#f1f5f9" }}>
+          <h1 className="text-2xl font-bold tracking-[0.15em] uppercase" style={{ color: "var(--text-primary)" }}>
             KSP Sentinel
           </h1>
-          <p className="text-xs mt-2 tracking-widest uppercase" style={{ color: "#5a657a" }}>
+          <p className="text-xs mt-2 tracking-widest uppercase" style={{ color: "var(--text-tertiary)" }}>
             Crime Intelligence Platform
           </p>
-          <div className="inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full text-[10px] font-medium tracking-wider uppercase" style={{ background: "rgba(251,191,36,0.08)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.15)" }}>
+          <div className="inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full text-[10px] font-medium tracking-wider uppercase" style={{ background: "rgba(251,191,36,0.08)", color: "var(--warning)", border: "1px solid rgba(251,191,36,0.15)" }}>
             <span className="w-1.5 h-1.5 rounded-full status-pulse" style={{ backgroundColor: "#fbbf24" }} />
             Demo Mode — Synthetic Data
           </div>
@@ -115,18 +115,18 @@ export default function LoginView() {
           {/* Subtle top glow line */}
           <div className="absolute top-0 left-8 right-8 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(34,211,238,0.2), transparent)" }} />
 
-          <h2 className="text-base font-semibold text-center mb-6" style={{ color: "#f1f5f9" }}>
+          <h2 className="text-base font-semibold text-center mb-6" style={{ color: "var(--text-primary)" }}>
             Authenticate
           </h2>
 
           <div className="space-y-5">
             {/* Username */}
             <div className="space-y-2">
-              <label className="text-[11px] font-medium uppercase tracking-wider" style={{ color: "#5a657a" }}>
+              <label className="text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
                 Username
               </label>
               <div className="relative">
-                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#3d4659" }} />
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-muted)" }} />
                 <input
                   type="text"
                   value={username}
@@ -135,7 +135,7 @@ export default function LoginView() {
                   placeholder="Enter username"
                   autoFocus
                   className="w-full h-11 pl-11 pr-4 rounded-xl text-sm outline-none transition-all duration-200 placeholder:text-[#3d4659]"
-                  style={{ backgroundColor: "rgba(10, 15, 28, 0.8)", border: "1px solid rgba(255,255,255,0.06)", color: "#f1f5f9" }}
+                  style={{ backgroundColor: "rgba(10, 15, 28, 0.8)", border: "1px solid var(--border-subtle)", color: "var(--text-primary)" }}
                   onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(34,211,238,0.3)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(34,211,238,0.06)"; }}
                   onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; e.currentTarget.style.boxShadow = "none"; }}
                 />
@@ -144,11 +144,11 @@ export default function LoginView() {
 
             {/* Password */}
             <div className="space-y-2">
-              <label className="text-[11px] font-medium uppercase tracking-wider" style={{ color: "#5a657a" }}>
+              <label className="text-[11px] font-medium uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#3d4659" }} />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-muted)" }} />
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
@@ -156,7 +156,7 @@ export default function LoginView() {
                   onKeyDown={handleKeyDown}
                   placeholder="Enter password"
                   className="w-full h-11 pl-11 pr-12 rounded-xl text-sm outline-none transition-all duration-200 placeholder:text-[#3d4659]"
-                  style={{ backgroundColor: "rgba(10, 15, 28, 0.8)", border: "1px solid rgba(255,255,255,0.06)", color: "#f1f5f9" }}
+                  style={{ backgroundColor: "rgba(10, 15, 28, 0.8)", border: "1px solid var(--border-subtle)", color: "var(--text-primary)" }}
                   onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(34,211,238,0.3)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(34,211,238,0.06)"; }}
                   onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; e.currentTarget.style.boxShadow = "none"; }}
                 />
@@ -164,7 +164,7 @@ export default function LoginView() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3.5 top-1/2 -translate-y-1/2 transition-colors cursor-pointer"
-                  style={{ color: "#3d4659" }}
+                  style={{ color: "var(--text-muted)" }}
                   onMouseEnter={(e) => { e.currentTarget.style.color = "#8b97b0"; }}
                   onMouseLeave={(e) => { e.currentTarget.style.color = "#3d4659"; }}
                 >
@@ -181,7 +181,7 @@ export default function LoginView() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
                   className="text-xs text-center"
-                  style={{ color: "#f87171" }}
+                  style={{ color: "var(--critical)" }}
                 >
                   {error}
                 </motion.p>
@@ -210,8 +210,8 @@ export default function LoginView() {
 
           {/* Demo credentials */}
           <div className="mt-6 pt-5" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
-            <p className="text-[10px] text-center tracking-wide" style={{ color: "#3d4659" }}>
-              Demo: <span style={{ color: "#5a657a" }}>investigator</span> / <span style={{ color: "#5a657a" }}>analyst</span> / <span style={{ color: "#5a657a" }}>admin</span> — ksp123
+            <p className="text-[10px] text-center tracking-wide" style={{ color: "var(--text-muted)" }}>
+              Demo: <span style={{ color: "var(--text-tertiary)" }}>investigator</span> / <span style={{ color: "var(--text-tertiary)" }}>analyst</span> / <span style={{ color: "var(--text-tertiary)" }}>admin</span> — ksp123
             </p>
           </div>
         </motion.div>
@@ -222,7 +222,7 @@ export default function LoginView() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
           className="text-center text-[10px] mt-6 tracking-wider uppercase"
-          style={{ color: "#3d4659" }}
+          style={{ color: "var(--text-muted)" }}
         >
           Karnataka State Police — Confidential
         </motion.p>

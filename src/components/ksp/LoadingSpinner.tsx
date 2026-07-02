@@ -13,14 +13,14 @@ export default function LoadingSpinner({ message = "Loading..." }: { message?: s
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
         />
-        <Shield className="absolute inset-0 m-auto w-4 h-4" style={{ color: "#22d3ee", opacity: 0.5 }} />
+        <Shield className="absolute inset-0 m-auto w-4 h-4" style={{ color: "var(--primary)", opacity: 0.5 }} />
       </div>
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
         className="text-xs tracking-wide"
-        style={{ color: "#5a657a" }}
+        style={{ color: "var(--text-tertiary)" }}
       >
         {message}
       </motion.p>

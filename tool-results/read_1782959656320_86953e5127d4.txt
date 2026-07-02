@@ -1,0 +1,734 @@
+     1→"use client";
+     2→
+     3→import { useAppStore } from "@/lib/store";
+     4→import { motion, AnimatePresence } from "framer-motion";
+     5→import {
+     6→  LayoutDashboard,
+     7→  Bot,
+     8→  Network,
+     9→  MapPin,
+    10→  LogOut,
+    11→  Shield,
+    12→  Clock,
+    13→  FileText,
+    14→  Database,
+    15→  ChevronDown,
+    16→  Fingerprint,
+    17→  Users,
+    18→  Car,
+    19→  Landmark,
+    20→  Upload,
+    21→  ScrollText,
+    22→  Cpu,
+    23→  Settings,
+    24→  X,
+    25→  BarChart3,
+    26→  TrendingUp,
+    27→  GitBranch,
+    28→  Command,
+    29→  UserSearch,
+    30→  Heart,
+    31→  BrainCircuit,
+    32→  Activity,
+    33→  ChevronRight,
+    34→  Radar,
+    35→  FileSearch,
+    36→  BadgeCheck,
+    37→  BookOpen,
+    38→} from "lucide-react";
+    39→import { useState, memo, useCallback, useEffect } from "react";
+    40→import type { ViewType } from "@/lib/types";
+    41→import { canAccessView } from "@/lib/permissions";
+    42→import { getLabel } from "@/lib/translations";
+    43→
+    44→/* ═══════════════════════════════════════════════════════════════════════
+    45→   NAV STRUCTURE — Items with keyboard shortcuts & sections
+    46→   ═══════════════════════════════════════════════════════════════════════ */
+    47→
+    48→interface NavItemDef {
+    49→  key: string;
+    50→  icon: React.ElementType;
+    51→  view: ViewType;
+    52→  shortcut?: string;
+    53→  badge?: "pulse" | "new";
+    54→}
+    55→
+    56→const INTELLIGENCE_ITEMS: NavItemDef[] = [
+    57→  { key: "dashboard", icon: LayoutDashboard, view: "dashboard", shortcut: "Alt+1" },
+    58→  { key: "chat", icon: Bot, view: "chat", shortcut: "Alt+2", badge: "pulse" },
+    59→  { key: "network", icon: Network, view: "network", shortcut: "Alt+3" },
+    60→  { key: "map", icon: MapPin, view: "map", shortcut: "Alt+4" },
+    61→  { key: "accused", icon: UserSearch, view: "accused", shortcut: "Alt+5" },
+    62→  { key: "timeline", icon: Clock, view: "timeline", shortcut: "Alt+6" },
+    63→  { key: "report", icon: FileText, view: "report", shortcut: "Alt+7" },
+    64→];
+    65→
+    66→const ANALYTICS_ITEMS: NavItemDef[] = [
+    67→  { key: "dmForecasting", icon: TrendingUp, view: "dm-forecasting", badge: "new" },
+    68→  { key: "dmSociological", icon: BarChart3, view: "dm-sociological" },
+    69→  { key: "dmFinancialNetwork", icon: GitBranch, view: "dm-financial-network" },
+    70→  { key: "dmAiQueue", icon: BrainCircuit, view: "dm-ai-queue" },
+    71→];
+    72→
+    73→const DATA_MGMT_ITEMS: NavItemDef[] = [
+    74→  { key: "dmDashboard", icon: Activity, view: "dm-dashboard" },
+    75→  { key: "dmFir", icon: FileSearch, view: "dm-fir" },
+    76→  { key: "dmEvidence", icon: Fingerprint, view: "dm-evidence" },
+    77→  { key: "dmCriminals", icon: BadgeCheck, view: "dm-criminals" },
+    78→  { key: "dmVictims", icon: Heart, view: "dm-victims" },
+    79→  { key: "dmVehicles", icon: Car, view: "dm-vehicles" },
+    80→  { key: "dmFinancial", icon: Landmark, view: "dm-financial" },
+    81→  { key: "dmImport", icon: Upload, view: "dm-import" },
+    82→  { key: "dmAudit", icon: ScrollText, view: "dm-audit" },
+    83→  { key: "dmSettings", icon: Settings, view: "dm-settings" },
+    84→];
+    85→
+    86→/* ═══════════════════════════════════════════════════════════════════════
+    87→   SECTION HEADER — Collapsible section with label
+    88→   ═══════════════════════════════════════════════════════════════════════ */
+    89→
+    90→const SectionHeader = memo(function SectionHeader({
+    91→  label,
+    92→  icon: Icon,
+    93→  color,
+    94→  open,
+    95→  onToggle,
+    96→}: {
+    97→  label: string;
+    98→  icon: React.ElementType;
+    99→  color: string;
+   100→  open: boolean;
+   101→  onToggle: () => void;
+   102→}) {
+   103→  return (
+   104→    <button
+   105→      onClick={onToggle}
+   106→      className="w-full flex items-center gap-2 px-2 py-1.5 mt-3 mb-1 cursor-pointer rounded-md transition-all duration-200 group"
+   107→      onMouseEnter={(e) => {
+   108→        e.currentTarget.style.background = "var(--border-subtle)";
+   109→      }}
+   110→      onMouseLeave={(e) => {
+   111→        e.currentTarget.style.background = "transparent";
+   112→      }}
+   113→    >
+   114→      <Icon className="w-3 h-3 flex-shrink-0" style={{ color }} />
+   115→      <span
+   116→        className="flex-1 text-left text-[10px] font-semibold uppercase tracking-[0.12em]"
+   117→        style={{ color: "var(--text-tertiary)" }}
+   118→      >
+   119→        {label}
+   120→      </span>
+   121→      <motion.div
+   122→        animate={{ rotate: open ? 0 : -90 }}
+   123→        transition={{ duration: 0.2 }}
+   124→        className="opacity-50 group-hover:opacity-100 transition-opacity"
+   125→      >
+   126→        <ChevronRight className="w-3 h-3" style={{ color: "var(--text-muted)" }} />
+   127→      </motion.div>
+   128→    </button>
+   129→  );
+   130→});
+   131→
+   132→/* ═══════════════════════════════════════════════════════════════════════
+   133→   NAV ITEM — Individual nav button with shortcut, badge, glow
+   134→   ═══════════════════════════════════════════════════════════════════════ */
+   135→
+   136→const NavItem = memo(function NavItem({
+   137→  item,
+   138→  isActive,
+   139→  getLabelFn,
+   140→  collapsed,
+   141→  accentColor,
+   142→  onClick,
+   143→}: {
+   144→  item: NavItemDef;
+   145→  isActive: boolean;
+   146→  getLabelFn: (key: string) => string;
+   147→  collapsed: boolean;
+   148→  accentColor: string;
+   149→  onClick: () => void;
+   150→}) {
+   151→  const Icon = item.icon;
+   152→  const glowColor = accentColor === "#22d3ee"
+   153→    ? "rgba(34,211,238,0.08)"
+   154→    : accentColor === "#818cf8"
+   155→      ? "rgba(129,140,248,0.08)"
+   156→      : accentColor === "#34d399"
+   157→        ? "rgba(52,211,153,0.08)"
+   158→        : "rgba(251,191,36,0.08)";
+   159→
+   160→  return (
+   161→    <motion.button
+   162→      onClick={onClick}
+   163→      whileHover={{ x: collapsed ? 0 : 2 }}
+   164→      transition={{ duration: 0.15 }}
+   165→      title={collapsed ? `${getLabelFn(item.key)}${item.shortcut ? ` (${item.shortcut})` : ""}` : undefined}
+   166→      className="w-full group relative flex items-center gap-2.5 rounded-lg text-[13px] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/30"
+   167→      style={{
+   168→        padding: collapsed ? "9px" : "7px 10px",
+   169→        justifyContent: collapsed ? "center" : "flex-start",
+   170→        color: isActive ? accentColor : "var(--text-secondary)",
+   171→        background: isActive ? glowColor : "transparent",
+   172→      }}
+   173→      onMouseEnter={(e) => {
+   174→        if (!isActive) {
+   175→          e.currentTarget.style.background = "var(--border-subtle)";
+   176→          e.currentTarget.style.color = "var(--text-primary)";
+   177→        }
+   178→      }}
+   179→      onMouseLeave={(e) => {
+   180→        if (!isActive) {
+   181→          e.currentTarget.style.background = "transparent";
+   182→          e.currentTarget.style.color = "var(--text-secondary)";
+   183→        }
+   184→      }}
+   185→    >
+   186→      {/* Active left indicator */}
+   187→      {isActive && (
+   188→        <motion.div
+   189→          layoutId={`nav-active-${item.view}`}
+   190→          className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[55%] rounded-r-full"
+   191→          style={{
+   192→            backgroundColor: accentColor,
+   193→            boxShadow: `0 0 12px ${accentColor}60`,
+   194→          }}
+   195→          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+   196→        />
+   197→      )}
+   198→
+   199→      {/* Icon */}
+   200→      <div className="relative flex-shrink-0">
+   201→        <Icon
+   202→          className="w-[17px] h-[17px] transition-all duration-200"
+   203→          style={isActive ? { filter: `drop-shadow(0 0 6px ${accentColor}50)` } : {}}
+   204→        />
+   205→        {/* Badge: pulse dot for AI Copilot */}
+   206→        {item.badge === "pulse" && (
+   207→          <span
+   208→            className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"
+   209→            style={{
+   210→              backgroundColor: accentColor,
+   211→              boxShadow: `0 0 6px ${accentColor}`,
+   212→              animation: "status-pulse 2s ease-in-out infinite",
+   213→            }}
+   214→          />
+   215→        )}
+   216→        {/* Badge: NEW tag */}
+   217→        {item.badge === "new" && !collapsed && (
+   218→          <span
+   219→            className="absolute -top-1 -right-3 text-[7px] font-bold uppercase tracking-wider px-1 rounded-sm"
+   220→            style={{
+   221→              backgroundColor: "var(--success-glow)",
+   222→              color: "var(--success)",
+   223→              border: "1px solid var(--success-glow)",
+   224→            }}
+   225→          >
+   226→            NEW
+   227→          </span>
+   228→        )}
+   229→      </div>
+   230→
+   231→      {/* Label + Shortcut */}
+   232→      {!collapsed && (
+   233→        <div className="flex-1 flex items-center justify-between min-w-0 gap-1">
+   234→          <span className="truncate font-medium text-[13px]">{getLabelFn(item.key)}</span>
+   235→          {item.shortcut && (
+   236→            <kbd
+   237→              className="flex-shrink-0 text-[9px] font-mono px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+   238→              style={{
+   239→                background: "var(--border-subtle)",
+   240→                color: "var(--text-muted)",
+   241→                border: "1px solid var(--border-subtle)",
+   242→              }}
+   243→            >
+   244→              {item.shortcut}
+   245→            </kbd>
+   246→          )}
+   247→        </div>
+   248→      )}
+   249→    </motion.button>
+   250→  );
+   251→});
+   252→
+   253→/* ═══════════════════════════════════════════════════════════════════════
+   254→   MAIN SIDEBAR COMPONENT
+   255→   ═══════════════════════════════════════════════════════════════════════ */
+   256→
+   257→export default function Sidebar() {
+   258→  const user = useAppStore((s) => s.user);
+   259→  const currentView = useAppStore((s) => s.currentView);
+   260→  const lang = useAppStore((s) => s.lang);
+   261→  const setView = useAppStore((s) => s.setView);
+   262→  const logout = useAppStore((s) => s.logout);
+   263→  const setCommandPaletteOpen = useAppStore((s) => s.setCommandPaletteOpen);
+   264→  const sidebarCollapsed = useAppStore((s) => s.sidebarCollapsed);
+   265→  const setSidebarCollapsed = useAppStore((s) => s.setSidebarCollapsed);
+   266→  const notifications = useAppStore((s) => s.notifications);
+   267→  const setShowOnboarding = useAppStore((s) => s.setShowOnboarding);
+   268→  const [mobileOpen, setMobileOpen] = useState(false);
+   269→  const [dmOpen, setDmOpen] = useState(true);
+   270→  const [analyticsOpen, setAnalyticsOpen] = useState(true);
+   271→  const getLabelFn = useCallback((key: string) => getLabel(lang, key), [lang]);
+   272→  const unreadCount = notifications.filter((n) => !n.read).length;
+   273→
+   274→  const handleNav = useCallback(
+   275→    (view: ViewType) => {
+   276→      setView(view);
+   277→      setMobileOpen(false);
+   278→    },
+   279→    [setView]
+   280→  );
+   281→
+   282→  /* ── Keyboard Shortcuts (Alt+1..7) ─────────────────────────────── */
+   283→  useEffect(() => {
+   284→    const handler = (e: KeyboardEvent) => {
+   285→      if (e.altKey && e.key >= "1" && e.key <= "7") {
+   286→        e.preventDefault();
+   287→        const idx = parseInt(e.key) - 1;
+   288→        const item = INTELLIGENCE_ITEMS[idx];
+   289→        if (item && canAccessView(user?.role || "demo_user", item.view)) {
+   290→          handleNav(item.view);
+   291→        }
+   292→      }
+   293→    };
+   294→    window.addEventListener("keydown", handler);
+   295→    return () => window.removeEventListener("keydown", handler);
+   296→  }, [user, handleNav]);
+   297→
+   298→  /* ── Separator ─────────────────────────────────────────────────── */
+   299→  const Separator = () => (
+   300→    <div
+   301→      className="my-2 mx-2"
+   302→      style={{
+   303→        height: "1px",
+   304→        background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)",
+   305→      }}
+   306→    />
+   307→  );
+   308→
+   309→  /* ── Nav Content (shared between desktop + mobile) ──────────────── */
+   310→  const navContent = (
+   311→    <div className="flex flex-col h-full">
+   312→      {/* ── Logo Bar ──────────────────────────────────────────────── */}
+   313→      <div
+   314→        className="flex items-center justify-between px-4 h-14 flex-shrink-0"
+   315→        style={{ borderBottom: "1px solid var(--border-subtle)" }}
+   316→      >
+   317→        <div className="flex items-center gap-2.5 overflow-hidden">
+   318→          <div
+   319→            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+   320→            style={{
+   321→              background: "linear-gradient(135deg, rgba(34,211,238,0.15), rgba(129,140,248,0.08))",
+   322→              border: "1px solid rgba(34,211,238,0.12)",
+   323→              boxShadow: "0 0 16px rgba(34,211,238,0.08)",
+   324→            }}
+   325→          >
+   326→            <Shield className="w-4 h-4" style={{ color: "var(--primary)" }} />
+   327→          </div>
+   328→          <AnimatePresence>
+   329→            {!sidebarCollapsed && (
+   330→              <motion.div
+   331→                initial={{ opacity: 0, width: 0 }}
+   332→                animate={{ opacity: 1, width: "auto" }}
+   333→                exit={{ opacity: 0, width: 0 }}
+   334→                className="overflow-hidden whitespace-nowrap"
+   335→              >
+   336→                <span
+   337→                  className="text-xs font-bold tracking-[0.14em] uppercase"
+   338→                  style={{
+   339→                    color: "#22d3ee",
+   340→                    textShadow: "0 0 20px rgba(34,211,238,0.3)",
+   341→                  }}
+   342→                >
+   343→                  Sentinel
+   344→                </span>
+   345→              </motion.div>
+   346→            )}
+   347→          </AnimatePresence>
+   348→        </div>
+   349→        {/* Collapse toggle — desktop only */}
+   350→        <button
+   351→          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+   352→          className="hidden lg:flex items-center justify-center w-6 h-6 rounded-md transition-colors cursor-pointer"
+   353→          style={{ color: "var(--text-muted)" }}
+   354→          onMouseEnter={(e) => {
+   355→            e.currentTarget.style.background = "var(--border-subtle)";
+   356→            e.currentTarget.style.color = "var(--text-secondary)";
+   357→          }}
+   358→          onMouseLeave={(e) => {
+   359→            e.currentTarget.style.background = "transparent";
+   360→            e.currentTarget.style.color = "var(--text-muted)";
+   361→          }}
+   362→        >
+   363→          <motion.div
+   364→            animate={{ rotate: sidebarCollapsed ? 0 : -90 }}
+   365→            transition={{ duration: 0.2 }}
+   366→          >
+   367→            <ChevronDown className="w-3.5 h-3.5" />
+   368→          </motion.div>
+   369→        </button>
+   370→        {/* Close button — mobile only */}
+   371→        <button
+   372→          onClick={() => setMobileOpen(false)}
+   373→          className="lg:hidden flex items-center justify-center w-6 h-6 rounded-md cursor-pointer"
+   374→          style={{ color: "var(--text-tertiary)" }}
+   375→        >
+   376→          <X className="w-4 h-4" />
+   377→        </button>
+   378→      </div>
+   379→
+   380→      {/* ── Scrollable Navigation ─────────────────────────────────── */}
+   381→      <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2.5 py-2 space-y-0">
+   382→        {/* INTELLIGENCE Section — always visible */}
+   383→        {!sidebarCollapsed && (
+   384→          <div className="flex items-center gap-2 px-2 py-1.5 mb-1">
+   385→            <Radar className="w-3 h-3" style={{ color: "var(--primary)" }} />
+   386→            <span
+   387→              className="text-[10px] font-bold uppercase tracking-[0.12em]"
+   388→              style={{ color: "var(--text-tertiary)" }}
+   389→            >
+   390→              {getLabel(lang, "intelligence")}
+   391→            </span>
+   392→          </div>
+   393→        )}
+   394→        {INTELLIGENCE_ITEMS.map((item) => {
+   395→          const isActive = currentView === item.view;
+   396→          const accessible = canAccessView(
+   397→            user?.role || "demo_user",
+   398→            item.view
+   399→          );
+   400→          if (!accessible) return null;
+   401→          return (
+   402→            <NavItem
+   403→              key={item.key}
+   404→              item={item}
+   405→              isActive={isActive}
+   406→              getLabelFn={getLabelFn}
+   407→              collapsed={sidebarCollapsed}
+   408→              accentColor="#22d3ee"
+   409→              onClick={() => handleNav(item.view)}
+   410→            />
+   411→          );
+   412→        })}
+   413→
+   414→        <Separator />
+   415→
+   416→        {/* ANALYTICS & AI Section */}
+   417→        {!sidebarCollapsed ? (
+   418→          <SectionHeader
+   419→            label={getLabel(lang, "analytics")}
+   420→            icon={BrainCircuit}
+   421→            color="#34d399"
+   422→            open={analyticsOpen}
+   423→            onToggle={() => setAnalyticsOpen(!analyticsOpen)}
+   424→          />
+   425→        ) : (
+   426→          <div className="flex justify-center py-1">
+   427→            <div
+   428→              className="w-6 h-px"
+   429→              style={{ background: "rgba(255,255,255,0.06)" }}
+   430→            />
+   431→          </div>
+   432→        )}
+   433→
+   434→        <AnimatePresence initial={false}>
+   435→          {(analyticsOpen || sidebarCollapsed) && (
+   436→            <motion.div
+   437→              initial={{ opacity: 0, height: 0 }}
+   438→              animate={{ opacity: 1, height: "auto" }}
+   439→              exit={{ opacity: 0, height: 0 }}
+   440→              transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+   441→              className="overflow-hidden"
+   442→            >
+   443→              {ANALYTICS_ITEMS.map((item) => {
+   444→                const isActive = currentView === item.view;
+   445→                const accessible = canAccessView(user?.role || "demo_user", item.view);
+   446→                if (!accessible) return null;
+   447→                return (
+   448→                  <NavItem
+   449→                    key={item.key}
+   450→                    item={item}
+   451→                    isActive={isActive}
+   452→                    getLabelFn={getLabelFn}
+   453→                    collapsed={sidebarCollapsed}
+   454→                    accentColor="#34d399"
+   455→                    onClick={() => handleNav(item.view)}
+   456→                  />
+   457→                );
+   458→              })}
+   459→            </motion.div>
+   460→          )}
+   461→        </AnimatePresence>
+   462→
+   463→        <Separator />
+   464→
+   465→        {/* DATA MANAGEMENT Section */}
+   466→        {!sidebarCollapsed ? (
+   467→          <SectionHeader
+   468→            label={getLabel(lang, "dataMgmt")}
+   469→            icon={Database}
+   470→            color="#818cf8"
+   471→            open={dmOpen}
+   472→            onToggle={() => setDmOpen(!dmOpen)}
+   473→          />
+   474→        ) : (
+   475→          <div className="flex justify-center py-1">
+   476→            <div
+   477→              className="w-6 h-px"
+   478→              style={{ background: "rgba(255,255,255,0.06)" }}
+   479→            />
+   480→          </div>
+   481→        )}
+   482→
+   483→        <AnimatePresence initial={false}>
+   484→          {(dmOpen || sidebarCollapsed) && (
+   485→            <motion.div
+   486→              initial={{ opacity: 0, height: 0 }}
+   487→              animate={{ opacity: 1, height: "auto" }}
+   488→              exit={{ opacity: 0, height: 0 }}
+   489→              transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+   490→              className="overflow-hidden"
+   491→            >
+   492→              {DATA_MGMT_ITEMS.map((item) => {
+   493→                const isActive = currentView === item.view;
+   494→                const accessible = canAccessView(user?.role || "demo_user", item.view);
+   495→                if (!accessible) return null;
+   496→                return (
+   497→                  <NavItem
+   498→                    key={item.key}
+   499→                    item={item}
+   500→                    isActive={isActive}
+   501→                    getLabelFn={getLabelFn}
+   502→                    collapsed={sidebarCollapsed}
+   503→                    accentColor="#818cf8"
+   504→                    onClick={() => handleNav(item.view)}
+   505→                  />
+   506→                );
+   507→              })}
+   508→            </motion.div>
+   509→          )}
+   510→        </AnimatePresence>
+   511→
+   512→        {/* Bottom spacer for scroll */}
+   513→        <div className="h-4" />
+   514→      </nav>
+   515→
+   516→      {/* ── Bottom Section ───────────────────────────────────────── */}
+   517→      <div
+   518→        className="px-2.5 pb-3 space-y-1 flex-shrink-0"
+   519→        style={{ borderTop: "1px solid var(--border-subtle)" }}
+   520→      >
+   521→        {/* Command Palette — desktop, expanded only */}
+   522→        {!sidebarCollapsed && (
+   523→          <motion.button
+   524→            onClick={() => setCommandPaletteOpen(true)}
+   525→            whileHover={{ scale: 1.01 }}
+   526→            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] cursor-pointer transition-colors"
+   527→            style={{
+   528→              color: "var(--text-muted)",
+   529→              border: "1px dashed var(--border-subtle)",
+   530→            }}
+   531→            onMouseEnter={(e) => {
+   532→              e.currentTarget.style.borderColor = "var(--border-default)";
+   533→              e.currentTarget.style.color = "var(--text-tertiary)";
+   534→              e.currentTarget.style.background = "var(--border-subtle)";
+   535→            }}
+   536→            onMouseLeave={(e) => {
+   537→              e.currentTarget.style.borderColor = "var(--border-subtle)";
+   538→              e.currentTarget.style.color = "var(--text-muted)";
+   539→              e.currentTarget.style.background = "transparent";
+   540→            }}
+   541→          >
+   542→            <Command className="w-3.5 h-3.5" />
+   543→            <span className="flex-1 text-left">{getLabel(lang, "commandPalette")}</span>
+   544→            <kbd
+   545→              className="text-[9px] px-1.5 py-0.5 rounded font-mono"
+   546→              style={{
+   547→                background: "var(--border-subtle)",
+   548→                color: "var(--text-muted)",
+   549→                border: "1px solid var(--border-subtle)",
+   550→              }}
+   551→            >
+   552→              Ctrl+K
+   553→            </kbd>
+   554→          </motion.button>
+   555→        )}
+   556→
+   557→        {/* Help Guide button — desktop, expanded only */}
+   558→        {!sidebarCollapsed && (
+   559→          <button
+   560→            onClick={() => setShowOnboarding(true)}
+   561→            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] cursor-pointer transition-all duration-200"
+   562→            style={{
+   563→              color: "var(--text-muted)",
+   564→              border: "1px dashed var(--border-subtle)",
+   565→            }}
+   566→            onMouseEnter={(e) => {
+   567→              e.currentTarget.style.borderColor = "var(--border-default)";
+   568→              e.currentTarget.style.color = "var(--text-tertiary)";
+   569→              e.currentTarget.style.background = "var(--border-subtle)";
+   570→            }}
+   571→            onMouseLeave={(e) => {
+   572→              e.currentTarget.style.borderColor = "var(--border-subtle)";
+   573→              e.currentTarget.style.color = "var(--text-muted)";
+   574→              e.currentTarget.style.background = "transparent";
+   575→            }}
+   576→          >
+   577→            <BookOpen className="w-3.5 h-3.5" />
+   578→            <span className="flex-1 text-left">{getLabel(lang, "helpGuide")}</span>
+   579→          </button>
+   580→        )}
+   581→
+   582→        {/* Collapsed help guide — icon only */}
+   583→        {sidebarCollapsed && (
+   584→          <button
+   585→            onClick={() => setShowOnboarding(true)}
+   586→            className="w-full flex items-center justify-center py-2 rounded-lg cursor-pointer transition-all duration-200"
+   587→            style={{ color: "var(--text-muted)" }}
+   588→            onMouseEnter={(e) => {
+   589→              e.currentTarget.style.background = "var(--border-subtle)";
+   590→              e.currentTarget.style.color = "var(--text-secondary)";
+   591→            }}
+   592→            onMouseLeave={(e) => {
+   593→              e.currentTarget.style.background = "transparent";
+   594→              e.currentTarget.style.color = "var(--text-muted)";
+   595→            }}
+   596→            title="Help Guide"
+   597→          >
+   598→            <BookOpen className="w-4 h-4" />
+   599→          </button>
+   600→        )}
+   601→
+   602→        {/* User Info — desktop, expanded only */}
+   603→        {user && !sidebarCollapsed && (
+   604→          <div className="flex items-center gap-3 px-3 py-2">
+   605→            <div
+   606→              className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-[11px] font-bold"
+   607→              style={{
+   608→                background: "linear-gradient(135deg, rgba(34,211,238,0.1), rgba(129,140,248,0.08))",
+   609→                color: "#22d3ee",
+   610→                border: "1px solid rgba(34,211,238,0.1)",
+   611→              }}
+   612→            >
+   613→              {user.username.charAt(0).toUpperCase()}
+   614→            </div>
+   615→            <div className="flex-1 min-w-0">
+   616→              <p
+   617→                className="text-[12px] font-semibold truncate"
+   618→                style={{ color: "var(--text-primary)" }}
+   619→              >
+   620→                {user.username}
+   621→              </p>
+   622→              <p className="text-[10px] capitalize" style={{ color: "var(--text-muted)" }}>
+   623→                {user.role.replace(/_/g, " ")}
+   624→              </p>
+   625→            </div>
+   626→          </div>
+   627→        )}
+   628→
+   629→        {/* Logout */}
+   630→        <button
+   631→          onClick={logout}
+   632→          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[12px] cursor-pointer transition-all duration-200"
+   633→          style={{
+   634→            justifyContent: sidebarCollapsed ? "center" : "flex-start",
+   635→            color: "var(--text-tertiary)",
+   636→          }}
+   637→          onMouseEnter={(e) => {
+   638→            e.currentTarget.style.background = "rgba(248,113,113,0.06)";
+   639→            e.currentTarget.style.color = "#f87171";
+   640→          }}
+   641→          onMouseLeave={(e) => {
+   642→            e.currentTarget.style.background = "transparent";
+   643→            e.currentTarget.style.color = "var(--text-tertiary)";
+   644→          }}
+   645→        >
+   646→          <LogOut className="w-4 h-4 flex-shrink-0" />
+   647→          {!sidebarCollapsed && <span>{getLabel(lang, "logout")}</span>}
+   648→        </button>
+   649→      </div>
+   650→    </div>
+   651→  );
+   652→
+   653→  /* ── Render ─────────────────────────────────────────────────────── */
+   654→  return (
+   655→    <>
+   656→      {/* Mobile overlay */}
+   657→      <AnimatePresence>
+   658→        {mobileOpen && (
+   659→          <motion.div
+   660→            initial={{ opacity: 0 }}
+   661→            animate={{ opacity: 1 }}
+   662→            exit={{ opacity: 0 }}
+   663→            transition={{ duration: 0.2 }}
+   664→            className="fixed inset-0 z-40 lg:hidden"
+   665→            style={{
+   666→              background: "rgba(0,0,0,0.6)",
+   667→              backdropFilter: "blur(4px)",
+   668→            }}
+   669→            onClick={() => setMobileOpen(false)}
+   670→          />
+   671→        )}
+   672→      </AnimatePresence>
+   673→
+   674→      {/* Mobile hamburger trigger */}
+   675→      <button
+   676→        onClick={() => setMobileOpen(true)}
+   677→        className="fixed top-3 left-3 z-50 lg:hidden w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-200"
+   678→        style={{
+   679→          background: "rgba(15,21,36,0.85)",
+   680→          border: "1px solid rgba(255,255,255,0.06)",
+   681→          backdropFilter: "blur(16px)",
+   682→        }}
+   683→      >
+   684→        <Shield className="w-4 h-4" style={{ color: "#22d3ee" }} />
+   685→        {unreadCount > 0 && (
+   686→          <span
+   687→            className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold"
+   688→            style={{ background: "#f87171", color: "#050810" }}
+   689→          >
+   690→            {unreadCount}
+   691→          </span>
+   692→        )}
+   693→      </button>
+   694→
+   695→      {/* Desktop Sidebar — always visible on lg+ screens */}
+   696→      <aside
+   697→        className="hidden lg:flex flex-col h-full flex-shrink-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+   698→        style={{
+   699→          width: sidebarCollapsed ? 60 : 256,
+   700→          minWidth: sidebarCollapsed ? 60 : 256,
+   701→          background: "var(--bg-sidebar)",
+   702→          backdropFilter: "blur(32px)",
+   703→          borderRight: "1px solid var(--border-subtle)",
+   704→          boxShadow: sidebarCollapsed
+   705→            ? "none"
+   706→            : "4px 0 24px -4px rgba(0,0,0,0.3)",
+   707→        }}
+   708→      >
+   709→        {navContent}
+   710→      </aside>
+   711→
+   712→      {/* Mobile Sidebar — slide in overlay */}
+   713→      <AnimatePresence>
+   714→        {mobileOpen && (
+   715→          <motion.aside
+   716→            initial={{ x: -280, opacity: 0 }}
+   717→            animate={{ x: 0, opacity: 1 }}
+   718→            exit={{ x: -280, opacity: 0 }}
+   719→            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+   720→            className="fixed inset-y-0 left-0 z-50 w-[280px] max-w-[85vw] flex flex-col lg:hidden"
+   721→            style={{
+   722→              background: "var(--bg-sidebar)",
+   723→              backdropFilter: "blur(32px)",
+   724→              borderRight: "1px solid var(--border-default)",
+   725→              boxShadow: "4px 0 32px rgba(0,0,0,0.5)",
+   726→            }}
+   727→          >
+   728→            {navContent}
+   729→          </motion.aside>
+   730→        )}
+   731→      </AnimatePresence>
+   732→    </>
+   733→  );
+   734→}

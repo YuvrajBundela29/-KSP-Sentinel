@@ -58,10 +58,10 @@ const SEVERITY_CONFIG: Record<
   string,
   { color: string; radius: number; bg: string; border: string }
 > = {
-  critical: { color: "#f87171", radius: 12, bg: "rgba(248,113,113,0.12)", border: "rgba(248,113,113,0.25)" },
-  high: { color: "#fbbf24", radius: 10, bg: "rgba(251,191,36,0.12)", border: "rgba(251,191,36,0.25)" },
+  critical: { color: "var(--critical)", radius: 12, bg: "rgba(248,113,113,0.12)", border: "rgba(248,113,113,0.25)" },
+  high: { color: "var(--warning)", radius: 10, bg: "rgba(251,191,36,0.12)", border: "rgba(251,191,36,0.25)" },
   medium: { color: "#eab308", radius: 8, bg: "rgba(234,179,8,0.12)", border: "rgba(234,179,8,0.25)" },
-  low: { color: "#34d399", radius: 6, bg: "rgba(52,211,153,0.12)", border: "rgba(52,211,153,0.25)" },
+  low: { color: "var(--success)", radius: 6, bg: "rgba(52,211,153,0.12)", border: "rgba(52,211,153,0.25)" },
 };
 
 const SEVERITY_LABELS: Record<string, string> = {
@@ -95,7 +95,7 @@ const glassCardCompact: React.CSSProperties = {
 const selectTriggerStyle: React.CSSProperties = {
   background: "rgba(10, 15, 28, 0.8)",
   border: "1px solid rgba(255, 255, 255, 0.06)",
-  color: "#f1f5f9",
+  color: "var(--text-primary)",
   fontSize: "12px",
   height: "32px",
 };
@@ -386,7 +386,7 @@ export default function CrimeMap() {
                         background: "rgba(15, 21, 36, 0.95)",
                         backdropFilter: "blur(24px)",
                         borderRadius: "12px",
-                        border: "1px solid rgba(255,255,255,0.06)",
+                        border: "1px solid var(--border-subtle)",
                         boxShadow:
                           "0 16px 48px -12px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03)",
                         overflow: "hidden",
@@ -396,8 +396,8 @@ export default function CrimeMap() {
                       <div
                         style={{
                           padding: "12px 14px 10px",
-                          borderBottom: "1px solid rgba(255,255,255,0.06)",
-                          background: "rgba(255,255,255,0.02)",
+                          borderBottom: "1px solid var(--border-subtle)",
+                          background: "var(--border-subtle)",
                         }}
                       >
                         <div
@@ -421,7 +421,7 @@ export default function CrimeMap() {
                             style={{
                               fontWeight: 700,
                               fontSize: "13px",
-                              color: "#f1f5f9",
+                              color: "var(--text-primary)",
                               letterSpacing: "0.01em",
                             }}
                           >
@@ -474,7 +474,7 @@ export default function CrimeMap() {
                             >
                               <span
                                 style={{
-                                  color: "#5a657a",
+                                  color: "var(--text-tertiary)",
                                   fontSize: "10px",
                                   fontWeight: 600,
                                   textTransform: "uppercase",
@@ -503,7 +503,7 @@ export default function CrimeMap() {
                           <div style={{ marginTop: "10px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.04)" }}>
                             <p
                               style={{
-                                color: "#5a657a",
+                                color: "var(--text-tertiary)",
                                 fontSize: "9px",
                                 fontWeight: 600,
                                 textTransform: "uppercase",
@@ -522,7 +522,7 @@ export default function CrimeMap() {
                                     borderRadius: "4px",
                                     background: "rgba(248,113,113,0.1)",
                                     border: "1px solid rgba(248,113,113,0.15)",
-                                    color: "#f87171",
+                                    color: "var(--critical)",
                                     fontSize: "9px",
                                     fontWeight: 600,
                                   }}
@@ -634,7 +634,7 @@ export default function CrimeMap() {
               <Filter className="size-3.5 text-[#22d3ee]" />
               <h3
                 style={{
-                  color: "#f1f5f9",
+                  color: "var(--text-primary)",
                   fontWeight: 600,
                   fontSize: "12px",
                   letterSpacing: "0.02em",
@@ -647,7 +647,7 @@ export default function CrimeMap() {
                   style={{
                     fontSize: "9px",
                     fontWeight: 700,
-                    color: "#22d3ee",
+                    color: "var(--primary)",
                     background: "rgba(34,211,238,0.1)",
                     padding: "1px 6px",
                     borderRadius: "4px",
@@ -686,7 +686,7 @@ export default function CrimeMap() {
                   >
                     <p
                       style={{
-                        color: "#5a657a",
+                        color: "var(--text-tertiary)",
                         fontSize: "9px",
                         fontWeight: 700,
                         textTransform: "uppercase",
@@ -725,7 +725,7 @@ export default function CrimeMap() {
                             borderColor: "rgba(255,255,255,0.12)",
                           }}
                         />
-                        <span style={{ color: "#c8d0e0", fontSize: "11px" }}>
+                        <span style={{ color: "var(--sidebar-foreground)", fontSize: "11px" }}>
                           {type}
                         </span>
                       </label>
@@ -736,7 +736,7 @@ export default function CrimeMap() {
                   <div style={{ marginBottom: "12px" }}>
                     <p
                       style={{
-                        color: "#5a657a",
+                        color: "var(--text-tertiary)",
                         fontSize: "9px",
                         fontWeight: 700,
                         textTransform: "uppercase",
@@ -770,7 +770,7 @@ export default function CrimeMap() {
                   <div style={{ marginBottom: "12px" }}>
                     <p
                       style={{
-                        color: "#5a657a",
+                        color: "var(--text-tertiary)",
                         fontSize: "9px",
                         fontWeight: 700,
                         textTransform: "uppercase",
@@ -808,7 +808,7 @@ export default function CrimeMap() {
                   <div style={{ marginBottom: "14px" }}>
                     <p
                       style={{
-                        color: "#5a657a",
+                        color: "var(--text-tertiary)",
                         fontSize: "9px",
                         fontWeight: 700,
                         textTransform: "uppercase",
@@ -849,7 +849,7 @@ export default function CrimeMap() {
                   <div style={{ marginBottom: "14px" }}>
                     <p
                       style={{
-                        color: "#5a657a",
+                        color: "var(--text-tertiary)",
                         fontSize: "9px",
                         fontWeight: 700,
                         textTransform: "uppercase",
@@ -864,7 +864,7 @@ export default function CrimeMap() {
                         display: "flex",
                         borderRadius: "8px",
                         overflow: "hidden",
-                        border: "1px solid rgba(255,255,255,0.06)",
+                        border: "1px solid var(--border-subtle)",
                       }}
                     >
                       <button
@@ -959,7 +959,7 @@ export default function CrimeMap() {
                         />
                         <span
                           style={{
-                            color: "#5a657a",
+                            color: "var(--text-tertiary)",
                             fontSize: "9px",
                             fontWeight: 500,
                           }}
@@ -996,7 +996,7 @@ export default function CrimeMap() {
               <BarChart3 className="size-3.5 text-[#818cf8]" />
               <h3
                 style={{
-                  color: "#f1f5f9",
+                  color: "var(--text-primary)",
                   fontWeight: 600,
                   fontSize: "12px",
                   letterSpacing: "0.02em",
@@ -1026,7 +1026,7 @@ export default function CrimeMap() {
                   <div style={{ marginBottom: "14px" }}>
                     <p
                       style={{
-                        color: "#5a657a",
+                        color: "var(--text-tertiary)",
                         fontSize: "9px",
                         fontWeight: 700,
                         textTransform: "uppercase",
@@ -1037,7 +1037,7 @@ export default function CrimeMap() {
                       Top Districts
                     </p>
                     {stats.topDistricts.length === 0 ? (
-                      <p style={{ color: "#3d4659", fontSize: "11px" }}>
+                      <p style={{ color: "var(--text-muted)", fontSize: "11px" }}>
                         No data
                       </p>
                     ) : (
@@ -1097,7 +1097,7 @@ export default function CrimeMap() {
                             </span>
                             <span
                               style={{
-                                color: "#f1f5f9",
+                                color: "var(--text-primary)",
                                 fontSize: "12px",
                                 fontWeight: 700,
                                 fontVariantNumeric: "tabular-nums",
@@ -1115,7 +1115,7 @@ export default function CrimeMap() {
                   <div style={{ marginBottom: "14px" }}>
                     <p
                       style={{
-                        color: "#5a657a",
+                        color: "var(--text-tertiary)",
                         fontSize: "9px",
                         fontWeight: 700,
                         textTransform: "uppercase",
@@ -1127,7 +1127,7 @@ export default function CrimeMap() {
                     </p>
                     <p
                       style={{
-                        color: "#f1f5f9",
+                        color: "var(--text-primary)",
                         fontSize: "13px",
                         fontWeight: 600,
                       }}
@@ -1148,7 +1148,7 @@ export default function CrimeMap() {
                   >
                     <p
                       style={{
-                        color: "#8b97b0",
+                        color: "var(--text-secondary)",
                         fontSize: "9px",
                         fontWeight: 700,
                         textTransform: "uppercase",
@@ -1172,7 +1172,7 @@ export default function CrimeMap() {
                         }}
                       >
                         <span
-                          style={{ color: "#5a657a", fontSize: "10px" }}
+                          style={{ color: "var(--text-tertiary)", fontSize: "10px" }}
                         >
                           Highest Density
                         </span>
@@ -1198,7 +1198,7 @@ export default function CrimeMap() {
                         }}
                       >
                         <span
-                          style={{ color: "#5a657a", fontSize: "10px" }}
+                          style={{ color: "var(--text-tertiary)", fontSize: "10px" }}
                         >
                           Avg / Location
                         </span>
@@ -1219,13 +1219,13 @@ export default function CrimeMap() {
                         }}
                       >
                         <span
-                          style={{ color: "#5a657a", fontSize: "10px" }}
+                          style={{ color: "var(--text-tertiary)", fontSize: "10px" }}
                         >
                           Crime Clusters
                         </span>
                         <span
                           style={{
-                            color: "#f87171",
+                            color: "var(--critical)",
                             fontSize: "10px",
                             fontWeight: 700,
                           }}
@@ -1240,7 +1240,7 @@ export default function CrimeMap() {
                   <div>
                     <p
                       style={{
-                        color: "#5a657a",
+                        color: "var(--text-tertiary)",
                         fontSize: "9px",
                         fontWeight: 700,
                         textTransform: "uppercase",
@@ -1251,7 +1251,7 @@ export default function CrimeMap() {
                       Cluster Analysis
                     </p>
                     {densityStats.topClusters.length === 0 ? (
-                      <p style={{ color: "#3d4659", fontSize: "10px" }}>
+                      <p style={{ color: "var(--text-muted)", fontSize: "10px" }}>
                         No clusters detected
                       </p>
                     ) : (
@@ -1310,7 +1310,7 @@ export default function CrimeMap() {
                             </span>
                             <span
                               style={{
-                                color: "#f1f5f9",
+                                color: "var(--text-primary)",
                                 fontSize: "10px",
                                 fontWeight: 600,
                               }}
@@ -1348,14 +1348,14 @@ export default function CrimeMap() {
           <thead>
             <tr
               style={{
-                borderBottom: "1px solid rgba(255,255,255,0.06)",
+                borderBottom: "1px solid var(--border-subtle)",
               }}
             >
               <th
                 style={{
                   textAlign: "left",
                   padding: "10px 14px",
-                  color: "#5a657a",
+                  color: "var(--text-tertiary)",
                   fontSize: "9px",
                   fontWeight: 700,
                   textTransform: "uppercase",
@@ -1368,7 +1368,7 @@ export default function CrimeMap() {
                 style={{
                   textAlign: "right",
                   padding: "10px 14px",
-                  color: "#5a657a",
+                  color: "var(--text-tertiary)",
                   fontSize: "9px",
                   fontWeight: 700,
                   textTransform: "uppercase",
@@ -1387,7 +1387,7 @@ export default function CrimeMap() {
                   style={{
                     textAlign: "center",
                     padding: "20px 14px",
-                    color: "#3d4659",
+                    color: "var(--text-muted)",
                     fontSize: "11px",
                   }}
                 >
@@ -1450,7 +1450,7 @@ export default function CrimeMap() {
                   <td
                     style={{
                       padding: "8px 14px",
-                      color: "#f1f5f9",
+                      color: "var(--text-primary)",
                       fontSize: "11px",
                       textAlign: "right",
                       fontWeight: 600,

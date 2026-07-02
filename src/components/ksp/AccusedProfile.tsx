@@ -84,22 +84,22 @@ const severityColors: Record<string, string> = {
 const severityBadgeStyles: Record<string, React.CSSProperties> = {
   critical: {
     background: "rgba(248, 113, 113, 0.08)",
-    color: "#f87171",
+    color: "var(--critical)",
     borderColor: "rgba(248, 113, 113, 0.2)",
   },
   high: {
     background: "rgba(251, 191, 36, 0.08)",
-    color: "#fbbf24",
+    color: "var(--warning)",
     borderColor: "rgba(251, 191, 36, 0.2)",
   },
   medium: {
     background: "rgba(251, 191, 36, 0.08)",
-    color: "#fbbf24",
+    color: "var(--warning)",
     borderColor: "rgba(251, 191, 36, 0.2)",
   },
   low: {
     background: "rgba(52, 211, 153, 0.08)",
-    color: "#34d399",
+    color: "var(--success)",
     borderColor: "rgba(52, 211, 153, 0.2)",
   },
 };
@@ -107,12 +107,12 @@ const severityBadgeStyles: Record<string, React.CSSProperties> = {
 const investigationStatusStyles: Record<string, React.CSSProperties> = {
   "Under Investigation": {
     background: "rgba(34, 211, 238, 0.08)",
-    color: "#22d3ee",
+    color: "var(--primary)",
     borderColor: "rgba(34, 211, 238, 0.2)",
   },
   "Charge Sheet Filed": {
     background: "rgba(52, 211, 153, 0.08)",
-    color: "#34d399",
+    color: "var(--success)",
     borderColor: "rgba(52, 211, 153, 0.2)",
   },
   Closed: {
@@ -122,12 +122,12 @@ const investigationStatusStyles: Record<string, React.CSSProperties> = {
   },
   "Trial in Progress": {
     background: "rgba(251, 191, 36, 0.08)",
-    color: "#fbbf24",
+    color: "var(--warning)",
     borderColor: "rgba(251, 191, 36, 0.2)",
   },
   "Evidence Collection": {
     background: "rgba(129, 140, 248, 0.08)",
-    color: "#818cf8",
+    color: "var(--secondary)",
     borderColor: "rgba(129, 140, 248, 0.2)",
   },
 };
@@ -155,7 +155,7 @@ function GlassBadge({ children, style }: { children: React.ReactNode; style?: Re
       className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm"
       style={{
         background: "rgba(255, 255, 255, 0.04)",
-        color: "#f1f5f9",
+        color: "var(--text-primary)",
         borderColor: "rgba(255, 255, 255, 0.1)",
         ...style,
       }}
@@ -369,7 +369,7 @@ export default function AccusedProfile() {
     return (
       <div
         className="flex flex-col items-center justify-center min-h-[60vh]"
-        style={{ color: "#8b97b0" }}
+        style={{ color: "var(--text-secondary)" }}
       >
         <button
           onClick={() => setView("dashboard")}
@@ -378,7 +378,7 @@ export default function AccusedProfile() {
             background: "rgba(15, 21, 36, 0.45)",
             backdropFilter: "blur(24px)",
             borderColor: "rgba(255, 255, 255, 0.06)",
-            color: "#8b97b0",
+            color: "var(--text-secondary)",
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.borderColor = "rgba(34, 211, 238, 0.15)";
@@ -434,7 +434,7 @@ export default function AccusedProfile() {
                   background: "rgba(15, 21, 36, 0.6)",
                   backdropFilter: "blur(16px)",
                   borderColor: "rgba(255, 255, 255, 0.06)",
-                  color: "#8b97b0",
+                  color: "var(--text-secondary)",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = "rgba(34, 211, 238, 0.2)";
@@ -455,7 +455,7 @@ export default function AccusedProfile() {
                 <div className="flex flex-wrap items-center gap-3 mb-4">
                   <h1
                     className="text-2xl sm:text-3xl font-bold tracking-tight"
-                    style={{ color: "#f1f5f9" }}
+                    style={{ color: "var(--text-primary)" }}
                   >
                     {accused.name}
                   </h1>
@@ -466,7 +466,7 @@ export default function AccusedProfile() {
                       className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm"
                       style={{
                         background: "rgba(129, 140, 248, 0.08)",
-                        color: "#818cf8",
+                        color: "var(--secondary)",
                         borderColor: "rgba(129, 140, 248, 0.2)",
                       }}
                     >
@@ -527,7 +527,7 @@ export default function AccusedProfile() {
                       </span>
                       <span
                         className="uppercase tracking-wider"
-                        style={{ fontSize: 10, color: "#8b97b0" }}
+                        style={{ fontSize: 10, color: "var(--text-secondary)" }}
                       >
                         Score
                       </span>
@@ -540,7 +540,7 @@ export default function AccusedProfile() {
                     >
                       {riskLabel}
                     </p>
-                    <p className="text-sm mt-1" style={{ color: "#8b97b0" }}>
+                    <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
                       Linked to {firs.length} FIR{firs.length !== 1 ? "s" : ""} •{" "}
                       {firs.filter((f) => f.investigation_status !== "Closed").length}{" "}
                       active case
@@ -566,14 +566,14 @@ export default function AccusedProfile() {
           <div className="glass-card p-5 sm:p-6">
             <h2
               className="text-base font-semibold flex items-center gap-2 mb-4"
-              style={{ color: "#f1f5f9" }}
+              style={{ color: "var(--text-primary)" }}
             >
-              <FileText className="size-5" style={{ color: "#8b97b0" }} />
+              <FileText className="size-5" style={{ color: "var(--text-secondary)" }} />
               Criminal History Timeline
             </h2>
 
             {firs.length === 0 ? (
-              <p className="text-sm" style={{ color: "#8b97b0" }}>
+              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
                 No FIR records found for this accused.
               </p>
             ) : (
@@ -599,7 +599,7 @@ export default function AccusedProfile() {
                       }}
                     >
                       <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <span className="text-sm" style={{ color: "#8b97b0" }}>
+                        <span className="text-sm" style={{ color: "var(--text-secondary)" }}>
                           {formatDate(fir.date)}
                         </span>
                         <GlassBadge>
@@ -617,24 +617,24 @@ export default function AccusedProfile() {
                         </span>
                       </div>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-                        <span className="font-mono" style={{ color: "#22d3ee" }}>
+                        <span className="font-mono" style={{ color: "var(--primary)" }}>
                           {fir.fir_id}
                         </span>
                         <span
                           className="flex items-center gap-1"
-                          style={{ color: "#8b97b0" }}
+                          style={{ color: "var(--text-secondary)" }}
                         >
                           <MapPin className="size-3" />
                           {fir.district}
                         </span>
                         <span
                           className="flex items-center gap-1"
-                          style={{ color: "#8b97b0" }}
+                          style={{ color: "var(--text-secondary)" }}
                         >
                           <Clock className="size-3" />
                           {fir.time}
                         </span>
-                        <span style={{ color: "#8b97b0" }}>
+                        <span style={{ color: "var(--text-secondary)" }}>
                           {fir.police_station}
                         </span>
                       </div>
@@ -656,9 +656,9 @@ export default function AccusedProfile() {
           <div className="glass-card p-5 sm:p-6">
             <h2
               className="text-base font-semibold flex items-center gap-2 mb-4"
-              style={{ color: "#f1f5f9" }}
+              style={{ color: "var(--text-primary)" }}
             >
-              <Shield className="size-5" style={{ color: "#8b97b0" }} />
+              <Shield className="size-5" style={{ color: "var(--text-secondary)" }} />
               Behavioral Analysis
             </h2>
 
@@ -668,13 +668,13 @@ export default function AccusedProfile() {
                 <div
                   className="flex items-center gap-2 mb-3"
                 >
-                  <Clock className="size-4" style={{ color: "#22d3ee" }} />
-                  <span className="text-sm font-medium" style={{ color: "#f1f5f9" }}>
+                  <Clock className="size-4" style={{ color: "var(--primary)" }} />
+                  <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
                     Preferred Time of Crime
                   </span>
                 </div>
                 {firs.length === 0 ? (
-                  <p className="text-sm" style={{ color: "#8b97b0" }}>No data</p>
+                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>No data</p>
                 ) : (
                   <div className="space-y-2">
                     {(
@@ -683,7 +683,7 @@ export default function AccusedProfile() {
                       <div key={slot} className="flex items-center gap-2">
                         <span
                           className="capitalize w-16"
-                          style={{ fontSize: 12, color: "#8b97b0" }}
+                          style={{ fontSize: 12, color: "var(--text-secondary)" }}
                         >
                           {slot === "morning"
                             ? "Morning"
@@ -692,7 +692,7 @@ export default function AccusedProfile() {
                               : "Night"}
                           <span
                             className="ml-0.5"
-                            style={{ fontSize: 10, opacity: 0.6, color: "#8b97b0" }}
+                            style={{ fontSize: 10, opacity: 0.6, color: "var(--text-secondary)" }}
                           >
                             {slot === "morning"
                               ? "6-12"
@@ -716,7 +716,7 @@ export default function AccusedProfile() {
                         </div>
                         <span
                           className="w-10 text-right"
-                          style={{ fontSize: 12, color: "#8b97b0" }}
+                          style={{ fontSize: 12, color: "var(--text-secondary)" }}
                         >
                           {timeAnalysis.slots[slot] > 0
                             ? `${Math.round(timeAnalysis.percentages[slot])}%`
@@ -731,25 +731,25 @@ export default function AccusedProfile() {
               {/* Preferred Crime Type */}
               <div className="glass-card gradient-indigo p-4 relative overflow-hidden">
                 <div className="flex items-center gap-2 mb-3">
-                  <Shield className="size-4" style={{ color: "#818cf8" }} />
-                  <span className="text-sm font-medium" style={{ color: "#f1f5f9" }}>
+                  <Shield className="size-4" style={{ color: "var(--secondary)" }} />
+                  <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
                     Preferred Crime Type
                   </span>
                 </div>
                 {preferredCrimeType ? (
-                  <p className="text-sm font-medium" style={{ color: "#22d3ee" }}>
+                  <p className="text-sm font-medium" style={{ color: "var(--primary)" }}>
                     {preferredCrimeType}
                   </p>
                 ) : (
-                  <p className="text-sm" style={{ color: "#8b97b0" }}>No data</p>
+                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>No data</p>
                 )}
               </div>
 
               {/* Districts Active In */}
               <div className="glass-card gradient-emerald p-4 relative overflow-hidden">
                 <div className="flex items-center gap-2 mb-3">
-                  <MapPin className="size-4" style={{ color: "#34d399" }} />
-                  <span className="text-sm font-medium" style={{ color: "#f1f5f9" }}>
+                  <MapPin className="size-4" style={{ color: "var(--success)" }} />
+                  <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
                     Districts Active In
                   </span>
                 </div>
@@ -761,7 +761,7 @@ export default function AccusedProfile() {
                         className="rounded-full border px-2 py-0.5 text-xs"
                         style={{
                           background: "rgba(255, 255, 255, 0.04)",
-                          color: "#f1f5f9",
+                          color: "var(--text-primary)",
                           borderColor: "rgba(255, 255, 255, 0.1)",
                         }}
                       >
@@ -770,15 +770,15 @@ export default function AccusedProfile() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm" style={{ color: "#8b97b0" }}>No data</p>
+                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>No data</p>
                 )}
               </div>
 
               {/* Vehicles Used */}
               <div className="glass-card gradient-amber p-4 relative overflow-hidden">
                 <div className="flex items-center gap-2 mb-3">
-                  <Car className="size-4" style={{ color: "#fbbf24" }} />
-                  <span className="text-sm font-medium" style={{ color: "#f1f5f9" }}>
+                  <Car className="size-4" style={{ color: "var(--warning)" }} />
+                  <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
                     Vehicles Used
                   </span>
                 </div>
@@ -788,27 +788,27 @@ export default function AccusedProfile() {
                       <div
                         key={v.id}
                         className="text-sm flex items-center gap-2"
-                        style={{ color: "#f1f5f9" }}
+                        style={{ color: "var(--text-primary)" }}
                       >
-                        <span className="font-mono text-xs" style={{ color: "#22d3ee" }}>
+                        <span className="font-mono text-xs" style={{ color: "var(--primary)" }}>
                           {v.reg}
                         </span>
-                        <span style={{ color: "#8b97b0" }}>
+                        <span style={{ color: "var(--text-secondary)" }}>
                           {v.make} {v.type} ({v.color})
                         </span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm" style={{ color: "#8b97b0" }}>No vehicles linked</p>
+                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>No vehicles linked</p>
                 )}
               </div>
 
               {/* Gang Associates */}
               <div className="glass-card gradient-rose p-4 relative overflow-hidden sm:col-span-2">
                 <div className="flex items-center gap-2 mb-3">
-                  <Users className="size-4" style={{ color: "#f87171" }} />
-                  <span className="text-sm font-medium" style={{ color: "#f1f5f9" }}>
+                  <Users className="size-4" style={{ color: "var(--critical)" }} />
+                  <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
                     Gang Associates
                   </span>
                 </div>
@@ -823,16 +823,16 @@ export default function AccusedProfile() {
                           borderColor: "rgba(255, 255, 255, 0.06)",
                         }}
                       >
-                        <User className="size-3.5" style={{ color: "#818cf8" }} />
-                        <span className="text-sm" style={{ color: "#f1f5f9" }}>{a.name}</span>
-                        <span className="text-xs" style={{ color: "#8b97b0" }}>
+                        <User className="size-3.5" style={{ color: "var(--secondary)" }} />
+                        <span className="text-sm" style={{ color: "var(--text-primary)" }}>{a.name}</span>
+                        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
                           (Risk: {a.risk})
                         </span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm" style={{ color: "#8b97b0" }}>
+                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
                     No gang affiliation or no associates found
                   </p>
                 )}
@@ -851,9 +851,9 @@ export default function AccusedProfile() {
           <div className="glass-card p-5 sm:p-6">
             <h2
               className="text-base font-semibold flex items-center gap-2 mb-4"
-              style={{ color: "#f1f5f9" }}
+              style={{ color: "var(--text-primary)" }}
             >
-              <Shield className="size-5" style={{ color: "#8b97b0" }} />
+              <Shield className="size-5" style={{ color: "var(--text-secondary)" }} />
               Risk Scoring Breakdown
             </h2>
 
@@ -868,19 +868,19 @@ export default function AccusedProfile() {
                   >
                     <th
                       className="text-left px-4 py-3 font-medium"
-                      style={{ color: "#8b97b0" }}
+                      style={{ color: "var(--text-secondary)" }}
                     >
                       Factor
                     </th>
                     <th
                       className="text-left px-4 py-3 font-medium"
-                      style={{ color: "#8b97b0" }}
+                      style={{ color: "var(--text-secondary)" }}
                     >
                       Value
                     </th>
                     <th
                       className="text-right px-4 py-3 font-medium"
-                      style={{ color: "#8b97b0" }}
+                      style={{ color: "var(--text-secondary)" }}
                     >
                       Score
                     </th>
@@ -892,15 +892,15 @@ export default function AccusedProfile() {
                     onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(34, 211, 238, 0.04)"; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                   >
-                    <td className="px-4 py-3" style={{ color: "#f1f5f9" }}>
+                    <td className="px-4 py-3" style={{ color: "var(--text-primary)" }}>
                       Prior FIRs Count
                     </td>
-                    <td className="px-4 py-3" style={{ color: "#f1f5f9" }}>
+                    <td className="px-4 py-3" style={{ color: "var(--text-primary)" }}>
                       {riskBreakdown.priorFIRsCount}
                     </td>
-                    <td className="px-4 py-3 text-right" style={{ color: "#f1f5f9" }}>
+                    <td className="px-4 py-3 text-right" style={{ color: "var(--text-primary)" }}>
                       {riskBreakdown.priorFIRsScore}
-                      <span className="ml-1" style={{ fontSize: 12, color: "#8b97b0" }}>
+                      <span className="ml-1" style={{ fontSize: 12, color: "var(--text-secondary)" }}>
                         (max 40)
                       </span>
                     </td>
@@ -910,13 +910,13 @@ export default function AccusedProfile() {
                     onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(34, 211, 238, 0.04)"; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                   >
-                    <td className="px-4 py-3" style={{ color: "#f1f5f9" }}>
+                    <td className="px-4 py-3" style={{ color: "var(--text-primary)" }}>
                       Gang Membership
                     </td>
-                    <td className="px-4 py-3" style={{ color: "#f1f5f9" }}>
+                    <td className="px-4 py-3" style={{ color: "var(--text-primary)" }}>
                       {riskBreakdown.gangMembership}
                     </td>
-                    <td className="px-4 py-3 text-right" style={{ color: "#f1f5f9" }}>
+                    <td className="px-4 py-3 text-right" style={{ color: "var(--text-primary)" }}>
                       {riskBreakdown.gangScore > 0 ? "+" : ""}
                       {riskBreakdown.gangScore}
                     </td>
@@ -926,13 +926,13 @@ export default function AccusedProfile() {
                     onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(34, 211, 238, 0.04)"; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                   >
-                    <td className="px-4 py-3" style={{ color: "#f1f5f9" }}>
+                    <td className="px-4 py-3" style={{ color: "var(--text-primary)" }}>
                       Severity of Crimes
                     </td>
-                    <td className="px-4 py-3" style={{ color: "#f1f5f9" }}>
+                    <td className="px-4 py-3" style={{ color: "var(--text-primary)" }}>
                       {riskBreakdown.highCriticalCount} high/critical
                     </td>
-                    <td className="px-4 py-3 text-right" style={{ color: "#f1f5f9" }}>
+                    <td className="px-4 py-3 text-right" style={{ color: "var(--text-primary)" }}>
                       {riskBreakdown.severityScore}
                     </td>
                   </tr>
@@ -941,13 +941,13 @@ export default function AccusedProfile() {
                     onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(34, 211, 238, 0.04)"; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                   >
-                    <td className="px-4 py-3" style={{ color: "#f1f5f9" }}>Recency</td>
-                    <td className="px-4 py-3" style={{ color: "#f1f5f9" }}>
+                    <td className="px-4 py-3" style={{ color: "var(--text-primary)" }}>Recency</td>
+                    <td className="px-4 py-3" style={{ color: "var(--text-primary)" }}>
                       {riskBreakdown.recentCrime
                         ? "Crime in last 12 months"
                         : "No recent crime"}
                     </td>
-                    <td className="px-4 py-3 text-right" style={{ color: "#f1f5f9" }}>
+                    <td className="px-4 py-3 text-right" style={{ color: "var(--text-primary)" }}>
                       {riskBreakdown.recencyScore > 0 ? "+" : ""}
                       {riskBreakdown.recencyScore}
                     </td>
@@ -956,7 +956,7 @@ export default function AccusedProfile() {
                     <td
                       className="px-4 py-3 font-bold"
                       colSpan={2}
-                      style={{ color: "#f1f5f9" }}
+                      style={{ color: "var(--text-primary)" }}
                     >
                       Total
                     </td>
@@ -983,14 +983,14 @@ export default function AccusedProfile() {
           <div className="glass-card p-5 sm:p-6">
             <h2
               className="text-base font-semibold flex items-center gap-2 mb-4"
-              style={{ color: "#f1f5f9" }}
+              style={{ color: "var(--text-primary)" }}
             >
-              <FileText className="size-5" style={{ color: "#8b97b0" }} />
+              <FileText className="size-5" style={{ color: "var(--text-secondary)" }} />
               Financial Connections
             </h2>
 
             {financialTransactions.length === 0 ? (
-              <p className="text-sm" style={{ color: "#8b97b0" }}>
+              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
                 No financial transactions linked to this accused.
               </p>
             ) : (
@@ -1010,23 +1010,23 @@ export default function AccusedProfile() {
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-mono text-sm" style={{ color: "#22d3ee" }}>
+                          <span className="font-mono text-sm" style={{ color: "var(--primary)" }}>
                             {firId}
                           </span>
                         </div>
                         {bankAccount && (
-                          <p className="text-xs" style={{ color: "#8b97b0" }}>
+                          <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
                             {bankAccount.bank} — {bankAccount.acc}
                           </p>
                         )}
                         {transaction.note && (
-                          <p className="text-xs mt-1" style={{ color: "#8b97b0" }}>
+                          <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
                             {transaction.note}
                           </p>
                         )}
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-lg font-bold" style={{ color: "#f1f5f9" }}>
+                        <p className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
                           {formatINR(transaction.amount_inr)}
                         </p>
                         <GlassBadge
@@ -1057,9 +1057,9 @@ export default function AccusedProfile() {
           <div className="glass-card p-5 sm:p-6">
             <h2
               className="text-base font-semibold flex items-center gap-2 mb-4"
-              style={{ color: "#f1f5f9" }}
+              style={{ color: "var(--text-primary)" }}
             >
-              <Shield className="size-5" style={{ color: "#818cf8" }} />
+              <Shield className="size-5" style={{ color: "var(--secondary)" }} />
               AI Analysis
             </h2>
 
@@ -1073,18 +1073,18 @@ export default function AccusedProfile() {
                     animation: "spin 1s linear infinite",
                   }}
                 />
-                <span className="text-sm" style={{ color: "#8b97b0" }}>
+                <span className="text-sm" style={{ color: "var(--text-secondary)" }}>
                   Generating AI analysis...
                 </span>
               </div>
             )}
             {aiError && !aiLoading && (
-              <p className="text-sm py-2" style={{ color: "#8b97b0" }}>
+              <p className="text-sm py-2" style={{ color: "var(--text-secondary)" }}>
                 AI analysis unavailable in demo mode.
               </p>
             )}
             {aiAnalysis && !aiLoading && (
-              <p className="text-sm leading-relaxed py-2" style={{ color: "#f1f5f9" }}>
+              <p className="text-sm leading-relaxed py-2" style={{ color: "var(--text-primary)" }}>
                 {aiAnalysis}
               </p>
             )}
@@ -1103,9 +1103,9 @@ export default function AccusedProfile() {
             <div className="flex items-center justify-between">
               <h2
                 className="text-lg font-bold flex items-center gap-2"
-                style={{ color: "#f1f5f9" }}
+                style={{ color: "var(--text-primary)" }}
               >
-                <Brain className="w-5 h-5" style={{ color: "#22d3ee" }} /> AI Investigation Brief
+                <Brain className="w-5 h-5" style={{ color: "var(--primary)" }} /> AI Investigation Brief
               </h2>
               {/* Confidence Score Ring */}
               <div className="flex items-center gap-2">
@@ -1123,7 +1123,7 @@ export default function AccusedProfile() {
                   />
                   <text x="22" y="22" textAnchor="middle" dominantBaseline="central" fill="#f1f5f9" fontSize="10" fontWeight="bold" style={{transform: "rotate(90deg)", transformOrigin: "center"}}>{brief.confidenceScore}%</text>
                 </svg>
-                <span className="text-xs" style={{ color: "#8b97b0" }}>Confidence</span>
+                <span className="text-xs" style={{ color: "var(--text-secondary)" }}>Confidence</span>
               </div>
             </div>
 
@@ -1131,11 +1131,11 @@ export default function AccusedProfile() {
             <div className="glass-card p-4">
               <h3
                 className="text-xs font-semibold uppercase tracking-wider mb-2"
-                style={{ color: "#5a657a" }}
+                style={{ color: "var(--text-tertiary)" }}
               >
                 Executive Summary
               </h3>
-              <p className="text-sm leading-relaxed" style={{ color: "#f1f5f9" }}>{brief.executiveSummary}</p>
+              <p className="text-sm leading-relaxed" style={{ color: "var(--text-primary)" }}>{brief.executiveSummary}</p>
             </div>
 
             {/* Related Cases */}
@@ -1143,7 +1143,7 @@ export default function AccusedProfile() {
               <div className="glass-card p-4">
                 <h3
                   className="text-xs font-semibold uppercase tracking-wider mb-3"
-                  style={{ color: "#5a657a" }}
+                  style={{ color: "var(--text-tertiary)" }}
                 >
                   Related Cases ({brief.relatedCases.length})
                 </h3>
@@ -1157,18 +1157,18 @@ export default function AccusedProfile() {
                       }}
                     >
                       <div>
-                        <span className="text-xs font-mono" style={{ color: "#22d3ee" }}>{c.firId}</span>
-                        <span className="text-xs ml-2" style={{ color: "#8b97b0" }}>{c.crimeType}</span>
+                        <span className="text-xs font-mono" style={{ color: "var(--primary)" }}>{c.firId}</span>
+                        <span className="text-xs ml-2" style={{ color: "var(--text-secondary)" }}>{c.crimeType}</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-[10px]" style={{ color: "#8b97b0" }}>{c.date}</span>
+                        <span className="text-[10px]" style={{ color: "var(--text-secondary)" }}>{c.date}</span>
                         <span
                           className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full"
                           style={
                             c.status === "Arrested"
-                              ? { background: "rgba(52, 211, 153, 0.08)", color: "#34d399" }
+                              ? { background: "rgba(52, 211, 153, 0.08)", color: "var(--success)" }
                               : c.status === "Under Investigation"
-                                ? { background: "rgba(251, 191, 36, 0.08)", color: "#fbbf24" }
+                                ? { background: "rgba(251, 191, 36, 0.08)", color: "var(--warning)" }
                                 : { background: "rgba(100, 116, 139, 0.08)", color: "#94a3b8" }
                           }
                         >
@@ -1186,7 +1186,7 @@ export default function AccusedProfile() {
               <div className="glass-card p-4">
                 <h3
                   className="text-xs font-semibold uppercase tracking-wider mb-3"
-                  style={{ color: "#5a657a" }}
+                  style={{ color: "var(--text-tertiary)" }}
                 >
                   Likely Associates
                 </h3>
@@ -1211,17 +1211,17 @@ export default function AccusedProfile() {
                               a.strength === "moderate" ? "0 0 8px rgba(251,191,36,0.4)" : "0 0 8px rgba(52,211,153,0.4)",
                           }}
                         />
-                        <span className="text-sm" style={{ color: "#f1f5f9" }}>{a.name}</span>
-                        <span className="text-[10px]" style={{ color: "#5a657a" }}>({a.id})</span>
+                        <span className="text-sm" style={{ color: "var(--text-primary)" }}>{a.name}</span>
+                        <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>({a.id})</span>
                       </div>
                       <span
                         className="text-[10px] px-1.5 py-0.5 rounded-full"
                         style={
                           a.strength === "strong"
-                            ? { background: "rgba(248, 113, 113, 0.08)", color: "#f87171" }
+                            ? { background: "rgba(248, 113, 113, 0.08)", color: "var(--critical)" }
                             : a.strength === "moderate"
-                              ? { background: "rgba(251, 191, 36, 0.08)", color: "#fbbf24" }
-                              : { background: "rgba(52, 211, 153, 0.08)", color: "#34d399" }
+                              ? { background: "rgba(251, 191, 36, 0.08)", color: "var(--warning)" }
+                              : { background: "rgba(52, 211, 153, 0.08)", color: "var(--success)" }
                         }
                       >
                         {a.strength}
@@ -1237,16 +1237,16 @@ export default function AccusedProfile() {
               <div className="glass-card p-4">
                 <h3
                   className="text-xs font-semibold uppercase tracking-wider mb-3"
-                  style={{ color: "#5a657a" }}
+                  style={{ color: "var(--text-tertiary)" }}
                 >
                   Behavioral Analysis
                 </h3>
                 <div className="space-y-3">
                   {brief.behavioralAnalysis.map((b, i) => (
                     <div key={i}>
-                      <p className="text-xs font-semibold" style={{ color: "#f1f5f9" }}>{b.pattern}</p>
-                      <p className="mt-0.5 leading-relaxed" style={{ fontSize: 11, color: "#8b97b0" }}>{b.description}</p>
-                      <p className="mt-0.5" style={{ fontSize: 10, color: "#5a657a" }}>{b.frequency}</p>
+                      <p className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>{b.pattern}</p>
+                      <p className="mt-0.5 leading-relaxed" style={{ fontSize: 11, color: "var(--text-secondary)" }}>{b.description}</p>
+                      <p className="mt-0.5" style={{ fontSize: 10, color: "var(--text-tertiary)" }}>{b.frequency}</p>
                     </div>
                   ))}
                 </div>
@@ -1255,7 +1255,7 @@ export default function AccusedProfile() {
                 <div className="glass-card p-4">
                   <h3
                     className="text-xs font-semibold uppercase tracking-wider mb-3"
-                    style={{ color: "#5a657a" }}
+                    style={{ color: "var(--text-tertiary)" }}
                   >
                     Missing Evidence
                   </h3>
@@ -1274,8 +1274,8 @@ export default function AccusedProfile() {
                           }}
                         />
                         <div>
-                          <p className="text-xs font-semibold" style={{ color: "#f1f5f9" }}>{m.type}</p>
-                          <p style={{ fontSize: 11, color: "#8b97b0" }}>{m.description}</p>
+                          <p className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>{m.type}</p>
+                          <p style={{ fontSize: 11, color: "var(--text-secondary)" }}>{m.description}</p>
                         </div>
                       </div>
                     ))}
@@ -1285,14 +1285,14 @@ export default function AccusedProfile() {
                   <div className="glass-card p-4">
                     <h3
                       className="text-xs font-semibold uppercase tracking-wider mb-3"
-                      style={{ color: "#5a657a" }}
+                      style={{ color: "var(--text-tertiary)" }}
                     >
                       Financial Links
                     </h3>
                     {brief.financialLinks.map((f, i) => (
                       <div key={i} className="mb-2 last:mb-0">
-                        <p className="text-xs" style={{ color: "#f1f5f9" }}>{f.bank} — {f.holder}</p>
-                        <p style={{ fontSize: 10, color: "#8b97b0" }}>A/C: {f.account.slice(-4)} | Total: ₹{f.totalAmount.toLocaleString("en-IN")} | {f.transactions} txns</p>
+                        <p className="text-xs" style={{ color: "var(--text-primary)" }}>{f.bank} — {f.holder}</p>
+                        <p style={{ fontSize: 10, color: "var(--text-secondary)" }}>A/C: {f.account.slice(-4)} | Total: ₹{f.totalAmount.toLocaleString("en-IN")} | {f.transactions} txns</p>
                       </div>
                     ))}
                   </div>
@@ -1304,7 +1304,7 @@ export default function AccusedProfile() {
             <div className="glass-card p-4">
               <h3
                 className="text-xs font-semibold uppercase tracking-wider mb-3"
-                style={{ color: "#5a657a" }}
+                style={{ color: "var(--text-tertiary)" }}
               >
                 Suggested Investigative Actions
               </h3>
@@ -1321,17 +1321,17 @@ export default function AccusedProfile() {
                       className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold flex-shrink-0 mt-0.5"
                       style={
                         a.priority === "immediate"
-                          ? { background: "rgba(248, 113, 113, 0.08)", color: "#f87171" }
+                          ? { background: "rgba(248, 113, 113, 0.08)", color: "var(--critical)" }
                           : a.priority === "short_term"
-                            ? { background: "rgba(251, 191, 36, 0.08)", color: "#fbbf24" }
-                            : { background: "rgba(34, 211, 238, 0.08)", color: "#22d3ee" }
+                            ? { background: "rgba(251, 191, 36, 0.08)", color: "var(--warning)" }
+                            : { background: "rgba(34, 211, 238, 0.08)", color: "var(--primary)" }
                       }
                     >
                       {a.priority === "immediate" ? "IMMEDIATE" : a.priority === "short_term" ? "SHORT-TERM" : "LONG-TERM"}
                     </span>
                     <div>
-                      <p className="text-sm" style={{ color: "#f1f5f9" }}>{a.action}</p>
-                      <p className="mt-0.5" style={{ fontSize: 11, color: "#8b97b0" }}>{a.rationale}</p>
+                      <p className="text-sm" style={{ color: "var(--text-primary)" }}>{a.action}</p>
+                      <p className="mt-0.5" style={{ fontSize: 11, color: "var(--text-secondary)" }}>{a.rationale}</p>
                     </div>
                   </div>
                 ))}
@@ -1351,16 +1351,16 @@ export default function AccusedProfile() {
           >
             <h2
               className="text-lg font-bold flex items-center gap-2"
-              style={{ color: "#f1f5f9" }}
+              style={{ color: "var(--text-primary)" }}
             >
-              <Search className="w-5 h-5" style={{ color: "#22d3ee" }} /> Similar Crimes Engine
+              <Search className="w-5 h-5" style={{ color: "var(--primary)" }} /> Similar Crimes Engine
             </h2>
             <div className="space-y-3">
               {similarCrimes.map((sc, i) => (
                 <div key={i} className="glass-card p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-mono font-bold" style={{ color: "#22d3ee" }}>{sc.fir.fir_id}</span>
+                      <span className="text-sm font-mono font-bold" style={{ color: "var(--primary)" }}>{sc.fir.fir_id}</span>
                       <SeverityBadge severity={sc.fir.severity} />
                     </div>
                     <div className="flex items-center gap-2">
@@ -1387,8 +1387,8 @@ export default function AccusedProfile() {
                       </span>
                     </div>
                   </div>
-                  <p className="text-xs mb-1" style={{ color: "#f1f5f9" }}>{sc.fir.crime_type} — {sc.fir.district} — {sc.fir.date}</p>
-                  <p className="leading-relaxed mb-2" style={{ fontSize: 11, color: "#8b97b0" }}>{sc.explanation}</p>
+                  <p className="text-xs mb-1" style={{ color: "var(--text-primary)" }}>{sc.fir.crime_type} — {sc.fir.district} — {sc.fir.date}</p>
+                  <p className="leading-relaxed mb-2" style={{ fontSize: 11, color: "var(--text-secondary)" }}>{sc.explanation}</p>
                   <div className="flex flex-wrap gap-1.5">
                     {sc.matchedFactors.filter(f => f.matched).map((f, j) => (
                       <span
@@ -1396,7 +1396,7 @@ export default function AccusedProfile() {
                         className="text-[10px] px-2 py-0.5 rounded-full border"
                         style={{
                           background: "rgba(52, 211, 153, 0.06)",
-                          color: "#34d399",
+                          color: "var(--success)",
                           borderColor: "rgba(52, 211, 153, 0.15)",
                         }}
                       >

@@ -132,7 +132,7 @@ export default function CommandPalette() {
                   onSelect={() => handleSelect(cmd.view)}
                   className="cmdk-item flex items-center gap-3 px-3 py-2.5 text-sm cursor-pointer rounded-lg"
                 >
-                  <cmd.icon className="w-4 h-4" style={{ color: "#818cf8" }} />
+                  <cmd.icon className="w-4 h-4" style={{ color: "var(--secondary)" }} />
                   <span>{cmd.label}</span>
                 </Command.Item>
               ))}

@@ -63,7 +63,7 @@ function FeatureCard({
       className="rounded-xl p-4 transition-all duration-300 group cursor-default"
       style={{
         background: "rgba(15,21,36,0.5)",
-        border: "1px solid rgba(255,255,255,0.06)",
+        border: "1px solid var(--border-subtle)",
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.borderColor = color + "30";
@@ -90,7 +90,7 @@ function FeatureCard({
           <div className="flex items-center justify-between gap-2 mb-1.5">
             <h4
               className="text-[13px] font-semibold"
-              style={{ color: "#f1f5f9" }}
+              style={{ color: "var(--text-primary)" }}
             >
               {title}
             </h4>
@@ -98,16 +98,16 @@ function FeatureCard({
               <kbd
                 className="text-[9px] font-mono px-1.5 py-0.5 rounded flex-shrink-0"
                 style={{
-                  background: "rgba(255,255,255,0.04)",
-                  color: "#5a657a",
-                  border: "1px solid rgba(255,255,255,0.06)",
+                  background: "var(--border-subtle)",
+                  color: "var(--text-tertiary)",
+                  border: "1px solid var(--border-subtle)",
                 }}
               >
                 {shortcut}
               </kbd>
             )}
           </div>
-          <p className="text-[12px] leading-relaxed" style={{ color: "#8b97b0" }}>
+          <p className="text-[12px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
             {description}
           </p>
         </div>
@@ -133,7 +133,7 @@ function ShortcutRow({
       className="flex items-center justify-between py-2.5 px-4 rounded-lg"
       style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}
     >
-      <span className="text-[12px]" style={{ color: "#c8d0e0" }}>
+      <span className="text-[12px]" style={{ color: "var(--sidebar-foreground)" }}>
         {action}
       </span>
       <div className="flex items-center gap-1.5">
@@ -142,8 +142,8 @@ function ShortcutRow({
             <kbd
               className="text-[10px] font-mono px-2 py-1 rounded-md font-semibold"
               style={{
-                background: "rgba(255,255,255,0.06)",
-                color: "#22d3ee",
+                background: "var(--border-subtle)",
+                color: "var(--primary)",
                 border: "1px solid rgba(34,211,238,0.15)",
                 boxShadow: "0 1px 2px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.04)",
               }}
@@ -151,7 +151,7 @@ function ShortcutRow({
               {key}
             </kbd>
             {i < keys.split(" + ").length - 1 && (
-              <span className="text-[10px]" style={{ color: "#3d4659" }}>+</span>
+              <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>+</span>
             )}
           </span>
         ))}
@@ -186,7 +186,7 @@ function useSteps(): StepData[] {
                 boxShadow: "0 0 40px rgba(34,211,238,0.1), 0 0 80px rgba(34,211,238,0.05)",
               }}
             >
-              <Shield className="w-10 h-10" style={{ color: "#22d3ee" }} />
+              <Shield className="w-10 h-10" style={{ color: "var(--primary)" }} />
             </div>
             <motion.div
               className="absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center"
@@ -197,7 +197,7 @@ function useSteps(): StepData[] {
               animate={{ scale: [1, 1.15, 1] }}
               transition={{ repeat: Infinity, duration: 2.5 }}
             >
-              <Sparkles className="w-3 h-3" style={{ color: "#22d3ee" }} />
+              <Sparkles className="w-3 h-3" style={{ color: "var(--primary)" }} />
             </motion.div>
           </motion.div>
 
@@ -208,12 +208,12 @@ function useSteps(): StepData[] {
             transition={{ delay: 0.25, duration: 0.5 }}
             className="space-y-3 max-w-md mx-auto"
           >
-            <p className="text-[14px] leading-relaxed" style={{ color: "#c8d0e0" }}>
+            <p className="text-[14px] leading-relaxed" style={{ color: "var(--sidebar-foreground)" }}>
               Sentinel is your intelligent command center for crime analysis,
               investigation management, and data-driven policing. This quick
               guide will walk you through every feature.
             </p>
-            <p className="text-[13px] leading-relaxed" style={{ color: "#8b97b0" }}>
+            <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
               Built for Karnataka State Police with AI-powered insights,
               real-time analytics, and comprehensive data management — all in
               one secure platform.
@@ -228,9 +228,9 @@ function useSteps(): StepData[] {
             className="flex items-center justify-center gap-6 pt-2"
           >
             {[
-              { label: "Intelligence Views", value: "7+", color: "#22d3ee" },
-              { label: "AI Models", value: "5", color: "#34d399" },
-              { label: "Data Modules", value: "11", color: "#818cf8" },
+              { label: "Intelligence Views", value: "7+", color: "var(--primary)" },
+              { label: "AI Models", value: "5", color: "var(--success)" },
+              { label: "Data Modules", value: "11", color: "var(--secondary)" },
             ].map((stat, i) => (
               <div key={i} className="text-center">
                 <div
@@ -241,7 +241,7 @@ function useSteps(): StepData[] {
                 </div>
                 <div
                   className="text-[10px] mt-0.5 uppercase tracking-wider"
-                  style={{ color: "#5a657a" }}
+                  style={{ color: "var(--text-tertiary)" }}
                 >
                   {stat.label}
                 </div>
@@ -260,7 +260,7 @@ function useSteps(): StepData[] {
       subtitle: "Your primary investigation workspace",
       content: (
         <div className="space-y-3 max-w-lg mx-auto">
-          <p className="text-[12px] mb-4 px-1" style={{ color: "#8b97b0" }}>
+          <p className="text-[12px] mb-4 px-1" style={{ color: "var(--text-secondary)" }}>
             These are your main tools for daily investigations. Each view is
             designed for a specific aspect of intelligence work.
           </p>
@@ -308,7 +308,7 @@ function useSteps(): StepData[] {
       subtitle: "Deep-dive into cases and generate reports",
       content: (
         <div className="space-y-3 max-w-lg mx-auto">
-          <p className="text-[12px] mb-4 px-1" style={{ color: "#8b97b0" }}>
+          <p className="text-[12px] mb-4 px-1" style={{ color: "var(--text-secondary)" }}>
             Use these tools to track investigations, build case profiles, and
             produce professional reports for court and departmental use.
           </p>
@@ -348,7 +348,7 @@ function useSteps(): StepData[] {
       subtitle: "Advanced AI models and comprehensive data operations",
       content: (
         <div className="space-y-3 max-w-lg mx-auto">
-          <p className="text-[12px] mb-4 px-1" style={{ color: "#8b97b0" }}>
+          <p className="text-[12px] mb-4 px-1" style={{ color: "var(--text-secondary)" }}>
             Predictive analytics help you stay ahead of crime patterns. Data
             management modules let you control every aspect of your crime
             database.
@@ -386,7 +386,7 @@ function useSteps(): StepData[] {
       subtitle: "Navigate faster with hotkeys",
       content: (
         <div className="max-w-md mx-auto">
-          <p className="text-[12px] mb-4 px-1" style={{ color: "#8b97b0" }}>
+          <p className="text-[12px] mb-4 px-1" style={{ color: "var(--text-secondary)" }}>
             Power users can navigate the entire platform without touching the
             mouse. Here are the essential shortcuts.
           </p>
@@ -394,14 +394,14 @@ function useSteps(): StepData[] {
             className="rounded-xl overflow-hidden"
             style={{
               background: "rgba(15,21,36,0.5)",
-              border: "1px solid rgba(255,255,255,0.06)",
+              border: "1px solid var(--border-subtle)",
             }}
           >
             <div
               className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider"
               style={{
-                color: "#5a657a",
-                borderBottom: "1px solid rgba(255,255,255,0.06)",
+                color: "var(--text-tertiary)",
+                borderBottom: "1px solid var(--border-subtle)",
               }}
             >
               Navigation
@@ -416,8 +416,8 @@ function useSteps(): StepData[] {
             <div
               className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider"
               style={{
-                color: "#5a657a",
-                borderBottom: "1px solid rgba(255,255,255,0.06)",
+                color: "var(--text-tertiary)",
+                borderBottom: "1px solid var(--border-subtle)",
                 borderTop: "1px solid rgba(255,255,255,0.06)",
               }}
             >
@@ -448,7 +448,7 @@ function useSteps(): StepData[] {
               border: "1px solid rgba(52,211,153,0.2)",
             }}
           >
-            <Zap className="w-7 h-7" style={{ color: "#34d399" }} />
+            <Zap className="w-7 h-7" style={{ color: "var(--success)" }} />
           </motion.div>
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -456,7 +456,7 @@ function useSteps(): StepData[] {
             transition={{ delay: 0.25, duration: 0.5 }}
             className="space-y-3 max-w-md mx-auto"
           >
-            <p className="text-[14px] leading-relaxed" style={{ color: "#c8d0e0" }}>
+            <p className="text-[14px] leading-relaxed" style={{ color: "var(--sidebar-foreground)" }}>
               You now know your way around KSP Sentinel. Here's a suggested
               workflow to get started:
             </p>
@@ -471,22 +471,22 @@ function useSteps(): StepData[] {
               {
                 num: "1",
                 text: "Check Mission Control for today's overview and alerts",
-                color: "#22d3ee",
+                color: "var(--primary)",
               },
               {
                 num: "2",
                 text: "Ask AI Copilot about any case or pattern you're investigating",
-                color: "#34d399",
+                color: "var(--success)",
               },
               {
                 num: "3",
                 text: "Use Network Graph to map suspect connections",
-                color: "#818cf8",
+                color: "var(--secondary)",
               },
               {
                 num: "4",
                 text: "Explore Crime Map for location-based analysis",
-                color: "#fbbf24",
+                color: "var(--warning)",
               },
             ].map((step, i) => (
               <motion.div
@@ -506,7 +506,7 @@ function useSteps(): StepData[] {
                 >
                   {step.num}
                 </div>
-                <p className="text-[12px]" style={{ color: "#c8d0e0" }}>
+                <p className="text-[12px]" style={{ color: "var(--sidebar-foreground)" }}>
                   {step.text}
                 </p>
               </motion.div>
@@ -517,7 +517,7 @@ function useSteps(): StepData[] {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8, duration: 0.5 }}
             className="text-[11px] pt-2"
-            style={{ color: "#5a657a" }}
+            style={{ color: "var(--text-tertiary)" }}
           >
             You can revisit this guide anytime from the sidebar.
           </motion.p>
@@ -616,7 +616,7 @@ export default function WelcomeOnboarding() {
         className="relative w-full max-w-[640px] mx-4 rounded-2xl overflow-hidden"
         style={{
           background: "linear-gradient(180deg, rgba(10,14,24,0.98) 0%, rgba(7,10,18,0.99) 100%)",
-          border: "1px solid rgba(255,255,255,0.08)",
+          border: "1px solid var(--border-subtle)",
           boxShadow:
             "0 32px 64px -12px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03), 0 0 120px -40px rgba(34,211,238,0.06)",
           maxHeight: "85vh",
@@ -640,7 +640,7 @@ export default function WelcomeOnboarding() {
                 className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md"
                 style={{
                   background: "rgba(34,211,238,0.08)",
-                  color: "#22d3ee",
+                  color: "var(--primary)",
                   border: "1px solid rgba(34,211,238,0.15)",
                 }}
               >
@@ -651,7 +651,7 @@ export default function WelcomeOnboarding() {
                   className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md"
                   style={{
                     background: "rgba(52,211,153,0.08)",
-                    color: "#34d399",
+                    color: "var(--success)",
                     border: "1px solid rgba(52,211,153,0.12)",
                   }}
                 >
@@ -663,7 +663,7 @@ export default function WelcomeOnboarding() {
                   className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md"
                   style={{
                     background: "rgba(34,211,238,0.08)",
-                    color: "#22d3ee",
+                    color: "var(--primary)",
                     border: "1px solid rgba(34,211,238,0.12)",
                   }}
                 >
@@ -675,7 +675,7 @@ export default function WelcomeOnboarding() {
                   className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md"
                   style={{
                     background: "rgba(251,191,36,0.08)",
-                    color: "#fbbf24",
+                    color: "var(--warning)",
                     border: "1px solid rgba(251,191,36,0.12)",
                   }}
                 >
@@ -687,7 +687,7 @@ export default function WelcomeOnboarding() {
                   className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md"
                   style={{
                     background: "rgba(52,211,153,0.08)",
-                    color: "#34d399",
+                    color: "var(--success)",
                     border: "1px solid rgba(52,211,153,0.12)",
                   }}
                 >
@@ -697,13 +697,13 @@ export default function WelcomeOnboarding() {
             </div>
             <h2
               className="text-[18px] font-bold tracking-tight"
-              style={{ color: "#f1f5f9" }}
+              style={{ color: "var(--text-primary)" }}
             >
               {step.title}
             </h2>
             <p
               className="text-[12px] mt-1"
-              style={{ color: "#5a657a" }}
+              style={{ color: "var(--text-tertiary)" }}
             >
               {step.subtitle}
             </p>
@@ -711,7 +711,7 @@ export default function WelcomeOnboarding() {
           <button
             onClick={skip}
             className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer transition-all duration-200 ml-4 mt-1"
-            style={{ color: "#5a657a" }}
+            style={{ color: "var(--text-tertiary)" }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "rgba(255,255,255,0.06)";
               e.currentTarget.style.color = "#c8d0e0";
@@ -730,7 +730,7 @@ export default function WelcomeOnboarding() {
         <div className="px-7 mt-5">
           <div
             className="h-px w-full rounded-full overflow-hidden"
-            style={{ background: "rgba(255,255,255,0.06)" }}
+            style={{ background: "var(--border-subtle)" }}
           >
             <motion.div
               className="h-full rounded-full"
@@ -776,7 +776,7 @@ export default function WelcomeOnboarding() {
               <button
                 onClick={skip}
                 className="text-[12px] px-4 py-2 rounded-lg cursor-pointer transition-all duration-200"
-                style={{ color: "#5a657a" }}
+                style={{ color: "var(--text-tertiary)" }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.color = "#c8d0e0";
                 }}
@@ -791,9 +791,9 @@ export default function WelcomeOnboarding() {
                 onClick={goPrev}
                 className="flex items-center gap-1.5 text-[12px] px-4 py-2 rounded-lg cursor-pointer transition-all duration-200"
                 style={{
-                  color: "#8b97b0",
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(255,255,255,0.06)",
+                  color: "var(--text-secondary)",
+                  background: "var(--border-subtle)",
+                  border: "1px solid var(--border-subtle)",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = "rgba(255,255,255,0.06)";
@@ -869,7 +869,7 @@ export default function WelcomeOnboarding() {
                 className="flex items-center gap-2 text-[12px] font-semibold px-5 py-2.5 rounded-lg cursor-pointer transition-all duration-200"
                 style={{
                   background: "rgba(34,211,238,0.1)",
-                  color: "#22d3ee",
+                  color: "var(--primary)",
                   border: "1px solid rgba(34,211,238,0.2)",
                 }}
                 onMouseEnter={(e) => {

@@ -96,11 +96,11 @@ function ConfidenceRing({ score, size = 100 }: { score: number; size?: number })
 // ─── Status Badge Helper ────────────────────────────────────────────
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { bg: string; color: string; border: string }> = {
-    completed:    { bg: "rgba(52,211,153,0.08)",  color: "#34d399", border: "rgba(52,211,153,0.2)" },
-    in_progress:  { bg: "rgba(251,191,36,0.08)",  color: "#fbbf24", border: "rgba(251,191,36,0.2)" },
-    pending:      { bg: "rgba(90,101,122,0.08)",  color: "#8b97b0", border: "rgba(255,255,255,0.08)" },
+    completed:    { bg: "rgba(52,211,153,0.08)",  color: "var(--success)", border: "rgba(52,211,153,0.2)" },
+    in_progress:  { bg: "rgba(251,191,36,0.08)",  color: "var(--warning)", border: "rgba(251,191,36,0.2)" },
+    pending:      { bg: "rgba(90,101,122,0.08)",  color: "var(--text-secondary)", border: "rgba(255,255,255,0.08)" },
   };
-  const s = map[status] ?? { bg: "rgba(248,113,113,0.08)", color: "#f87171", border: "rgba(248,113,113,0.2)" };
+  const s = map[status] ?? { bg: "rgba(248,113,113,0.08)", color: "var(--critical)", border: "rgba(248,113,113,0.2)" };
 
   return (
     <span
@@ -311,13 +311,13 @@ export default function ReportGenerator() {
 
   const inputStyle: React.CSSProperties = {
     background: "rgba(10,15,28,0.8)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    color: "#f1f5f9",
+    border: "1px solid var(--border-subtle)",
+    color: "var(--text-primary)",
   };
 
   const selectContentStyle: React.CSSProperties = {
     background: "rgba(15,21,36,0.95)",
-    border: "1px solid rgba(255,255,255,0.08)",
+    border: "1px solid var(--border-subtle)",
   };
 
   return (
@@ -540,7 +540,7 @@ export default function ReportGenerator() {
                 className="px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer"
                 style={{
                   background: "linear-gradient(135deg, rgba(34,211,238,0.12), rgba(34,211,238,0.06))",
-                  color: "#22d3ee",
+                  color: "var(--primary)",
                   border: "1px solid rgba(34,211,238,0.2)",
                   boxShadow: "0 0 16px rgba(34,211,238,0.06)",
                 }}
@@ -556,7 +556,7 @@ export default function ReportGenerator() {
                 className="px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer"
                 style={{
                   background: "rgba(129,140,248,0.08)",
-                  color: "#818cf8",
+                  color: "var(--secondary)",
                   border: "1px solid rgba(129,140,248,0.15)",
                 }}
               >
@@ -567,9 +567,9 @@ export default function ReportGenerator() {
                 onClick={() => window.print()}
                 className="px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer"
                 style={{
-                  background: "rgba(255,255,255,0.04)",
-                  color: "#8b97b0",
-                  border: "1px solid rgba(255,255,255,0.06)",
+                  background: "var(--border-subtle)",
+                  color: "var(--text-secondary)",
+                  border: "1px solid var(--border-subtle)",
                 }}
               >
                 <Printer className="w-3.5 h-3.5 mr-1.5" />
@@ -626,7 +626,7 @@ export default function ReportGenerator() {
                 style={{
                   background: "rgba(248,113,113,0.1)",
                   border: "1px solid rgba(248,113,113,0.15)",
-                  color: "#f87171",
+                  color: "var(--critical)",
                 }}
               >
                 <Lock className="w-3 h-3" />
@@ -685,7 +685,7 @@ export default function ReportGenerator() {
                           <span
                             className="text-xs font-medium"
                             style={{
-                              color: "#fbbf24",
+                              color: "var(--warning)",
                               background: "rgba(251,191,36,0.08)",
                               padding: "1px 8px",
                               borderRadius: "9999px",
@@ -742,7 +742,7 @@ export default function ReportGenerator() {
                       className="mt-0.5 p-2 rounded-lg shrink-0"
                       style={{
                         background: "rgba(15,21,36,0.6)",
-                        border: "1px solid rgba(255,255,255,0.06)",
+                        border: "1px solid var(--border-subtle)",
                       }}
                     >
                       <TimelineIcon type={event.type} />
@@ -914,7 +914,7 @@ export default function ReportGenerator() {
                               className="w-7 h-7 rounded-lg flex items-center justify-center"
                               style={{
                                 background: "rgba(15,21,36,0.6)",
-                                border: "1px solid rgba(255,255,255,0.06)",
+                                border: "1px solid var(--border-subtle)",
                               }}
                             >
                               <User className="w-3.5 h-3.5 text-[#8b97b0]" />
@@ -933,10 +933,10 @@ export default function ReportGenerator() {
                             className="text-[10px]"
                             style={
                               assoc.strength === "strong"
-                                ? { borderColor: "rgba(248,113,113,0.2)", color: "#f87171", background: "rgba(248,113,113,0.06)" }
+                                ? { borderColor: "rgba(248,113,113,0.2)", color: "var(--critical)", background: "rgba(248,113,113,0.06)" }
                                 : assoc.strength === "moderate"
-                                  ? { borderColor: "rgba(251,191,36,0.2)", color: "#fbbf24", background: "rgba(251,191,36,0.06)" }
-                                  : { borderColor: "rgba(255,255,255,0.08)", color: "#8b97b0", background: "rgba(255,255,255,0.04)" }
+                                  ? { borderColor: "rgba(251,191,36,0.2)", color: "var(--warning)", background: "rgba(251,191,36,0.06)" }
+                                  : { borderColor: "rgba(255,255,255,0.08)", color: "var(--text-secondary)", background: "var(--border-subtle)" }
                             }
                           >
                             {assoc.strength}
@@ -998,7 +998,7 @@ export default function ReportGenerator() {
                               </span>
                               <span
                                 className="text-xs font-mono font-semibold"
-                                style={{ color: "#34d399" }}
+                                style={{ color: "var(--success)" }}
                               >
                                 ₹{fl.totalAmount.toLocaleString("en-IN")}
                               </span>
@@ -1230,7 +1230,7 @@ export default function ReportGenerator() {
                         key={rc.firId}
                         variant="outline"
                         className="border-[rgba(255,255,255,0.06)] text-[#f1f5f9] text-[10px]"
-                        style={{ background: "rgba(255,255,255,0.03)" }}
+                        style={{ background: "var(--border-subtle)" }}
                       >
                         {rc.firId} — {rc.relevance}
                       </Badge>

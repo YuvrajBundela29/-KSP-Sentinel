@@ -86,10 +86,10 @@ function Sparkline({ data, color = "#22d3ee" }: { data: { month: string; count: 
 // ─── Severity Badge ──────────────────────────────────────────────
 function SeverityBadge({ severity }: { severity: string }) {
   const config: Record<string, { color: string; bg: string; border: string }> = {
-    critical: { color: "#f87171", bg: "rgba(248,113,113,0.08)", border: "rgba(248,113,113,0.15)" },
-    high: { color: "#fbbf24", bg: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.15)" },
-    medium: { color: "#fbbf24", bg: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.15)" },
-    low: { color: "#34d399", bg: "rgba(52,211,153,0.08)", border: "rgba(52,211,153,0.15)" },
+    critical: { color: "var(--critical)", bg: "rgba(248,113,113,0.08)", border: "rgba(248,113,113,0.15)" },
+    high: { color: "var(--warning)", bg: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.15)" },
+    medium: { color: "var(--warning)", bg: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.15)" },
+    low: { color: "var(--success)", bg: "rgba(52,211,153,0.08)", border: "rgba(52,211,153,0.15)" },
   };
   const c = config[severity] || config.low;
   return (
@@ -212,7 +212,7 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
       className="rounded-lg px-3.5 py-2.5"
       style={{
         background: "rgba(15,21,36,0.95)",
-        border: "1px solid rgba(255,255,255,0.08)",
+        border: "1px solid var(--border-subtle)",
         backdropFilter: "blur(16px)",
         boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03)",
       }}
@@ -245,7 +245,7 @@ function PriorityBadge({ score }: { score: number }) {
         className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold tabular-nums"
         style={{
           backgroundColor: "rgba(248,113,113,0.1)",
-          color: "#f87171",
+          color: "var(--critical)",
           border: "1px solid rgba(248,113,113,0.15)",
         }}
       >
@@ -258,7 +258,7 @@ function PriorityBadge({ score }: { score: number }) {
         className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold tabular-nums"
         style={{
           backgroundColor: "rgba(251,191,36,0.1)",
-          color: "#fbbf24",
+          color: "var(--warning)",
           border: "1px solid rgba(251,191,36,0.15)",
         }}
       >
@@ -270,7 +270,7 @@ function PriorityBadge({ score }: { score: number }) {
       className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold tabular-nums"
       style={{
         backgroundColor: "rgba(52,211,153,0.1)",
-        color: "#34d399",
+        color: "var(--success)",
         border: "1px solid rgba(52,211,153,0.15)",
       }}
     >
@@ -282,13 +282,13 @@ function PriorityBadge({ score }: { score: number }) {
 // ─── Intel type icon ─────────────────────────────────────────────
 function IntelTypeIcon({ type }: { type: string }) {
   const config: Record<string, { icon: React.ElementType; color: string }> = {
-    alert: { icon: AlertTriangle, color: "#f87171" },
-    update: { icon: Activity, color: "#22d3ee" },
-    arrest: { icon: Lock, color: "#34d399" },
-    pattern: { icon: Fingerprint, color: "#818cf8" },
-    intelligence: { icon: Eye, color: "#fbbf24" },
+    alert: { icon: AlertTriangle, color: "var(--critical)" },
+    update: { icon: Activity, color: "var(--primary)" },
+    arrest: { icon: Lock, color: "var(--success)" },
+    pattern: { icon: Fingerprint, color: "var(--secondary)" },
+    intelligence: { icon: Eye, color: "var(--warning)" },
   };
-  const c = config[type] || { icon: Radio, color: "#22d3ee" };
+  const c = config[type] || { icon: Radio, color: "var(--primary)" };
   const Icon = c.icon;
   return (
     <div
@@ -448,7 +448,7 @@ export default function DashboardHome() {
         <div>
           <div className="flex items-center gap-2.5 mb-1">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.15)" }}>
-              <RadioTower className="w-3.5 h-3.5" style={{ color: "#22d3ee" }} />
+              <RadioTower className="w-3.5 h-3.5" style={{ color: "var(--primary)" }} />
             </div>
             <h1 className="text-[16px] font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>
               Operational Overview
@@ -464,7 +464,7 @@ export default function DashboardHome() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: "#34d399" }} />
               <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ backgroundColor: "#34d399" }} />
             </span>
-            <span className="text-[10px] uppercase tracking-widest font-medium" style={{ color: "#34d399" }}>Systems Online</span>
+            <span className="text-[10px] uppercase tracking-widest font-medium" style={{ color: "var(--success)" }}>Systems Online</span>
           </div>
           <div className="h-3 w-px" style={{ backgroundColor: "var(--border-default)" }} />
           <span className="text-[10px] font-mono tabular-nums" style={{ color: "var(--text-muted)" }}>
@@ -561,7 +561,7 @@ export default function DashboardHome() {
             trailing={
               <span
                 className="text-[10px] cursor-pointer font-medium px-2 py-1 rounded-md transition-colors duration-200"
-                style={{ color: "#22d3ee", backgroundColor: "rgba(34,211,238,0.06)" }}
+                style={{ color: "var(--primary)", backgroundColor: "rgba(34,211,238,0.06)" }}
                 onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(34,211,238,0.12)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "rgba(34,211,238,0.06)"; }}
                 onClick={() => setView("dm-fir")}
@@ -593,7 +593,7 @@ export default function DashboardHome() {
                 }}
               >
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[11px] font-mono font-bold tracking-wide" style={{ color: "#22d3ee" }}>
+                  <span className="text-[11px] font-mono font-bold tracking-wide" style={{ color: "var(--primary)" }}>
                     {fir.fir_id}
                   </span>
                   <SeverityBadge severity={fir.severity} />
@@ -639,7 +639,7 @@ export default function DashboardHome() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: "#f87171" }} />
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ backgroundColor: "#f87171" }} />
                 </span>
-                <span className="text-[10px] font-medium" style={{ color: "#f87171" }}>LIVE</span>
+                <span className="text-[10px] font-medium" style={{ color: "var(--critical)" }}>LIVE</span>
               </div>
             }
           />
@@ -704,8 +704,8 @@ export default function DashboardHome() {
             count={recommendations.length}
             trailing={
               <div className="flex items-center gap-1.5">
-                <Zap className="w-3 h-3" style={{ color: "#22d3ee" }} />
-                <span className="text-[10px] font-medium" style={{ color: "#22d3ee" }}>AI Powered</span>
+                <Zap className="w-3 h-3" style={{ color: "var(--primary)" }} />
+                <span className="text-[10px] font-medium" style={{ color: "var(--primary)" }}>AI Powered</span>
               </div>
             }
           />
@@ -766,7 +766,7 @@ export default function DashboardHome() {
                       </p>
                       <div
                         className="flex items-center gap-1.5 mt-2 text-[10px] font-medium cursor-pointer"
-                        style={{ color: "#22d3ee" }}
+                        style={{ color: "var(--primary)" }}
                       >
                         <ArrowUpRight className="w-3 h-3" />
                         <span>{rec.action}</span>
@@ -797,7 +797,7 @@ export default function DashboardHome() {
             trailing={
               <span
                 className="text-[10px] cursor-pointer font-medium px-2 py-1 rounded-md transition-colors duration-200"
-                style={{ color: "#22d3ee", backgroundColor: "rgba(34,211,238,0.06)" }}
+                style={{ color: "var(--primary)", backgroundColor: "rgba(34,211,238,0.06)" }}
                 onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(34,211,238,0.12)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "rgba(34,211,238,0.06)"; }}
               >
@@ -827,7 +827,7 @@ export default function DashboardHome() {
                       onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                     >
-                      <TableCell className="text-[11px] font-mono font-bold" style={{ color: "#22d3ee" }}>
+                      <TableCell className="text-[11px] font-mono font-bold" style={{ color: "var(--primary)" }}>
                         {item.firId}
                       </TableCell>
                       <TableCell className="text-[12px]" style={{ color: "var(--text-primary)" }}>
@@ -873,7 +873,7 @@ export default function DashboardHome() {
             trailing={
               <span
                 className="text-[10px] cursor-pointer font-medium px-2 py-1 rounded-md transition-colors duration-200"
-                style={{ color: "#f87171", backgroundColor: "rgba(248,113,113,0.06)" }}
+                style={{ color: "var(--critical)", backgroundColor: "rgba(248,113,113,0.06)" }}
                 onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(248,113,113,0.12)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "rgba(248,113,113,0.06)"; }}
                 onClick={() => setView("accused")}
@@ -967,7 +967,7 @@ export default function DashboardHome() {
           trailing={
             <span
               className="text-[10px] cursor-pointer font-medium px-2 py-1 rounded-md transition-colors duration-200"
-              style={{ color: "#22d3ee", backgroundColor: "rgba(34,211,238,0.06)" }}
+              style={{ color: "var(--primary)", backgroundColor: "rgba(34,211,238,0.06)" }}
               onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(34,211,238,0.12)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "rgba(34,211,238,0.06)"; }}
             >
@@ -1020,7 +1020,7 @@ export default function DashboardHome() {
                       <span
                         className="text-[10px] font-medium px-2 py-0.5 rounded-full"
                         style={{
-                          color: "#818cf8",
+                          color: "var(--secondary)",
                           backgroundColor: "rgba(129,140,248,0.08)",
                           border: "1px solid rgba(129,140,248,0.12)",
                         }}

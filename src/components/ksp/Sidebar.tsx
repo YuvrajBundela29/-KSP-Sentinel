@@ -105,7 +105,7 @@ const SectionHeader = memo(function SectionHeader({
       onClick={onToggle}
       className="w-full flex items-center gap-2 px-2 py-1.5 mt-3 mb-1 cursor-pointer rounded-md transition-all duration-200 group"
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = "rgba(255,255,255,0.02)";
+        e.currentTarget.style.background = "var(--border-subtle)";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.background = "transparent";
@@ -114,7 +114,7 @@ const SectionHeader = memo(function SectionHeader({
       <Icon className="w-3 h-3 flex-shrink-0" style={{ color }} />
       <span
         className="flex-1 text-left text-[10px] font-semibold uppercase tracking-[0.12em]"
-        style={{ color: "#5a657a" }}
+        style={{ color: "var(--text-tertiary)" }}
       >
         {label}
       </span>
@@ -123,7 +123,7 @@ const SectionHeader = memo(function SectionHeader({
         transition={{ duration: 0.2 }}
         className="opacity-50 group-hover:opacity-100 transition-opacity"
       >
-        <ChevronRight className="w-3 h-3" style={{ color: "#3d4659" }} />
+        <ChevronRight className="w-3 h-3" style={{ color: "var(--text-muted)" }} />
       </motion.div>
     </button>
   );
@@ -149,13 +149,11 @@ const NavItem = memo(function NavItem({
   onClick: () => void;
 }) {
   const Icon = item.icon;
-  const glowColor = accentColor === "#22d3ee"
-    ? "rgba(34,211,238,0.08)"
-    : accentColor === "#818cf8"
-      ? "rgba(129,140,248,0.08)"
-      : accentColor === "#34d399"
-        ? "rgba(52,211,153,0.08)"
-        : "rgba(251,191,36,0.08)";
+  const glowColor = accentColor === "var(--primary)"
+    ? "var(--primary-glow)"
+    : accentColor === "var(--secondary)"
+      ? "var(--secondary-glow)"
+      : "var(--success-glow)";
 
   return (
     <motion.button
@@ -190,7 +188,7 @@ const NavItem = memo(function NavItem({
           className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[55%] rounded-r-full"
           style={{
             backgroundColor: accentColor,
-            boxShadow: `0 0 12px ${accentColor}60`,
+            boxShadow: `0 0 12px ${glowColor}`,
           }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
         />
@@ -200,7 +198,7 @@ const NavItem = memo(function NavItem({
       <div className="relative flex-shrink-0">
         <Icon
           className="w-[17px] h-[17px] transition-all duration-200"
-          style={isActive ? { filter: `drop-shadow(0 0 6px ${accentColor}50)` } : {}}
+          style={isActive ? { filter: `drop-shadow(0 0 8px ${glowColor})` } : {}}
         />
         {/* Badge: pulse dot for AI Copilot */}
         {item.badge === "pulse" && (
@@ -218,9 +216,9 @@ const NavItem = memo(function NavItem({
           <span
             className="absolute -top-1 -right-3 text-[7px] font-bold uppercase tracking-wider px-1 rounded-sm"
             style={{
-              backgroundColor: "rgba(52,211,153,0.15)",
-              color: "#34d399",
-              border: "1px solid rgba(52,211,153,0.2)",
+              backgroundColor: "var(--success-glow)",
+              color: "var(--success)",
+              border: "1px solid var(--success-glow)",
             }}
           >
             NEW
@@ -301,7 +299,7 @@ export default function Sidebar() {
       className="my-2 mx-2"
       style={{
         height: "1px",
-        background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)",
+        background: "linear-gradient(90deg, transparent, var(--border-default), transparent)",
       }}
     />
   );
@@ -318,12 +316,12 @@ export default function Sidebar() {
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{
-              background: "linear-gradient(135deg, rgba(34,211,238,0.15), rgba(129,140,248,0.08))",
-              border: "1px solid rgba(34,211,238,0.12)",
-              boxShadow: "0 0 16px rgba(34,211,238,0.08)",
+              background: "var(--primary-glow-strong)",
+              border: "1px solid var(--border-accent)",
+              boxShadow: "0 0 16px var(--primary-glow)",
             }}
           >
-            <Shield className="w-4 h-4" style={{ color: "#22d3ee" }} />
+            <Shield className="w-4 h-4" style={{ color: "var(--primary)" }} />
           </div>
           <AnimatePresence>
             {!sidebarCollapsed && (
@@ -336,8 +334,8 @@ export default function Sidebar() {
                 <span
                   className="text-xs font-bold tracking-[0.14em] uppercase"
                   style={{
-                    color: "#22d3ee",
-                    textShadow: "0 0 20px rgba(34,211,238,0.3)",
+                    color: "var(--primary)",
+                    textShadow: "0 0 20px var(--primary-glow-strong)",
                   }}
                 >
                   Sentinel
@@ -382,7 +380,7 @@ export default function Sidebar() {
         {/* INTELLIGENCE Section — always visible */}
         {!sidebarCollapsed && (
           <div className="flex items-center gap-2 px-2 py-1.5 mb-1">
-            <Radar className="w-3 h-3" style={{ color: "#22d3ee" }} />
+            <Radar className="w-3 h-3" style={{ color: "var(--primary)" }} />
             <span
               className="text-[10px] font-bold uppercase tracking-[0.12em]"
               style={{ color: "var(--text-tertiary)" }}
@@ -405,7 +403,7 @@ export default function Sidebar() {
               isActive={isActive}
               getLabelFn={getLabelFn}
               collapsed={sidebarCollapsed}
-              accentColor="#22d3ee"
+              accentColor="var(--primary)"
               onClick={() => handleNav(item.view)}
             />
           );
@@ -418,7 +416,7 @@ export default function Sidebar() {
           <SectionHeader
             label={getLabel(lang, "analytics")}
             icon={BrainCircuit}
-            color="#34d399"
+            color="var(--success)"
             open={analyticsOpen}
             onToggle={() => setAnalyticsOpen(!analyticsOpen)}
           />
@@ -426,7 +424,7 @@ export default function Sidebar() {
           <div className="flex justify-center py-1">
             <div
               className="w-6 h-px"
-              style={{ background: "rgba(255,255,255,0.06)" }}
+              style={{ background: "var(--border-subtle)" }}
             />
           </div>
         )}
@@ -451,7 +449,7 @@ export default function Sidebar() {
                     isActive={isActive}
                     getLabelFn={getLabelFn}
                     collapsed={sidebarCollapsed}
-                    accentColor="#34d399"
+                    accentColor="var(--success)"
                     onClick={() => handleNav(item.view)}
                   />
                 );
@@ -467,7 +465,7 @@ export default function Sidebar() {
           <SectionHeader
             label={getLabel(lang, "dataMgmt")}
             icon={Database}
-            color="#818cf8"
+            color="var(--secondary)"
             open={dmOpen}
             onToggle={() => setDmOpen(!dmOpen)}
           />
@@ -500,7 +498,7 @@ export default function Sidebar() {
                     isActive={isActive}
                     getLabelFn={getLabelFn}
                     collapsed={sidebarCollapsed}
-                    accentColor="#818cf8"
+                    accentColor="var(--secondary)"
                     onClick={() => handleNav(item.view)}
                   />
                 );
@@ -605,9 +603,9 @@ export default function Sidebar() {
             <div
               className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-[11px] font-bold"
               style={{
-                background: "linear-gradient(135deg, rgba(34,211,238,0.1), rgba(129,140,248,0.08))",
-                color: "#22d3ee",
-                border: "1px solid rgba(34,211,238,0.1)",
+                background: "var(--primary-glow-strong)",
+                color: "var(--primary)",
+                border: "1px solid var(--border-accent)",
               }}
             >
               {user.username.charAt(0).toUpperCase()}
@@ -635,8 +633,8 @@ export default function Sidebar() {
             color: "var(--text-tertiary)",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(248,113,113,0.06)";
-            e.currentTarget.style.color = "#f87171";
+            e.currentTarget.style.background = "var(--critical-glow)";
+            e.currentTarget.style.color = "var(--critical)";
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = "transparent";
@@ -676,16 +674,16 @@ export default function Sidebar() {
         onClick={() => setMobileOpen(true)}
         className="fixed top-3 left-3 z-50 lg:hidden w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-200"
         style={{
-          background: "rgba(15,21,36,0.85)",
-          border: "1px solid rgba(255,255,255,0.06)",
+          background: "var(--bg-card)",
+          border: "1px solid var(--border-subtle)",
           backdropFilter: "blur(16px)",
         }}
       >
-        <Shield className="w-4 h-4" style={{ color: "#22d3ee" }} />
+        <Shield className="w-4 h-4" style={{ color: "var(--primary)" }} />
         {unreadCount > 0 && (
           <span
             className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold"
-            style={{ background: "#f87171", color: "#050810" }}
+            style={{ background: "var(--critical)", color: "var(--primary-foreground)" }}
           >
             {unreadCount}
           </span>
