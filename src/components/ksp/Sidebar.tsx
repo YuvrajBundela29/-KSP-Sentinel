@@ -231,19 +231,19 @@ const NavItem = memo(function NavItem({
       style={{
         padding: collapsed ? "9px" : "7px 10px",
         justifyContent: collapsed ? "center" : "flex-start",
-        color: isActive ? accentColor : "#7a869e",
+        color: isActive ? accentColor : "var(--text-secondary)",
         background: isActive ? glowColor : "transparent",
       }}
       onMouseEnter={(e) => {
         if (!isActive) {
-          e.currentTarget.style.background = "rgba(255,255,255,0.03)";
-          e.currentTarget.style.color = "#c8d0e0";
+          e.currentTarget.style.background = "var(--border-subtle)";
+          e.currentTarget.style.color = "var(--text-primary)";
         }
       }}
       onMouseLeave={(e) => {
         if (!isActive) {
           e.currentTarget.style.background = "transparent";
-          e.currentTarget.style.color = "#7a869e";
+          e.currentTarget.style.color = "var(--text-secondary)";
         }
       }}
     >
@@ -300,9 +300,9 @@ const NavItem = memo(function NavItem({
             <kbd
               className="flex-shrink-0 text-[9px] font-mono px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200"
               style={{
-                background: "rgba(255,255,255,0.04)",
-                color: "#3d4659",
-                border: "1px solid rgba(255,255,255,0.04)",
+                background: "var(--border-subtle)",
+                color: "var(--text-muted)",
+                border: "1px solid var(--border-subtle)",
               }}
             >
               {item.shortcut}
@@ -376,7 +376,7 @@ export default function Sidebar() {
       {/* ── Logo Bar ──────────────────────────────────────────────── */}
       <div
         className="flex items-center justify-between px-4 h-14 flex-shrink-0"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
+        style={{ borderBottom: "1px solid var(--border-subtle)" }}
       >
         <div className="flex items-center gap-2.5 overflow-hidden">
           <div
@@ -414,14 +414,14 @@ export default function Sidebar() {
         <button
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
           className="hidden lg:flex items-center justify-center w-6 h-6 rounded-md transition-colors cursor-pointer"
-          style={{ color: "#3d4659" }}
+          style={{ color: "var(--text-muted)" }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(255,255,255,0.04)";
-            e.currentTarget.style.color = "#8b97b0";
+            e.currentTarget.style.background = "var(--border-subtle)";
+            e.currentTarget.style.color = "var(--text-secondary)";
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "#3d4659";
+            e.currentTarget.style.color = "var(--text-muted)";
           }}
         >
           <motion.div
@@ -435,7 +435,7 @@ export default function Sidebar() {
         <button
           onClick={() => setMobileOpen(false)}
           className="lg:hidden flex items-center justify-center w-6 h-6 rounded-md cursor-pointer"
-          style={{ color: "#5a657a" }}
+          style={{ color: "var(--text-tertiary)" }}
         >
           <X className="w-4 h-4" />
         </button>
@@ -449,7 +449,7 @@ export default function Sidebar() {
             <Radar className="w-3 h-3" style={{ color: "#22d3ee" }} />
             <span
               className="text-[10px] font-bold uppercase tracking-[0.12em]"
-              style={{ color: "#5a657a" }}
+              style={{ color: "var(--text-tertiary)" }}
             >
               {labels.intelligence}
             </span>
@@ -580,7 +580,7 @@ export default function Sidebar() {
       {/* ── Bottom Section ───────────────────────────────────────── */}
       <div
         className="px-2.5 pb-3 space-y-1 flex-shrink-0"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}
+        style={{ borderTop: "1px solid var(--border-subtle)" }}
       >
         {/* Command Palette — desktop, expanded only */}
         {!sidebarCollapsed && (
@@ -589,17 +589,17 @@ export default function Sidebar() {
             whileHover={{ scale: 1.01 }}
             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] cursor-pointer transition-colors"
             style={{
-              color: "#3d4659",
-              border: "1px dashed rgba(255,255,255,0.05)",
+              color: "var(--text-muted)",
+              border: "1px dashed var(--border-subtle)",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
-              e.currentTarget.style.color = "#5a657a";
-              e.currentTarget.style.background = "rgba(255,255,255,0.01)";
+              e.currentTarget.style.borderColor = "var(--border-default)";
+              e.currentTarget.style.color = "var(--text-tertiary)";
+              e.currentTarget.style.background = "var(--border-subtle)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "rgba(255,255,255,0.05)";
-              e.currentTarget.style.color = "#3d4659";
+              e.currentTarget.style.borderColor = "var(--border-subtle)";
+              e.currentTarget.style.color = "var(--text-muted)";
               e.currentTarget.style.background = "transparent";
             }}
           >
@@ -608,9 +608,9 @@ export default function Sidebar() {
             <kbd
               className="text-[9px] px-1.5 py-0.5 rounded font-mono"
               style={{
-                background: "rgba(255,255,255,0.04)",
-                color: "#3d4659",
-                border: "1px solid rgba(255,255,255,0.04)",
+                background: "var(--border-subtle)",
+                color: "var(--text-muted)",
+                border: "1px solid var(--border-subtle)",
               }}
             >
               Ctrl+K
@@ -624,17 +624,17 @@ export default function Sidebar() {
             onClick={() => setShowOnboarding(true)}
             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] cursor-pointer transition-all duration-200"
             style={{
-              color: "#3d4659",
-              border: "1px dashed rgba(255,255,255,0.05)",
+              color: "var(--text-muted)",
+              border: "1px dashed var(--border-subtle)",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
-              e.currentTarget.style.color = "#5a657a";
-              e.currentTarget.style.background = "rgba(255,255,255,0.01)";
+              e.currentTarget.style.borderColor = "var(--border-default)";
+              e.currentTarget.style.color = "var(--text-tertiary)";
+              e.currentTarget.style.background = "var(--border-subtle)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "rgba(255,255,255,0.05)";
-              e.currentTarget.style.color = "#3d4659";
+              e.currentTarget.style.borderColor = "var(--border-subtle)";
+              e.currentTarget.style.color = "var(--text-muted)";
               e.currentTarget.style.background = "transparent";
             }}
           >
@@ -648,14 +648,14 @@ export default function Sidebar() {
           <button
             onClick={() => setShowOnboarding(true)}
             className="w-full flex items-center justify-center py-2 rounded-lg cursor-pointer transition-all duration-200"
-            style={{ color: "#3d4659" }}
+            style={{ color: "var(--text-muted)" }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(255,255,255,0.04)";
-              e.currentTarget.style.color = "#8b97b0";
+              e.currentTarget.style.background = "var(--border-subtle)";
+              e.currentTarget.style.color = "var(--text-secondary)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = "#3d4659";
+              e.currentTarget.style.color = "var(--text-muted)";
             }}
             title="Help Guide"
           >
@@ -679,11 +679,11 @@ export default function Sidebar() {
             <div className="flex-1 min-w-0">
               <p
                 className="text-[12px] font-semibold truncate"
-                style={{ color: "#c8d0e0" }}
+                style={{ color: "var(--text-primary)" }}
               >
                 {user.username}
               </p>
-              <p className="text-[10px] capitalize" style={{ color: "#3d4659" }}>
+              <p className="text-[10px] capitalize" style={{ color: "var(--text-muted)" }}>
                 {user.role.replace(/_/g, " ")}
               </p>
             </div>
@@ -696,7 +696,7 @@ export default function Sidebar() {
           className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[12px] cursor-pointer transition-all duration-200"
           style={{
             justifyContent: sidebarCollapsed ? "center" : "flex-start",
-            color: "#5a657a",
+            color: "var(--text-tertiary)",
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = "rgba(248,113,113,0.06)";
@@ -704,7 +704,7 @@ export default function Sidebar() {
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "#5a657a";
+            e.currentTarget.style.color = "var(--text-tertiary)";
           }}
         >
           <LogOut className="w-4 h-4 flex-shrink-0" />
@@ -762,9 +762,9 @@ export default function Sidebar() {
         style={{
           width: sidebarCollapsed ? 60 : 256,
           minWidth: sidebarCollapsed ? 60 : 256,
-          background: "linear-gradient(180deg, rgba(7,10,20,0.92) 0%, rgba(5,8,16,0.96) 100%)",
+          background: "var(--bg-sidebar)",
           backdropFilter: "blur(32px)",
-          borderRight: "1px solid rgba(255,255,255,0.04)",
+          borderRight: "1px solid var(--border-subtle)",
           boxShadow: sidebarCollapsed
             ? "none"
             : "4px 0 24px -4px rgba(0,0,0,0.3)",
@@ -781,11 +781,11 @@ export default function Sidebar() {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: -280, opacity: 0 }}
             transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-            className="fixed inset-y-0 left-0 z-50 w-[280px] flex flex-col lg:hidden"
+            className="fixed inset-y-0 left-0 z-50 w-[280px] max-w-[85vw] flex flex-col lg:hidden"
             style={{
-              background: "linear-gradient(180deg, rgba(7,10,20,0.98) 0%, rgba(5,8,16,0.99) 100%)",
+              background: "var(--bg-sidebar)",
               backdropFilter: "blur(32px)",
-              borderRight: "1px solid rgba(255,255,255,0.06)",
+              borderRight: "1px solid var(--border-default)",
               boxShadow: "4px 0 32px rgba(0,0,0,0.5)",
             }}
           >

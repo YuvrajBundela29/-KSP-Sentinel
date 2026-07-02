@@ -164,14 +164,14 @@ function StatCard({
           )}
         </div>
 
-        <p className="text-[26px] font-bold tracking-tight leading-none animate-count-up" style={{ color: "#f1f5f9" }}>
+        <p className="text-[26px] font-bold tracking-tight leading-none animate-count-up" style={{ color: "var(--text-primary)" }}>
           {value.toLocaleString()}
         </p>
-        <p className="text-[11px] mt-1.5 uppercase tracking-widest font-medium" style={{ color: "#5a657a" }}>
+        <p className="text-[11px] mt-1.5 uppercase tracking-widest font-medium" style={{ color: "var(--text-tertiary)" }}>
           {label}
         </p>
         {subtitle && (
-          <p className="text-[10px] mt-0.5" style={{ color: "#3d4659" }}>{subtitle}</p>
+          <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>{subtitle}</p>
         )}
         <Sparkline data={sparkData} color={accentColor} />
       </div>
@@ -217,9 +217,9 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
         boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03)",
       }}
     >
-      <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a657a" }}>{label}</p>
-      <p className="text-[13px] font-bold" style={{ color: "#f1f5f9" }}>
-        {payload[0].value} <span className="font-normal text-[11px]" style={{ color: "#8b97b0" }}>FIRs filed</span>
+      <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "var(--text-tertiary)" }}>{label}</p>
+      <p className="text-[13px] font-bold" style={{ color: "var(--text-primary)" }}>
+        {payload[0].value} <span className="font-normal text-[11px]" style={{ color: "var(--text-secondary)" }}>FIRs filed</span>
       </p>
     </div>
   );
@@ -322,7 +322,7 @@ function SectionHeader({
       <div className="flex items-center gap-2">
         <div className="w-1 h-4 rounded-full" style={{ backgroundColor: accentColor }} />
         <Icon className="w-3.5 h-3.5" style={{ color: accentColor }} />
-        <h3 className="text-[11px] font-semibold tracking-[0.1em] uppercase" style={{ color: "#f1f5f9" }}>
+        <h3 className="text-[11px] font-semibold tracking-[0.1em] uppercase" style={{ color: "var(--text-primary)" }}>
           {title}
         </h3>
         {count !== undefined && (
@@ -442,7 +442,7 @@ export default function DashboardHome() {
   const staggerClasses = ["stagger-1", "stagger-2", "stagger-3", "stagger-4", "stagger-5", "stagger-6"];
 
   return (
-    <div className="space-y-5 p-5">
+    <div className="space-y-5 p-3 sm:p-5">
       {/* ═══ Mission Header ═══════════════════════════════════════ */}
       <div className="animate-fade-in-up stagger-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
@@ -450,11 +450,11 @@ export default function DashboardHome() {
             <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.15)" }}>
               <RadioTower className="w-3.5 h-3.5" style={{ color: "#22d3ee" }} />
             </div>
-            <h1 className="text-[16px] font-bold tracking-tight" style={{ color: "#f1f5f9" }}>
+            <h1 className="text-[16px] font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>
               Operational Overview
             </h1>
           </div>
-          <p className="text-[11px] ml-[38px]" style={{ color: "#5a657a" }}>
+          <p className="text-[11px] ml-[38px]" style={{ color: "var(--text-tertiary)" }}>
             Karnataka State Police — Real-time crime intelligence dashboard
           </p>
         </div>
@@ -466,8 +466,8 @@ export default function DashboardHome() {
             </span>
             <span className="text-[10px] uppercase tracking-widest font-medium" style={{ color: "#34d399" }}>Systems Online</span>
           </div>
-          <div className="h-3 w-px" style={{ backgroundColor: "rgba(255,255,255,0.06)" }} />
-          <span className="text-[10px] font-mono tabular-nums" style={{ color: "#3d4659" }}>
+          <div className="h-3 w-px" style={{ backgroundColor: "var(--border-default)" }} />
+          <span className="text-[10px] font-mono tabular-nums" style={{ color: "var(--text-muted)" }}>
             {new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })} · {new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false })}
           </span>
         </div>
@@ -581,15 +581,15 @@ export default function DashboardHome() {
                 className="rounded-lg p-3 cursor-pointer transition-all duration-200 group"
                 style={{
                   backgroundColor: "rgba(255,255,255,0.015)",
-                  border: "1px solid rgba(255,255,255,0.04)",
+                  border: "1px solid var(--border-subtle)",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = "rgba(255,255,255,0.035)";
-                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+                  e.currentTarget.style.borderColor = "var(--border-default)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = "rgba(255,255,255,0.015)";
-                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.04)";
+                  e.currentTarget.style.borderColor = "var(--border-subtle)";
                 }}
               >
                 <div className="flex items-center justify-between mb-1.5">
@@ -598,14 +598,14 @@ export default function DashboardHome() {
                   </span>
                   <SeverityBadge severity={fir.severity} />
                 </div>
-                <p className="text-[12px] font-medium" style={{ color: "#e8edf5" }}>
+                <p className="text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>
                   {fir.crime_type}
                 </p>
                 <div className="flex items-center gap-2 mt-2">
-                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ color: "#8b97b0", backgroundColor: "rgba(255,255,255,0.03)" }}>
+                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ color: "var(--text-secondary)", backgroundColor: "rgba(255,255,255,0.03)" }}>
                     {fir.district}
                   </span>
-                  <span className="text-[10px]" style={{ color: "#3d4659" }}>{fir.date}</span>
+                  <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{fir.date}</span>
                   <span className="ml-auto">
                     <span
                       className="text-[9px] font-medium px-1.5 py-0.5 rounded-full"
@@ -653,16 +653,16 @@ export default function DashboardHome() {
                 className="rounded-lg p-3 group cursor-pointer transition-all duration-200"
                 style={{
                   backgroundColor: item.severity === "critical" ? "rgba(248,113,113,0.03)" : "rgba(255,255,255,0.015)",
-                  border: `1px solid ${item.severity === "critical" ? "rgba(248,113,113,0.08)" : "rgba(255,255,255,0.04)"}`,
+                  border: `1px solid ${item.severity === "critical" ? "rgba(248,113,113,0.08)" : "var(--border-subtle)"}`,
                   borderLeft: item.severity === "critical" ? "2px solid rgba(248,113,113,0.4)" : "2px solid transparent",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = "rgba(255,255,255,0.03)";
-                  e.currentTarget.style.borderColor = item.severity === "critical" ? "rgba(248,113,113,0.15)" : "rgba(255,255,255,0.08)";
+                  e.currentTarget.style.borderColor = item.severity === "critical" ? "rgba(248,113,113,0.15)" : "var(--border-default)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = item.severity === "critical" ? "rgba(248,113,113,0.03)" : "rgba(255,255,255,0.015)";
-                  e.currentTarget.style.borderColor = item.severity === "critical" ? "rgba(248,113,113,0.08)" : "rgba(255,255,255,0.04)";
+                  e.currentTarget.style.borderColor = item.severity === "critical" ? "rgba(248,113,113,0.08)" : "var(--border-subtle)";
                 }}
               >
                 <div className="flex items-start gap-2.5">
@@ -670,17 +670,17 @@ export default function DashboardHome() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <SeverityBadge severity={item.severity} />
-                      <span className="text-[9px] uppercase tracking-wider font-medium" style={{ color: "#3d4659" }}>
+                      <span className="text-[9px] uppercase tracking-wider font-medium" style={{ color: "var(--text-muted)" }}>
                         {item.type}
                       </span>
-                      <span className="ml-auto text-[9px] font-mono tabular-nums shrink-0" style={{ color: "#3d4659" }}>
+                      <span className="ml-auto text-[9px] font-mono tabular-nums shrink-0" style={{ color: "var(--text-muted)" }}>
                         {relativeTime(item.timestamp)}
                       </span>
                     </div>
-                    <p className="text-[12px] font-medium leading-snug" style={{ color: "#e8edf5" }}>
+                    <p className="text-[12px] font-medium leading-snug" style={{ color: "var(--text-primary)" }}>
                       {item.title}
                     </p>
-                    <p className="text-[11px] mt-1 line-clamp-2 leading-relaxed" style={{ color: "#5a657a" }}>
+                    <p className="text-[11px] mt-1 line-clamp-2 leading-relaxed" style={{ color: "var(--text-tertiary)" }}>
                       {item.description}
                     </p>
                   </div>
@@ -722,16 +722,16 @@ export default function DashboardHome() {
                   className="rounded-lg p-3.5 cursor-pointer transition-all duration-200 group"
                   style={{
                     backgroundColor: isHigh ? `${accentCol}05` : "rgba(255,255,255,0.015)",
-                    border: `1px solid ${isHigh ? `${accentCol}10` : "rgba(255,255,255,0.04)"}`,
+                    border: `1px solid ${isHigh ? `${accentCol}10` : "var(--border-subtle)"}`,
                     borderLeft: `2px solid ${accentCol}50`,
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = isHigh ? `${accentCol}08` : "rgba(255,255,255,0.03)";
-                    e.currentTarget.style.borderColor = isHigh ? `${accentCol}18` : "rgba(255,255,255,0.08)";
+                    e.currentTarget.style.borderColor = isHigh ? `${accentCol}18` : "var(--border-default)";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = isHigh ? `${accentCol}05` : "rgba(255,255,255,0.015)";
-                    e.currentTarget.style.borderColor = isHigh ? `${accentCol}10` : "rgba(255,255,255,0.04)";
+                    e.currentTarget.style.borderColor = isHigh ? `${accentCol}10` : "var(--border-subtle)";
                   }}
                 >
                   <div className="flex items-start gap-3">
@@ -757,11 +757,11 @@ export default function DashboardHome() {
                         >
                           {rec.priority}
                         </span>
-                        <p className="text-[12px] font-medium" style={{ color: "#e8edf5" }}>
+                        <p className="text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>
                           {rec.title}
                         </p>
                       </div>
-                      <p className="text-[11px] leading-relaxed" style={{ color: "#5a657a" }}>
+                      <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-tertiary)" }}>
                         {rec.description}
                       </p>
                       <div
@@ -808,12 +808,12 @@ export default function DashboardHome() {
           <div className="max-h-[340px] overflow-y-auto">
             <Table>
               <TableHeader>
-                <TableRow style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                  <TableHead className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "#5a657a" }}>FIR ID</TableHead>
-                  <TableHead className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "#5a657a" }}>Crime Type</TableHead>
-                  <TableHead className="text-[10px] uppercase tracking-wider font-semibold hidden md:table-cell" style={{ color: "#5a657a" }}>District</TableHead>
-                  <TableHead className="text-[10px] uppercase tracking-wider font-semibold text-center" style={{ color: "#5a657a" }}>Days</TableHead>
-                  <TableHead className="text-[10px] uppercase tracking-wider font-semibold text-right" style={{ color: "#5a657a" }}>Priority</TableHead>
+                <TableRow style={{ borderBottom: "1px solid var(--border-default)" }}>
+                  <TableHead className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "var(--text-tertiary)" }}>FIR ID</TableHead>
+                  <TableHead className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "var(--text-tertiary)" }}>Crime Type</TableHead>
+                  <TableHead className="text-[10px] uppercase tracking-wider font-semibold hidden md:table-cell" style={{ color: "var(--text-tertiary)" }}>District</TableHead>
+                  <TableHead className="text-[10px] uppercase tracking-wider font-semibold text-center" style={{ color: "var(--text-tertiary)" }}>Days</TableHead>
+                  <TableHead className="text-[10px] uppercase tracking-wider font-semibold text-right" style={{ color: "var(--text-tertiary)" }}>Priority</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -823,17 +823,17 @@ export default function DashboardHome() {
                     <TableRow
                       key={item.firId}
                       className="cursor-pointer transition-colors duration-150"
-                      style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}
+                      style={{ borderBottom: "1px solid var(--border-subtle)" }}
                       onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                     >
                       <TableCell className="text-[11px] font-mono font-bold" style={{ color: "#22d3ee" }}>
                         {item.firId}
                       </TableCell>
-                      <TableCell className="text-[12px]" style={{ color: "#e8edf5" }}>
+                      <TableCell className="text-[12px]" style={{ color: "var(--text-primary)" }}>
                         {item.crimeType}
                       </TableCell>
-                      <TableCell className="text-[11px] hidden md:table-cell" style={{ color: "#8b97b0" }}>
+                      <TableCell className="text-[11px] hidden md:table-cell" style={{ color: "var(--text-secondary)" }}>
                         {item.district}
                       </TableCell>
                       <TableCell className="text-center">
@@ -923,7 +923,7 @@ export default function DashboardHome() {
                           <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ backgroundColor: "#f87171" }} />
                         </span>
                       )}
-                      <p className="text-[12px] font-medium truncate" style={{ color: "#e8edf5" }}>
+                      <p className="text-[12px] font-medium truncate" style={{ color: "var(--text-primary)" }}>
                         {alert.name}
                       </p>
                       <span
@@ -933,9 +933,9 @@ export default function DashboardHome() {
                         {alert.risk}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1.5 mt-1 text-[10px]" style={{ color: "#5a657a" }}>
+                    <div className="flex items-center gap-1.5 mt-1 text-[10px]" style={{ color: "var(--text-tertiary)" }}>
                       <span>{alert.activeCases} active case{alert.activeCases > 1 ? "s" : ""}</span>
-                      <span style={{ color: "#3d4659" }}>·</span>
+                      <span style={{ color: "var(--text-muted)" }}>·</span>
                       <span>{alert.prior_firs} prior FIRs</span>
                     </div>
                   </div>
@@ -944,8 +944,8 @@ export default function DashboardHome() {
             ))}
             {riskAlerts.length === 0 && (
               <div className="flex flex-col items-center justify-center py-10 gap-2">
-                <ShieldAlert className="w-6 h-6" style={{ color: "#3d4659" }} />
-                <p className="text-[11px] text-center" style={{ color: "#3d4659" }}>No critical risk alerts at this time</p>
+                <ShieldAlert className="w-6 h-6" style={{ color: "var(--text-muted)" }} />
+                <p className="text-[11px] text-center" style={{ color: "var(--text-muted)" }}>No critical risk alerts at this time</p>
               </div>
             )}
           </div>
@@ -978,12 +978,12 @@ export default function DashboardHome() {
         <div className="max-h-96 overflow-y-auto">
           <Table>
             <TableHeader>
-              <TableRow style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                <TableHead className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "#5a657a" }}>Name</TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider font-semibold hidden sm:table-cell" style={{ color: "#5a657a" }}>Age</TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider font-semibold hidden md:table-cell" style={{ color: "#5a657a" }}>Gang</TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "#5a657a" }}>Risk Score</TableHead>
-                <TableHead className="text-[10px] uppercase tracking-wider font-semibold hidden sm:table-cell" style={{ color: "#5a657a" }}>Prior FIRs</TableHead>
+              <TableRow style={{ borderBottom: "1px solid var(--border-default)" }}>
+                <TableHead className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "var(--text-tertiary)" }}>Name</TableHead>
+                <TableHead className="text-[10px] uppercase tracking-wider font-semibold hidden sm:table-cell" style={{ color: "var(--text-tertiary)" }}>Age</TableHead>
+                <TableHead className="text-[10px] uppercase tracking-wider font-semibold hidden md:table-cell" style={{ color: "var(--text-tertiary)" }}>Gang</TableHead>
+                <TableHead className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "var(--text-tertiary)" }}>Risk Score</TableHead>
+                <TableHead className="text-[10px] uppercase tracking-wider font-semibold hidden sm:table-cell" style={{ color: "var(--text-tertiary)" }}>Prior FIRs</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -991,7 +991,7 @@ export default function DashboardHome() {
                 <TableRow
                   key={a.id}
                   className="cursor-pointer transition-colors duration-150"
-                  style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}
+                  style={{ borderBottom: "1px solid var(--border-subtle)" }}
                   onClick={() => {
                     setSelectedAccusedId(a.id);
                     setView("accused");
@@ -1011,10 +1011,10 @@ export default function DashboardHome() {
                       >
                         {a.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
                       </div>
-                      <span className="text-[12px] font-medium" style={{ color: "#e8edf5" }}>{a.name}</span>
+                      <span className="text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>{a.name}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-[12px] hidden sm:table-cell" style={{ color: "#8b97b0" }}>{a.age}</TableCell>
+                  <TableCell className="text-[12px] hidden sm:table-cell" style={{ color: "var(--text-secondary)" }}>{a.age}</TableCell>
                   <TableCell className="hidden md:table-cell">
                     {a.gang ? (
                       <span
@@ -1028,7 +1028,7 @@ export default function DashboardHome() {
                         {a.gang}
                       </span>
                     ) : (
-                      <span className="text-[11px] italic" style={{ color: "#3d4659" }}>Unknown</span>
+                      <span className="text-[11px] italic" style={{ color: "var(--text-muted)" }}>Unknown</span>
                     )}
                   </TableCell>
                   <TableCell>

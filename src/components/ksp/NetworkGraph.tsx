@@ -97,10 +97,10 @@ const NODE_TYPE_CONFIG: Record<
 /* ------------------------------------------------------------------ */
 
 const glassCard: React.CSSProperties = {
-  background: "rgba(15, 21, 36, 0.92)",
+  background: "var(--bg-card)",
   backdropFilter: "blur(24px)",
   WebkitBackdropFilter: "blur(24px)",
-  border: "1px solid rgba(255, 255, 255, 0.06)",
+  border: "1px solid var(--border-default)",
   borderRadius: "12px",
   boxShadow:
     "0 16px 48px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.03)",
@@ -121,12 +121,12 @@ function InfoRow({
 }) {
   return (
     <div className="flex items-start gap-2 py-1.5">
-      <Icon className="size-4 mt-0.5 shrink-0 text-[#8b97b0]" />
+      <Icon className="size-4 mt-0.5 shrink-0 text-[var(--text-secondary)]" />
       <div className="min-w-0">
-        <p className="text-[11px] uppercase tracking-wider text-[#5a657a]">
+        <p className="text-[11px] uppercase tracking-wider text-[var(--text-tertiary)]">
           {label}
         </p>
-        <p className="text-sm text-[#f1f5f9] break-words">{value}</p>
+        <p className="text-sm text-[var(--text-primary)] break-words">{value}</p>
       </div>
     </div>
   );
@@ -148,7 +148,7 @@ function AccusedPanel({ node }: { node: SimNode }) {
           <h3 className="text-base font-semibold text-white leading-tight">
             {a.name}
           </h3>
-          <span className="text-[11px] text-[#5a657a] uppercase">
+          <span className="text-[11px] text-[var(--text-tertiary)] uppercase">
             Accused &bull; {a.id}
           </span>
         </div>
@@ -184,7 +184,7 @@ function AccusedPanel({ node }: { node: SimNode }) {
       />
       {firs.length > 0 && (
         <div className="mt-2">
-          <p className="text-[11px] uppercase tracking-wider text-[#5a657a] mb-1">
+          <p className="text-[11px] uppercase tracking-wider text-[var(--text-tertiary)] mb-1">
             Linked FIRs
           </p>
           <div className="flex flex-wrap gap-1">
@@ -216,7 +216,7 @@ function GangPanel({ node }: { node: SimNode }) {
           <h3 className="text-base font-semibold text-white leading-tight">
             {g.name}
           </h3>
-          <span className="text-[11px] text-[#5a657a] uppercase">
+          <span className="text-[11px] text-[var(--text-tertiary)] uppercase">
             Gang &bull; {g.id}
           </span>
         </div>
@@ -233,7 +233,7 @@ function GangPanel({ node }: { node: SimNode }) {
               return (
                 <div key={mid}>
                   {acc ? acc.name : mid}{" "}
-                  <span className="text-[#5a657a]">({mid})</span>
+                  <span className="text-[var(--text-tertiary)]">({mid})</span>
                 </div>
               );
             })}
@@ -256,7 +256,7 @@ function FIRPanel({ node }: { node: SimNode }) {
           <h3 className="text-base font-semibold text-white leading-tight">
             {f.fir_id}
           </h3>
-          <span className="text-[11px] text-[#5a657a] uppercase">
+          <span className="text-[11px] text-[var(--text-tertiary)] uppercase">
             FIR &bull; {f.crime_type}
           </span>
         </div>
@@ -313,7 +313,7 @@ function VehiclePanel({ node }: { node: SimNode }) {
           <h3 className="text-base font-semibold text-white leading-tight">
             {v.reg}
           </h3>
-          <span className="text-[11px] text-[#5a657a] uppercase">
+          <span className="text-[11px] text-[var(--text-tertiary)] uppercase">
             Vehicle &bull; {v.id}
           </span>
         </div>
@@ -337,7 +337,7 @@ function DistrictPanel({ node }: { node: SimNode }) {
           <h3 className="text-base font-semibold text-white leading-tight">
             {d.name}
           </h3>
-          <span className="text-[11px] text-[#5a657a] uppercase">
+          <span className="text-[11px] text-[var(--text-tertiary)] uppercase">
             District
           </span>
         </div>
@@ -1001,9 +1001,9 @@ function NetworkGraphInner() {
   return (
     <div className="flex flex-col h-full w-full">
       {/* Filter Controls Bar */}
-      <div className="flex flex-wrap items-center gap-3 px-4 py-2.5 border-b border-[rgba(255,255,255,0.06)] shrink-0 bg-[#080c18]/80">
+      <div className="flex flex-wrap items-center gap-3 px-4 py-2.5 shrink-0" style={{ background: "var(--bg-elevated-1)", borderBottom: "1px solid var(--border-default)" }}>
         <div className="flex items-center gap-2">
-          <label className="text-[10px] font-semibold text-[#5a657a] uppercase tracking-wider">
+          <label className="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">
             Crime
           </label>
           <Select
@@ -1014,15 +1014,15 @@ function NetworkGraphInner() {
               setLayoutVersion((l) => l + 1);
             }}
           >
-            <SelectTrigger className="w-40 h-7 text-xs bg-[rgba(10,15,28,0.8)] border-[rgba(255,255,255,0.06)] text-[#f1f5f9]">
+            <SelectTrigger className="w-32 sm:w-40 h-7 text-xs bg-[var(--bg-input)] border-[var(--border-default)] text-[var(--text-primary)]">
               <SelectValue placeholder="All Types" />
             </SelectTrigger>
-            <SelectContent className="bg-[rgba(15,21,36,0.95)] border-[rgba(255,255,255,0.06)]">
-              <SelectItem value="all" className="text-[#f1f5f9]">
+            <SelectContent className="bg-[var(--bg-card)] border-[var(--border-default)]">
+              <SelectItem value="all" className="text-[var(--text-primary)]">
                 All Types
               </SelectItem>
               {crimeTypes.map((ct) => (
-                <SelectItem key={ct} value={ct} className="text-[#f1f5f9]">
+                <SelectItem key={ct} value={ct} className="text-[var(--text-primary)]">
                   {ct}
                 </SelectItem>
               ))}
@@ -1030,7 +1030,7 @@ function NetworkGraphInner() {
           </Select>
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-[10px] font-semibold text-[#5a657a] uppercase tracking-wider">
+          <label className="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">
             Gang
           </label>
           <Select
@@ -1041,15 +1041,15 @@ function NetworkGraphInner() {
               setLayoutVersion((l) => l + 1);
             }}
           >
-            <SelectTrigger className="w-48 h-7 text-xs bg-[rgba(10,15,28,0.8)] border-[rgba(255,255,255,0.06)] text-[#f1f5f9]">
+            <SelectTrigger className="w-36 sm:w-48 h-7 text-xs bg-[var(--bg-input)] border-[var(--border-default)] text-[var(--text-primary)]">
               <SelectValue placeholder="All Gangs" />
             </SelectTrigger>
-            <SelectContent className="bg-[rgba(15,21,36,0.95)] border-[rgba(255,255,255,0.06)]">
-              <SelectItem value="all" className="text-[#f1f5f9]">
+            <SelectContent className="bg-[var(--bg-card)] border-[var(--border-default)]">
+              <SelectItem value="all" className="text-[var(--text-primary)]">
                 All Gangs
               </SelectItem>
               {gangNames.map((gn) => (
-                <SelectItem key={gn} value={gn} className="text-[#f1f5f9]">
+                <SelectItem key={gn} value={gn} className="text-[var(--text-primary)]">
                   {gn}
                 </SelectItem>
               ))}
@@ -1062,10 +1062,10 @@ function NetworkGraphInner() {
 
         {/* Node/Link count in toolbar */}
         {simReady && (
-          <span className="text-[10px] text-[#5a657a] font-medium tabular-nums mr-2">
-            <span className="text-[#8b97b0]">{simNodes.length}</span> nodes
-            <span className="mx-1 text-[#3d4659]">&middot;</span>
-            <span className="text-[#8b97b0]">{links.length}</span> links
+          <span className="text-[10px] text-[var(--text-tertiary)] font-medium tabular-nums mr-2">
+            <span className="text-[var(--text-secondary)]">{simNodes.length}</span> nodes
+            <span className="mx-1 text-[var(--text-muted)]">&middot;</span>
+            <span className="text-[var(--text-secondary)]">{links.length}</span> links
           </span>
         )}
 
@@ -1138,7 +1138,7 @@ function NetworkGraphInner() {
                 setSelectedNode(null);
               }}
             />
-            <div className="w-full h-px bg-[rgba(255,255,255,0.06)] my-0.5" />
+            <div className="w-full h-px bg-[var(--border-default)] my-0.5" />
             <ToolbarButton
               icon={<Box className="size-4" />}
               tooltip="Reset Filters"
@@ -1156,7 +1156,7 @@ function NetworkGraphInner() {
               borderRadius: "10px",
             }}
           >
-            <p className="text-[9px] font-semibold text-[#5a657a] uppercase tracking-wider mb-2">
+            <p className="text-[9px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-2">
               Node Types
             </p>
             <div className="flex flex-col gap-1.5">
@@ -1169,14 +1169,14 @@ function NetworkGraphInner() {
                       boxShadow: `0 0 6px ${cfg.color}50`,
                     }}
                   />
-                  <span className="text-[11px] text-[#8b97b0]">
+                  <span className="text-[11px] text-[var(--text-secondary)]">
                     {cfg.label}
                   </span>
                 </div>
               ))}
             </div>
-            <div className="mt-2 pt-2 border-t border-[rgba(255,255,255,0.04)]">
-              <p className="text-[9px] font-semibold text-[#5a657a] uppercase tracking-wider mb-1.5">
+            <div className="mt-2 pt-2 border-t border-[var(--border-subtle)]">
+              <p className="text-[9px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5">
                 Link Types
               </p>
               <div className="flex flex-col gap-1">
@@ -1191,7 +1191,7 @@ function NetworkGraphInner() {
                       className="inline-block w-3 h-0.5 shrink-0 rounded-full"
                       style={{ backgroundColor: l.color }}
                     />
-                    <span className="text-[10px] text-[#5a657a]">
+                    <span className="text-[10px] text-[var(--text-tertiary)]">
                       {l.label}
                     </span>
                   </div>
@@ -1210,7 +1210,7 @@ function NetworkGraphInner() {
               borderRadius: "8px",
             }}
           >
-            <p className="text-[9px] text-[#3d4659] leading-relaxed">
+            <p className="text-[9px] text-[var(--text-muted)] leading-relaxed">
               Left-drag: rotate &bull; Scroll: zoom &bull; Right-drag: pan &bull; Click: select
             </p>
           </div>
@@ -1236,16 +1236,16 @@ function NetworkGraphInner() {
                   boxShadow: `0 0 8px ${displayNode.color}60`,
                 }}
               />
-              <span className="text-[12px] font-semibold text-[#f1f5f9] truncate">
+              <span className="text-[12px] font-semibold text-[var(--text-primary)] truncate">
                 {displayNode.name}
               </span>
-              <span className="text-[9px] text-[#5a657a] uppercase tracking-wider ml-auto">
+              <span className="text-[9px] text-[var(--text-tertiary)] uppercase tracking-wider ml-auto">
                 {displayNode.type}
               </span>
             </div>
             {displayNode.type === "accused" && displayNode._accused && (
               <div className="flex items-center gap-3 text-[11px]">
-                <span className="text-[#8b97b0]">
+                <span className="text-[var(--text-secondary)]">
                   Risk:{" "}
                   <span
                     className={
@@ -1259,18 +1259,18 @@ function NetworkGraphInner() {
                     {displayNode._accused.risk}/100
                   </span>
                 </span>
-                <span className="text-[#5a657a]">&middot;</span>
-                <span className="text-[#8b97b0]">
+                <span className="text-[var(--text-tertiary)]">&middot;</span>
+                <span className="text-[var(--text-secondary)]">
                   Age: {displayNode._accused.age}
                 </span>
               </div>
             )}
             {displayNode.type === "fir" && displayNode._fir && (
               <div className="flex items-center gap-3 text-[11px]">
-                <span className="text-[#8b97b0]">
+                <span className="text-[var(--text-secondary)]">
                   {displayNode._fir.crime_type}
                 </span>
-                <span className="text-[#5a657a]">&middot;</span>
+                <span className="text-[var(--text-tertiary)]">&middot;</span>
                 <span
                   className={
                     displayNode._fir.severity === "critical"
@@ -1286,29 +1286,29 @@ function NetworkGraphInner() {
             )}
             {displayNode.type === "gang" && displayNode._gang && (
               <div className="flex items-center gap-3 text-[11px]">
-                <span className="text-[#8b97b0]">
+                <span className="text-[var(--text-secondary)]">
                   {displayNode._gang.type}
                 </span>
-                <span className="text-[#5a657a]">&middot;</span>
-                <span className="text-[#8b97b0]">
+                <span className="text-[var(--text-tertiary)]">&middot;</span>
+                <span className="text-[var(--text-secondary)]">
                   {displayNode._gang.members.length} members
                 </span>
               </div>
             )}
             {displayNode.type === "vehicle" && displayNode._vehicle && (
               <div className="flex items-center gap-3 text-[11px]">
-                <span className="text-[#8b97b0]">
+                <span className="text-[var(--text-secondary)]">
                   {displayNode._vehicle.make} {displayNode._vehicle.type}
                 </span>
-                <span className="text-[#5a657a]">&middot;</span>
-                <span className="text-[#8b97b0]">
+                <span className="text-[var(--text-tertiary)]">&middot;</span>
+                <span className="text-[var(--text-secondary)]">
                   {displayNode._vehicle.color}
                 </span>
               </div>
             )}
             {displayNode.type === "district" && (
               <div className="flex items-center gap-3 text-[11px]">
-                <span className="text-[#8b97b0]">
+                <span className="text-[var(--text-secondary)]">
                   {displayNode._firCount ?? 0} FIRs
                 </span>
               </div>
@@ -1319,17 +1319,17 @@ function NetworkGraphInner() {
         {/* ── Right Side Info Panel ── */}
         {selectedNode && (
           <div
-            className="absolute top-0 right-0 w-80 h-full z-10 flex flex-col overflow-hidden"
+            className="absolute top-0 right-0 w-80 max-w-[85vw] h-full z-10 flex flex-col overflow-hidden rounded-l-xl"
             style={{
-              background: "rgba(7, 10, 20, 0.96)",
+              background: "var(--bg-sidebar)",
               backdropFilter: "blur(24px)",
               WebkitBackdropFilter: "blur(24px)",
-              borderLeft: "1px solid rgba(255,255,255,0.06)",
+              borderLeft: "1px solid var(--border-default)",
               boxShadow:
                 "-8px 0 32px rgba(0,0,0,0.4)",
             }}
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(255,255,255,0.06)] shrink-0">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-default)] shrink-0">
               <div className="flex items-center gap-2">
                 <span
                   className="w-2 h-2 rounded-full"
@@ -1344,7 +1344,7 @@ function NetworkGraphInner() {
               </div>
               <button
                 onClick={() => setSelectedNode(null)}
-                className="w-7 h-7 rounded-md flex items-center justify-center text-[#5a657a] hover:text-white hover:bg-[rgba(34,211,238,0.08)] transition-colors"
+                className="w-7 h-7 rounded-md flex items-center justify-center text-[var(--text-tertiary)] hover:text-white hover:bg-[rgba(34,211,238,0.08)] transition-colors"
               >
                 <X className="size-4" />
               </button>
@@ -1366,17 +1366,17 @@ function NetworkGraphInner() {
                 <DistrictPanel node={selectedNode} />
               )}
             </div>
-            <div className="px-4 py-2.5 border-t border-[rgba(255,255,255,0.06)] shrink-0">
+            <div className="px-4 py-2.5 border-t border-[var(--border-default)] shrink-0">
               <div className="flex items-center gap-2">
                 <div
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: selectedNode.color }}
                 />
-                <span className="text-[11px] text-[#5a657a] uppercase">
+                <span className="text-[11px] text-[var(--text-tertiary)] uppercase">
                   {selectedNode.type}
                 </span>
                 <span className="text-[11px] text-[#334155]">&middot;</span>
-                <span className="text-[11px] text-[#3d4659] truncate">
+                <span className="text-[11px] text-[var(--text-muted)] truncate">
                   {selectedNode.id}
                 </span>
               </div>
@@ -1409,7 +1409,7 @@ function ToolbarButton({
       onMouseLeave={() => setHovered(false)}
       className="w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-150 relative group"
       style={{
-        color: hovered ? "#22d3ee" : "#8b97b0",
+        color: hovered ? "#22d3ee" : "var(--text-secondary)",
         background: hovered ? "rgba(34,211,238,0.08)" : "transparent",
       }}
       title={tooltip}
@@ -1420,9 +1420,9 @@ function ToolbarButton({
         <span
           className="absolute left-full ml-2 whitespace-nowrap text-[10px] font-medium px-2 py-1 rounded-md z-50 pointer-events-none"
           style={{
-            background: "rgba(15,21,36,0.95)",
-            border: "1px solid rgba(255,255,255,0.06)",
-            color: "#f1f5f9",
+            background: "var(--bg-card)",
+            border: "1px solid var(--border-default)",
+            color: "var(--text-primary)",
             boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
           }}
         >

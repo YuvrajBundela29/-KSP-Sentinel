@@ -1,0 +1,1056 @@
+     1→"use client";
+     2→
+     3→import { useEffect, useMemo } from "react";
+     4→import {
+     5→  BarChart,
+     6→  Bar,
+     7→  XAxis,
+     8→  YAxis,
+     9→  Tooltip,
+    10→  ResponsiveContainer,
+    11→  CartesianGrid,
+    12→} from "recharts";
+    13→import {
+    14→  FileText,
+    15→  Search,
+    16→  UserX,
+    17→  AlertTriangle,
+    18→  MapPin,
+    19→  Users,
+    20→  Brain,
+    21→  Clock,
+    22→  Radio,
+    23→  ShieldAlert,
+    24→  TrendingUp,
+    25→  Activity,
+    26→  Zap,
+    27→  ArrowUpRight,
+    28→  ArrowDownRight,
+    29→  Fingerprint,
+    30→  RadioTower,
+    31→  Lock,
+    32→  Eye,
+    33→} from "lucide-react";
+    34→import { motion } from "framer-motion";
+    35→import { useAppStore } from "@/lib/store";
+    36→import { loadCrimeData } from "@/lib/data";
+    37→import {
+    38→  getIntelFeedItems,
+    39→  getInvestigationQueue,
+    40→  getAIRecommendations,
+    41→  getCrimeTrendByMonth,
+    42→} from "@/lib/intelligence";
+    43→import LoadingSpinner from "@/components/ksp/LoadingSpinner";
+    44→import {
+    45→  Table,
+    46→  TableHeader,
+    47→  TableBody,
+    48→  TableHead,
+    49→  TableRow,
+    50→  TableCell,
+    51→} from "@/components/ui/table";
+    52→
+    53→// ─── Sparkline helper ────────────────────────────────────────────
+    54→function Sparkline({ data, color = "#22d3ee" }: { data: { month: string; count: number }[]; color?: string }) {
+    55→  if (data.length < 2) return null;
+    56→  const max = Math.max(...data.map((d) => d.count), 1);
+    57→  const w = 80, h = 24, pad = 2;
+    58→  const points = data
+    59→    .map((d, i) => {
+    60→      const x = pad + (i / (data.length - 1)) * (w - pad * 2);
+    61→      const y = h - pad - (d.count / max) * (h - pad * 2);
+    62→      return `${x},${y}`;
+    63→    })
+    64→    .join(" ");
+    65→  return (
+    66→    <svg width={w} height={h} className="mt-2 opacity-50">
+    67→      <defs>
+    68→        <linearGradient id={`spark-grad-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
+    69→          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+    70→          <stop offset="100%" stopColor={color} stopOpacity="0" />
+    71→        </linearGradient>
+    72→      </defs>
+    73→      <polyline
+    74→        points={points}
+    75→        fill="none"
+    76→        stroke={color}
+    77→        strokeWidth="1.5"
+    78→        strokeLinecap="round"
+    79→        strokeLinejoin="round"
+    80→        className="sparkline-path"
+    81→      />
+    82→    </svg>
+    83→  );
+    84→}
+    85→
+    86→// ─── Severity Badge ──────────────────────────────────────────────
+    87→function SeverityBadge({ severity }: { severity: string }) {
+    88→  const config: Record<string, { color: string; bg: string; border: string }> = {
+    89→    critical: { color: "#f87171", bg: "rgba(248,113,113,0.08)", border: "rgba(248,113,113,0.15)" },
+    90→    high: { color: "#fbbf24", bg: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.15)" },
+    91→    medium: { color: "#fbbf24", bg: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.15)" },
+    92→    low: { color: "#34d399", bg: "rgba(52,211,153,0.08)", border: "rgba(52,211,153,0.15)" },
+    93→  };
+    94→  const c = config[severity] || config.low;
+    95→  return (
+    96→    <span
+    97→      className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
+    98→      style={{ color: c.color, backgroundColor: c.bg, border: `1px solid ${c.border}` }}
+    99→    >
+   100→      {severity}
+   101→    </span>
+   102→  );
+   103→}
+   104→
+   105→// ─── Premium Stat Card ───────────────────────────────────────────
+   106→function StatCard({
+   107→  icon: Icon,
+   108→  label,
+   109→  value,
+   110→  sparkData,
+   111→  gradientClass,
+   112→  accentColor,
+   113→  stagger,
+   114→  subtitle,
+   115→  delta,
+   116→}: {
+   117→  icon: React.ElementType;
+   118→  label: string;
+   119→  value: number;
+   120→  sparkData: { month: string; count: number }[];
+   121→  gradientClass: string;
+   122→  accentColor: string;
+   123→  stagger: string;
+   124→  subtitle?: string;
+   125→  delta?: number;
+   126→}) {
+   127→  return (
+   128→    <motion.div
+   129→      className={`glass-card p-4 ${stagger} animate-fade-in-up`}
+   130→      whileHover={{ y: -2, transition: { duration: 0.2 } }}
+   131→      style={{ position: "relative", overflow: "hidden" }}
+   132→    >
+   133→      {/* Gradient overlay */}
+   134→      <div className={`absolute inset-0 ${gradientClass} pointer-events-none`} style={{ borderRadius: "inherit" }} />
+   135→
+   136→      {/* Top accent line */}
+   137→      <div
+   138→        className="absolute top-0 left-4 right-4 h-px"
+   139→        style={{ background: `linear-gradient(90deg, ${accentColor}30, transparent)` }}
+   140→      />
+   141→
+   142→      <div className="relative z-10">
+   143→        <div className="flex items-start justify-between mb-3">
+   144→          <div
+   145→            className="w-8 h-8 rounded-lg flex items-center justify-center"
+   146→            style={{
+   147→              background: `${accentColor}10`,
+   148→              border: `1px solid ${accentColor}15`,
+   149→            }}
+   150→          >
+   151→            <Icon className="w-3.5 h-3.5" style={{ color: accentColor }} />
+   152→          </div>
+   153→          {delta !== undefined && (
+   154→            <span
+   155→              className="inline-flex items-center gap-0.5 text-[10px] font-semibold rounded-full px-1.5 py-0.5"
+   156→              style={{
+   157→                color: delta >= 0 ? "#34d399" : "#f87171",
+   158→                backgroundColor: delta >= 0 ? "rgba(52,211,153,0.08)" : "rgba(248,113,113,0.08)",
+   159→              }}
+   160→            >
+   161→              {delta >= 0 ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
+   162→              {Math.abs(delta)}%
+   163→            </span>
+   164→          )}
+   165→        </div>
+   166→
+   167→        <p className="text-[26px] font-bold tracking-tight leading-none animate-count-up" style={{ color: "#f1f5f9" }}>
+   168→          {value.toLocaleString()}
+   169→        </p>
+   170→        <p className="text-[11px] mt-1.5 uppercase tracking-widest font-medium" style={{ color: "#5a657a" }}>
+   171→          {label}
+   172→        </p>
+   173→        {subtitle && (
+   174→          <p className="text-[10px] mt-0.5" style={{ color: "#3d4659" }}>{subtitle}</p>
+   175→        )}
+   176→        <Sparkline data={sparkData} color={accentColor} />
+   177→      </div>
+   178→    </motion.div>
+   179→  );
+   180→}
+   181→
+   182→// ─── Risk Bar ────────────────────────────────────────────────────
+   183→function RiskBar({ score }: { score: number }) {
+   184→  const color = score > 80 ? "#f87171" : score > 60 ? "#fbbf24" : "#34d399";
+   185→  return (
+   186→    <div className="flex items-center gap-2.5 min-w-[120px]">
+   187→      <div
+   188→        className="flex-1 h-1.5 rounded-full overflow-hidden"
+   189→        style={{ backgroundColor: "rgba(255,255,255,0.04)" }}
+   190→      >
+   191→        <motion.div
+   192→          className="h-full rounded-full"
+   193→          style={{
+   194→            backgroundColor: color,
+   195→            boxShadow: `0 0 8px ${color}40`,
+   196→          }}
+   197→          initial={{ width: 0 }}
+   198→          animate={{ width: `${Math.min(score, 100)}%` }}
+   199→          transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+   200→        />
+   201→      </div>
+   202→      <span className="text-[11px] font-mono w-7 text-right tabular-nums" style={{ color }}>{score}</span>
+   203→    </div>
+   204→  );
+   205→}
+   206→
+   207→// ─── Chart Tooltip ───────────────────────────────────────────────
+   208→function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
+   209→  if (!active || !payload?.length) return null;
+   210→  return (
+   211→    <div
+   212→      className="rounded-lg px-3.5 py-2.5"
+   213→      style={{
+   214→        background: "rgba(15,21,36,0.95)",
+   215→        border: "1px solid rgba(255,255,255,0.08)",
+   216→        backdropFilter: "blur(16px)",
+   217→        boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03)",
+   218→      }}
+   219→    >
+   220→      <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a657a" }}>{label}</p>
+   221→      <p className="text-[13px] font-bold" style={{ color: "#f1f5f9" }}>
+   222→        {payload[0].value} <span className="font-normal text-[11px]" style={{ color: "#8b97b0" }}>FIRs filed</span>
+   223→      </p>
+   224→    </div>
+   225→  );
+   226→}
+   227→
+   228→// ─── Relative timestamp ──────────────────────────────────────────
+   229→function relativeTime(isoStr: string): string {
+   230→  const diff = Date.now() - new Date(isoStr).getTime();
+   231→  const mins = Math.floor(diff / 60000);
+   232→  if (mins < 1) return "just now";
+   233→  if (mins < 60) return `${mins}m ago`;
+   234→  const hrs = Math.floor(mins / 60);
+   235→  if (hrs < 24) return `${hrs}h ago`;
+   236→  const days = Math.floor(hrs / 24);
+   237→  return `${days}d ago`;
+   238→}
+   239→
+   240→// ─── Priority Badge ──────────────────────────────────────────────
+   241→function PriorityBadge({ score }: { score: number }) {
+   242→  if (score > 90)
+   243→    return (
+   244→      <span
+   245→        className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold tabular-nums"
+   246→        style={{
+   247→          backgroundColor: "rgba(248,113,113,0.1)",
+   248→          color: "#f87171",
+   249→          border: "1px solid rgba(248,113,113,0.15)",
+   250→        }}
+   251→      >
+   252→        {score}
+   253→      </span>
+   254→    );
+   255→  if (score > 70)
+   256→    return (
+   257→      <span
+   258→        className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold tabular-nums"
+   259→        style={{
+   260→          backgroundColor: "rgba(251,191,36,0.1)",
+   261→          color: "#fbbf24",
+   262→          border: "1px solid rgba(251,191,36,0.15)",
+   263→        }}
+   264→      >
+   265→        {score}
+   266→      </span>
+   267→    );
+   268→  return (
+   269→    <span
+   270→      className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold tabular-nums"
+   271→      style={{
+   272→        backgroundColor: "rgba(52,211,153,0.1)",
+   273→        color: "#34d399",
+   274→        border: "1px solid rgba(52,211,153,0.15)",
+   275→      }}
+   276→    >
+   277→      {score}
+   278→    </span>
+   279→  );
+   280→}
+   281→
+   282→// ─── Intel type icon ─────────────────────────────────────────────
+   283→function IntelTypeIcon({ type }: { type: string }) {
+   284→  const config: Record<string, { icon: React.ElementType; color: string }> = {
+   285→    alert: { icon: AlertTriangle, color: "#f87171" },
+   286→    update: { icon: Activity, color: "#22d3ee" },
+   287→    arrest: { icon: Lock, color: "#34d399" },
+   288→    pattern: { icon: Fingerprint, color: "#818cf8" },
+   289→    intelligence: { icon: Eye, color: "#fbbf24" },
+   290→  };
+   291→  const c = config[type] || { icon: Radio, color: "#22d3ee" };
+   292→  const Icon = c.icon;
+   293→  return (
+   294→    <div
+   295→      className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
+   296→      style={{
+   297→        background: `${c.color}10`,
+   298→        border: `1px solid ${c.color}15`,
+   299→      }}
+   300→    >
+   301→      <Icon className="w-3 h-3" style={{ color: c.color }} />
+   302→    </div>
+   303→  );
+   304→}
+   305→
+   306→// ─── Section Header ──────────────────────────────────────────────
+   307→function SectionHeader({
+   308→  accentColor,
+   309→  icon: Icon,
+   310→  title,
+   311→  count,
+   312→  trailing,
+   313→}: {
+   314→  accentColor: string;
+   315→  icon: React.ElementType;
+   316→  title: string;
+   317→  count?: number;
+   318→  trailing?: React.ReactNode;
+   319→}) {
+   320→  return (
+   321→    <div className="flex items-center gap-2.5 mb-4">
+   322→      <div className="flex items-center gap-2">
+   323→        <div className="w-1 h-4 rounded-full" style={{ backgroundColor: accentColor }} />
+   324→        <Icon className="w-3.5 h-3.5" style={{ color: accentColor }} />
+   325→        <h3 className="text-[11px] font-semibold tracking-[0.1em] uppercase" style={{ color: "#f1f5f9" }}>
+   326→          {title}
+   327→        </h3>
+   328→        {count !== undefined && (
+   329→          <span
+   330→            className="text-[10px] font-mono tabular-nums px-1.5 py-0.5 rounded-md"
+   331→            style={{
+   332→              color: accentColor,
+   333→              backgroundColor: `${accentColor}10`,
+   334→              border: `1px solid ${accentColor}15`,
+   335→            }}
+   336→          >
+   337→            {count}
+   338→          </span>
+   339→        )}
+   340→      </div>
+   341→      {trailing && <div className="ml-auto">{trailing}</div>}
+   342→    </div>
+   343→  );
+   344→}
+   345→
+   346→// ─── Main Dashboard ──────────────────────────────────────────────
+   347→export default function DashboardHome() {
+   348→  const crimeData = useAppStore((s) => s.crimeData);
+   349→  const setCrimeData = useAppStore((s) => s.setCrimeData);
+   350→  const setDataLoading = useAppStore((s) => s.setDataLoading);
+   351→  const dataLoading = useAppStore((s) => s.dataLoading);
+   352→  const setView = useAppStore((s) => s.setView);
+   353→  const setSelectedAccusedId = useAppStore((s) => s.setSelectedAccusedId);
+   354→
+   355→  useEffect(() => {
+   356→    if (!crimeData && !dataLoading) {
+   357→      setDataLoading(true);
+   358→      loadCrimeData()
+   359→        .then((data) => setCrimeData(data))
+   360→        .catch((err) => console.error("Failed to load crime data:", err))
+   361→        .finally(() => setDataLoading(false));
+   362→    }
+   363→  }, [crimeData, dataLoading, setCrimeData, setDataLoading]);
+   364→
+   365→  const stats = useMemo(() => {
+   366→    if (!crimeData) return null;
+   367→    const { firs, accused, gangs, districts } = crimeData;
+   368→    const totalFIRs = firs.length;
+   369→    const activeCases = firs.filter((f) => f.investigation_status === "Under Investigation").length;
+   370→    const arrestedAccusedIds = new Set<string>();
+   371→    firs.filter((f) => f.investigation_status === "Arrested").forEach((f) => f.accused.forEach((id) => arrestedAccusedIds.add(id)));
+   372→    const arrestedCount = arrestedAccusedIds.size;
+   373→    const highRiskCount = accused.filter((a) => a.risk > 80).length;
+   374→    const closedCases = firs.filter((f) => f.investigation_status === "Closed" || f.investigation_status === "Arrested").length;
+   375→    const closureRate = totalFIRs > 0 ? Math.round((closedCases / totalFIRs) * 100) : 0;
+   376→    return { totalFIRs, activeCases, arrestedCount, highRiskCount, districtCount: districts.length, gangCount: gangs.length, closureRate };
+   377→  }, [crimeData]);
+   378→
+   379→  const chartData = useMemo(() => {
+   380→    if (!crimeData) return [];
+   381→    const map: Record<string, number> = {};
+   382→    crimeData.firs.forEach((f) => {
+   383→      map[f.crime_type] = (map[f.crime_type] ?? 0) + 1;
+   384→    });
+   385→    return Object.entries(map)
+   386→      .map(([name, count]) => ({ name, count }))
+   387→      .sort((a, b) => b.count - a.count);
+   388→  }, [crimeData]);
+   389→
+   390→  const recentFIRs = useMemo(() => {
+   391→    if (!crimeData) return [];
+   392→    return [...crimeData.firs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 6);
+   393→  }, [crimeData]);
+   394→
+   395→  const highRiskAccused = useMemo(() => {
+   396→    if (!crimeData) return [];
+   397→    return crimeData.accused.filter((a) => a.risk > 60).sort((a, b) => b.risk - a.risk);
+   398→  }, [crimeData]);
+   399→
+   400→  const crimeTrend = useMemo(() => {
+   401→    if (!crimeData) return [];
+   402→    return getCrimeTrendByMonth(crimeData);
+   403→  }, [crimeData]);
+   404→  const intelFeed = useMemo(() => {
+   405→    if (!crimeData) return [];
+   406→    return getIntelFeedItems(crimeData);
+   407→  }, [crimeData]);
+   408→  const recommendations = useMemo(() => {
+   409→    if (!crimeData) return [];
+   410→    return getAIRecommendations(crimeData);
+   411→  }, [crimeData]);
+   412→  const investigationQueue = useMemo(() => {
+   413→    if (!crimeData) return [];
+   414→    return getInvestigationQueue(crimeData);
+   415→  }, [crimeData]);
+   416→
+   417→  const riskAlerts = useMemo(() => {
+   418→    if (!crimeData) return [];
+   419→    return crimeData.accused
+   420→      .filter((a) => {
+   421→        if (a.risk < 80) return false;
+   422→        return crimeData.firs.some((f) => f.accused.includes(a.id) && f.investigation_status === "Under Investigation");
+   423→      })
+   424→      .map((a) => ({
+   425→        ...a,
+   426→        activeCases: crimeData.firs.filter((f) => f.accused.includes(a.id) && f.investigation_status === "Under Investigation").length,
+   427→      }))
+   428→      .sort((a, b) => b.risk - a.risk);
+   429→  }, [crimeData]);
+   430→
+   431→  if (!crimeData || !stats) return <LoadingSpinner message="Loading crime intelligence data..." />;
+   432→
+   433→  const statCards = [
+   434→    { icon: FileText, label: "Total FIRs", value: stats.totalFIRs, gradientClass: "gradient-cyan", accentColor: "#22d3ee", subtitle: `${stats.districtCount} districts`, delta: 12 },
+   435→    { icon: Search, label: "Active Cases", value: stats.activeCases, gradientClass: "gradient-indigo", accentColor: "#818cf8", subtitle: "Under investigation", delta: 3 },
+   436→    { icon: UserX, label: "Arrested", value: stats.arrestedCount, gradientClass: "gradient-emerald", accentColor: "#34d399", subtitle: `${stats.closureRate}% closure rate`, delta: 8 },
+   437→    { icon: AlertTriangle, label: "High Risk", value: stats.highRiskCount, gradientClass: "gradient-rose", accentColor: "#f87171", subtitle: "Score above 80", delta: -5 },
+   438→    { icon: MapPin, label: "Districts", value: stats.districtCount, gradientClass: "gradient-amber", accentColor: "#fbbf24", subtitle: "Active coverage" },
+   439→    { icon: Users, label: "Gang Networks", value: stats.gangCount, gradientClass: "gradient-indigo", accentColor: "#818cf8", subtitle: `${crimeData.accused.filter(a => a.gang).length} identified members` },
+   440→  ];
+   441→
+   442→  const staggerClasses = ["stagger-1", "stagger-2", "stagger-3", "stagger-4", "stagger-5", "stagger-6"];
+   443→
+   444→  return (
+   445→    <div className="space-y-5 p-5">
+   446→      {/* ═══ Mission Header ═══════════════════════════════════════ */}
+   447→      <div className="animate-fade-in-up stagger-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+   448→        <div>
+   449→          <div className="flex items-center gap-2.5 mb-1">
+   450→            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.15)" }}>
+   451→              <RadioTower className="w-3.5 h-3.5" style={{ color: "#22d3ee" }} />
+   452→            </div>
+   453→            <h1 className="text-[16px] font-bold tracking-tight" style={{ color: "#f1f5f9" }}>
+   454→              Operational Overview
+   455→            </h1>
+   456→          </div>
+   457→          <p className="text-[11px] ml-[38px]" style={{ color: "#5a657a" }}>
+   458→            Karnataka State Police — Real-time crime intelligence dashboard
+   459→          </p>
+   460→        </div>
+   461→        <div className="flex items-center gap-4 ml-[38px] sm:ml-0">
+   462→          <div className="flex items-center gap-2">
+   463→            <span className="relative flex h-1.5 w-1.5">
+   464→              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: "#34d399" }} />
+   465→              <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ backgroundColor: "#34d399" }} />
+   466→            </span>
+   467→            <span className="text-[10px] uppercase tracking-widest font-medium" style={{ color: "#34d399" }}>Systems Online</span>
+   468→          </div>
+   469→          <div className="h-3 w-px" style={{ backgroundColor: "rgba(255,255,255,0.06)" }} />
+   470→          <span className="text-[10px] font-mono tabular-nums" style={{ color: "#3d4659" }}>
+   471→            {new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })} · {new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false })}
+   472→          </span>
+   473→        </div>
+   474→      </div>
+   475→
+   476→      {/* ═══ Divider ══════════════════════════════════════════════ */}
+   477→      <div className="h-px animate-fade-in" style={{ background: "linear-gradient(90deg, rgba(34,211,238,0.2), rgba(129,140,248,0.1), transparent)" }} />
+   478→
+   479→      {/* ═══ Row 1: Premium Stat Cards ════════════════════════════ */}
+   480→      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+   481→        {statCards.map((card, i) => (
+   482→          <StatCard
+   483→            key={card.label}
+   484→            icon={card.icon}
+   485→            label={card.label}
+   486→            value={card.value}
+   487→            sparkData={crimeTrend}
+   488→            gradientClass={card.gradientClass}
+   489→            accentColor={card.accentColor}
+   490→            stagger={staggerClasses[i]}
+   491→            subtitle={card.subtitle}
+   492→            delta={card.delta}
+   493→          />
+   494→        ))}
+   495→      </div>
+   496→
+   497→      {/* ═══ Row 2: Chart + Recent FIRs ══════════════════════════ */}
+   498→      <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
+   499→        {/* Bar Chart */}
+   500→        <motion.div
+   501→          className="glass-card p-5 lg:col-span-3 animate-fade-in-up stagger-3"
+   502→          initial={{ opacity: 0, y: 16 }}
+   503→          animate={{ opacity: 1, y: 0 }}
+   504→          transition={{ delay: 0.3, duration: 0.4 }}
+   505→        >
+   506→          <SectionHeader
+   507→            accentColor="#22d3ee"
+   508→            icon={TrendingUp}
+   509→            title="FIRs by Crime Type"
+   510→            count={chartData.length}
+   511→          />
+   512→          <div className="h-[280px]">
+   513→            <ResponsiveContainer width="100%" height="100%">
+   514→              <BarChart data={chartData} margin={{ top: 4, right: 4, left: -16, bottom: 48 }}>
+   515→                <CartesianGrid
+   516→                  strokeDasharray="3 3"
+   517→                  stroke="rgba(255,255,255,0.03)"
+   518→                  vertical={false}
+   519→                />
+   520→                <XAxis
+   521→                  dataKey="name"
+   522→                  tick={{ fill: "#5a657a", fontSize: 10 }}
+   523→                  axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
+   524→                  tickLine={false}
+   525→                  angle={-35}
+   526→                  textAnchor="end"
+   527→                  interval={0}
+   528→                />
+   529→                <YAxis
+   530→                  tick={{ fill: "#5a657a", fontSize: 10 }}
+   531→                  axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
+   532→                  tickLine={false}
+   533→                  allowDecimals={false}
+   534→                />
+   535→                <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(34,211,238,0.04)" }} />
+   536→                <defs>
+   537→                  <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+   538→                    <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.9" />
+   539→                    <stop offset="50%" stopColor="#22d3ee" stopOpacity="0.5" />
+   540→                    <stop offset="100%" stopColor="#22d3ee" stopOpacity="0.2" />
+   541→                  </linearGradient>
+   542→                </defs>
+   543→                <Bar dataKey="count" fill="url(#barGrad)" radius={[4, 4, 0, 0]} maxBarSize={36} />
+   544→              </BarChart>
+   545→            </ResponsiveContainer>
+   546→          </div>
+   547→        </motion.div>
+   548→
+   549→        {/* Recent FIRs */}
+   550→        <motion.div
+   551→          className="glass-card p-5 lg:col-span-2 animate-fade-in-up stagger-4"
+   552→          initial={{ opacity: 0, y: 16 }}
+   553→          animate={{ opacity: 1, y: 0 }}
+   554→          transition={{ delay: 0.4, duration: 0.4 }}
+   555→        >
+   556→          <SectionHeader
+   557→            accentColor="#818cf8"
+   558→            icon={FileText}
+   559→            title="Recent FIRs"
+   560→            count={recentFIRs.length}
+   561→            trailing={
+   562→              <span
+   563→                className="text-[10px] cursor-pointer font-medium px-2 py-1 rounded-md transition-colors duration-200"
+   564→                style={{ color: "#22d3ee", backgroundColor: "rgba(34,211,238,0.06)" }}
+   565→                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(34,211,238,0.12)"; }}
+   566→                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "rgba(34,211,238,0.06)"; }}
+   567→                onClick={() => setView("dm-fir")}
+   568→              >
+   569→                View all
+   570→              </span>
+   571→            }
+   572→          />
+   573→          <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
+   574→            {recentFIRs.map((fir, idx) => (
+   575→              <motion.div
+   576→                key={fir.fir_id}
+   577→                initial={{ opacity: 0, x: -8 }}
+   578→                animate={{ opacity: 1, x: 0 }}
+   579→                transition={{ delay: 0.4 + idx * 0.05, duration: 0.25 }}
+   580→                whileHover={{ x: 3 }}
+   581→                className="rounded-lg p-3 cursor-pointer transition-all duration-200 group"
+   582→                style={{
+   583→                  backgroundColor: "rgba(255,255,255,0.015)",
+   584→                  border: "1px solid rgba(255,255,255,0.04)",
+   585→                }}
+   586→                onMouseEnter={(e) => {
+   587→                  e.currentTarget.style.background = "rgba(255,255,255,0.035)";
+   588→                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+   589→                }}
+   590→                onMouseLeave={(e) => {
+   591→                  e.currentTarget.style.background = "rgba(255,255,255,0.015)";
+   592→                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.04)";
+   593→                }}
+   594→              >
+   595→                <div className="flex items-center justify-between mb-1.5">
+   596→                  <span className="text-[11px] font-mono font-bold tracking-wide" style={{ color: "#22d3ee" }}>
+   597→                    {fir.fir_id}
+   598→                  </span>
+   599→                  <SeverityBadge severity={fir.severity} />
+   600→                </div>
+   601→                <p className="text-[12px] font-medium" style={{ color: "#e8edf5" }}>
+   602→                  {fir.crime_type}
+   603→                </p>
+   604→                <div className="flex items-center gap-2 mt-2">
+   605→                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ color: "#8b97b0", backgroundColor: "rgba(255,255,255,0.03)" }}>
+   606→                    {fir.district}
+   607→                  </span>
+   608→                  <span className="text-[10px]" style={{ color: "#3d4659" }}>{fir.date}</span>
+   609→                  <span className="ml-auto">
+   610→                    <span
+   611→                      className="text-[9px] font-medium px-1.5 py-0.5 rounded-full"
+   612→                      style={{
+   613→                        color: fir.investigation_status === "Under Investigation" ? "#fbbf24" : fir.investigation_status === "Arrested" ? "#34d399" : "#8b97b0",
+   614→                        backgroundColor: fir.investigation_status === "Under Investigation" ? "rgba(251,191,36,0.08)" : fir.investigation_status === "Arrested" ? "rgba(52,211,153,0.08)" : "rgba(139,151,176,0.08)",
+   615→                      }}
+   616→                    >
+   617→                      {fir.investigation_status}
+   618→                    </span>
+   619→                  </span>
+   620→                </div>
+   621→              </motion.div>
+   622→            ))}
+   623→          </div>
+   624→        </motion.div>
+   625→      </div>
+   626→
+   627→      {/* ═══ Row 3: Intel Feed + AI Recommendations ═══════════════ */}
+   628→      <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
+   629→        {/* Live Intelligence Feed */}
+   630→        <motion.div className="glass-card p-5 lg:col-span-2 animate-fade-in-up stagger-4">
+   631→          <SectionHeader
+   632→            accentColor="#f87171"
+   633→            icon={Radio}
+   634→            title="Live Intelligence"
+   635→            count={intelFeed.length}
+   636→            trailing={
+   637→              <div className="flex items-center gap-1.5">
+   638→                <span className="relative flex h-1.5 w-1.5">
+   639→                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: "#f87171" }} />
+   640→                  <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ backgroundColor: "#f87171" }} />
+   641→                </span>
+   642→                <span className="text-[10px] font-medium" style={{ color: "#f87171" }}>LIVE</span>
+   643→              </div>
+   644→            }
+   645→          />
+   646→          <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
+   647→            {intelFeed.map((item, idx) => (
+   648→              <motion.div
+   649→                key={item.id}
+   650→                initial={{ opacity: 0, x: -8 }}
+   651→                animate={{ opacity: 1, x: 0 }}
+   652→                transition={{ delay: 0.45 + idx * 0.04, duration: 0.25 }}
+   653→                className="rounded-lg p-3 group cursor-pointer transition-all duration-200"
+   654→                style={{
+   655→                  backgroundColor: item.severity === "critical" ? "rgba(248,113,113,0.03)" : "rgba(255,255,255,0.015)",
+   656→                  border: `1px solid ${item.severity === "critical" ? "rgba(248,113,113,0.08)" : "rgba(255,255,255,0.04)"}`,
+   657→                  borderLeft: item.severity === "critical" ? "2px solid rgba(248,113,113,0.4)" : "2px solid transparent",
+   658→                }}
+   659→                onMouseEnter={(e) => {
+   660→                  e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+   661→                  e.currentTarget.style.borderColor = item.severity === "critical" ? "rgba(248,113,113,0.15)" : "rgba(255,255,255,0.08)";
+   662→                }}
+   663→                onMouseLeave={(e) => {
+   664→                  e.currentTarget.style.background = item.severity === "critical" ? "rgba(248,113,113,0.03)" : "rgba(255,255,255,0.015)";
+   665→                  e.currentTarget.style.borderColor = item.severity === "critical" ? "rgba(248,113,113,0.08)" : "rgba(255,255,255,0.04)";
+   666→                }}
+   667→              >
+   668→                <div className="flex items-start gap-2.5">
+   669→                  <IntelTypeIcon type={item.type} />
+   670→                  <div className="flex-1 min-w-0">
+   671→                    <div className="flex items-center gap-2 mb-1">
+   672→                      <SeverityBadge severity={item.severity} />
+   673→                      <span className="text-[9px] uppercase tracking-wider font-medium" style={{ color: "#3d4659" }}>
+   674→                        {item.type}
+   675→                      </span>
+   676→                      <span className="ml-auto text-[9px] font-mono tabular-nums shrink-0" style={{ color: "#3d4659" }}>
+   677→                        {relativeTime(item.timestamp)}
+   678→                      </span>
+   679→                    </div>
+   680→                    <p className="text-[12px] font-medium leading-snug" style={{ color: "#e8edf5" }}>
+   681→                      {item.title}
+   682→                    </p>
+   683→                    <p className="text-[11px] mt-1 line-clamp-2 leading-relaxed" style={{ color: "#5a657a" }}>
+   684→                      {item.description}
+   685→                    </p>
+   686→                  </div>
+   687→                </div>
+   688→              </motion.div>
+   689→            ))}
+   690→          </div>
+   691→        </motion.div>
+   692→
+   693→        {/* AI Recommendations */}
+   694→        <motion.div
+   695→          className="glass-card p-5 lg:col-span-3 animate-fade-in-up stagger-5"
+   696→          initial={{ opacity: 0, y: 16 }}
+   697→          animate={{ opacity: 1, y: 0 }}
+   698→          transition={{ delay: 0.5, duration: 0.4 }}
+   699→        >
+   700→          <SectionHeader
+   701→            accentColor="#22d3ee"
+   702→            icon={Brain}
+   703→            title="AI Recommendations"
+   704→            count={recommendations.length}
+   705→            trailing={
+   706→              <div className="flex items-center gap-1.5">
+   707→                <Zap className="w-3 h-3" style={{ color: "#22d3ee" }} />
+   708→                <span className="text-[10px] font-medium" style={{ color: "#22d3ee" }}>AI Powered</span>
+   709→              </div>
+   710→            }
+   711→          />
+   712→          <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
+   713→            {recommendations.slice(0, 5).map((rec, idx) => {
+   714→              const isHigh = rec.priority === "high";
+   715→              const accentCol = isHigh ? "#f87171" : "#fbbf24";
+   716→              return (
+   717→                <motion.div
+   718→                  key={idx}
+   719→                  initial={{ opacity: 0, x: -8 }}
+   720→                  animate={{ opacity: 1, x: 0 }}
+   721→                  transition={{ delay: 0.5 + idx * 0.07, duration: 0.25 }}
+   722→                  className="rounded-lg p-3.5 cursor-pointer transition-all duration-200 group"
+   723→                  style={{
+   724→                    backgroundColor: isHigh ? `${accentCol}05` : "rgba(255,255,255,0.015)",
+   725→                    border: `1px solid ${isHigh ? `${accentCol}10` : "rgba(255,255,255,0.04)"}`,
+   726→                    borderLeft: `2px solid ${accentCol}50`,
+   727→                  }}
+   728→                  onMouseEnter={(e) => {
+   729→                    e.currentTarget.style.background = isHigh ? `${accentCol}08` : "rgba(255,255,255,0.03)";
+   730→                    e.currentTarget.style.borderColor = isHigh ? `${accentCol}18` : "rgba(255,255,255,0.08)";
+   731→                  }}
+   732→                  onMouseLeave={(e) => {
+   733→                    e.currentTarget.style.background = isHigh ? `${accentCol}05` : "rgba(255,255,255,0.015)";
+   734→                    e.currentTarget.style.borderColor = isHigh ? `${accentCol}10` : "rgba(255,255,255,0.04)";
+   735→                  }}
+   736→                >
+   737→                  <div className="flex items-start gap-3">
+   738→                    <div
+   739→                      className="w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-bold"
+   740→                      style={{
+   741→                        color: accentCol,
+   742→                        backgroundColor: `${accentCol}10`,
+   743→                        border: `1px solid ${accentCol}15`,
+   744→                      }}
+   745→                    >
+   746→                      {idx + 1}
+   747→                    </div>
+   748→                    <div className="flex-1 min-w-0">
+   749→                      <div className="flex items-center gap-2 mb-1">
+   750→                        <span
+   751→                          className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider"
+   752→                          style={{
+   753→                            color: accentCol,
+   754→                            backgroundColor: `${accentCol}08`,
+   755→                            border: `1px solid ${accentCol}12`,
+   756→                          }}
+   757→                        >
+   758→                          {rec.priority}
+   759→                        </span>
+   760→                        <p className="text-[12px] font-medium" style={{ color: "#e8edf5" }}>
+   761→                          {rec.title}
+   762→                        </p>
+   763→                      </div>
+   764→                      <p className="text-[11px] leading-relaxed" style={{ color: "#5a657a" }}>
+   765→                        {rec.description}
+   766→                      </p>
+   767→                      <div
+   768→                        className="flex items-center gap-1.5 mt-2 text-[10px] font-medium cursor-pointer"
+   769→                        style={{ color: "#22d3ee" }}
+   770→                      >
+   771→                        <ArrowUpRight className="w-3 h-3" />
+   772→                        <span>{rec.action}</span>
+   773→                      </div>
+   774→                    </div>
+   775→                  </div>
+   776→                </motion.div>
+   777→              );
+   778→            })}
+   779→          </div>
+   780→        </motion.div>
+   781→      </div>
+   782→
+   783→      {/* ═══ Row 4: Investigation Queue + Risk Alerts ════════════ */}
+   784→      <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
+   785→        {/* Investigation Queue */}
+   786→        <motion.div
+   787→          className="glass-card p-5 lg:col-span-3 animate-fade-in-up stagger-5"
+   788→          initial={{ opacity: 0, y: 16 }}
+   789→          animate={{ opacity: 1, y: 0 }}
+   790→          transition={{ delay: 0.6, duration: 0.4 }}
+   791→        >
+   792→          <SectionHeader
+   793→            accentColor="#818cf8"
+   794→            icon={Clock}
+   795→            title="Investigation Queue"
+   796→            count={investigationQueue.length}
+   797→            trailing={
+   798→              <span
+   799→                className="text-[10px] cursor-pointer font-medium px-2 py-1 rounded-md transition-colors duration-200"
+   800→                style={{ color: "#22d3ee", backgroundColor: "rgba(34,211,238,0.06)" }}
+   801→                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(34,211,238,0.12)"; }}
+   802→                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "rgba(34,211,238,0.06)"; }}
+   803→              >
+   804→                Sort by priority
+   805→              </span>
+   806→            }
+   807→          />
+   808→          <div className="max-h-[340px] overflow-y-auto">
+   809→            <Table>
+   810→              <TableHeader>
+   811→                <TableRow style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+   812→                  <TableHead className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "#5a657a" }}>FIR ID</TableHead>
+   813→                  <TableHead className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "#5a657a" }}>Crime Type</TableHead>
+   814→                  <TableHead className="text-[10px] uppercase tracking-wider font-semibold hidden md:table-cell" style={{ color: "#5a657a" }}>District</TableHead>
+   815→                  <TableHead className="text-[10px] uppercase tracking-wider font-semibold text-center" style={{ color: "#5a657a" }}>Days</TableHead>
+   816→                  <TableHead className="text-[10px] uppercase tracking-wider font-semibold text-right" style={{ color: "#5a657a" }}>Priority</TableHead>
+   817→                </TableRow>
+   818→              </TableHeader>
+   819→              <TableBody>
+   820→                {investigationQueue.slice(0, 10).map((item, idx) => {
+   821→                  const isOverdue = item.daysOpen > 90;
+   822→                  return (
+   823→                    <TableRow
+   824→                      key={item.firId}
+   825→                      className="cursor-pointer transition-colors duration-150"
+   826→                      style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}
+   827→                      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
+   828→                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+   829→                    >
+   830→                      <TableCell className="text-[11px] font-mono font-bold" style={{ color: "#22d3ee" }}>
+   831→                        {item.firId}
+   832→                      </TableCell>
+   833→                      <TableCell className="text-[12px]" style={{ color: "#e8edf5" }}>
+   834→                        {item.crimeType}
+   835→                      </TableCell>
+   836→                      <TableCell className="text-[11px] hidden md:table-cell" style={{ color: "#8b97b0" }}>
+   837→                        {item.district}
+   838→                      </TableCell>
+   839→                      <TableCell className="text-center">
+   840→                        <span
+   841→                          className="text-[11px] font-mono tabular-nums font-medium px-1.5 py-0.5 rounded"
+   842→                          style={{
+   843→                            color: isOverdue ? "#f87171" : item.daysOpen > 60 ? "#fbbf24" : "#8b97b0",
+   844→                            backgroundColor: isOverdue ? "rgba(248,113,113,0.06)" : item.daysOpen > 60 ? "rgba(251,191,36,0.06)" : "transparent",
+   845→                          }}
+   846→                        >
+   847→                          {item.daysOpen}d
+   848→                        </span>
+   849→                      </TableCell>
+   850→                      <TableCell className="text-right">
+   851→                        <PriorityBadge score={item.priority} />
+   852→                      </TableCell>
+   853→                    </TableRow>
+   854→                  );
+   855→                })}
+   856→              </TableBody>
+   857→            </Table>
+   858→          </div>
+   859→        </motion.div>
+   860→
+   861→        {/* Risk Alerts */}
+   862→        <motion.div
+   863→          className="glass-card p-5 lg:col-span-2 animate-fade-in-up stagger-6"
+   864→          initial={{ opacity: 0, y: 16 }}
+   865→          animate={{ opacity: 1, y: 0 }}
+   866→          transition={{ delay: 0.7, duration: 0.4 }}
+   867→        >
+   868→          <SectionHeader
+   869→            accentColor="#f87171"
+   870→            icon={ShieldAlert}
+   871→            title="Risk Alerts"
+   872→            count={riskAlerts.length}
+   873→            trailing={
+   874→              <span
+   875→                className="text-[10px] cursor-pointer font-medium px-2 py-1 rounded-md transition-colors duration-200"
+   876→                style={{ color: "#f87171", backgroundColor: "rgba(248,113,113,0.06)" }}
+   877→                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(248,113,113,0.12)"; }}
+   878→                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "rgba(248,113,113,0.06)"; }}
+   879→                onClick={() => setView("accused")}
+   880→              >
+   881→                View all
+   882→              </span>
+   883→            }
+   884→          />
+   885→          <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">
+   886→            {riskAlerts.map((alert, idx) => (
+   887→              <motion.div
+   888→                key={alert.id}
+   889→                initial={{ opacity: 0, x: -8 }}
+   890→                animate={{ opacity: 1, x: 0 }}
+   891→                transition={{ delay: 0.7 + idx * 0.05, duration: 0.25 }}
+   892→                whileHover={{ x: 3 }}
+   893→                className="rounded-lg p-3 cursor-pointer transition-all duration-200"
+   894→                style={{
+   895→                  backgroundColor: alert.risk >= 90 ? "rgba(248,113,113,0.04)" : "rgba(251,191,36,0.03)",
+   896→                  border: `1px solid ${alert.risk >= 90 ? "rgba(248,113,113,0.10)" : "rgba(251,191,36,0.08)"}`,
+   897→                  borderLeft: `2px solid ${alert.risk >= 90 ? "#f87171" : "#fbbf24"}`,
+   898→                }}
+   899→                onMouseEnter={(e) => {
+   900→                  e.currentTarget.style.borderColor = alert.risk >= 90 ? "rgba(248,113,113,0.2)" : "rgba(251,191,36,0.15)";
+   901→                }}
+   902→                onMouseLeave={(e) => {
+   903→                  e.currentTarget.style.borderColor = alert.risk >= 90 ? "rgba(248,113,113,0.10)" : "rgba(251,191,36,0.08)";
+   904→                }}
+   905→              >
+   906→                <div className="flex items-center gap-2.5">
+   907→                  {/* Avatar circle */}
+   908→                  <div
+   909→                    className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold"
+   910→                    style={{
+   911→                      color: alert.risk >= 90 ? "#f87171" : "#fbbf24",
+   912→                      backgroundColor: alert.risk >= 90 ? "rgba(248,113,113,0.08)" : "rgba(251,191,36,0.08)",
+   913→                      border: `1px solid ${alert.risk >= 90 ? "rgba(248,113,113,0.15)" : "rgba(251,191,36,0.12)"}`,
+   914→                    }}
+   915→                  >
+   916→                    {alert.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
+   917→                  </div>
+   918→                  <div className="flex-1 min-w-0">
+   919→                    <div className="flex items-center gap-2">
+   920→                      {alert.risk >= 90 && (
+   921→                        <span className="relative flex h-1.5 w-1.5 shrink-0">
+   922→                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: "#f87171" }} />
+   923→                          <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ backgroundColor: "#f87171" }} />
+   924→                        </span>
+   925→                      )}
+   926→                      <p className="text-[12px] font-medium truncate" style={{ color: "#e8edf5" }}>
+   927→                        {alert.name}
+   928→                      </p>
+   929→                      <span
+   930→                        className="ml-auto text-[12px] font-mono font-bold shrink-0 tabular-nums"
+   931→                        style={{ color: alert.risk >= 90 ? "#f87171" : "#fbbf24" }}
+   932→                      >
+   933→                        {alert.risk}
+   934→                      </span>
+   935→                    </div>
+   936→                    <div className="flex items-center gap-1.5 mt-1 text-[10px]" style={{ color: "#5a657a" }}>
+   937→                      <span>{alert.activeCases} active case{alert.activeCases > 1 ? "s" : ""}</span>
+   938→                      <span style={{ color: "#3d4659" }}>·</span>
+   939→                      <span>{alert.prior_firs} prior FIRs</span>
+   940→                    </div>
+   941→                  </div>
+   942→                </div>
+   943→              </motion.div>
+   944→            ))}
+   945→            {riskAlerts.length === 0 && (
+   946→              <div className="flex flex-col items-center justify-center py-10 gap-2">
+   947→                <ShieldAlert className="w-6 h-6" style={{ color: "#3d4659" }} />
+   948→                <p className="text-[11px] text-center" style={{ color: "#3d4659" }}>No critical risk alerts at this time</p>
+   949→              </div>
+   950→            )}
+   951→          </div>
+   952→        </motion.div>
+   953→      </div>
+   954→
+   955→      {/* ═══ Row 5: High Risk Accused Table ══════════════════════ */}
+   956→      <motion.div
+   957→        className="glass-card p-5 animate-fade-in-up stagger-6"
+   958→        initial={{ opacity: 0, y: 16 }}
+   959→        animate={{ opacity: 1, y: 0 }}
+   960→        transition={{ delay: 0.8, duration: 0.4 }}
+   961→      >
+   962→        <SectionHeader
+   963→          accentColor="#fbbf24"
+   964→          icon={AlertTriangle}
+   965→          title="High Risk Accused"
+   966→          count={highRiskAccused.length}
+   967→          trailing={
+   968→            <span
+   969→              className="text-[10px] cursor-pointer font-medium px-2 py-1 rounded-md transition-colors duration-200"
+   970→              style={{ color: "#22d3ee", backgroundColor: "rgba(34,211,238,0.06)" }}
+   971→              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(34,211,238,0.12)"; }}
+   972→              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "rgba(34,211,238,0.06)"; }}
+   973→            >
+   974→              Full database
+   975→            </span>
+   976→          }
+   977→        />
+   978→        <div className="max-h-96 overflow-y-auto">
+   979→          <Table>
+   980→            <TableHeader>
+   981→              <TableRow style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+   982→                <TableHead className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "#5a657a" }}>Name</TableHead>
+   983→                <TableHead className="text-[10px] uppercase tracking-wider font-semibold hidden sm:table-cell" style={{ color: "#5a657a" }}>Age</TableHead>
+   984→                <TableHead className="text-[10px] uppercase tracking-wider font-semibold hidden md:table-cell" style={{ color: "#5a657a" }}>Gang</TableHead>
+   985→                <TableHead className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "#5a657a" }}>Risk Score</TableHead>
+   986→                <TableHead className="text-[10px] uppercase tracking-wider font-semibold hidden sm:table-cell" style={{ color: "#5a657a" }}>Prior FIRs</TableHead>
+   987→              </TableRow>
+   988→            </TableHeader>
+   989→            <TableBody>
+   990→              {highRiskAccused.map((a) => (
+   991→                <TableRow
+   992→                  key={a.id}
+   993→                  className="cursor-pointer transition-colors duration-150"
+   994→                  style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}
+   995→                  onClick={() => {
+   996→                    setSelectedAccusedId(a.id);
+   997→                    setView("accused");
+   998→                  }}
+   999→                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
+  1000→                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+  1001→                >
+  1002→                  <TableCell>
+  1003→                    <div className="flex items-center gap-2.5">
+  1004→                      <div
+  1005→                        className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold"
+  1006→                        style={{
+  1007→                          color: a.risk > 80 ? "#f87171" : "#fbbf24",
+  1008→                          backgroundColor: a.risk > 80 ? "rgba(248,113,113,0.06)" : "rgba(251,191,36,0.06)",
+  1009→                          border: `1px solid ${a.risk > 80 ? "rgba(248,113,113,0.1)" : "rgba(251,191,36,0.1)"}`,
+  1010→                        }}
+  1011→                      >
+  1012→                        {a.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+  1013→                      </div>
+  1014→                      <span className="text-[12px] font-medium" style={{ color: "#e8edf5" }}>{a.name}</span>
+  1015→                    </div>
+  1016→                  </TableCell>
+  1017→                  <TableCell className="text-[12px] hidden sm:table-cell" style={{ color: "#8b97b0" }}>{a.age}</TableCell>
+  1018→                  <TableCell className="hidden md:table-cell">
+  1019→                    {a.gang ? (
+  1020→                      <span
+  1021→                        className="text-[10px] font-medium px-2 py-0.5 rounded-full"
+  1022→                        style={{
+  1023→                          color: "#818cf8",
+  1024→                          backgroundColor: "rgba(129,140,248,0.08)",
+  1025→                          border: "1px solid rgba(129,140,248,0.12)",
+  1026→                        }}
+  1027→                      >
+  1028→                        {a.gang}
+  1029→                      </span>
+  1030→                    ) : (
+  1031→                      <span className="text-[11px] italic" style={{ color: "#3d4659" }}>Unknown</span>
+  1032→                    )}
+  1033→                  </TableCell>
+  1034→                  <TableCell>
+  1035→                    <RiskBar score={a.risk} />
+  1036→                  </TableCell>
+  1037→                  <TableCell className="text-[12px] hidden sm:table-cell">
+  1038→                    <span
+  1039→                      className="text-[11px] font-mono tabular-nums font-medium px-1.5 py-0.5 rounded"
+  1040→                      style={{
+  1041→                        color: a.prior_firs > 3 ? "#f87171" : "#8b97b0",
+  1042→                        backgroundColor: a.prior_firs > 3 ? "rgba(248,113,113,0.06)" : "transparent",
+  1043→                      }}
+  1044→                    >
+  1045→                      {a.prior_firs}
+  1046→                    </span>
+  1047→                  </TableCell>
+  1048→                </TableRow>
+  1049→              ))}
+  1050→            </TableBody>
+  1051→          </Table>
+  1052→        </div>
+  1053→      </motion.div>
+  1054→    </div>
+  1055→  );
+  1056→}

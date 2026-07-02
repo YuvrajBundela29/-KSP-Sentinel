@@ -141,10 +141,10 @@ function ExplainablePanel({ exp }: { exp: ExplainableResponse }) {
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer transition-colors duration-200 hover:bg-white/[0.015]"
-        style={{ borderBottom: open ? "1px solid rgba(255,255,255,0.04)" : "none" }}
+        style={{ borderBottom: open ? "1px solid var(--border-subtle)" : "none" }}
       >
         <Brain className="w-3.5 h-3.5 flex-shrink-0" style={{ color: confColor }} />
-        <span className="text-[11px] font-semibold tracking-wider uppercase" style={{ color: "#8b97b0" }}>
+        <span className="text-[11px] font-semibold tracking-wider uppercase" style={{ color: "var(--text-secondary)" }}>
           Explainable AI
         </span>
         <span
@@ -158,7 +158,7 @@ function ExplainablePanel({ exp }: { exp: ExplainableResponse }) {
           {getConfidenceLabel(exp.confidenceScore)} · {exp.confidenceScore}%
         </span>
         {exp.evidenceChain.length > 0 && (
-          <span className="text-[10px] flex items-center gap-1" style={{ color: "#5a657a" }}>
+          <span className="text-[10px] flex items-center gap-1" style={{ color: "var(--text-tertiary)" }}>
             <Link className="w-3 h-3" />
             {exp.evidenceChain.length} source{exp.evidenceChain.length > 1 ? "s" : ""}
           </span>
@@ -168,7 +168,7 @@ function ExplainablePanel({ exp }: { exp: ExplainableResponse }) {
           transition={{ duration: 0.2 }}
           className="ml-auto"
         >
-          <ChevronDown className="w-3.5 h-3.5" style={{ color: "#5a657a" }} />
+          <ChevronDown className="w-3.5 h-3.5" style={{ color: "var(--text-tertiary)" }} />
         </motion.div>
       </button>
 
@@ -206,10 +206,10 @@ function ExplainablePanel({ exp }: { exp: ExplainableResponse }) {
 
             {/* Reasoning Summary */}
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#5a657a" }}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--text-tertiary)" }}>
                 Reasoning
               </p>
-              <p className="text-[12px] leading-relaxed" style={{ color: "#8b97b0" }}>
+              <p className="text-[12px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
                 {exp.reasoningSummary}
               </p>
             </div>
@@ -217,7 +217,7 @@ function ExplainablePanel({ exp }: { exp: ExplainableResponse }) {
             {/* Reasoning Steps */}
             {exp.reasoningSteps && exp.reasoningSteps.length > 0 && (
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "#5a657a" }}>
+                <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
                   Analysis Steps
                 </p>
                 <div className="space-y-2">
@@ -234,7 +234,7 @@ function ExplainablePanel({ exp }: { exp: ExplainableResponse }) {
                         {step.step}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-medium" style={{ color: "#c8d0e0" }}>
+                        <p className="text-[11px] font-medium" style={{ color: "var(--text-primary)" }}>
                           {step.finding}
                         </p>
                         {step.evidence.length > 0 && (
@@ -264,7 +264,7 @@ function ExplainablePanel({ exp }: { exp: ExplainableResponse }) {
             {/* Evidence Detail List */}
             {exp.evidenceChain.length > 0 && (
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "#5a657a" }}>
+                <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
                   Evidence Details
                 </p>
                 <div className="space-y-1.5">
@@ -279,10 +279,10 @@ function ExplainablePanel({ exp }: { exp: ExplainableResponse }) {
                         style={{ backgroundColor: "#22d3ee", boxShadow: "0 0 6px rgba(34,211,238,0.4)" }}
                       />
                       <div>
-                        <span className="text-[11px] font-mono font-bold" style={{ color: "#f1f5f9" }}>
+                        <span className="text-[11px] font-mono font-bold" style={{ color: "var(--text-primary)" }}>
                           {e.firId}
                         </span>
-                        <span className="text-[11px] ml-2" style={{ color: "#8b97b0" }}>
+                        <span className="text-[11px] ml-2" style={{ color: "var(--text-secondary)" }}>
                           {e.relevance}
                         </span>
                       </div>
@@ -414,7 +414,7 @@ function WelcomeScreen({
       {/* Title + Description */}
       <div className="space-y-2.5 max-w-md">
         <div className="flex items-center justify-center gap-2.5">
-          <h2 className="text-lg font-bold tracking-tight" style={{ color: "#f1f5f9" }}>
+          <h2 className="text-lg font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>
             KSP AI Copilot
           </h2>
           <span
@@ -428,7 +428,7 @@ function WelcomeScreen({
             Online
           </span>
         </div>
-        <p className="text-[13px] leading-relaxed" style={{ color: "#8b97b0" }}>
+        <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
           Ask about crimes, patterns, gang connections, or specific FIRs.
           Intelligence analysis powered by pattern recognition and explainable AI.
         </p>
@@ -450,9 +450,9 @@ function WelcomeScreen({
             <div className="flex items-start gap-2.5">
               <Lightbulb
                 className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 transition-colors duration-200"
-                style={{ color: "#3d4659" }}
+                style={{ color: "var(--text-muted)" }}
               />
-              <span className="text-[12px] leading-relaxed" style={{ color: "#8b97b0" }}>
+              <span className="text-[12px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
                 {q}
               </span>
             </div>
@@ -462,7 +462,7 @@ function WelcomeScreen({
 
       {/* Quick Action Chips */}
       <div className="flex items-center gap-2 flex-wrap justify-center">
-        <span className="text-[10px] uppercase tracking-wider font-medium" style={{ color: "#3d4659" }}>
+        <span className="text-[10px] uppercase tracking-wider font-medium" style={{ color: "var(--text-muted)" }}>
           Explore:
         </span>
         {["High risk analysis", "Gang mapping", "Crime trends", "FIR lookup"].map((chip) => (
@@ -471,8 +471,8 @@ function WelcomeScreen({
             onClick={() => onQueryClick(chip)}
             className="text-[10px] px-2.5 py-1 rounded-full cursor-pointer transition-all duration-200 font-medium"
             style={{
-              color: "#5a657a",
-              border: "1px solid rgba(255,255,255,0.06)",
+              color: "var(--text-tertiary)",
+              border: "1px solid var(--border-default)",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.color = "#22d3ee";
@@ -480,8 +480,8 @@ function WelcomeScreen({
               e.currentTarget.style.background = "rgba(34,211,238,0.06)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = "#5a657a";
-              e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)";
+              e.currentTarget.style.color = "var(--text-tertiary)";
+              e.currentTarget.style.borderColor = "var(--border-default)";
               e.currentTarget.style.background = "transparent";
             }}
           >
@@ -511,7 +511,7 @@ function FIREvidenceCard({ fir, index }: { fir: FIR; index: number }) {
     >
       {/* Header Row */}
       <div className="flex items-center justify-between mb-2.5">
-        <span className="text-[12px] font-mono font-bold tracking-wide" style={{ color: "#f1f5f9" }}>
+        <span className="text-[12px] font-mono font-bold tracking-wide" style={{ color: "var(--text-primary)" }}>
           {fir.fir_id}
         </span>
         <span
@@ -523,29 +523,29 @@ function FIREvidenceCard({ fir, index }: { fir: FIR; index: number }) {
       </div>
 
       {/* Meta */}
-      <p className="text-[11px] mb-2" style={{ color: "#5a657a" }}>
+      <p className="text-[11px] mb-2" style={{ color: "var(--text-tertiary)" }}>
         {fir.date} · {fir.time}
       </p>
 
       {/* Details */}
       <div className="space-y-1">
-        <p className="text-[12px]" style={{ color: "#c8d0e0" }}>
-          <span style={{ color: "#5a657a" }}>Crime: </span>
+        <p className="text-[12px]" style={{ color: "var(--text-primary)" }}>
+          <span style={{ color: "var(--text-tertiary)" }}>Crime: </span>
           {fir.crime_type}
         </p>
-        <p className="text-[12px]" style={{ color: "#c8d0e0" }}>
-          <span style={{ color: "#5a657a" }}>District: </span>
+        <p className="text-[12px]" style={{ color: "var(--text-primary)" }}>
+          <span style={{ color: "var(--text-tertiary)" }}>District: </span>
           {fir.district}
         </p>
-        <p className="text-[11px] font-mono" style={{ color: "#5a657a" }}>
+        <p className="text-[11px] font-mono" style={{ color: "var(--text-tertiary)" }}>
           {fir.ipc_section}
         </p>
       </div>
 
       {/* Accused */}
       {fir.accused.length > 0 && (
-        <div className="mt-2.5 pt-2.5" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
-          <p className="text-[10px] uppercase tracking-wider mb-1.5 font-medium" style={{ color: "#5a657a" }}>
+        <div className="mt-2.5 pt-2.5" style={{ borderTop: "1px solid var(--border-subtle)" }}>
+          <p className="text-[10px] uppercase tracking-wider mb-1.5 font-medium" style={{ color: "var(--text-tertiary)" }}>
             Accused
           </p>
           <div className="flex flex-wrap gap-1">
@@ -563,7 +563,7 @@ function FIREvidenceCard({ fir, index }: { fir: FIR; index: number }) {
               </span>
             ))}
             {fir.accused.length > 4 && (
-              <span className="text-[10px] px-2 py-0.5 rounded-md" style={{ color: "#5a657a" }}>
+              <span className="text-[10px] px-2 py-0.5 rounded-md" style={{ color: "var(--text-tertiary)" }}>
                 +{fir.accused.length - 4} more
               </span>
             )}
@@ -771,7 +771,7 @@ export default function ChatView() {
       {/* ── Header Bar ──────────────────────────────────────────────────── */}
       <header
         className="flex items-center justify-between px-5 h-11 flex-shrink-0"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
+        style={{ borderBottom: "1px solid var(--border-subtle)" }}
       >
         <div className="flex items-center gap-2.5">
           <div
@@ -783,7 +783,7 @@ export default function ChatView() {
           >
             <Shield className="w-3 h-3" style={{ color: "#22d3ee" }} />
           </div>
-          <span className="text-[13px] font-semibold tracking-wide" style={{ color: "#f1f5f9" }}>
+          <span className="text-[13px] font-semibold tracking-wide" style={{ color: "var(--text-primary)" }}>
             AI Copilot
           </span>
           <span
@@ -809,8 +809,8 @@ export default function ChatView() {
               whileTap={{ scale: 0.96 }}
               className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] rounded-lg cursor-pointer transition-all duration-200"
               style={{
-                color: evidenceOpen ? "#818cf8" : "#5a657a",
-                border: `1px solid ${evidenceOpen ? "rgba(129,140,248,0.2)" : "rgba(255,255,255,0.06)"}`,
+                color: evidenceOpen ? "#818cf8" : "var(--text-tertiary)",
+                border: `1px solid ${evidenceOpen ? "rgba(129,140,248,0.2)" : "var(--border-default)"}`,
                 backgroundColor: evidenceOpen ? "rgba(129,140,248,0.06)" : "transparent",
               }}
             >
@@ -841,7 +841,7 @@ export default function ChatView() {
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.96 }}
               className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] rounded-lg cursor-pointer transition-all duration-200"
-              style={{ color: "#5a657a", border: "1px solid rgba(255,255,255,0.06)" }}
+              style={{ color: "var(--text-tertiary)", border: "1px solid var(--border-default)" }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = "rgba(248,113,113,0.06)";
                 e.currentTarget.style.color = "#f87171";
@@ -849,8 +849,8 @@ export default function ChatView() {
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.color = "#5a657a";
-                e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)";
+                e.currentTarget.style.color = "var(--text-tertiary)";
+                e.currentTarget.style.borderColor = "var(--border-default)";
               }}
             >
               <Trash2 className="w-3 h-3" />
@@ -906,16 +906,16 @@ export default function ChatView() {
                           msg.role === "user"
                             ? {
                                 background: "linear-gradient(135deg, rgba(34,211,238,0.12) 0%, rgba(34,211,238,0.06) 100%)",
-                                color: "#f1f5f9",
+                                color: "var(--text-primary)",
                                 borderRadius: "16px 16px 4px 16px",
                                 border: "1px solid rgba(34,211,238,0.15)",
                                 boxShadow: "0 2px 16px rgba(34,211,238,0.04)",
                               }
                             : {
-                                backgroundColor: "rgba(15,21,36,0.45)",
+                                backgroundColor: "var(--bg-card)",
                                 backdropFilter: "blur(12px)",
-                                border: "1px solid rgba(255,255,255,0.06)",
-                                color: "#e8edf5",
+                                border: "1px solid var(--border-default)",
+                                color: "var(--text-primary)",
                                 borderRadius: "16px 16px 16px 4px",
                                 boxShadow: "inset 0 1px 0 rgba(255,255,255,0.02)",
                               }
@@ -932,15 +932,15 @@ export default function ChatView() {
                       {/* AI Disclaimer */}
                       {msg.role === "assistant" && idx === chatMessages.length - 1 && (
                         <div className="flex items-center gap-1.5 mt-1.5 ml-1">
-                          <Zap className="w-3 h-3" style={{ color: "#3d4659" }} />
-                          <span className="text-[10px]" style={{ color: "#3d4659" }}>
+                          <Zap className="w-3 h-3" style={{ color: "var(--text-muted)" }} />
+                          <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
                             AI Generated — Verify with sources
                           </span>
                         </div>
                       )}
 
                       {/* Timestamp */}
-                      <span className="text-[10px] mt-1.5 px-1" style={{ color: "#3d4659" }}>
+                      <span className="text-[10px] mt-1.5 px-1" style={{ color: "var(--text-muted)" }}>
                         {fmtTime(new Date())}
                       </span>
                     </div>
@@ -1006,15 +1006,15 @@ export default function ChatView() {
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
               className="hidden lg:flex flex-col flex-shrink-0 overflow-hidden"
-              style={{ borderLeft: "1px solid rgba(255,255,255,0.04)" }}
+              style={{ borderLeft: "1px solid var(--border-subtle)" }}
             >
               {/* Panel Header */}
               <div
                 className="flex items-center gap-2.5 px-4 h-11 flex-shrink-0"
-                style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
+                style={{ borderBottom: "1px solid var(--border-subtle)" }}
               >
                 <FileText className="w-3.5 h-3.5" style={{ color: "#818cf8" }} />
-                <span className="text-[12px] font-semibold tracking-wide" style={{ color: "#f1f5f9" }}>
+                <span className="text-[12px] font-semibold tracking-wide" style={{ color: "var(--text-primary)" }}>
                   Linked Evidence
                 </span>
                 <motion.span
@@ -1050,8 +1050,8 @@ export default function ChatView() {
             style={{
               boxShadow: inputFocused
                 ? "0 0 0 1px rgba(34,211,238,0.25), 0 0 24px rgba(34,211,238,0.06), 0 8px 32px rgba(0,0,0,0.3)"
-                : "0 0 0 1px rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.2)",
-              borderColor: inputFocused ? "rgba(34,211,238,0.25)" : "rgba(255,255,255,0.06)",
+                : "0 0 0 1px var(--border-default), 0 8px 32px rgba(0,0,0,0.2)",
+              borderColor: inputFocused ? "rgba(34,211,238,0.25)" : "var(--border-default)",
             }}
           >
             <div className="flex items-center gap-2">
@@ -1070,8 +1070,8 @@ export default function ChatView() {
                       : "ಅಪರಾಧ, FIR, ಗ್ಯಾಂಗ್ ಬಗ್ಗೆ ಕೇಳಿ..."
                   }
                   disabled={chatLoading}
-                  className="h-10 rounded-xl text-[13px] border-0 bg-transparent shadow-none focus-visible:ring-0 placeholder:text-[#3d4659]"
-                  style={{ color: "#f1f5f9" }}
+                  className="h-10 rounded-xl text-[13px] border-0 bg-transparent shadow-none focus-visible:ring-0 placeholder:text-[var(--text-muted)]"
+                  style={{ color: "var(--text-primary)" }}
                 />
               </div>
 
@@ -1085,8 +1085,8 @@ export default function ChatView() {
                 style={{
                   background: !chatLoading && input.trim()
                     ? "linear-gradient(135deg, #22d3ee, #06b6d4)"
-                    : "rgba(255,255,255,0.04)",
-                  color: !chatLoading && input.trim() ? "#050810" : "#3d4659",
+                    : "var(--border-subtle)",
+                  color: !chatLoading && input.trim() ? "#050810" : "var(--text-muted)",
                   boxShadow: !chatLoading && input.trim()
                     ? "0 0 16px rgba(34,211,238,0.2)"
                     : "none",
@@ -1098,7 +1098,7 @@ export default function ChatView() {
               {/* Divider */}
               <div
                 className="w-px h-6 flex-shrink-0"
-                style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+                style={{ backgroundColor: "var(--border-default)" }}
               />
 
               {/* Voice Toggle */}
@@ -1110,7 +1110,7 @@ export default function ChatView() {
                 style={{
                   border: isListening
                     ? "1px solid rgba(248,113,113,0.3)"
-                    : "1px solid rgba(255,255,255,0.06)",
+                    : "1px solid var(--border-default)",
                   backgroundColor: isListening
                     ? "rgba(248,113,113,0.08)"
                     : "transparent",
@@ -1129,7 +1129,7 @@ export default function ChatView() {
                 {isListening ? (
                   <Mic className="w-4 h-4" style={{ color: "#f87171" }} />
                 ) : (
-                  <MicOff className="w-4 h-4" style={{ color: "#5a657a" }} />
+                  <MicOff className="w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
                 )}
               </motion.button>
 
@@ -1143,12 +1143,12 @@ export default function ChatView() {
                   border:
                     voiceLang === "kn"
                       ? "1px solid rgba(34,211,238,0.2)"
-                      : "1px solid rgba(255,255,255,0.06)",
+                      : "1px solid var(--border-default)",
                   backgroundColor:
                     voiceLang === "kn"
                       ? "rgba(34,211,238,0.06)"
                       : "transparent",
-                  color: voiceLang === "kn" ? "#22d3ee" : "#5a657a",
+                  color: voiceLang === "kn" ? "#22d3ee" : "var(--text-tertiary)",
                 }}
                 title={`Switch to ${voiceLang === "en" ? "Kannada" : "English"}`}
               >
@@ -1163,7 +1163,7 @@ export default function ChatView() {
                 disabled={chatMessages.length === 0}
                 className="flex items-center justify-center w-10 h-10 rounded-xl cursor-pointer disabled:opacity-15 disabled:cursor-not-allowed transition-all duration-200 flex-shrink-0"
                 style={{
-                  border: "1px solid rgba(255,255,255,0.06)",
+                  border: "1px solid var(--border-default)",
                   backgroundColor: "transparent",
                 }}
                 onMouseEnter={(e) => {
@@ -1173,14 +1173,14 @@ export default function ChatView() {
                   }
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)";
+                  e.currentTarget.style.borderColor = "var(--border-default)";
                   e.currentTarget.style.background = "transparent";
                 }}
                 title="Export as PDF"
               >
                 <FileDown
                   className="w-4 h-4"
-                  style={{ color: chatMessages.length > 0 ? "#8b97b0" : "#3d4659" }}
+                  style={{ color: chatMessages.length > 0 ? "var(--text-secondary)" : "var(--text-muted)" }}
                 />
               </motion.button>
             </div>
@@ -1188,8 +1188,8 @@ export default function ChatView() {
 
           {/* Subtle hint below input */}
           <div className="flex items-center justify-center gap-4 mt-2 px-2">
-            <span className="text-[10px]" style={{ color: "#3d4659" }}>
-              Press <kbd className="px-1.5 py-0.5 rounded text-[9px] font-mono" style={{ backgroundColor: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>Enter</kbd> to send
+            <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+              Press <kbd className="px-1.5 py-0.5 rounded text-[9px] font-mono" style={{ backgroundColor: "var(--border-subtle)", border: "1px solid var(--border-default)" }}>Enter</kbd> to send
             </span>
             {voiceLang === "kn" && (
               <span className="text-[10px]" style={{ color: "#22d3ee" }}>

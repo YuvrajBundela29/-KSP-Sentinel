@@ -576,7 +576,7 @@ export default function CrimeMap() {
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-          className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000]"
+          className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] max-w-[90vw] overflow-x-auto"
         >
           <div className="flex items-center gap-3 px-4 py-2" style={glassCardCompact}>
             {/* Total markers pill */}
@@ -622,7 +622,7 @@ export default function CrimeMap() {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-          className="absolute top-14 left-3 z-[1000] w-60"
+          className="absolute top-14 left-3 z-[1000] w-60 hidden md:block"
           style={glassCard}
         >
           {/* Panel header - collapsible */}
@@ -984,7 +984,7 @@ export default function CrimeMap() {
             delay: 0.1,
             ease: [0.4, 0, 0.2, 1],
           }}
-          className="absolute top-14 right-3 z-[1000] w-60"
+          className="absolute top-14 right-3 z-[1000] w-60 hidden md:block"
           style={glassCard}
         >
           {/* Panel header - collapsible */}

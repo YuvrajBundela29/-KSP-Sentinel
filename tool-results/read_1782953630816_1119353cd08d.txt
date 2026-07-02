@@ -1,0 +1,1470 @@
+     1→"use client";
+     2→
+     3→import { useState, useMemo } from "react";
+     4→import { motion, AnimatePresence } from "framer-motion";
+     5→import dynamic from "next/dynamic";
+     6→import { useAppStore } from "@/lib/store";
+     7→import type { FIR } from "@/lib/types";
+     8→import { Checkbox } from "@/components/ui/checkbox";
+     9→import {
+    10→  Select,
+    11→  SelectContent,
+    12→  SelectItem,
+    13→  SelectTrigger,
+    14→  SelectValue,
+    15→} from "@/components/ui/select";
+    16→import {
+    17→  Filter,
+    18→  MapPin,
+    19→  BarChart3,
+    20→  ChevronDown,
+    21→  ChevronUp,
+    22→} from "lucide-react";
+    23→import LoadingSpinner from "@/components/ksp/LoadingSpinner";
+    24→
+    25→// Dynamic imports for Leaflet (requires window)
+    26→const MapContainer = dynamic(
+    27→  () => import("react-leaflet").then((mod) => mod.MapContainer),
+    28→  { ssr: false }
+    29→);
+    30→const TileLayer = dynamic(
+    31→  () => import("react-leaflet").then((mod) => mod.TileLayer),
+    32→  { ssr: false }
+    33→);
+    34→const CircleMarker = dynamic(
+    35→  () => import("react-leaflet").then((mod) => mod.CircleMarker),
+    36→  { ssr: false }
+    37→);
+    38→const Popup = dynamic(
+    39→  () => import("react-leaflet").then((mod) => mod.Popup),
+    40→  { ssr: false }
+    41→);
+    42→const Circle = dynamic(
+    43→  () => import("react-leaflet").then((mod) => mod.Circle),
+    44→  { ssr: false }
+    45→);
+    46→
+    47→// --- Constants ---
+    48→
+    49→const CRIME_TYPES = [
+    50→  "Chain Snatching",
+    51→  "Vehicle Theft",
+    52→  "Cyber Fraud",
+    53→  "Jewellery Heist",
+    54→  "Drug Trafficking",
+    55→] as const;
+    56→
+    57→const SEVERITY_CONFIG: Record<
+    58→  string,
+    59→  { color: string; radius: number; bg: string; border: string }
+    60→> = {
+    61→  critical: { color: "#f87171", radius: 12, bg: "rgba(248,113,113,0.12)", border: "rgba(248,113,113,0.25)" },
+    62→  high: { color: "#fbbf24", radius: 10, bg: "rgba(251,191,36,0.12)", border: "rgba(251,191,36,0.25)" },
+    63→  medium: { color: "#eab308", radius: 8, bg: "rgba(234,179,8,0.12)", border: "rgba(234,179,8,0.25)" },
+    64→  low: { color: "#34d399", radius: 6, bg: "rgba(52,211,153,0.12)", border: "rgba(52,211,153,0.25)" },
+    65→};
+    66→
+    67→const SEVERITY_LABELS: Record<string, string> = {
+    68→  critical: "Critical",
+    69→  high: "High",
+    70→  medium: "Medium",
+    71→  low: "Low",
+    72→};
+    73→
+    74→// --- Glass Card Styles ---
+    75→
+    76→const glassCard: React.CSSProperties = {
+    77→  background: "rgba(15, 21, 36, 0.92)",
+    78→  backdropFilter: "blur(24px)",
+    79→  WebkitBackdropFilter: "blur(24px)",
+    80→  border: "1px solid rgba(255, 255, 255, 0.06)",
+    81→  borderRadius: "14px",
+    82→  boxShadow:
+    83→    "0 24px 48px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.03)",
+    84→};
+    85→
+    86→const glassCardCompact: React.CSSProperties = {
+    87→  background: "rgba(13, 18, 33, 0.92)",
+    88→  backdropFilter: "blur(16px)",
+    89→  WebkitBackdropFilter: "blur(16px)",
+    90→  border: "1px solid rgba(255, 255, 255, 0.06)",
+    91→  borderRadius: "10px",
+    92→  boxShadow: "0 8px 24px -8px rgba(0, 0, 0, 0.5)",
+    93→};
+    94→
+    95→const selectTriggerStyle: React.CSSProperties = {
+    96→  background: "rgba(10, 15, 28, 0.8)",
+    97→  border: "1px solid rgba(255, 255, 255, 0.06)",
+    98→  color: "#f1f5f9",
+    99→  fontSize: "12px",
+   100→  height: "32px",
+   101→};
+   102→
+   103→export default function CrimeMap() {
+   104→  const crimeData = useAppStore((s) => s.crimeData);
+   105→
+   106→  // --- Filter State ---
+   107→  const [selectedTypes, setSelectedTypes] = useState<string[]>(
+   108→    [...CRIME_TYPES]
+   109→  );
+   110→  const [selectedYear, setSelectedYear] = useState<string>("all");
+   111→  const [selectedSeverity, setSelectedSeverity] = useState<string>("all");
+   112→  const [selectedDistrict, setSelectedDistrict] = useState<string>("all");
+   113→  const [viewMode, setViewMode] = useState<"markers" | "heatmap">("markers");
+   114→  const [filterPanelOpen, setFilterPanelOpen] = useState(true);
+   115→  const [statsPanelOpen, setStatsPanelOpen] = useState(true);
+   116→
+   117→  // --- Available districts ---
+   118→  const availableDistricts = useMemo(() => {
+   119→    if (!crimeData) return [];
+   120→    const districts = new Set(crimeData.firs.map((f) => f.district));
+   121→    return Array.from(districts).sort();
+   122→  }, [crimeData]);
+   123→
+   124→  // --- Handlers ---
+   125→  const toggleType = (type: string) => {
+   126→    setSelectedTypes((prev) =>
+   127→      prev.includes(type)
+   128→        ? prev.filter((t) => t !== type)
+   129→        : [...prev, type]
+   130→    );
+   131→  };
+   132→
+   133→  // --- Filtered FIRs ---
+   134→  const filteredFirs = useMemo<FIR[]>(() => {
+   135→    if (!crimeData) return [];
+   136→
+   137→    return crimeData.firs.filter((fir) => {
+   138→      if (!selectedTypes.includes(fir.crime_type)) return false;
+   139→      if (selectedYear !== "all") {
+   140→        const firYear = new Date(fir.date).getFullYear().toString();
+   141→        if (firYear !== selectedYear) return false;
+   142→      }
+   143→      if (selectedSeverity !== "all" && fir.severity !== selectedSeverity)
+   144→        return false;
+   145→      if (selectedDistrict !== "all" && fir.district !== selectedDistrict)
+   146→        return false;
+   147→      return true;
+   148→    });
+   149→  }, [crimeData, selectedTypes, selectedYear, selectedSeverity, selectedDistrict]);
+   150→
+   151→  // --- Stats ---
+   152→  const stats = useMemo(() => {
+   153→    if (filteredFirs.length === 0) {
+   154→      return {
+   155→        topDistricts: [] as { name: string; count: number }[],
+   156→        commonCrime: "N/A",
+   157→      };
+   158→    }
+   159→
+   160→    const districtMap = new Map<string, number>();
+   161→    const crimeTypeMap = new Map<string, number>();
+   162→
+   163→    for (const fir of filteredFirs) {
+   164→      districtMap.set(fir.district, (districtMap.get(fir.district) ?? 0) + 1);
+   165→      crimeTypeMap.set(
+   166→        fir.crime_type,
+   167→        (crimeTypeMap.get(fir.crime_type) ?? 0) + 1
+   168→      );
+   169→    }
+   170→
+   171→    const topDistricts = [...districtMap.entries()]
+   172→      .sort((a, b) => b[1] - a[1])
+   173→      .slice(0, 3)
+   174→      .map(([name, count]) => ({ name, count }));
+   175→
+   176→    let commonCrime = "N/A";
+   177→    let maxCount = 0;
+   178→    for (const [type, count] of crimeTypeMap.entries()) {
+   179→      if (count > maxCount) {
+   180→        maxCount = count;
+   181→        commonCrime = type;
+   182→      }
+   183→    }
+   184→
+   185→    return { topDistricts, commonCrime };
+   186→  }, [filteredFirs]);
+   187→
+   188→  // --- District Table ---
+   189→  const districtTable = useMemo(() => {
+   190→    const map = new Map<string, number>();
+   191→    for (const fir of filteredFirs) {
+   192→      map.set(fir.district, (map.get(fir.district) ?? 0) + 1);
+   193→    }
+   194→    return [...map.entries()]
+   195→      .sort((a, b) => b[1] - a[1])
+   196→      .map(([district, count]) => ({ district, count }));
+   197→  }, [filteredFirs]);
+   198→
+   199→  // --- Cluster Detection ---
+   200→  const clusters = useMemo(() => {
+   201→    if (filteredFirs.length === 0) return [];
+   202→
+   203→    const visited = new Set<string>();
+   204→    const result: { firs: FIR[]; center: [number, number]; locationName: string }[] = [];
+   205→
+   206→    for (const fir of filteredFirs) {
+   207→      if (visited.has(fir.fir_id)) continue;
+   208→
+   209→      const clusterFirs: FIR[] = [fir];
+   210→      visited.add(fir.fir_id);
+   211→
+   212→      let changed = true;
+   213→      while (changed) {
+   214→        changed = false;
+   215→        for (const other of filteredFirs) {
+   216→          if (visited.has(other.fir_id)) continue;
+   217→          const latDiff = Math.abs(other.location.lat - fir.location.lat);
+   218→          const lngDiff = Math.abs(other.location.lng - fir.location.lng);
+   219→          if (latDiff <= 0.05 && lngDiff <= 0.05) {
+   220→            for (const member of clusterFirs) {
+   221→              const dLat = Math.abs(other.location.lat - member.location.lat);
+   222→              const dLng = Math.abs(other.location.lng - member.location.lng);
+   223→              if (dLat <= 0.05 && dLng <= 0.05) {
+   224→                clusterFirs.push(other);
+   225→                visited.add(other.fir_id);
+   226→                changed = true;
+   227→                break;
+   228→              }
+   229→            }
+   230→          }
+   231→        }
+   232→      }
+   233→
+   234→      if (clusterFirs.length >= 3) {
+   235→        const avgLat =
+   236→          clusterFirs.reduce((s, f) => s + f.location.lat, 0) / clusterFirs.length;
+   237→        const avgLng =
+   238→          clusterFirs.reduce((s, f) => s + f.location.lng, 0) / clusterFirs.length;
+   239→        const nameCounts = new Map<string, number>();
+   240→        for (const f of clusterFirs) {
+   241→          nameCounts.set(f.district, (nameCounts.get(f.district) ?? 0) + 1);
+   242→        }
+   243→        const topName = [...nameCounts.entries()].sort((a, b) => b[1] - a[1])[0][0];
+   244→        result.push({ firs: clusterFirs, center: [avgLat, avgLng], locationName: topName });
+   245→      }
+   246→    }
+   247→
+   248→    return result.sort((a, b) => b.firs.length - a.firs.length);
+   249→  }, [filteredFirs]);
+   250→
+   251→  // --- Heat Points ---
+   252→  const heatPoints = useMemo(() => {
+   253→    if (filteredFirs.length === 0) return [];
+   254→
+   255→    const THRESHOLD = 0.05;
+   256→    const assigned = new Set<string>();
+   257→    const points: { center: [number, number]; intensity: number }[] = [];
+   258→
+   259→    for (const cluster of clusters) {
+   260→      points.push({
+   261→        center: cluster.center,
+   262→        intensity: cluster.firs.length,
+   263→      });
+   264→      for (const f of cluster.firs) {
+   265→        assigned.add(f.fir_id);
+   266→      }
+   267→    }
+   268→
+   269→    const remaining = filteredFirs.filter((f) => !assigned.has(f.fir_id));
+   270→    const grouped = new Set<string>();
+   271→
+   272→    for (const fir of remaining) {
+   273→      if (grouped.has(fir.fir_id)) continue;
+   274→      const group = [fir];
+   275→      grouped.add(fir.fir_id);
+   276→
+   277→      for (const other of remaining) {
+   278→        if (grouped.has(other.fir_id)) continue;
+   279→        const dLat = Math.abs(other.location.lat - fir.location.lat);
+   280→        const dLng = Math.abs(other.location.lng - fir.location.lng);
+   281→        if (dLat <= THRESHOLD && dLng <= THRESHOLD) {
+   282→          group.push(other);
+   283→          grouped.add(other.fir_id);
+   284→        }
+   285→      }
+   286→
+   287→      if (group.length >= 2) {
+   288→        const avgLat =
+   289→          group.reduce((s, f) => s + f.location.lat, 0) / group.length;
+   290→        const avgLng =
+   291→          group.reduce((s, f) => s + f.location.lng, 0) / group.length;
+   292→        points.push({ center: [avgLat, avgLng], intensity: group.length });
+   293→      } else {
+   294→        points.push({
+   295→          center: [fir.location.lat, fir.location.lng],
+   296→          intensity: 1,
+   297→        });
+   298→      }
+   299→    }
+   300→
+   301→    return points;
+   302→  }, [filteredFirs, clusters]);
+   303→
+   304→  // --- Crime Density Stats ---
+   305→  const densityStats = useMemo(() => {
+   306→    if (filteredFirs.length === 0) {
+   307→      return {
+   308→        highestDensity: "N/A",
+   309→        avgCrimesPerLocation: 0,
+   310→        numClusters: 0,
+   311→        topClusters: [] as { name: string; count: number }[],
+   312→      };
+   313→    }
+   314→
+   315→    const topClusters = clusters.slice(0, 3).map((c) => ({
+   316→      name: c.locationName,
+   317→      count: c.firs.length,
+   318→    }));
+   319→
+   320→    const uniqueLocations = new Set(
+   321→      filteredFirs.map((f) => `${f.location.lat.toFixed(4)},${f.location.lng.toFixed(4)}`)
+   322→    ).size;
+   323→
+   324→    return {
+   325→      highestDensity:
+   326→        clusters.length > 0
+   327→          ? `${clusters[0].locationName} (${clusters[0].firs.length} FIRs)`
+   328→          : "N/A",
+   329→      avgCrimesPerLocation:
+   330→        Math.round((filteredFirs.length / Math.max(uniqueLocations, 1)) * 10) / 10,
+   331→      numClusters: clusters.length,
+   332→      topClusters,
+   333→    };
+   334→  }, [filteredFirs, clusters]);
+   335→
+   336→  // --- Severity breakdown for stats overlay ---
+   337→  const severityBreakdown = useMemo(() => {
+   338→    const counts: Record<string, number> = { critical: 0, high: 0, medium: 0, low: 0 };
+   339→    for (const fir of filteredFirs) {
+   340→      if (counts[fir.severity] !== undefined) counts[fir.severity]++;
+   341→    }
+   342→    return counts;
+   343→  }, [filteredFirs]);
+   344→
+   345→  // --- Loading State ---
+   346→  if (!crimeData) {
+   347→    return <LoadingSpinner message="Loading crime map data..." />;
+   348→  }
+   349→
+   350→  return (
+   351→    <div className="flex flex-col h-full w-full">
+   352→      {/* Map Container */}
+   353→      <div className="relative flex-1 min-h-0">
+   354→        <MapContainer
+   355→          center={[15.3173, 75.7139]}
+   356→          zoom={7}
+   357→          style={{ height: "100%", width: "100%" }}
+   358→          className="z-0"
+   359→        >
+   360→          <TileLayer
+   361→            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+   362→            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+   363→          />
+   364→          {viewMode === "markers" &&
+   365→            filteredFirs.map((fir) => {
+   366→              const cfg = SEVERITY_CONFIG[fir.severity];
+   367→              if (!cfg) return null;
+   368→              return (
+   369→                <CircleMarker
+   370→                  key={fir.fir_id}
+   371→                  center={[fir.location.lat, fir.location.lng]}
+   372→                  radius={cfg.radius}
+   373→                  pathOptions={{
+   374→                    color: cfg.color,
+   375→                    weight: 1.5,
+   376→                    fillColor: cfg.color,
+   377→                    fillOpacity: 0.5,
+   378→                    opacity: 0.9,
+   379→                  }}
+   380→                >
+   381→                  <Popup>
+   382→                    <div
+   383→                      style={{
+   384→                        padding: "0",
+   385→                        minWidth: "220px",
+   386→                        background: "rgba(15, 21, 36, 0.95)",
+   387→                        backdropFilter: "blur(24px)",
+   388→                        borderRadius: "12px",
+   389→                        border: "1px solid rgba(255,255,255,0.06)",
+   390→                        boxShadow:
+   391→                          "0 16px 48px -12px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03)",
+   392→                        overflow: "hidden",
+   393→                      }}
+   394→                    >
+   395→                      {/* Header */}
+   396→                      <div
+   397→                        style={{
+   398→                          padding: "12px 14px 10px",
+   399→                          borderBottom: "1px solid rgba(255,255,255,0.06)",
+   400→                          background: "rgba(255,255,255,0.02)",
+   401→                        }}
+   402→                      >
+   403→                        <div
+   404→                          style={{
+   405→                            display: "flex",
+   406→                            alignItems: "center",
+   407→                            gap: "8px",
+   408→                            marginBottom: "6px",
+   409→                          }}
+   410→                        >
+   411→                          <span
+   412→                            style={{
+   413→                              width: "6px",
+   414→                              height: "6px",
+   415→                              borderRadius: "50%",
+   416→                              background: cfg.color,
+   417→                              boxShadow: `0 0 8px ${cfg.color}60`,
+   418→                            }}
+   419→                          />
+   420→                          <p
+   421→                            style={{
+   422→                              fontWeight: 700,
+   423→                              fontSize: "13px",
+   424→                              color: "#f1f5f9",
+   425→                              letterSpacing: "0.01em",
+   426→                            }}
+   427→                          >
+   428→                            {fir.fir_id}
+   429→                          </p>
+   430→                        </div>
+   431→                        <span
+   432→                          style={{
+   433→                            display: "inline-flex",
+   434→                            alignItems: "center",
+   435→                            gap: "5px",
+   436→                            padding: "2px 8px",
+   437→                            borderRadius: "6px",
+   438→                            background: cfg.bg,
+   439→                            border: `1px solid ${cfg.border}`,
+   440→                            fontSize: "9px",
+   441→                            fontWeight: 700,
+   442→                            color: cfg.color,
+   443→                            textTransform: "uppercase",
+   444→                            letterSpacing: "0.06em",
+   445→                          }}
+   446→                        >
+   447→                          {fir.severity}
+   448→                        </span>
+   449→                      </div>
+   450→                      {/* Body */}
+   451→                      <div style={{ padding: "10px 14px 12px" }}>
+   452→                        <div
+   453→                          style={{
+   454→                            display: "flex",
+   455→                            flexDirection: "column",
+   456→                            gap: "6px",
+   457→                          }}
+   458→                        >
+   459→                          {[
+   460→                            { label: "Crime Type", value: fir.crime_type },
+   461→                            { label: "Date", value: fir.date },
+   462→                            { label: "Time", value: fir.time },
+   463→                            { label: "District", value: fir.district },
+   464→                            { label: "Status", value: fir.investigation_status },
+   465→                            { label: "Location", value: fir.location.place },
+   466→                          ].map(({ label, value }) => (
+   467→                            <div
+   468→                              key={label}
+   469→                              style={{
+   470→                                display: "flex",
+   471→                                justifyContent: "space-between",
+   472→                                alignItems: "baseline",
+   473→                              }}
+   474→                            >
+   475→                              <span
+   476→                                style={{
+   477→                                  color: "#5a657a",
+   478→                                  fontSize: "10px",
+   479→                                  fontWeight: 600,
+   480→                                  textTransform: "uppercase",
+   481→                                  letterSpacing: "0.04em",
+   482→                                }}
+   483→                              >
+   484→                                {label}
+   485→                              </span>
+   486→                              <span
+   487→                                style={{
+   488→                                  color: "#c8d0e0",
+   489→                                  fontSize: "11px",
+   490→                                  textAlign: "right",
+   491→                                  maxWidth: "130px",
+   492→                                  overflow: "hidden",
+   493→                                  textOverflow: "ellipsis",
+   494→                                  whiteSpace: "nowrap",
+   495→                                }}
+   496→                              >
+   497→                                {value}
+   498→                              </span>
+   499→                            </div>
+   500→                          ))}
+   501→                        </div>
+   502→                        {fir.accused.length > 0 && (
+   503→                          <div style={{ marginTop: "10px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+   504→                            <p
+   505→                              style={{
+   506→                                color: "#5a657a",
+   507→                                fontSize: "9px",
+   508→                                fontWeight: 600,
+   509→                                textTransform: "uppercase",
+   510→                                letterSpacing: "0.06em",
+   511→                                marginBottom: "4px",
+   512→                              }}
+   513→                            >
+   514→                              Accused ({fir.accused.length})
+   515→                            </p>
+   516→                            <div style={{ display: "flex", flexWrap: "wrap", gap: "3px" }}>
+   517→                              {fir.accused.map((a) => (
+   518→                                <span
+   519→                                  key={a}
+   520→                                  style={{
+   521→                                    padding: "1px 6px",
+   522→                                    borderRadius: "4px",
+   523→                                    background: "rgba(248,113,113,0.1)",
+   524→                                    border: "1px solid rgba(248,113,113,0.15)",
+   525→                                    color: "#f87171",
+   526→                                    fontSize: "9px",
+   527→                                    fontWeight: 600,
+   528→                                  }}
+   529→                                >
+   530→                                  {a}
+   531→                                </span>
+   532→                              ))}
+   533→                            </div>
+   534→                          </div>
+   535→                        )}
+   536→                      </div>
+   537→                    </div>
+   538→                  </Popup>
+   539→                </CircleMarker>
+   540→              );
+   541→            })}
+   542→          {viewMode === "heatmap" &&
+   543→            heatPoints.map((hp, idx) => {
+   544→              const maxIntensity = Math.max(
+   545→                ...heatPoints.map((p) => p.intensity),
+   546→                1
+   547→              );
+   548→              const normalized = hp.intensity / maxIntensity;
+   549→
+   550→              const radius = 500 + normalized * 4500;
+   551→              const opacity = 0.15 + normalized * 0.2;
+   552→              const fillColor =
+   553→                normalized > 0.6
+   554→                  ? "#f87171"
+   555→                  : normalized > 0.3
+   556→                  ? "#fbbf24"
+   557→                  : "#fbbf24";
+   558→              return (
+   559→                <Circle
+   560→                  key={`heat-${idx}`}
+   561→                  center={hp.center}
+   562→                  radius={radius}
+   563→                  pathOptions={{
+   564→                    color: "transparent",
+   565→                    weight: 0,
+   566→                    fillColor,
+   567→                    fillOpacity: opacity,
+   568→                  }}
+   569→                />
+   570→              );
+   571→            })}
+   572→        </MapContainer>
+   573→
+   574→        {/* ── Stats Overlay — Top Center ── */}
+   575→        <motion.div
+   576→          initial={{ opacity: 0, y: -12 }}
+   577→          animate={{ opacity: 1, y: 0 }}
+   578→          transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+   579→          className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000]"
+   580→        >
+   581→          <div className="flex items-center gap-3 px-4 py-2" style={glassCardCompact}>
+   582→            {/* Total markers pill */}
+   583→            <div className="flex items-center gap-2">
+   584→              <MapPin className="size-3.5 text-[#22d3ee]" />
+   585→              <span className="text-[12px] font-bold text-[#f1f5f9] tabular-nums">
+   586→                {filteredFirs.length}
+   587→              </span>
+   588→              <span className="text-[11px] text-[#5a657a]">
+   589→                {filteredFirs.length === 1 ? "marker" : "markers"}
+   590→              </span>
+   591→            </div>
+   592→
+   593→            <div className="w-px h-4 bg-[rgba(255,255,255,0.06)]" />
+   594→
+   595→            {/* Severity breakdown */}
+   596→            {(["critical", "high", "medium", "low"] as const).map((sev) => {
+   597→              const c = SEVERITY_CONFIG[sev];
+   598→              return (
+   599→                <div key={sev} className="flex items-center gap-1">
+   600→                  <span
+   601→                    className="w-1.5 h-1.5 rounded-full"
+   602→                    style={{
+   603→                      background: c.color,
+   604→                      boxShadow: severityBreakdown[sev] > 0 ? `0 0 6px ${c.color}60` : "none",
+   605→                      opacity: severityBreakdown[sev] > 0 ? 1 : 0.3,
+   606→                    }}
+   607→                  />
+   608→                  <span
+   609→                    className="text-[10px] font-semibold tabular-nums"
+   610→                    style={{ color: severityBreakdown[sev] > 0 ? c.color : "#3d4659" }}
+   611→                  >
+   612→                    {severityBreakdown[sev]}
+   613→                  </span>
+   614→                </div>
+   615→              );
+   616→            })}
+   617→          </div>
+   618→        </motion.div>
+   619→
+   620→        {/* ── Filter Panel — Left ── */}
+   621→        <motion.div
+   622→          initial={{ opacity: 0, x: -20 }}
+   623→          animate={{ opacity: 1, x: 0 }}
+   624→          transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+   625→          className="absolute top-14 left-3 z-[1000] w-60"
+   626→          style={glassCard}
+   627→        >
+   628→          {/* Panel header - collapsible */}
+   629→          <button
+   630→            onClick={() => setFilterPanelOpen((p) => !p)}
+   631→            className="w-full flex items-center justify-between px-4 py-3 hover:bg-[rgba(255,255,255,0.02)] transition-colors rounded-t-[14px]"
+   632→          >
+   633→            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+   634→              <Filter className="size-3.5 text-[#22d3ee]" />
+   635→              <h3
+   636→                style={{
+   637→                  color: "#f1f5f9",
+   638→                  fontWeight: 600,
+   639→                  fontSize: "12px",
+   640→                  letterSpacing: "0.02em",
+   641→                }}
+   642→              >
+   643→                Filters
+   644→              </h3>
+   645→              {filteredFirs.length < (crimeData?.firs.length ?? 0) && (
+   646→                <span
+   647→                  style={{
+   648→                    fontSize: "9px",
+   649→                    fontWeight: 700,
+   650→                    color: "#22d3ee",
+   651→                    background: "rgba(34,211,238,0.1)",
+   652→                    padding: "1px 6px",
+   653→                    borderRadius: "4px",
+   654→                    border: "1px solid rgba(34,211,238,0.15)",
+   655→                  }}
+   656→                >
+   657→                  Active
+   658→                </span>
+   659→              )}
+   660→            </div>
+   661→            {filterPanelOpen ? (
+   662→              <ChevronUp className="size-3.5 text-[#5a657a]" />
+   663→            ) : (
+   664→              <ChevronDown className="size-3.5 text-[#5a657a]" />
+   665→            )}
+   666→          </button>
+   667→
+   668→          <AnimatePresence>
+   669→            {filterPanelOpen && (
+   670→              <motion.div
+   671→                initial={{ height: 0, opacity: 0 }}
+   672→                animate={{ height: "auto", opacity: 1 }}
+   673→                exit={{ height: 0, opacity: 0 }}
+   674→                transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+   675→                className="overflow-hidden"
+   676→              >
+   677→                <div className="px-4 pb-4">
+   678→                  {/* Crime Type Checkboxes */}
+   679→                  <div
+   680→                    style={{
+   681→                      display: "flex",
+   682→                      flexDirection: "column",
+   683→                      gap: "2px",
+   684→                      marginBottom: "14px",
+   685→                    }}
+   686→                  >
+   687→                    <p
+   688→                      style={{
+   689→                        color: "#5a657a",
+   690→                        fontSize: "9px",
+   691→                        fontWeight: 700,
+   692→                        textTransform: "uppercase",
+   693→                        letterSpacing: "0.08em",
+   694→                        marginBottom: "6px",
+   695→                      }}
+   696→                    >
+   697→                      Crime Type
+   698→                    </p>
+   699→                    {CRIME_TYPES.map((type) => (
+   700→                      <label
+   701→                        key={type}
+   702→                        style={{
+   703→                          display: "flex",
+   704→                          alignItems: "center",
+   705→                          gap: "10px",
+   706→                          cursor: "pointer",
+   707→                          padding: "4px 8px",
+   708→                          borderRadius: "6px",
+   709→                          transition: "background 0.15s ease",
+   710→                        }}
+   711→                        onMouseEnter={(e) => {
+   712→                          e.currentTarget.style.background =
+   713→                            "rgba(255,255,255,0.03)";
+   714→                        }}
+   715→                        onMouseLeave={(e) => {
+   716→                          e.currentTarget.style.background = "transparent";
+   717→                        }}
+   718→                      >
+   719→                        <Checkbox
+   720→                          checked={selectedTypes.includes(type)}
+   721→                          onCheckedChange={() => toggleType(type)}
+   722→                          style={{
+   723→                            width: "14px",
+   724→                            height: "14px",
+   725→                            borderColor: "rgba(255,255,255,0.12)",
+   726→                          }}
+   727→                        />
+   728→                        <span style={{ color: "#c8d0e0", fontSize: "11px" }}>
+   729→                          {type}
+   730→                        </span>
+   731→                      </label>
+   732→                    ))}
+   733→                  </div>
+   734→
+   735→                  {/* District Filter */}
+   736→                  <div style={{ marginBottom: "12px" }}>
+   737→                    <p
+   738→                      style={{
+   739→                        color: "#5a657a",
+   740→                        fontSize: "9px",
+   741→                        fontWeight: 700,
+   742→                        textTransform: "uppercase",
+   743→                        letterSpacing: "0.08em",
+   744→                        marginBottom: "6px",
+   745→                      }}
+   746→                    >
+   747→                      District
+   748→                    </p>
+   749→                    <Select
+   750→                      value={selectedDistrict}
+   751→                      onValueChange={setSelectedDistrict}
+   752→                    >
+   753→                      <SelectTrigger style={selectTriggerStyle}>
+   754→                        <SelectValue placeholder="All Districts" />
+   755→                      </SelectTrigger>
+   756→                      <SelectContent className="bg-[rgba(15,21,36,0.95)] border-[rgba(255,255,255,0.06)] max-h-48">
+   757→                        <SelectItem value="all" className="text-[#f1f5f9]">
+   758→                          All Districts
+   759→                        </SelectItem>
+   760→                        {availableDistricts.map((d) => (
+   761→                          <SelectItem key={d} value={d} className="text-[#f1f5f9]">
+   762→                            {d}
+   763→                          </SelectItem>
+   764→                        ))}
+   765→                      </SelectContent>
+   766→                    </Select>
+   767→                  </div>
+   768→
+   769→                  {/* Year Dropdown */}
+   770→                  <div style={{ marginBottom: "12px" }}>
+   771→                    <p
+   772→                      style={{
+   773→                        color: "#5a657a",
+   774→                        fontSize: "9px",
+   775→                        fontWeight: 700,
+   776→                        textTransform: "uppercase",
+   777→                        letterSpacing: "0.08em",
+   778→                        marginBottom: "6px",
+   779→                      }}
+   780→                    >
+   781→                      Year
+   782→                    </p>
+   783→                    <Select value={selectedYear} onValueChange={setSelectedYear}>
+   784→                      <SelectTrigger style={selectTriggerStyle}>
+   785→                        <SelectValue placeholder="All" />
+   786→                      </SelectTrigger>
+   787→                      <SelectContent className="bg-[rgba(15,21,36,0.95)] border-[rgba(255,255,255,0.06)]">
+   788→                        <SelectItem value="all" className="text-[#f1f5f9]">
+   789→                          All
+   790→                        </SelectItem>
+   791→                        <SelectItem value="2022" className="text-[#f1f5f9]">
+   792→                          2022
+   793→                        </SelectItem>
+   794→                        <SelectItem value="2023" className="text-[#f1f5f9]">
+   795→                          2023
+   796→                        </SelectItem>
+   797→                        <SelectItem value="2024" className="text-[#f1f5f9]">
+   798→                          2024
+   799→                        </SelectItem>
+   800→                        <SelectItem value="2025" className="text-[#f1f5f9]">
+   801→                          2025
+   802→                        </SelectItem>
+   803→                      </SelectContent>
+   804→                    </Select>
+   805→                  </div>
+   806→
+   807→                  {/* Severity Dropdown */}
+   808→                  <div style={{ marginBottom: "14px" }}>
+   809→                    <p
+   810→                      style={{
+   811→                        color: "#5a657a",
+   812→                        fontSize: "9px",
+   813→                        fontWeight: 700,
+   814→                        textTransform: "uppercase",
+   815→                        letterSpacing: "0.08em",
+   816→                        marginBottom: "6px",
+   817→                      }}
+   818→                    >
+   819→                      Severity
+   820→                    </p>
+   821→                    <Select
+   822→                      value={selectedSeverity}
+   823→                      onValueChange={setSelectedSeverity}
+   824→                    >
+   825→                      <SelectTrigger style={selectTriggerStyle}>
+   826→                        <SelectValue placeholder="All" />
+   827→                      </SelectTrigger>
+   828→                      <SelectContent className="bg-[rgba(15,21,36,0.95)] border-[rgba(255,255,255,0.06)]">
+   829→                        <SelectItem value="all" className="text-[#f1f5f9]">
+   830→                          All
+   831→                        </SelectItem>
+   832→                        <SelectItem value="critical" className="text-[#f1f5f9]">
+   833→                          Critical
+   834→                        </SelectItem>
+   835→                        <SelectItem value="high" className="text-[#f1f5f9]">
+   836→                          High
+   837→                        </SelectItem>
+   838→                        <SelectItem value="medium" className="text-[#f1f5f9]">
+   839→                          Medium
+   840→                        </SelectItem>
+   841→                        <SelectItem value="low" className="text-[#f1f5f9]">
+   842→                          Low
+   843→                        </SelectItem>
+   844→                      </SelectContent>
+   845→                    </Select>
+   846→                  </div>
+   847→
+   848→                  {/* View Mode Toggle */}
+   849→                  <div style={{ marginBottom: "14px" }}>
+   850→                    <p
+   851→                      style={{
+   852→                        color: "#5a657a",
+   853→                        fontSize: "9px",
+   854→                        fontWeight: 700,
+   855→                        textTransform: "uppercase",
+   856→                        letterSpacing: "0.08em",
+   857→                        marginBottom: "6px",
+   858→                      }}
+   859→                    >
+   860→                      View Mode
+   861→                    </p>
+   862→                    <div
+   863→                      style={{
+   864→                        display: "flex",
+   865→                        borderRadius: "8px",
+   866→                        overflow: "hidden",
+   867→                        border: "1px solid rgba(255,255,255,0.06)",
+   868→                      }}
+   869→                    >
+   870→                      <button
+   871→                        onClick={() => setViewMode("markers")}
+   872→                        style={{
+   873→                          flex: 1,
+   874→                          fontSize: "11px",
+   875→                          padding: "6px 0",
+   876→                          fontWeight: 600,
+   877→                          letterSpacing: "0.02em",
+   878→                          cursor: "pointer",
+   879→                          transition: "all 0.2s ease",
+   880→                          background:
+   881→                            viewMode === "markers"
+   882→                              ? "rgba(34,211,238,0.12)"
+   883→                              : "transparent",
+   884→                          color:
+   885→                            viewMode === "markers" ? "#22d3ee" : "#5a657a",
+   886→                          border: "none",
+   887→                        }}
+   888→                        onMouseEnter={(e) => {
+   889→                          if (viewMode !== "markers")
+   890→                            e.currentTarget.style.color = "#8b97b0";
+   891→                        }}
+   892→                        onMouseLeave={(e) => {
+   893→                          if (viewMode !== "markers")
+   894→                            e.currentTarget.style.color = "#5a657a";
+   895→                        }}
+   896→                      >
+   897→                        Markers
+   898→                      </button>
+   899→                      <button
+   900→                        onClick={() => setViewMode("heatmap")}
+   901→                        style={{
+   902→                          flex: 1,
+   903→                          fontSize: "11px",
+   904→                          padding: "6px 0",
+   905→                          fontWeight: 600,
+   906→                          letterSpacing: "0.02em",
+   907→                          cursor: "pointer",
+   908→                          transition: "all 0.2s ease",
+   909→                          background:
+   910→                            viewMode === "heatmap"
+   911→                              ? "rgba(248,113,113,0.12)"
+   912→                              : "transparent",
+   913→                          color:
+   914→                            viewMode === "heatmap" ? "#f87171" : "#5a657a",
+   915→                          border: "none",
+   916→                          borderLeft: "1px solid rgba(255,255,255,0.06)",
+   917→                        }}
+   918→                        onMouseEnter={(e) => {
+   919→                          if (viewMode !== "heatmap")
+   920→                            e.currentTarget.style.color = "#8b97b0";
+   921→                        }}
+   922→                        onMouseLeave={(e) => {
+   923→                          if (viewMode !== "heatmap")
+   924→                            e.currentTarget.style.color = "#5a657a";
+   925→                        }}
+   926→                      >
+   927→                        Heatmap
+   928→                      </button>
+   929→                    </div>
+   930→                  </div>
+   931→
+   932→                  {/* Severity Legend */}
+   933→                  <div
+   934→                    style={{
+   935→                      paddingTop: "12px",
+   936→                      borderTop: "1px solid rgba(255,255,255,0.04)",
+   937→                      display: "flex",
+   938→                      flexWrap: "wrap",
+   939→                      gap: "8px",
+   940→                    }}
+   941→                  >
+   942→                    {Object.entries(SEVERITY_CONFIG).map(([key, cfg]) => (
+   943→                      <div
+   944→                        key={key}
+   945→                        style={{
+   946→                          display: "flex",
+   947→                          alignItems: "center",
+   948→                          gap: "4px",
+   949→                        }}
+   950→                      >
+   951→                        <span
+   952→                          style={{
+   953→                            width: "6px",
+   954→                            height: "6px",
+   955→                            borderRadius: "50%",
+   956→                            background: cfg.color,
+   957→                            boxShadow: `0 0 5px ${cfg.color}50`,
+   958→                          }}
+   959→                        />
+   960→                        <span
+   961→                          style={{
+   962→                            color: "#5a657a",
+   963→                            fontSize: "9px",
+   964→                            fontWeight: 500,
+   965→                          }}
+   966→                        >
+   967→                          {SEVERITY_LABELS[key]}
+   968→                        </span>
+   969→                      </div>
+   970→                    ))}
+   971→                  </div>
+   972→                </div>
+   973→              </motion.div>
+   974→            )}
+   975→          </AnimatePresence>
+   976→        </motion.div>
+   977→
+   978→        {/* ── Stats Panel — Right ── */}
+   979→        <motion.div
+   980→          initial={{ opacity: 0, x: 20 }}
+   981→          animate={{ opacity: 1, x: 0 }}
+   982→          transition={{
+   983→            duration: 0.4,
+   984→            delay: 0.1,
+   985→            ease: [0.4, 0, 0.2, 1],
+   986→          }}
+   987→          className="absolute top-14 right-3 z-[1000] w-60"
+   988→          style={glassCard}
+   989→        >
+   990→          {/* Panel header - collapsible */}
+   991→          <button
+   992→            onClick={() => setStatsPanelOpen((p) => !p)}
+   993→            className="w-full flex items-center justify-between px-4 py-3 hover:bg-[rgba(255,255,255,0.02)] transition-colors rounded-t-[14px]"
+   994→          >
+   995→            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+   996→              <BarChart3 className="size-3.5 text-[#818cf8]" />
+   997→              <h3
+   998→                style={{
+   999→                  color: "#f1f5f9",
+  1000→                  fontWeight: 600,
+  1001→                  fontSize: "12px",
+  1002→                  letterSpacing: "0.02em",
+  1003→                }}
+  1004→              >
+  1005→                Analytics
+  1006→              </h3>
+  1007→            </div>
+  1008→            {statsPanelOpen ? (
+  1009→              <ChevronUp className="size-3.5 text-[#5a657a]" />
+  1010→            ) : (
+  1011→              <ChevronDown className="size-3.5 text-[#5a657a]" />
+  1012→            )}
+  1013→          </button>
+  1014→
+  1015→          <AnimatePresence>
+  1016→            {statsPanelOpen && (
+  1017→              <motion.div
+  1018→                initial={{ height: 0, opacity: 0 }}
+  1019→                animate={{ height: "auto", opacity: 1 }}
+  1020→                exit={{ height: 0, opacity: 0 }}
+  1021→                transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+  1022→                className="overflow-hidden"
+  1023→              >
+  1024→                <div className="px-4 pb-4">
+  1025→                  {/* Top 3 Districts */}
+  1026→                  <div style={{ marginBottom: "14px" }}>
+  1027→                    <p
+  1028→                      style={{
+  1029→                        color: "#5a657a",
+  1030→                        fontSize: "9px",
+  1031→                        fontWeight: 700,
+  1032→                        textTransform: "uppercase",
+  1033→                        letterSpacing: "0.08em",
+  1034→                        marginBottom: "8px",
+  1035→                      }}
+  1036→                    >
+  1037→                      Top Districts
+  1038→                    </p>
+  1039→                    {stats.topDistricts.length === 0 ? (
+  1040→                      <p style={{ color: "#3d4659", fontSize: "11px" }}>
+  1041→                        No data
+  1042→                      </p>
+  1043→                    ) : (
+  1044→                      <div
+  1045→                        style={{
+  1046→                          display: "flex",
+  1047→                          flexDirection: "column",
+  1048→                          gap: "6px",
+  1049→                        }}
+  1050→                      >
+  1051→                        {stats.topDistricts.map((d, i) => (
+  1052→                          <div
+  1053→                            key={d.name}
+  1054→                            style={{
+  1055→                              display: "flex",
+  1056→                              alignItems: "center",
+  1057→                              justifyContent: "space-between",
+  1058→                              padding: "3px 0",
+  1059→                            }}
+  1060→                          >
+  1061→                            <span
+  1062→                              style={{
+  1063→                                color: "#c8d0e0",
+  1064→                                fontSize: "11px",
+  1065→                                display: "flex",
+  1066→                                alignItems: "center",
+  1067→                                gap: "8px",
+  1068→                              }}
+  1069→                            >
+  1070→                              <span
+  1071→                                style={{
+  1072→                                  display: "inline-flex",
+  1073→                                  alignItems: "center",
+  1074→                                  justifyContent: "center",
+  1075→                                  width: "18px",
+  1076→                                  height: "18px",
+  1077→                                  borderRadius: "6px",
+  1078→                                  fontSize: "9px",
+  1079→                                  fontWeight: 700,
+  1080→                                  background:
+  1081→                                    i === 0
+  1082→                                      ? "rgba(248,113,113,0.15)"
+  1083→                                      : i === 1
+  1084→                                      ? "rgba(251,191,36,0.15)"
+  1085→                                      : "rgba(234,179,8,0.12)",
+  1086→                                  color:
+  1087→                                    i === 0
+  1088→                                      ? "#f87171"
+  1089→                                      : i === 1
+  1090→                                      ? "#fbbf24"
+  1091→                                      : "#eab308",
+  1092→                                }}
+  1093→                              >
+  1094→                                {i + 1}
+  1095→                              </span>
+  1096→                              {d.name}
+  1097→                            </span>
+  1098→                            <span
+  1099→                              style={{
+  1100→                                color: "#f1f5f9",
+  1101→                                fontSize: "12px",
+  1102→                                fontWeight: 700,
+  1103→                                fontVariantNumeric: "tabular-nums",
+  1104→                              }}
+  1105→                            >
+  1106→                              {d.count}
+  1107→                            </span>
+  1108→                          </div>
+  1109→                        ))}
+  1110→                      </div>
+  1111→                    )}
+  1112→                  </div>
+  1113→
+  1114→                  {/* Most Common Crime */}
+  1115→                  <div style={{ marginBottom: "14px" }}>
+  1116→                    <p
+  1117→                      style={{
+  1118→                        color: "#5a657a",
+  1119→                        fontSize: "9px",
+  1120→                        fontWeight: 700,
+  1121→                        textTransform: "uppercase",
+  1122→                        letterSpacing: "0.08em",
+  1123→                        marginBottom: "4px",
+  1124→                      }}
+  1125→                    >
+  1126→                      Most Common Crime
+  1127→                    </p>
+  1128→                    <p
+  1129→                      style={{
+  1130→                        color: "#f1f5f9",
+  1131→                        fontSize: "13px",
+  1132→                        fontWeight: 600,
+  1133→                      }}
+  1134→                    >
+  1135→                      {stats.commonCrime}
+  1136→                    </p>
+  1137→                  </div>
+  1138→
+  1139→                  {/* Crime Density Info */}
+  1140→                  <div
+  1141→                    style={{
+  1142→                      background: "rgba(10, 15, 28, 0.6)",
+  1143→                      border: "1px solid rgba(255, 255, 255, 0.04)",
+  1144→                      borderRadius: "10px",
+  1145→                      padding: "10px",
+  1146→                      marginBottom: "14px",
+  1147→                    }}
+  1148→                  >
+  1149→                    <p
+  1150→                      style={{
+  1151→                        color: "#8b97b0",
+  1152→                        fontSize: "9px",
+  1153→                        fontWeight: 700,
+  1154→                        textTransform: "uppercase",
+  1155→                        letterSpacing: "0.08em",
+  1156→                        marginBottom: "8px",
+  1157→                      }}
+  1158→                    >
+  1159→                      Crime Density
+  1160→                    </p>
+  1161→                    <div
+  1162→                      style={{
+  1163→                        display: "flex",
+  1164→                        flexDirection: "column",
+  1165→                        gap: "6px",
+  1166→                      }}
+  1167→                    >
+  1168→                      <div
+  1169→                        style={{
+  1170→                          display: "flex",
+  1171→                          justifyContent: "space-between",
+  1172→                        }}
+  1173→                      >
+  1174→                        <span
+  1175→                          style={{ color: "#5a657a", fontSize: "10px" }}
+  1176→                        >
+  1177→                          Highest Density
+  1178→                        </span>
+  1179→                        <span
+  1180→                          style={{
+  1181→                            color: "#c8d0e0",
+  1182→                            fontSize: "10px",
+  1183→                            fontWeight: 500,
+  1184→                            textAlign: "right",
+  1185→                            maxWidth: "110px",
+  1186→                            overflow: "hidden",
+  1187→                            textOverflow: "ellipsis",
+  1188→                            whiteSpace: "nowrap",
+  1189→                          }}
+  1190→                        >
+  1191→                          {densityStats.highestDensity}
+  1192→                        </span>
+  1193→                      </div>
+  1194→                      <div
+  1195→                        style={{
+  1196→                          display: "flex",
+  1197→                          justifyContent: "space-between",
+  1198→                        }}
+  1199→                      >
+  1200→                        <span
+  1201→                          style={{ color: "#5a657a", fontSize: "10px" }}
+  1202→                        >
+  1203→                          Avg / Location
+  1204→                        </span>
+  1205→                        <span
+  1206→                          style={{
+  1207→                            color: "#c8d0e0",
+  1208→                            fontSize: "10px",
+  1209→                            fontWeight: 500,
+  1210→                          }}
+  1211→                        >
+  1212→                          {densityStats.avgCrimesPerLocation}
+  1213→                        </span>
+  1214→                      </div>
+  1215→                      <div
+  1216→                        style={{
+  1217→                          display: "flex",
+  1218→                          justifyContent: "space-between",
+  1219→                        }}
+  1220→                      >
+  1221→                        <span
+  1222→                          style={{ color: "#5a657a", fontSize: "10px" }}
+  1223→                        >
+  1224→                          Crime Clusters
+  1225→                        </span>
+  1226→                        <span
+  1227→                          style={{
+  1228→                            color: "#f87171",
+  1229→                            fontSize: "10px",
+  1230→                            fontWeight: 700,
+  1231→                          }}
+  1232→                        >
+  1233→                          {densityStats.numClusters}
+  1234→                        </span>
+  1235→                      </div>
+  1236→                    </div>
+  1237→                  </div>
+  1238→
+  1239→                  {/* Cluster Analysis */}
+  1240→                  <div>
+  1241→                    <p
+  1242→                      style={{
+  1243→                        color: "#5a657a",
+  1244→                        fontSize: "9px",
+  1245→                        fontWeight: 700,
+  1246→                        textTransform: "uppercase",
+  1247→                        letterSpacing: "0.08em",
+  1248→                        marginBottom: "6px",
+  1249→                      }}
+  1250→                    >
+  1251→                      Cluster Analysis
+  1252→                    </p>
+  1253→                    {densityStats.topClusters.length === 0 ? (
+  1254→                      <p style={{ color: "#3d4659", fontSize: "10px" }}>
+  1255→                        No clusters detected
+  1256→                      </p>
+  1257→                    ) : (
+  1258→                      <div
+  1259→                        style={{
+  1260→                          display: "flex",
+  1261→                          flexDirection: "column",
+  1262→                          gap: "4px",
+  1263→                        }}
+  1264→                      >
+  1265→                        {densityStats.topClusters.map((c, i) => (
+  1266→                          <div
+  1267→                            key={c.name}
+  1268→                            style={{
+  1269→                              display: "flex",
+  1270→                              alignItems: "center",
+  1271→                              justifyContent: "space-between",
+  1272→                            }}
+  1273→                          >
+  1274→                            <span
+  1275→                              style={{
+  1276→                                color: "#c8d0e0",
+  1277→                                fontSize: "10px",
+  1278→                                display: "flex",
+  1279→                                alignItems: "center",
+  1280→                                gap: "6px",
+  1281→                              }}
+  1282→                            >
+  1283→                              <span
+  1284→                                style={{
+  1285→                                  display: "inline-flex",
+  1286→                                  alignItems: "center",
+  1287→                                  justifyContent: "center",
+  1288→                                  width: "15px",
+  1289→                                  height: "15px",
+  1290→                                  borderRadius: "5px",
+  1291→                                  fontSize: "8px",
+  1292→                                  fontWeight: 700,
+  1293→                                  background:
+  1294→                                    i === 0
+  1295→                                      ? "rgba(248,113,113,0.15)"
+  1296→                                      : i === 1
+  1297→                                      ? "rgba(251,191,36,0.15)"
+  1298→                                      : "rgba(234,179,8,0.12)",
+  1299→                                  color:
+  1300→                                    i === 0
+  1301→                                      ? "#f87171"
+  1302→                                      : i === 1
+  1303→                                      ? "#fbbf24"
+  1304→                                      : "#eab308",
+  1305→                                }}
+  1306→                              >
+  1307→                                {i + 1}
+  1308→                              </span>
+  1309→                              {c.name}
+  1310→                            </span>
+  1311→                            <span
+  1312→                              style={{
+  1313→                                color: "#f1f5f9",
+  1314→                                fontSize: "10px",
+  1315→                                fontWeight: 600,
+  1316→                              }}
+  1317→                            >
+  1318→                              {c.count} FIRs
+  1319→                            </span>
+  1320→                          </div>
+  1321→                        ))}
+  1322→                      </div>
+  1323→                    )}
+  1324→                  </div>
+  1325→                </div>
+  1326→              </motion.div>
+  1327→            )}
+  1328→          </AnimatePresence>
+  1329→        </motion.div>
+  1330→      </div>
+  1331→
+  1332→      {/* ── District Summary Table ── */}
+  1333→      <motion.div
+  1334→        initial={{ opacity: 0, y: 16 }}
+  1335→        animate={{ opacity: 1, y: 0 }}
+  1336→        transition={{
+  1337→          duration: 0.4,
+  1338→          delay: 0.2,
+  1339→          ease: [0.4, 0, 0.2, 1],
+  1340→        }}
+  1341→        className="mt-2 max-h-44 overflow-y-auto shrink-0"
+  1342→        style={{
+  1343→          ...glassCard,
+  1344→          borderRadius: "12px",
+  1345→        }}
+  1346→      >
+  1347→        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+  1348→          <thead>
+  1349→            <tr
+  1350→              style={{
+  1351→                borderBottom: "1px solid rgba(255,255,255,0.06)",
+  1352→              }}
+  1353→            >
+  1354→              <th
+  1355→                style={{
+  1356→                  textAlign: "left",
+  1357→                  padding: "10px 14px",
+  1358→                  color: "#5a657a",
+  1359→                  fontSize: "9px",
+  1360→                  fontWeight: 700,
+  1361→                  textTransform: "uppercase",
+  1362→                  letterSpacing: "0.08em",
+  1363→                }}
+  1364→              >
+  1365→                District
+  1366→              </th>
+  1367→              <th
+  1368→                style={{
+  1369→                  textAlign: "right",
+  1370→                  padding: "10px 14px",
+  1371→                  color: "#5a657a",
+  1372→                  fontSize: "9px",
+  1373→                  fontWeight: 700,
+  1374→                  textTransform: "uppercase",
+  1375→                  letterSpacing: "0.08em",
+  1376→                }}
+  1377→              >
+  1378→                Crime Count
+  1379→              </th>
+  1380→            </tr>
+  1381→          </thead>
+  1382→          <tbody>
+  1383→            {districtTable.length === 0 ? (
+  1384→              <tr>
+  1385→                <td
+  1386→                  colSpan={2}
+  1387→                  style={{
+  1388→                    textAlign: "center",
+  1389→                    padding: "20px 14px",
+  1390→                    color: "#3d4659",
+  1391→                    fontSize: "11px",
+  1392→                  }}
+  1393→                >
+  1394→                  No matching records
+  1395→                </td>
+  1396→              </tr>
+  1397→            ) : (
+  1398→              districtTable.map((row, i) => (
+  1399→                <tr
+  1400→                  key={row.district}
+  1401→                  style={{
+  1402→                    borderBottom: "1px solid rgba(255,255,255,0.03)",
+  1403→                    transition: "background 0.15s ease",
+  1404→                    cursor: "default",
+  1405→                  }}
+  1406→                  onMouseEnter={(e) => {
+  1407→                    e.currentTarget.style.background =
+  1408→                      "rgba(34,211,238,0.04)";
+  1409→                  }}
+  1410→                  onMouseLeave={(e) => {
+  1411→                    e.currentTarget.style.background = "transparent";
+  1412→                  }}
+  1413→                >
+  1414→                  <td
+  1415→                    style={{
+  1416→                      padding: "8px 14px",
+  1417→                      color: "#c8d0e0",
+  1418→                      fontSize: "11px",
+  1419→                    }}
+  1420→                  >
+  1421→                    <span
+  1422→                      style={{
+  1423→                        display: "flex",
+  1424→                        alignItems: "center",
+  1425→                        gap: "8px",
+  1426→                      }}
+  1427→                    >
+  1428→                      <span
+  1429→                        style={{
+  1430→                          width: "15px",
+  1431→                          height: "15px",
+  1432→                          borderRadius: "5px",
+  1433→                          display: "flex",
+  1434→                          alignItems: "center",
+  1435→                          justifyContent: "center",
+  1436→                          fontSize: "8px",
+  1437→                          fontWeight: 700,
+  1438→                          background:
+  1439→                            i < 3
+  1440→                              ? "rgba(34,211,238,0.08)"
+  1441→                              : "transparent",
+  1442→                          color: i < 3 ? "#22d3ee" : "#3d4659",
+  1443→                        }}
+  1444→                      >
+  1445→                        {i + 1}
+  1446→                      </span>
+  1447→                      {row.district}
+  1448→                    </span>
+  1449→                  </td>
+  1450→                  <td
+  1451→                    style={{
+  1452→                      padding: "8px 14px",
+  1453→                      color: "#f1f5f9",
+  1454→                      fontSize: "11px",
+  1455→                      textAlign: "right",
+  1456→                      fontWeight: 600,
+  1457→                      fontVariantNumeric: "tabular-nums",
+  1458→                    }}
+  1459→                  >
+  1460→                    {row.count}
+  1461→                  </td>
+  1462→                </tr>
+  1463→              ))
+  1464→            )}
+  1465→          </tbody>
+  1466→        </table>
+  1467→      </motion.div>
+  1468→    </div>
+  1469→  );
+  1470→}

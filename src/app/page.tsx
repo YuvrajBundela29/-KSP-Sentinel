@@ -44,6 +44,13 @@ export default function Home() {
     }
   }, [user]);
 
+  // Apply theme class on mount
+  useEffect(() => {
+    const stored = localStorage.getItem("ksp_theme");
+    const theme = stored === "light" ? "light" : "dark";
+    document.documentElement.classList.add(theme);
+  }, []);
+
   const renderContent = () => {
     switch (currentView) {
       case "dashboard":
@@ -150,7 +157,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-full w-full overflow-hidden" style={{ backgroundColor: "#050810" }}>
+    <div className="flex h-full w-full overflow-hidden" style={{ backgroundColor: "var(--background)" }}>
       {/* Sidebar — fixed width, full height */}
       <Sidebar />
 

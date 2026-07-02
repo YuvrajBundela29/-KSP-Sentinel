@@ -166,7 +166,145 @@
   --sidebar-accent-foreground: #e8edf5;
   --sidebar-border: rgba(255, 255, 255, 0.05);
   --sidebar-ring: #22d3ee;
+
+  --bg-elevated-1: #080c18;
+  --bg-elevated-2: #0d1221;
+  --bg-elevated-3: #111827;
+  --bg-card: #0f1524;
+  --bg-card-hover: #141c2f;
+  --bg-input: #0a0f1c;
+  --bg-sidebar: #070a14;
+  --text-primary: #f1f5f9;
+  --text-secondary: #8b97b0;
+  --text-tertiary: #5a657a;
+  --text-muted: #3d4659;
+  --primary-glow: rgba(34, 211, 238, 0.12);
+  --primary-glow-strong: rgba(34, 211, 238, 0.25);
+  --primary-subtle: rgba(34, 211, 238, 0.06);
+  --secondary-glow: rgba(129, 140, 248, 0.12);
+  --success: #34d399;
+  --success-glow: rgba(52, 211, 153, 0.12);
+  --warning: #fbbf24;
+  --warning-glow: rgba(251, 191, 36, 0.12);
+  --critical: #f87171;
+  --critical-glow: rgba(248, 113, 113, 0.12);
+  --border-subtle: rgba(255, 255, 255, 0.04);
+  --border-default: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --border-accent: rgba(34, 211, 238, 0.15);
+
+  color-scheme: dark;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LIGHT THEME — Clean, professional, high-contrast
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.light {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #0891b2;
+  --primary-foreground: #ffffff;
+  --secondary: #6366f1;
+  --secondary-foreground: #ffffff;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #e0f2fe;
+  --accent-foreground: #0c4a6e;
+  --destructive: #ef4444;
+  --border: rgba(0, 0, 0, 0.08);
+  --input: #e2e8f0;
+  --ring: #0891b2;
+  --chart-1: #0891b2;
+  --chart-2: #6366f1;
+  --chart-3: #059669;
+  --chart-4: #ef4444;
+  --chart-5: #d97706;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #334155;
+  --sidebar-primary: #0891b2;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(8, 145, 178, 0.08);
+  --sidebar-accent-foreground: #0f172a;
+  --sidebar-border: rgba(0, 0, 0, 0.06);
+  --sidebar-ring: #0891b2;
+
+  --bg-elevated-1: #f1f5f9;
+  --bg-elevated-2: #e2e8f0;
+  --bg-elevated-3: #cbd5e1;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --bg-input: #f1f5f9;
+  --bg-sidebar: #ffffff;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #94a3b8;
+  --text-muted: #cbd5e1;
+  --primary-glow: rgba(8, 145, 178, 0.1);
+  --primary-glow-strong: rgba(8, 145, 178, 0.2);
+  --primary-subtle: rgba(8, 145, 178, 0.05);
+  --secondary-glow: rgba(99, 102, 241, 0.1);
+  --success: #059669;
+  --success-glow: rgba(5, 150, 105, 0.1);
+  --warning: #d97706;
+  --warning-glow: rgba(217, 119, 6, 0.1);
+  --critical: #ef4444;
+  --critical-glow: rgba(239, 68, 68, 0.1);
+  --border-subtle: rgba(0, 0, 0, 0.04);
+  --border-default: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.12);
+  --border-accent: rgba(8, 145, 178, 0.2);
+
+  color-scheme: light;
+}
+
+/* Light theme overrides for hardcoded dark elements */
+.light .leaflet-container { background: #e2e8f0; }
+.light .leaflet-tile-pane { filter: none; }
+.light .leaflet-popup-content-wrapper {
+  background: rgba(255, 255, 255, 0.95);
+  color: #0f172a;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+.light .leaflet-popup-tip { background: rgba(255, 255, 255, 0.95); }
+.light .leaflet-control-zoom a {
+  background: rgba(255, 255, 255, 0.9) !important;
+  color: #334155 !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+.light .leaflet-control-zoom a:hover {
+  background: rgba(8, 145, 178, 0.1) !important;
+  color: #0891b2 !important;
+}
+.light .glass { background: rgba(255, 255, 255, 0.6); border-color: rgba(0, 0, 0, 0.06); }
+.light .glass-strong { background: rgba(255, 255, 255, 0.8); border-color: rgba(0, 0, 0, 0.08); }
+.light .glass-card { background: rgba(255, 255, 255, 0.5); border-color: rgba(0, 0, 0, 0.06); }
+.light .glass-card:hover { background: rgba(255, 255, 255, 0.7); border-color: rgba(8, 145, 178, 0.15); }
+.light .cmdk-overlay { background: rgba(0, 0, 0, 0.3) !important; }
+.light .cmdk { background: rgba(255, 255, 255, 0.95) !important; border-color: rgba(0, 0, 0, 0.08) !important; }
+.light .cmdk-input { color: #0f172a !important; border-color: rgba(0, 0, 0, 0.06) !important; }
+.light .cmdk-input::placeholder { color: #94a3b8 !important; }
+.light .cmdk-item { color: #334155 !important; }
+.light .cmdk-item[data-selected="true"] { background: rgba(8, 145, 178, 0.08) !important; color: #0891b2 !important; }
+.light .cmdk-group-heading { color: #94a3b8 !important; }
+.light .cmdk-separator { background: rgba(0, 0, 0, 0.06) !important; }
+.light .cmdk-shortcut { color: #94a3b8 !important; background: rgba(0, 0, 0, 0.04) !important; border-color: rgba(0, 0, 0, 0.06) !important; }
+.light ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.12); }
+.light ::-webkit-scrollbar-thumb:hover { background: rgba(8, 145, 178, 0.3); }
+.light .skeleton { background: linear-gradient(90deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.08) 50%, rgba(0, 0, 0, 0.04) 75%); }
+.light .sidebar-active-glow::before { background: #0891b2; box-shadow: 0 0 12px rgba(8, 145, 178, 0.3), 0 0 24px rgba(8, 145, 178, 0.1); }
+.light .border-glow { border-color: rgba(0, 0, 0, 0.06); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8); }
+.light ::selection { background: rgba(8, 145, 178, 0.2); color: #0f172a; }
+.light .force-graph-tooltip { background: rgba(255, 255, 255, 0.95) !important; color: #0f172a !important; border-color: rgba(0, 0, 0, 0.08) !important; }
+.light .gradient-cyan { background: linear-gradient(135deg, rgba(8, 145, 178, 0.06) 0%, transparent 60%); }
+.light .gradient-indigo { background: linear-gradient(135deg, rgba(99, 102, 241, 0.06) 0%, transparent 60%); }
+.light .gradient-emerald { background: linear-gradient(135deg, rgba(5, 150, 105, 0.06) 0%, transparent 60%); }
+.light .gradient-amber { background: linear-gradient(135deg, rgba(217, 119, 6, 0.06) 0%, transparent 60%); }
+.light .gradient-rose { background: linear-gradient(135deg, rgba(239, 68, 68, 0.06) 0%, transparent 60%); }
 
 /* ═══════════════════════════════════════════════════════════════════════
    BASE LAYER

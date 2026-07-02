@@ -197,6 +197,8 @@ const DEFAULT_SYS_CONFIG: SysConfig = {
 // ─── Main Component ─────────────────────────────────────────────────
 export default function SettingsPage() {
   const { user, toggleLang, addNotification } = useAppStore();
+  const theme = useAppStore((s) => s.theme);
+  const setTheme = useAppStore((s) => s.setTheme);
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -457,11 +459,11 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div
                     className={`flex items-center gap-3 rounded-xl border-2 p-3.5 cursor-pointer transition-all ${
-                      uiPrefs.theme === "dark"
-                        ? "border-blue-500 bg-[#22d3ee]/10"
+                      theme === "dark"
+                        ? "border-blue-500 bg-[#22d3ee]/10 ring-2 ring-blue-500/30"
                         : "border-white/10 bg-white/5 hover:border-white/20"
                     }`}
-                    onClick={() => setUiPrefs(p => ({ ...p, theme: "dark" }))}
+                    onClick={() => setTheme("dark")}
                   >
                     <div className="h-8 w-8 rounded-lg bg-[rgba(10,15,28,0.6)] border border-white/20 flex items-center justify-center">
                       <div className="h-2 w-2 rounded-full bg-blue-400" />
@@ -471,13 +473,20 @@ export default function SettingsPage() {
                       <span className="text-[#3d4659] text-[10px]">Active</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 rounded-xl border-2 border-white/10 bg-white/5 p-3.5 opacity-50 cursor-not-allowed">
+                  <div
+                    className={`flex items-center gap-3 rounded-xl border-2 p-3.5 cursor-pointer transition-all ${
+                      theme === "light"
+                        ? "border-blue-500 bg-[#22d3ee]/10 ring-2 ring-blue-500/30"
+                        : "border-white/10 bg-white/5 hover:border-white/20"
+                    }`}
+                    onClick={() => setTheme("light")}
+                  >
                     <div className="h-8 w-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center">
                       <div className="h-2 w-2 rounded-full bg-gray-400" />
                     </div>
                     <div>
                       <span className="text-[#f1f5f9] text-sm font-medium block">Light</span>
-                      <span className="text-[#fbbf24] text-[10px]">Coming Soon</span>
+                      <span className="text-[#3d4659] text-[10px]">Active</span>
                     </div>
                   </div>
                 </div>

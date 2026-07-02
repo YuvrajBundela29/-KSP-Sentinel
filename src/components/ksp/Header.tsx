@@ -120,9 +120,9 @@ export default function Header() {
     <header
       className="h-12 flex items-center justify-between px-5 sticky top-0 z-30 border-b flex-shrink-0"
       style={{
-        background: "rgba(5,8,16,0.8)",
+        background: "var(--bg-elevated-1)",
         backdropFilter: "blur(20px)",
-        borderBottom: "1px solid rgba(255,255,255,0.04)",
+        borderBottom: "1px solid var(--border-subtle)",
       }}
     >
       {/* Left: Breadcrumbs */}
@@ -130,9 +130,9 @@ export default function Header() {
         {breadcrumbs.map((crumb, i) => (
           <div key={i} className="flex items-center gap-2 min-w-0">
             {i > 0 && (
-              <span className="text-[10px]" style={{ color: "#3d4659" }}>/</span>
+              <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>/</span>
             )}
-            <h1 className="text-[13px] font-semibold truncate" style={{ color: "#f1f5f9" }}>
+            <h1 className="text-[13px] font-semibold truncate" style={{ color: "var(--text-primary)" }}>
               {crumb.label}
             </h1>
           </div>
@@ -153,10 +153,10 @@ export default function Header() {
             <Wifi className="w-3 h-3" style={{ color: "#34d399" }} />
             <span className="text-[10px] font-medium" style={{ color: "#34d399" }}>Online</span>
           </div>
-          <span className="text-[10px]" style={{ color: "#3d4659" }}>|</span>
+          <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>|</span>
           <div className="flex items-center gap-1">
             <Activity className="w-3 h-3" style={{ color: "#22d3ee" }} />
-            <span className="text-[10px] font-mono" style={{ color: "#5a657a" }}>{clock}</span>
+            <span className="text-[10px] font-mono" style={{ color: "var(--text-tertiary)" }}>{clock}</span>
           </div>
         </div>
 
@@ -164,9 +164,9 @@ export default function Header() {
         <button
           onClick={toggleLang}
           className="flex items-center justify-center w-8 h-8 rounded-lg cursor-pointer transition-all duration-200"
-          style={{ color: "#5a657a" }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = "#c8d0e0"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#5a657a"; }}
+          style={{ color: "var(--text-tertiary)" }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "var(--border-subtle)"; e.currentTarget.style.color = "var(--text-primary)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-tertiary)"; }}
           title={lang === "en" ? "Switch to Kannada" : "Switch to English"}
         >
           <Languages className="w-3.5 h-3.5" />
@@ -177,9 +177,9 @@ export default function Header() {
           <button
             onClick={() => setNotifOpen(!notifOpen)}
             className="flex items-center justify-center w-8 h-8 rounded-lg cursor-pointer transition-all duration-200 relative"
-            style={{ color: notifOpen ? "#c8d0e0" : "#5a657a" }}
-            onMouseEnter={(e) => { if (!notifOpen) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = "#c8d0e0"; }}
-            onMouseLeave={(e) => { if (!notifOpen) e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#5a657a"; }}
+            style={{ color: notifOpen ? "var(--text-primary)" : "var(--text-tertiary)" }}
+            onMouseEnter={(e) => { if (!notifOpen) e.currentTarget.style.background = "var(--border-subtle)"; e.currentTarget.style.color = "var(--text-primary)"; }}
+            onMouseLeave={(e) => { if (!notifOpen) e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-tertiary)"; }}
           >
             <Bell className="w-3.5 h-3.5" />
             {unreadCount > 0 && (
@@ -201,17 +201,17 @@ export default function Header() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.96 }}
                 transition={{ duration: 0.15 }}
-                className="absolute right-0 top-11 w-80 rounded-xl overflow-hidden border-glow"
+                className="absolute right-0 top-11 w-80 max-w-[calc(100vw-2rem)] rounded-xl overflow-hidden border-glow"
                 style={{
-                  background: "rgba(15,21,36,0.95)",
+                  background: "var(--bg-card)",
                   backdropFilter: "blur(32px)",
-                  boxShadow: "0 24px 48px -8px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)",
+                  boxShadow: "0 24px 48px -8px rgba(0,0,0,0.5), 0 0 0 1px var(--border-subtle)",
                   zIndex: 100,
                 }}
               >
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                  <span className="text-xs font-semibold" style={{ color: "#f1f5f9" }}>Notifications</span>
+                <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+                  <span className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>Notifications</span>
                   {notifications.some((n) => !n.read) && (
                     <button
                       onClick={() => notifications.forEach((n) => markNotificationRead(n.id))}
@@ -227,8 +227,8 @@ export default function Header() {
                 <div className="max-h-72 overflow-y-auto">
                   {notifications.length === 0 ? (
                     <div className="py-8 text-center">
-                      <Bell className="w-5 h-5 mx-auto mb-2" style={{ color: "#3d4659" }} />
-                      <p className="text-[11px]" style={{ color: "#3d4659" }}>No notifications</p>
+                      <Bell className="w-5 h-5 mx-auto mb-2" style={{ color: "var(--text-muted)" }} />
+                      <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>No notifications</p>
                     </div>
                   ) : (
                     notifications.slice(0, 10).map((n) => (
@@ -239,22 +239,22 @@ export default function Header() {
                         onClick={() => markNotificationRead(n.id)}
                         className="px-4 py-3 cursor-pointer transition-colors"
                         style={{
-                          borderBottom: "1px solid rgba(255,255,255,0.03)",
+                          borderBottom: "1px solid var(--border-subtle)",
                           background: !n.read ? "rgba(34,211,238,0.02)" : "transparent",
                         }}
                       >
                         <div className="flex items-start gap-2.5">
                           <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: NOTIF_COLORS[n.type] || "#5a657a" }} />
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium truncate" style={{ color: "#c8d0e0" }}>{n.title}</p>
-                            <p className="text-[11px] mt-0.5 line-clamp-2" style={{ color: "#5a657a" }}>{n.message}</p>
-                            <p className="text-[10px] mt-1" style={{ color: "#3d4659" }}>{formatTime(n.timestamp)}</p>
+                            <p className="text-xs font-medium truncate" style={{ color: "var(--text-primary)" }}>{n.title}</p>
+                            <p className="text-[11px] mt-0.5 line-clamp-2" style={{ color: "var(--text-tertiary)" }}>{n.message}</p>
+                            <p className="text-[10px] mt-1" style={{ color: "var(--text-muted)" }}>{formatTime(n.timestamp)}</p>
                           </div>
                           {!n.read && (
                             <button
                               onClick={(e) => { e.stopPropagation(); markNotificationRead(n.id); }}
                               className="cursor-pointer transition-colors flex-shrink-0"
-                              style={{ color: "#3d4659" }}
+                              style={{ color: "var(--text-muted)" }}
                             >
                               <X className="w-3 h-3" />
                             </button>

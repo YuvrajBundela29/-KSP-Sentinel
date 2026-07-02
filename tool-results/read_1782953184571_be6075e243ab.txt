@@ -1,0 +1,798 @@
+     1→     1→"use client";
+     2→     2→
+     3→     3→import { useAppStore } from "@/lib/store";
+     4→     4→import { motion, AnimatePresence } from "framer-motion";
+     5→     5→import {
+     6→     6→  LayoutDashboard,
+     7→     7→  Bot,
+     8→     8→  Network,
+     9→     9→  MapPin,
+    10→    10→  LogOut,
+    11→    11→  Shield,
+    12→    12→  Clock,
+    13→    13→  FileText,
+    14→    14→  Database,
+    15→    15→  ChevronDown,
+    16→    16→  Fingerprint,
+    17→    17→  Users,
+    18→    18→  Car,
+    19→    19→  Landmark,
+    20→    20→  Upload,
+    21→    21→  ScrollText,
+    22→    22→  Cpu,
+    23→    23→  Settings,
+    24→    24→  X,
+    25→    25→  BarChart3,
+    26→    26→  TrendingUp,
+    27→    27→  GitBranch,
+    28→    28→  Command,
+    29→    29→  UserSearch,
+    30→    30→  Heart,
+    31→    31→  BrainCircuit,
+    32→    32→  Activity,
+    33→    33→  ChevronRight,
+    34→    34→  Radar,
+    35→    35→  FileSearch,
+    36→    36→  BadgeCheck,
+    37→    37→  BookOpen,
+    38→    38→} from "lucide-react";
+    39→    39→import { useState, memo, useCallback, useEffect } from "react";
+    40→    40→import type { ViewType } from "@/lib/types";
+    41→    41→import { canAccessView } from "@/lib/permissions";
+    42→    42→
+    43→    43→/* ═══════════════════════════════════════════════════════════════════════
+    44→    44→   LABELS — EN / KN
+    45→    45→   ═══════════════════════════════════════════════════════════════════════ */
+    46→    46→
+    47→    47→const LABELS: Record<string, Record<string, string>> = {
+    48→    48→  en: {
+    49→    49→    dashboard: "Mission Control",
+    50→    50→    chat: "AI Copilot",
+    51→    51→    network: "Network Graph",
+    52→    52→    map: "Crime Map",
+    53→    53→    accused: "Accused Profile",
+    54→    54→    timeline: "Investigation Timeline",
+    55→    55→    report: "Generate Report",
+    56→    56→    logout: "Sign Out",
+    57→    57→    dataMgmt: "Data Management",
+    58→    58→    dmDashboard: "Data Management Dashboard",
+    59→    59→    dmFir: "FIR Management",
+    60→    60→    dmEvidence: "Evidence Management",
+    61→    61→    dmCriminals: "Criminals Database",
+    62→    62→    dmVictims: "Victims Registry",
+    63→    63→    dmVehicles: "Vehicle Records",
+    64→    64→    dmFinancial: "Financial Records",
+    65→    65→    dmImport: "Import Center",
+    66→    66→    dmAudit: "Audit Logs",
+    67→    67→    dmAiQueue: "AI Processing Queue",
+    68→    68→    dmSettings: "Settings",
+    69→    69→    dmSociological: "Sociological Insights",
+    70→    70→    dmForecasting: "Crime Forecasting",
+    71→    71→    dmFinancialNetwork: "Financial Network",
+    72→    72→    intelligence: "Intelligence",
+    73→    73→    analytics: "Analytics & AI",
+    74→    74→    commandPalette: "Command Palette",
+    75→    75→    helpGuide: "Help Guide",
+    76→    76→  },
+    77→    77→  kn: {
+    78→    78→    dashboard: "ಮಿಷನ್ ಕಂಟ್ರೋಲ್",
+    79→    79→    chat: "AI ಸಹಾಯಕ",
+    80→    80→    network: "ನೆಟ್‌ವರ್ಕ್ ಗ್ರಾಫ್",
+    81→    81→    map: "ಅಪರಾಧ ನಕ್ಷೆ",
+    82→    82→    accused: "ಆರೋಪಿ ಪ್ರೊಫೈಲ್",
+    83→    83→    timeline: "ತನಿಖಾ ಟೈಮ್‌ಲೈನ್",
+    84→    84→    report: "ವರದಿ ರಚಿಸಿ",
+    85→    85→    logout: "ಲಾಗ್ ಔಟ್",
+    86→    86→    dataMgmt: "ದತ್ತಾಂಶ ನಿರ್ವಹಣೆ",
+    87→    87→    dmDashboard: "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
+    88→    88→    dmFir: "ಎಫ್‌ಐಆರ್ ನಿರ್ವಹಣೆ",
+    89→    89→    dmEvidence: "ಪುರಾವೆ ನಿರ್ವಹಣೆ",
+    90→    90→    dmCriminals: "ಅಪರಾಧಿಗಳ ಡೇಟಾಬೇಸ್",
+    91→    91→    dmVictims: "ಬಲಿಪಂಜುಗಳ ನೋಂದಣಿ",
+    92→    92→    dmVehicles: "ವಾಹನ ದಾಖಲೆಗಳು",
+    93→    93→    dmFinancial: "ಹಣಕಾಸು ದಾಖಲೆಗಳು",
+    94→    94→    dmImport: "ಆಮದು ಕೇಂದ್ರ",
+    95→    95→    dmAudit: "ಆಡಿಟ್ ಲಾಗ್‌ಗಳು",
+    96→    96→    dmAiQueue: "AI ಪ್ರಕ್ರಿಯೆ",
+    97→    97→    dmSettings: "ಸೆಟ್ಟಿಂಗ್‌ಗಳು",
+    98→    98→    dmSociological: "ಸಾಮಾಜಿಕ ಒಳನೋಟಗಳು",
+    99→    99→    dmForecasting: "ಅಪರಾಧ ಮುನ್ಸೂಚನೆ",
+   100→   100→    dmFinancialNetwork: "ಹಣಕಾಸು ನೆಟ್‌ವರ್ಕ್",
+   101→   101→    intelligence: "ಗುಪ್ತಚರ",
+   102→   102→    analytics: "ವಿಶ್ಲೇಷಣೆ & AI",
+   103→   103→    commandPalette: "ಕಮಾಂಡ್ ಪ್ಯಾಲೆಟ್",
+   104→   104→    helpGuide: "ಸಹಾಯ ಮಾರ್ಗದರ್ಶಿ",
+   105→   105→  },
+   106→   106→};
+   107→   107→
+   108→   108→/* ═══════════════════════════════════════════════════════════════════════
+   109→   109→   NAV STRUCTURE — Items with keyboard shortcuts & sections
+   110→   110→   ═══════════════════════════════════════════════════════════════════════ */
+   111→   111→
+   112→   112→interface NavItemDef {
+   113→   113→  key: string;
+   114→   114→  icon: React.ElementType;
+   115→   115→  view: ViewType;
+   116→   116→  shortcut?: string;
+   117→   117→  badge?: "pulse" | "new";
+   118→   118→}
+   119→   119→
+   120→   120→const INTELLIGENCE_ITEMS: NavItemDef[] = [
+   121→   121→  { key: "dashboard", icon: LayoutDashboard, view: "dashboard", shortcut: "Alt+1" },
+   122→   122→  { key: "chat", icon: Bot, view: "chat", shortcut: "Alt+2", badge: "pulse" },
+   123→   123→  { key: "network", icon: Network, view: "network", shortcut: "Alt+3" },
+   124→   124→  { key: "map", icon: MapPin, view: "map", shortcut: "Alt+4" },
+   125→   125→  { key: "accused", icon: UserSearch, view: "accused", shortcut: "Alt+5" },
+   126→   126→  { key: "timeline", icon: Clock, view: "timeline", shortcut: "Alt+6" },
+   127→   127→  { key: "report", icon: FileText, view: "report", shortcut: "Alt+7" },
+   128→   128→];
+   129→   129→
+   130→   130→const ANALYTICS_ITEMS: NavItemDef[] = [
+   131→   131→  { key: "dmForecasting", icon: TrendingUp, view: "dm-forecasting", badge: "new" },
+   132→   132→  { key: "dmSociological", icon: BarChart3, view: "dm-sociological" },
+   133→   133→  { key: "dmFinancialNetwork", icon: GitBranch, view: "dm-financial-network" },
+   134→   134→  { key: "dmAiQueue", icon: BrainCircuit, view: "dm-ai-queue" },
+   135→   135→];
+   136→   136→
+   137→   137→const DATA_MGMT_ITEMS: NavItemDef[] = [
+   138→   138→  { key: "dmDashboard", icon: Activity, view: "dm-dashboard" },
+   139→   139→  { key: "dmFir", icon: FileSearch, view: "dm-fir" },
+   140→   140→  { key: "dmEvidence", icon: Fingerprint, view: "dm-evidence" },
+   141→   141→  { key: "dmCriminals", icon: BadgeCheck, view: "dm-criminals" },
+   142→   142→  { key: "dmVictims", icon: Heart, view: "dm-victims" },
+   143→   143→  { key: "dmVehicles", icon: Car, view: "dm-vehicles" },
+   144→   144→  { key: "dmFinancial", icon: Landmark, view: "dm-financial" },
+   145→   145→  { key: "dmImport", icon: Upload, view: "dm-import" },
+   146→   146→  { key: "dmAudit", icon: ScrollText, view: "dm-audit" },
+   147→   147→  { key: "dmSettings", icon: Settings, view: "dm-settings" },
+   148→   148→];
+   149→   149→
+   150→   150→/* ═══════════════════════════════════════════════════════════════════════
+   151→   151→   SECTION HEADER — Collapsible section with label
+   152→   152→   ═══════════════════════════════════════════════════════════════════════ */
+   153→   153→
+   154→   154→const SectionHeader = memo(function SectionHeader({
+   155→   155→  label,
+   156→   156→  icon: Icon,
+   157→   157→  color,
+   158→   158→  open,
+   159→   159→  onToggle,
+   160→   160→}: {
+   161→   161→  label: string;
+   162→   162→  icon: React.ElementType;
+   163→   163→  color: string;
+   164→   164→  open: boolean;
+   165→   165→  onToggle: () => void;
+   166→   166→}) {
+   167→   167→  return (
+   168→   168→    <button
+   169→   169→      onClick={onToggle}
+   170→   170→      className="w-full flex items-center gap-2 px-2 py-1.5 mt-3 mb-1 cursor-pointer rounded-md transition-all duration-200 group"
+   171→   171→      onMouseEnter={(e) => {
+   172→   172→        e.currentTarget.style.background = "rgba(255,255,255,0.02)";
+   173→   173→      }}
+   174→   174→      onMouseLeave={(e) => {
+   175→   175→        e.currentTarget.style.background = "transparent";
+   176→   176→      }}
+   177→   177→    >
+   178→   178→      <Icon className="w-3 h-3 flex-shrink-0" style={{ color }} />
+   179→   179→      <span
+   180→   180→        className="flex-1 text-left text-[10px] font-semibold uppercase tracking-[0.12em]"
+   181→   181→        style={{ color: "#5a657a" }}
+   182→   182→      >
+   183→   183→        {label}
+   184→   184→      </span>
+   185→   185→      <motion.div
+   186→   186→        animate={{ rotate: open ? 0 : -90 }}
+   187→   187→        transition={{ duration: 0.2 }}
+   188→   188→        className="opacity-50 group-hover:opacity-100 transition-opacity"
+   189→   189→      >
+   190→   190→        <ChevronRight className="w-3 h-3" style={{ color: "#3d4659" }} />
+   191→   191→      </motion.div>
+   192→   192→    </button>
+   193→   193→  );
+   194→   194→});
+   195→   195→
+   196→   196→/* ═══════════════════════════════════════════════════════════════════════
+   197→   197→   NAV ITEM — Individual nav button with shortcut, badge, glow
+   198→   198→   ═══════════════════════════════════════════════════════════════════════ */
+   199→   199→
+   200→   200→const NavItem = memo(function NavItem({
+   201→   201→  item,
+   202→   202→  isActive,
+   203→   203→  labels,
+   204→   204→  collapsed,
+   205→   205→  accentColor,
+   206→   206→  onClick,
+   207→   207→}: {
+   208→   208→  item: NavItemDef;
+   209→   209→  isActive: boolean;
+   210→   210→  labels: Record<string, string>;
+   211→   211→  collapsed: boolean;
+   212→   212→  accentColor: string;
+   213→   213→  onClick: () => void;
+   214→   214→}) {
+   215→   215→  const Icon = item.icon;
+   216→   216→  const glowColor = accentColor === "#22d3ee"
+   217→   217→    ? "rgba(34,211,238,0.08)"
+   218→   218→    : accentColor === "#818cf8"
+   219→   219→      ? "rgba(129,140,248,0.08)"
+   220→   220→      : accentColor === "#34d399"
+   221→   221→        ? "rgba(52,211,153,0.08)"
+   222→   222→        : "rgba(251,191,36,0.08)";
+   223→   223→
+   224→   224→  return (
+   225→   225→    <motion.button
+   226→   226→      onClick={onClick}
+   227→   227→      whileHover={{ x: collapsed ? 0 : 2 }}
+   228→   228→      transition={{ duration: 0.15 }}
+   229→   229→      title={collapsed ? `${labels[item.key]}${item.shortcut ? ` (${item.shortcut})` : ""}` : undefined}
+   230→   230→      className="w-full group relative flex items-center gap-2.5 rounded-lg text-[13px] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/30"
+   231→   231→      style={{
+   232→   232→        padding: collapsed ? "9px" : "7px 10px",
+   233→   233→        justifyContent: collapsed ? "center" : "flex-start",
+   234→   234→        color: isActive ? accentColor : "#7a869e",
+   235→   235→        background: isActive ? glowColor : "transparent",
+   236→   236→      }}
+   237→   237→      onMouseEnter={(e) => {
+   238→   238→        if (!isActive) {
+   239→   239→          e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+   240→   240→          e.currentTarget.style.color = "#c8d0e0";
+   241→   241→        }
+   242→   242→      }}
+   243→   243→      onMouseLeave={(e) => {
+   244→   244→        if (!isActive) {
+   245→   245→          e.currentTarget.style.background = "transparent";
+   246→   246→          e.currentTarget.style.color = "#7a869e";
+   247→   247→        }
+   248→   248→      }}
+   249→   249→    >
+   250→   250→      {/* Active left indicator */}
+   251→   251→      {isActive && (
+   252→   252→        <motion.div
+   253→   253→          layoutId={`nav-active-${item.view}`}
+   254→   254→          className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[55%] rounded-r-full"
+   255→   255→          style={{
+   256→   256→            backgroundColor: accentColor,
+   257→   257→            boxShadow: `0 0 12px ${accentColor}60`,
+   258→   258→          }}
+   259→   259→          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+   260→   260→        />
+   261→   261→      )}
+   262→   262→
+   263→   263→      {/* Icon */}
+   264→   264→      <div className="relative flex-shrink-0">
+   265→   265→        <Icon
+   266→   266→          className="w-[17px] h-[17px] transition-all duration-200"
+   267→   267→          style={isActive ? { filter: `drop-shadow(0 0 6px ${accentColor}50)` } : {}}
+   268→   268→        />
+   269→   269→        {/* Badge: pulse dot for AI Copilot */}
+   270→   270→        {item.badge === "pulse" && (
+   271→   271→          <span
+   272→   272→            className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"
+   273→   273→            style={{
+   274→   274→              backgroundColor: accentColor,
+   275→   275→              boxShadow: `0 0 6px ${accentColor}`,
+   276→   276→              animation: "status-pulse 2s ease-in-out infinite",
+   277→   277→            }}
+   278→   278→          />
+   279→   279→        )}
+   280→   280→        {/* Badge: NEW tag */}
+   281→   281→        {item.badge === "new" && !collapsed && (
+   282→   282→          <span
+   283→   283→            className="absolute -top-1 -right-3 text-[7px] font-bold uppercase tracking-wider px-1 rounded-sm"
+   284→   284→            style={{
+   285→   285→              backgroundColor: "rgba(52,211,153,0.15)",
+   286→   286→              color: "#34d399",
+   287→   287→              border: "1px solid rgba(52,211,153,0.2)",
+   288→   288→            }}
+   289→   289→          >
+   290→   290→            NEW
+   291→   291→          </span>
+   292→   292→        )}
+   293→   293→      </div>
+   294→   294→
+   295→   295→      {/* Label + Shortcut */}
+   296→   296→      {!collapsed && (
+   297→   297→        <div className="flex-1 flex items-center justify-between min-w-0 gap-1">
+   298→   298→          <span className="truncate font-medium text-[13px]">{labels[item.key]}</span>
+   299→   299→          {item.shortcut && (
+   300→   300→            <kbd
+   301→   301→              className="flex-shrink-0 text-[9px] font-mono px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+   302→   302→              style={{
+   303→   303→                background: "rgba(255,255,255,0.04)",
+   304→   304→                color: "#3d4659",
+   305→   305→                border: "1px solid rgba(255,255,255,0.04)",
+   306→   306→              }}
+   307→   307→            >
+   308→   308→              {item.shortcut}
+   309→   309→            </kbd>
+   310→   310→          )}
+   311→   311→        </div>
+   312→   312→      )}
+   313→   313→    </motion.button>
+   314→   314→  );
+   315→   315→});
+   316→   316→
+   317→   317→/* ═══════════════════════════════════════════════════════════════════════
+   318→   318→   MAIN SIDEBAR COMPONENT
+   319→   319→   ═══════════════════════════════════════════════════════════════════════ */
+   320→   320→
+   321→   321→export default function Sidebar() {
+   322→   322→  const user = useAppStore((s) => s.user);
+   323→   323→  const currentView = useAppStore((s) => s.currentView);
+   324→   324→  const lang = useAppStore((s) => s.lang);
+   325→   325→  const setView = useAppStore((s) => s.setView);
+   326→   326→  const logout = useAppStore((s) => s.logout);
+   327→   327→  const setCommandPaletteOpen = useAppStore((s) => s.setCommandPaletteOpen);
+   328→   328→  const sidebarCollapsed = useAppStore((s) => s.sidebarCollapsed);
+   329→   329→  const setSidebarCollapsed = useAppStore((s) => s.setSidebarCollapsed);
+   330→   330→  const notifications = useAppStore((s) => s.notifications);
+   331→   331→  const setShowOnboarding = useAppStore((s) => s.setShowOnboarding);
+   332→   332→  const [mobileOpen, setMobileOpen] = useState(false);
+   333→   333→  const [dmOpen, setDmOpen] = useState(true);
+   334→   334→  const [analyticsOpen, setAnalyticsOpen] = useState(true);
+   335→   335→  const labels = LABELS[lang];
+   336→   336→  const unreadCount = notifications.filter((n) => !n.read).length;
+   337→   337→
+   338→   338→  const handleNav = useCallback(
+   339→   339→    (view: ViewType) => {
+   340→   340→      setView(view);
+   341→   341→      setMobileOpen(false);
+   342→   342→    },
+   343→   343→    [setView]
+   344→   344→  );
+   345→   345→
+   346→   346→  /* ── Keyboard Shortcuts (Alt+1..7) ─────────────────────────────── */
+   347→   347→  useEffect(() => {
+   348→   348→    const handler = (e: KeyboardEvent) => {
+   349→   349→      if (e.altKey && e.key >= "1" && e.key <= "7") {
+   350→   350→        e.preventDefault();
+   351→   351→        const idx = parseInt(e.key) - 1;
+   352→   352→        const item = INTELLIGENCE_ITEMS[idx];
+   353→   353→        if (item && canAccessView(user?.role || "demo_user", item.view)) {
+   354→   354→          handleNav(item.view);
+   355→   355→        }
+   356→   356→      }
+   357→   357→    };
+   358→   358→    window.addEventListener("keydown", handler);
+   359→   359→    return () => window.removeEventListener("keydown", handler);
+   360→   360→  }, [user, handleNav]);
+   361→   361→
+   362→   362→  /* ── Separator ─────────────────────────────────────────────────── */
+   363→   363→  const Separator = () => (
+   364→   364→    <div
+   365→   365→      className="my-2 mx-2"
+   366→   366→      style={{
+   367→   367→        height: "1px",
+   368→   368→        background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)",
+   369→   369→      }}
+   370→   370→    />
+   371→   371→  );
+   372→   372→
+   373→   373→  /* ── Nav Content (shared between desktop + mobile) ──────────────── */
+   374→   374→  const navContent = (
+   375→   375→    <div className="flex flex-col h-full">
+   376→   376→      {/* ── Logo Bar ──────────────────────────────────────────────── */}
+   377→   377→      <div
+   378→   378→        className="flex items-center justify-between px-4 h-14 flex-shrink-0"
+   379→   379→        style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
+   380→   380→      >
+   381→   381→        <div className="flex items-center gap-2.5 overflow-hidden">
+   382→   382→          <div
+   383→   383→            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+   384→   384→            style={{
+   385→   385→              background: "linear-gradient(135deg, rgba(34,211,238,0.15), rgba(129,140,248,0.08))",
+   386→   386→              border: "1px solid rgba(34,211,238,0.12)",
+   387→   387→              boxShadow: "0 0 16px rgba(34,211,238,0.08)",
+   388→   388→            }}
+   389→   389→          >
+   390→   390→            <Shield className="w-4 h-4" style={{ color: "#22d3ee" }} />
+   391→   391→          </div>
+   392→   392→          <AnimatePresence>
+   393→   393→            {!sidebarCollapsed && (
+   394→   394→              <motion.div
+   395→   395→                initial={{ opacity: 0, width: 0 }}
+   396→   396→                animate={{ opacity: 1, width: "auto" }}
+   397→   397→                exit={{ opacity: 0, width: 0 }}
+   398→   398→                className="overflow-hidden whitespace-nowrap"
+   399→   399→              >
+   400→   400→                <span
+   401→   401→                  className="text-xs font-bold tracking-[0.14em] uppercase"
+   402→   402→                  style={{
+   403→   403→                    color: "#22d3ee",
+   404→   404→                    textShadow: "0 0 20px rgba(34,211,238,0.3)",
+   405→   405→                  }}
+   406→   406→                >
+   407→   407→                  Sentinel
+   408→   408→                </span>
+   409→   409→              </motion.div>
+   410→   410→            )}
+   411→   411→          </AnimatePresence>
+   412→   412→        </div>
+   413→   413→        {/* Collapse toggle — desktop only */}
+   414→   414→        <button
+   415→   415→          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+   416→   416→          className="hidden lg:flex items-center justify-center w-6 h-6 rounded-md transition-colors cursor-pointer"
+   417→   417→          style={{ color: "#3d4659" }}
+   418→   418→          onMouseEnter={(e) => {
+   419→   419→            e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+   420→   420→            e.currentTarget.style.color = "#8b97b0";
+   421→   421→          }}
+   422→   422→          onMouseLeave={(e) => {
+   423→   423→            e.currentTarget.style.background = "transparent";
+   424→   424→            e.currentTarget.style.color = "#3d4659";
+   425→   425→          }}
+   426→   426→        >
+   427→   427→          <motion.div
+   428→   428→            animate={{ rotate: sidebarCollapsed ? 0 : -90 }}
+   429→   429→            transition={{ duration: 0.2 }}
+   430→   430→          >
+   431→   431→            <ChevronDown className="w-3.5 h-3.5" />
+   432→   432→          </motion.div>
+   433→   433→        </button>
+   434→   434→        {/* Close button — mobile only */}
+   435→   435→        <button
+   436→   436→          onClick={() => setMobileOpen(false)}
+   437→   437→          className="lg:hidden flex items-center justify-center w-6 h-6 rounded-md cursor-pointer"
+   438→   438→          style={{ color: "#5a657a" }}
+   439→   439→        >
+   440→   440→          <X className="w-4 h-4" />
+   441→   441→        </button>
+   442→   442→      </div>
+   443→   443→
+   444→   444→      {/* ── Scrollable Navigation ─────────────────────────────────── */}
+   445→   445→      <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2.5 py-2 space-y-0">
+   446→   446→        {/* INTELLIGENCE Section — always visible */}
+   447→   447→        {!sidebarCollapsed && (
+   448→   448→          <div className="flex items-center gap-2 px-2 py-1.5 mb-1">
+   449→   449→            <Radar className="w-3 h-3" style={{ color: "#22d3ee" }} />
+   450→   450→            <span
+   451→   451→              className="text-[10px] font-bold uppercase tracking-[0.12em]"
+   452→   452→              style={{ color: "#5a657a" }}
+   453→   453→            >
+   454→   454→              {labels.intelligence}
+   455→   455→            </span>
+   456→   456→          </div>
+   457→   457→        )}
+   458→   458→        {INTELLIGENCE_ITEMS.map((item) => {
+   459→   459→          const isActive = currentView === item.view;
+   460→   460→          const accessible = canAccessView(
+   461→   461→            user?.role || "demo_user",
+   462→   462→            item.view
+   463→   463→          );
+   464→   464→          if (!accessible) return null;
+   465→   465→          return (
+   466→   466→            <NavItem
+   467→   467→              key={item.key}
+   468→   468→              item={item}
+   469→   469→              isActive={isActive}
+   470→   470→              labels={labels}
+   471→   471→              collapsed={sidebarCollapsed}
+   472→   472→              accentColor="#22d3ee"
+   473→   473→              onClick={() => handleNav(item.view)}
+   474→   474→            />
+   475→   475→          );
+   476→   476→        })}
+   477→   477→
+   478→   478→        <Separator />
+   479→   479→
+   480→   480→        {/* ANALYTICS & AI Section */}
+   481→   481→        {!sidebarCollapsed ? (
+   482→   482→          <SectionHeader
+   483→   483→            label={labels.analytics}
+   484→   484→            icon={BrainCircuit}
+   485→   485→            color="#34d399"
+   486→   486→            open={analyticsOpen}
+   487→   487→            onToggle={() => setAnalyticsOpen(!analyticsOpen)}
+   488→   488→          />
+   489→   489→        ) : (
+   490→   490→          <div className="flex justify-center py-1">
+   491→   491→            <div
+   492→   492→              className="w-6 h-px"
+   493→   493→              style={{ background: "rgba(255,255,255,0.06)" }}
+   494→   494→            />
+   495→   495→          </div>
+   496→   496→        )}
+   497→   497→
+   498→   498→        <AnimatePresence initial={false}>
+   499→   499→          {(analyticsOpen || sidebarCollapsed) && (
+   500→   500→            <motion.div
+   501→   501→              initial={{ opacity: 0, height: 0 }}
+   502→   502→              animate={{ opacity: 1, height: "auto" }}
+   503→   503→              exit={{ opacity: 0, height: 0 }}
+   504→   504→              transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+   505→   505→              className="overflow-hidden"
+   506→   506→            >
+   507→   507→              {ANALYTICS_ITEMS.map((item) => {
+   508→   508→                const isActive = currentView === item.view;
+   509→   509→                const accessible = canAccessView(user?.role || "demo_user", item.view);
+   510→   510→                if (!accessible) return null;
+   511→   511→                return (
+   512→   512→                  <NavItem
+   513→   513→                    key={item.key}
+   514→   514→                    item={item}
+   515→   515→                    isActive={isActive}
+   516→   516→                    labels={labels}
+   517→   517→                    collapsed={sidebarCollapsed}
+   518→   518→                    accentColor="#34d399"
+   519→   519→                    onClick={() => handleNav(item.view)}
+   520→   520→                  />
+   521→   521→                );
+   522→   522→              })}
+   523→   523→            </motion.div>
+   524→   524→          )}
+   525→   525→        </AnimatePresence>
+   526→   526→
+   527→   527→        <Separator />
+   528→   528→
+   529→   529→        {/* DATA MANAGEMENT Section */}
+   530→   530→        {!sidebarCollapsed ? (
+   531→   531→          <SectionHeader
+   532→   532→            label={labels.dataMgmt}
+   533→   533→            icon={Database}
+   534→   534→            color="#818cf8"
+   535→   535→            open={dmOpen}
+   536→   536→            onToggle={() => setDmOpen(!dmOpen)}
+   537→   537→          />
+   538→   538→        ) : (
+   539→   539→          <div className="flex justify-center py-1">
+   540→   540→            <div
+   541→   541→              className="w-6 h-px"
+   542→   542→              style={{ background: "rgba(255,255,255,0.06)" }}
+   543→   543→            />
+   544→   544→          </div>
+   545→   545→        )}
+   546→   546→
+   547→   547→        <AnimatePresence initial={false}>
+   548→   548→          {(dmOpen || sidebarCollapsed) && (
+   549→   549→            <motion.div
+   550→   550→              initial={{ opacity: 0, height: 0 }}
+   551→   551→              animate={{ opacity: 1, height: "auto" }}
+   552→   552→              exit={{ opacity: 0, height: 0 }}
+   553→   553→              transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+   554→   554→              className="overflow-hidden"
+   555→   555→            >
+   556→   556→              {DATA_MGMT_ITEMS.map((item) => {
+   557→   557→                const isActive = currentView === item.view;
+   558→   558→                const accessible = canAccessView(user?.role || "demo_user", item.view);
+   559→   559→                if (!accessible) return null;
+   560→   560→                return (
+   561→   561→                  <NavItem
+   562→   562→                    key={item.key}
+   563→   563→                    item={item}
+   564→   564→                    isActive={isActive}
+   565→   565→                    labels={labels}
+   566→   566→                    collapsed={sidebarCollapsed}
+   567→   567→                    accentColor="#818cf8"
+   568→   568→                    onClick={() => handleNav(item.view)}
+   569→   569→                  />
+   570→   570→                );
+   571→   571→              })}
+   572→   572→            </motion.div>
+   573→   573→          )}
+   574→   574→        </AnimatePresence>
+   575→   575→
+   576→   576→        {/* Bottom spacer for scroll */}
+   577→   577→        <div className="h-4" />
+   578→   578→      </nav>
+   579→   579→
+   580→   580→      {/* ── Bottom Section ───────────────────────────────────────── */}
+   581→   581→      <div
+   582→   582→        className="px-2.5 pb-3 space-y-1 flex-shrink-0"
+   583→   583→        style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}
+   584→   584→      >
+   585→   585→        {/* Command Palette — desktop, expanded only */}
+   586→   586→        {!sidebarCollapsed && (
+   587→   587→          <motion.button
+   588→   588→            onClick={() => setCommandPaletteOpen(true)}
+   589→   589→            whileHover={{ scale: 1.01 }}
+   590→   590→            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] cursor-pointer transition-colors"
+   591→   591→            style={{
+   592→   592→              color: "#3d4659",
+   593→   593→              border: "1px dashed rgba(255,255,255,0.05)",
+   594→   594→            }}
+   595→   595→            onMouseEnter={(e) => {
+   596→   596→              e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
+   597→   597→              e.currentTarget.style.color = "#5a657a";
+   598→   598→              e.currentTarget.style.background = "rgba(255,255,255,0.01)";
+   599→   599→            }}
+   600→   600→            onMouseLeave={(e) => {
+   601→   601→              e.currentTarget.style.borderColor = "rgba(255,255,255,0.05)";
+   602→   602→              e.currentTarget.style.color = "#3d4659";
+   603→   603→              e.currentTarget.style.background = "transparent";
+   604→   604→            }}
+   605→   605→          >
+   606→   606→            <Command className="w-3.5 h-3.5" />
+   607→   607→            <span className="flex-1 text-left">{labels.commandPalette}</span>
+   608→   608→            <kbd
+   609→   609→              className="text-[9px] px-1.5 py-0.5 rounded font-mono"
+   610→   610→              style={{
+   611→   611→                background: "rgba(255,255,255,0.04)",
+   612→   612→                color: "#3d4659",
+   613→   613→                border: "1px solid rgba(255,255,255,0.04)",
+   614→   614→              }}
+   615→   615→            >
+   616→   616→              Ctrl+K
+   617→   617→            </kbd>
+   618→   618→          </motion.button>
+   619→   619→        )}
+   620→   620→
+   621→   621→        {/* Help Guide button — desktop, expanded only */}
+   622→   622→        {!sidebarCollapsed && (
+   623→   623→          <button
+   624→   624→            onClick={() => setShowOnboarding(true)}
+   625→   625→            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] cursor-pointer transition-all duration-200"
+   626→   626→            style={{
+   627→   627→              color: "#3d4659",
+   628→   628→              border: "1px dashed rgba(255,255,255,0.05)",
+   629→   629→            }}
+   630→   630→            onMouseEnter={(e) => {
+   631→   631→              e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
+   632→   632→              e.currentTarget.style.color = "#5a657a";
+   633→   633→              e.currentTarget.style.background = "rgba(255,255,255,0.01)";
+   634→   634→            }}
+   635→   635→            onMouseLeave={(e) => {
+   636→   636→              e.currentTarget.style.borderColor = "rgba(255,255,255,0.05)";
+   637→   637→              e.currentTarget.style.color = "#3d4659";
+   638→   638→              e.currentTarget.style.background = "transparent";
+   639→   639→            }}
+   640→   640→          >
+   641→   641→            <BookOpen className="w-3.5 h-3.5" />
+   642→   642→            <span className="flex-1 text-left">{labels.helpGuide || "Help Guide"}</span>
+   643→   643→          </button>
+   644→   644→        )}
+   645→   645→
+   646→   646→        {/* Collapsed help guide — icon only */}
+   647→   647→        {sidebarCollapsed && (
+   648→   648→          <button
+   649→   649→            onClick={() => setShowOnboarding(true)}
+   650→   650→            className="w-full flex items-center justify-center py-2 rounded-lg cursor-pointer transition-all duration-200"
+   651→   651→            style={{ color: "#3d4659" }}
+   652→   652→            onMouseEnter={(e) => {
+   653→   653→              e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+   654→   654→              e.currentTarget.style.color = "#8b97b0";
+   655→   655→            }}
+   656→   656→            onMouseLeave={(e) => {
+   657→   657→              e.currentTarget.style.background = "transparent";
+   658→   658→              e.currentTarget.style.color = "#3d4659";
+   659→   659→            }}
+   660→   660→            title="Help Guide"
+   661→   661→          >
+   662→   662→            <BookOpen className="w-4 h-4" />
+   663→   663→          </button>
+   664→   664→        )}
+   665→   665→
+   666→   666→        {/* User Info — desktop, expanded only */}
+   667→   667→        {user && !sidebarCollapsed && (
+   668→   668→          <div className="flex items-center gap-3 px-3 py-2">
+   669→   669→            <div
+   670→   670→              className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-[11px] font-bold"
+   671→   671→              style={{
+   672→   672→                background: "linear-gradient(135deg, rgba(34,211,238,0.1), rgba(129,140,248,0.08))",
+   673→   673→                color: "#22d3ee",
+   674→   674→                border: "1px solid rgba(34,211,238,0.1)",
+   675→   675→              }}
+   676→   676→            >
+   677→   677→              {user.username.charAt(0).toUpperCase()}
+   678→   678→            </div>
+   679→   679→            <div className="flex-1 min-w-0">
+   680→   680→              <p
+   681→   681→                className="text-[12px] font-semibold truncate"
+   682→   682→                style={{ color: "#c8d0e0" }}
+   683→   683→              >
+   684→   684→                {user.username}
+   685→   685→              </p>
+   686→   686→              <p className="text-[10px] capitalize" style={{ color: "#3d4659" }}>
+   687→   687→                {user.role.replace(/_/g, " ")}
+   688→   688→              </p>
+   689→   689→            </div>
+   690→   690→          </div>
+   691→   691→        )}
+   692→   692→
+   693→   693→        {/* Logout */}
+   694→   694→        <button
+   695→   695→          onClick={logout}
+   696→   696→          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[12px] cursor-pointer transition-all duration-200"
+   697→   697→          style={{
+   698→   698→            justifyContent: sidebarCollapsed ? "center" : "flex-start",
+   699→   699→            color: "#5a657a",
+   700→   700→          }}
+   701→   701→          onMouseEnter={(e) => {
+   702→   702→            e.currentTarget.style.background = "rgba(248,113,113,0.06)";
+   703→   703→            e.currentTarget.style.color = "#f87171";
+   704→   704→          }}
+   705→   705→          onMouseLeave={(e) => {
+   706→   706→            e.currentTarget.style.background = "transparent";
+   707→   707→            e.currentTarget.style.color = "#5a657a";
+   708→   708→          }}
+   709→   709→        >
+   710→   710→          <LogOut className="w-4 h-4 flex-shrink-0" />
+   711→   711→          {!sidebarCollapsed && <span>{labels.logout}</span>}
+   712→   712→        </button>
+   713→   713→      </div>
+   714→   714→    </div>
+   715→   715→  );
+   716→   716→
+   717→   717→  /* ── Render ─────────────────────────────────────────────────────── */
+   718→   718→  return (
+   719→   719→    <>
+   720→   720→      {/* Mobile overlay */}
+   721→   721→      <AnimatePresence>
+   722→   722→        {mobileOpen && (
+   723→   723→          <motion.div
+   724→   724→            initial={{ opacity: 0 }}
+   725→   725→            animate={{ opacity: 1 }}
+   726→   726→            exit={{ opacity: 0 }}
+   727→   727→            transition={{ duration: 0.2 }}
+   728→   728→            className="fixed inset-0 z-40 lg:hidden"
+   729→   729→            style={{
+   730→   730→              background: "rgba(0,0,0,0.6)",
+   731→   731→              backdropFilter: "blur(4px)",
+   732→   732→            }}
+   733→   733→            onClick={() => setMobileOpen(false)}
+   734→   734→          />
+   735→   735→        )}
+   736→   736→      </AnimatePresence>
+   737→   737→
+   738→   738→      {/* Mobile hamburger trigger */}
+   739→   739→      <button
+   740→   740→        onClick={() => setMobileOpen(true)}
+   741→   741→        className="fixed top-3 left-3 z-50 lg:hidden w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-200"
+   742→   742→        style={{
+   743→   743→          background: "rgba(15,21,36,0.85)",
+   744→   744→          border: "1px solid rgba(255,255,255,0.06)",
+   745→   745→          backdropFilter: "blur(16px)",
+   746→   746→        }}
+   747→   747→      >
+   748→   748→        <Shield className="w-4 h-4" style={{ color: "#22d3ee" }} />
+   749→   749→        {unreadCount > 0 && (
+   750→   750→          <span
+   751→   751→            className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold"
+   752→   752→            style={{ background: "#f87171", color: "#050810" }}
+   753→   753→          >
+   754→   754→            {unreadCount}
+   755→   755→          </span>
+   756→   756→        )}
+   757→   757→      </button>
+   758→   758→
+   759→   759→      {/* Desktop Sidebar — always visible on lg+ screens */}
+   760→   760→      <aside
+   761→   761→        className="hidden lg:flex flex-col h-full flex-shrink-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+   762→   762→        style={{
+   763→   763→          width: sidebarCollapsed ? 60 : 256,
+   764→   764→          minWidth: sidebarCollapsed ? 60 : 256,
+   765→   765→          background: "linear-gradient(180deg, rgba(7,10,20,0.92) 0%, rgba(5,8,16,0.96) 100%)",
+   766→   766→          backdropFilter: "blur(32px)",
+   767→   767→          borderRight: "1px solid rgba(255,255,255,0.04)",
+   768→   768→          boxShadow: sidebarCollapsed
+   769→   769→            ? "none"
+   770→   770→            : "4px 0 24px -4px rgba(0,0,0,0.3)",
+   771→   771→        }}
+   772→   772→      >
+   773→   773→        {navContent}
+   774→   774→      </aside>
+   775→   775→
+   776→   776→      {/* Mobile Sidebar — slide in overlay */}
+   777→   777→      <AnimatePresence>
+   778→   778→        {mobileOpen && (
+   779→   779→          <motion.aside
+   780→   780→            initial={{ x: -280, opacity: 0 }}
+   781→   781→            animate={{ x: 0, opacity: 1 }}
+   782→   782→            exit={{ x: -280, opacity: 0 }}
+   783→   783→            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+   784→   784→            className="fixed inset-y-0 left-0 z-50 w-[280px] flex flex-col lg:hidden"
+   785→   785→            style={{
+   786→   786→              background: "linear-gradient(180deg, rgba(7,10,20,0.98) 0%, rgba(5,8,16,0.99) 100%)",
+   787→   787→              backdropFilter: "blur(32px)",
+   788→   788→              borderRight: "1px solid rgba(255,255,255,0.06)",
+   789→   789→              boxShadow: "4px 0 32px rgba(0,0,0,0.5)",
+   790→   790→            }}
+   791→   791→          >
+   792→   792→            {navContent}
+   793→   793→          </motion.aside>
+   794→   794→        )}
+   795→   795→      </AnimatePresence>
+   796→   796→    </>
+   797→   797→  );
+   798→   798→}

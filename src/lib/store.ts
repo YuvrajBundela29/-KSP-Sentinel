@@ -56,6 +56,11 @@ interface AppState {
   showOnboarding: boolean;
   setShowOnboarding: (show: boolean) => void;
   completeOnboarding: () => void;
+
+  // Theme
+  theme: "dark" | "light";
+  setTheme: (theme: "dark" | "light") => void;
+  toggleTheme: () => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -160,5 +165,20 @@ export const useAppStore = create<AppState>((set) => ({
       localStorage.setItem("ksp_onboarding_done", "1");
     }
     set({ showOnboarding: false });
+  },
+
+  // Theme
+  theme: (typeof window !== "undefined" ? localStorage.getItem("ksp_theme") : null) as "dark" | "light" || "dark",
+  setTheme: (theme) => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("ksp_theme", theme);
+      document.documentElement.classList.toggle("dark", theme === "dark");
+      document.documentElement.classList.toggle("light", theme === "light");
+    }
+    set({ theme });
+  },
+  toggleTheme: () => {
+    const next = useAppStore.getState().theme === "dark" ? "light" : "dark";
+    useAppStore.getState().setTheme(next);
   },
 }));
