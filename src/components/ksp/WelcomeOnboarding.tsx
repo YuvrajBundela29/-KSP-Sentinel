@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppStore } from "@/lib/store";
 import {
@@ -538,6 +538,13 @@ export default function WelcomeOnboarding() {
   const steps = useSteps();
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(1); // 1 = forward, -1 = backward
+
+  // Dismiss on client if onboarding was previously completed (avoids hydration mismatch)
+  useEffect(() => {
+    if (localStorage.getItem("ksp_onboarding_done")) {
+      setShowOnboarding(false);
+    }
+  }, [setShowOnboarding]);
 
   const step = steps[currentStep];
   const isLast = currentStep === steps.length - 1;

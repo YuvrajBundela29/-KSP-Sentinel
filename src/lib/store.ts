@@ -172,8 +172,8 @@ export const useAppStore = create<AppState>((set) => ({
       ),
     })),
 
-  // Onboarding
-  showOnboarding: typeof window !== "undefined" ? !localStorage.getItem("ksp_onboarding_done") : true,
+  // Onboarding — always start true to match SSR, client useEffect in WelcomeOnboarding dismisses if done
+  showOnboarding: true,
   setShowOnboarding: (show) => set({ showOnboarding: show }),
   completeOnboarding: () => {
     if (typeof window !== "undefined") {
