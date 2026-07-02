@@ -125,11 +125,10 @@ export default function Header() {
     ? [{ label: getLabel(lang, "dataMgmt"), view: "dm-dashboard" as const }, { label: viewTitle }]
     : [{ label: viewTitle }];
 
-  // Shared dropdown panel style
+  // Shared dropdown panel style — fully opaque, no transparency
   const panelStyle: React.CSSProperties = {
     background: "var(--bg-card)",
-    backdropFilter: "blur(32px)",
-    boxShadow: "0 24px 48px -8px rgba(0,0,0,0.5), 0 0 0 1px var(--border-subtle)",
+    boxShadow: "0 4px 6px -1px rgba(0,0,0,0.3), 0 10px 15px -3px rgba(0,0,0,0.25), 0 0 0 1px var(--border-subtle)",
     zIndex: 9999,
   };
 

@@ -316,7 +316,7 @@ export default function ReportGenerator() {
   };
 
   const selectContentStyle: React.CSSProperties = {
-    background: "rgba(15,21,36,0.95)",
+    background: "var(--bg-card)",
     border: "1px solid var(--border-subtle)",
   };
 
