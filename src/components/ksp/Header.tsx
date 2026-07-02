@@ -125,11 +125,13 @@ export default function Header() {
     ? [{ label: getLabel(lang, "dataMgmt"), view: "dm-dashboard" as const }, { label: viewTitle }]
     : [{ label: viewTitle }];
 
-  // Shared dropdown panel style — fully opaque, no transparency
+  // Shared dropdown panel style — fully opaque, no transparency, premium depth
   const panelStyle: React.CSSProperties = {
     background: "var(--bg-card)",
-    boxShadow: "0 4px 6px -1px rgba(0,0,0,0.3), 0 10px 15px -3px rgba(0,0,0,0.25), 0 0 0 1px var(--border-subtle)",
+    boxShadow:
+      "0 4px 6px -1px rgba(0,0,0,0.35), 0 10px 20px -5px rgba(0,0,0,0.3), 0 20px 40px -10px rgba(0,0,0,0.25), 0 0 0 1px var(--border-subtle)",
     zIndex: 9999,
+    border: "1px solid var(--border-default)",
   };
 
   // ─── Language dropdown portal ───────────────────────────────────

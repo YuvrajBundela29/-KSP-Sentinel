@@ -1,0 +1,880 @@
+     1→@import "tailwindcss";
+     2→@import "tw-animate-css";
+     3→
+     4→@custom-variant dark (&:is(.dark *));
+     5→
+     6→@theme inline {
+     7→  --color-background: var(--background);
+     8→  --color-foreground: var(--foreground);
+     9→  --font-sans: var(--font-geist-sans);
+    10→  --font-mono: var(--font-geist-mono);
+    11→  --color-sidebar-ring: var(--sidebar-ring);
+    12→  --color-sidebar-border: var(--sidebar-border);
+    13→  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    14→  --color-sidebar-accent: var(--sidebar-accent);
+    15→  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    16→  --color-sidebar-primary: var(--sidebar-primary);
+    17→  --color-sidebar-foreground: var(--sidebar-foreground);
+    18→  --color-sidebar: var(--sidebar);
+    19→  --color-chart-5: var(--chart-5);
+    20→  --color-chart-4: var(--chart-4);
+    21→  --color-chart-3: var(--chart-3);
+    22→  --color-chart-2: var(--chart-2);
+    23→  --color-chart-1: var(--chart-1);
+    24→  --color-ring: var(--ring);
+    25→  --color-input: var(--input);
+    26→  --color-border: var(--border);
+    27→  --color-destructive: var(--destructive);
+    28→  --color-accent-foreground: var(--accent-foreground);
+    29→  --color-accent: var(--accent);
+    30→  --color-muted-foreground: var(--muted-foreground);
+    31→  --color-muted: var(--muted);
+    32→  --color-secondary-foreground: var(--secondary-foreground);
+    33→  --color-secondary: var(--secondary);
+    34→  --color-primary-foreground: var(--primary-foreground);
+    35→  --color-primary: var(--primary);
+    36→  --color-popover-foreground: var(--popover-foreground);
+    37→  --color-popover: var(--popover);
+    38→  --color-card-foreground: var(--card-foreground);
+    39→  --color-card: var(--card);
+    40→  --radius-sm: calc(var(--radius) - 4px);
+    41→  --radius-md: calc(var(--radius) - 2px);
+    42→  --radius-lg: var(--radius);
+    43→  --radius-xl: calc(var(--radius) + 4px);
+    44→}
+    45→
+    46→/* ═══════════════════════════════════════════════════════════════════════
+    47→   BLACKBIRD DESIGN SYSTEM — KSP Sentinel AI
+    48→   Palantir Gotham × Apple Vision Pro × Linear × Microsoft Security Copilot
+    49→   ═══════════════════════════════════════════════════════════════════════ */
+    50→
+    51→:root {
+    52→  --radius: 0.5rem;
+    53→
+    54→  /* ── Background Elevation Layers ─────────────────────────────────── */
+    55→  --background: #050810;
+    56→  --bg-elevated-1: #080c18;
+    57→  --bg-elevated-2: #0d1221;
+    58→  --bg-elevated-3: #111827;
+    59→  --bg-card: #0f1524;
+    60→  --bg-card-hover: #141c2f;
+    61→  --bg-input: #0a0f1c;
+    62→  --bg-sidebar: #070a14;
+    63→
+    64→  /* ── Foreground / Text ──────────────────────────────────────────── */
+    65→  --foreground: #e8edf5;
+    66→  --text-primary: #f1f5f9;
+    67→  --text-secondary: #8b97b0;
+    68→  --text-tertiary: #5a657a;
+    69→  --text-muted: #3d4659;
+    70→
+    71→  /* ── Primary Accent: Electric Cyan ──────────────────────────────── */
+    72→  --primary: #22d3ee;
+    73→  --primary-foreground: #050810;
+    74→  --primary-glow: rgba(34, 211, 238, 0.12);
+    75→  --primary-glow-strong: rgba(34, 211, 238, 0.25);
+    76→  --primary-subtle: rgba(34, 211, 238, 0.06);
+    77→
+    78→  /* ── Secondary Accent: Deep Indigo ──────────────────────────────── */
+    79→  --secondary: #818cf8;
+    80→  --secondary-foreground: #f1f5f9;
+    81→  --secondary-glow: rgba(129, 140, 248, 0.12);
+    82→
+    83→  /* ── Status Colors ──────────────────────────────────────────────── */
+    84→  --success: #34d399;
+    85→  --success-glow: rgba(52, 211, 153, 0.12);
+    86→  --warning: #fbbf24;
+    87→  --warning-glow: rgba(251, 191, 36, 0.12);
+    88→  --critical: #f87171;
+    89→  --critical-glow: rgba(248, 113, 113, 0.12);
+    90→
+    91→  /* ── Muted / Neutral ────────────────────────────────────────────── */
+    92→  --muted: #111827;
+    93→  --muted-foreground: #8b97b0;
+    94→  --accent: #1a2236;
+    95→  --accent-foreground: #e8edf5;
+    96→
+    97→  /* ── Borders ────────────────────────────────────────────────────── */
+    98→  --border: rgba(255, 255, 255, 0.06);
+    99→  --border-subtle: rgba(255, 255, 255, 0.04);
+   100→  --border-default: rgba(255, 255, 255, 0.08);
+   101→  --border-strong: rgba(255, 255, 255, 0.12);
+   102→  --border-accent: rgba(34, 211, 238, 0.15);
+   103→
+   104→  /* ── Destructive ────────────────────────────────────────────────── */
+   105→  --destructive: #f87171;
+   106→
+   107→  /* ── Card & Popover ─────────────────────────────────────────────── */
+   108→  --card: #0f1524;
+   109→  --card-foreground: #e8edf5;
+   110→  --popover: #0f1524;
+   111→  --popover-foreground: #e8edf5;
+   112→
+   113→  /* ── Input ──────────────────────────────────────────────────────── */
+   114→  --input: #0a0f1c;
+   115→
+   116→  /* ── Ring ───────────────────────────────────────────────────────── */
+   117→  --ring: #22d3ee;
+   118→
+   119→  /* ── Charts ─────────────────────────────────────────────────────── */
+   120→  --chart-1: #22d3ee;
+   121→  --chart-2: #818cf8;
+   122→  --chart-3: #34d399;
+   123→  --chart-4: #f87171;
+   124→  --chart-5: #fbbf24;
+   125→
+   126→  /* ── Sidebar ────────────────────────────────────────────────────── */
+   127→  --sidebar: var(--bg-sidebar);
+   128→  --sidebar-foreground: #c8d0e0;
+   129→  --sidebar-primary: #22d3ee;
+   130→  --sidebar-primary-foreground: #050810;
+   131→  --sidebar-accent: rgba(34, 211, 238, 0.06);
+   132→  --sidebar-accent-foreground: #e8edf5;
+   133→  --sidebar-border: rgba(255, 255, 255, 0.05);
+   134→  --sidebar-ring: #22d3ee;
+   135→}
+   136→
+   137→.dark {
+   138→  --background: #050810;
+   139→  --foreground: #e8edf5;
+   140→  --card: #0f1524;
+   141→  --card-foreground: #e8edf5;
+   142→  --popover: #0f1524;
+   143→  --popover-foreground: #e8edf5;
+   144→  --primary: #22d3ee;
+   145→  --primary-foreground: #050810;
+   146→  --secondary: #818cf8;
+   147→  --secondary-foreground: #f1f5f9;
+   148→  --muted: #111827;
+   149→  --muted-foreground: #8b97b0;
+   150→  --accent: #1a2236;
+   151→  --accent-foreground: #e8edf5;
+   152→  --destructive: #f87171;
+   153→  --border: rgba(255, 255, 255, 0.06);
+   154→  --input: #0a0f1c;
+   155→  --ring: #22d3ee;
+   156→  --chart-1: #22d3ee;
+   157→  --chart-2: #818cf8;
+   158→  --chart-3: #34d399;
+   159→  --chart-4: #f87171;
+   160→  --chart-5: #fbbf24;
+   161→  --sidebar: var(--bg-sidebar);
+   162→  --sidebar-foreground: #c8d0e0;
+   163→  --sidebar-primary: #22d3ee;
+   164→  --sidebar-primary-foreground: #050810;
+   165→  --sidebar-accent: rgba(34, 211, 238, 0.06);
+   166→  --sidebar-accent-foreground: #e8edf5;
+   167→  --sidebar-border: rgba(255, 255, 255, 0.05);
+   168→  --sidebar-ring: #22d3ee;
+   169→
+   170→  --bg-elevated-1: #080c18;
+   171→  --bg-elevated-2: #0d1221;
+   172→  --bg-elevated-3: #111827;
+   173→  --bg-card: #0f1524;
+   174→  --bg-card-hover: #141c2f;
+   175→  --bg-input: #0a0f1c;
+   176→  --bg-sidebar: #070a14;
+   177→  --text-primary: #f1f5f9;
+   178→  --text-secondary: #8b97b0;
+   179→  --text-tertiary: #5a657a;
+   180→  --text-muted: #3d4659;
+   181→  --primary-glow: rgba(34, 211, 238, 0.12);
+   182→  --primary-glow-strong: rgba(34, 211, 238, 0.25);
+   183→  --primary-subtle: rgba(34, 211, 238, 0.06);
+   184→  --secondary-glow: rgba(129, 140, 248, 0.12);
+   185→  --success: #34d399;
+   186→  --success-glow: rgba(52, 211, 153, 0.12);
+   187→  --warning: #fbbf24;
+   188→  --warning-glow: rgba(251, 191, 36, 0.12);
+   189→  --critical: #f87171;
+   190→  --critical-glow: rgba(248, 113, 113, 0.12);
+   191→  --border-subtle: rgba(255, 255, 255, 0.04);
+   192→  --border-default: rgba(255, 255, 255, 0.08);
+   193→  --border-strong: rgba(255, 255, 255, 0.12);
+   194→  --border-accent: rgba(34, 211, 238, 0.15);
+   195→
+   196→  color-scheme: dark;
+   197→}
+   198→
+   199→/* ═══════════════════════════════════════════════════════════════════════
+   200→   LIGHT THEME — Clean, professional, high-contrast
+   201→   ═══════════════════════════════════════════════════════════════════════ */
+   202→
+   203→.light {
+   204→  --background: #f8fafc;
+   205→  --foreground: #0f172a;
+   206→  --card: #ffffff;
+   207→  --card-foreground: #0f172a;
+   208→  --popover: #ffffff;
+   209→  --popover-foreground: #0f172a;
+   210→  --primary: #0891b2;
+   211→  --primary-foreground: #ffffff;
+   212→  --secondary: #6366f1;
+   213→  --secondary-foreground: #ffffff;
+   214→  --muted: #f1f5f9;
+   215→  --muted-foreground: #64748b;
+   216→  --accent: #e0f2fe;
+   217→  --accent-foreground: #0c4a6e;
+   218→  --destructive: #ef4444;
+   219→  --border: rgba(0, 0, 0, 0.08);
+   220→  --input: #e2e8f0;
+   221→  --ring: #0891b2;
+   222→  --chart-1: #0891b2;
+   223→  --chart-2: #6366f1;
+   224→  --chart-3: #059669;
+   225→  --chart-4: #ef4444;
+   226→  --chart-5: #d97706;
+   227→  --sidebar: #ffffff;
+   228→  --sidebar-foreground: #334155;
+   229→  --sidebar-primary: #0891b2;
+   230→  --sidebar-primary-foreground: #ffffff;
+   231→  --sidebar-accent: rgba(8, 145, 178, 0.08);
+   232→  --sidebar-accent-foreground: #0f172a;
+   233→  --sidebar-border: rgba(0, 0, 0, 0.06);
+   234→  --sidebar-ring: #0891b2;
+   235→
+   236→  --bg-elevated-1: #f1f5f9;
+   237→  --bg-elevated-2: #e2e8f0;
+   238→  --bg-elevated-3: #cbd5e1;
+   239→  --bg-card: #ffffff;
+   240→  --bg-card-hover: #f8fafc;
+   241→  --bg-input: #f1f5f9;
+   242→  --bg-sidebar: #ffffff;
+   243→  --text-primary: #0f172a;
+   244→  --text-secondary: #475569;
+   245→  --text-tertiary: #94a3b8;
+   246→  --text-muted: #cbd5e1;
+   247→  --primary-glow: rgba(8, 145, 178, 0.1);
+   248→  --primary-glow-strong: rgba(8, 145, 178, 0.2);
+   249→  --primary-subtle: rgba(8, 145, 178, 0.05);
+   250→  --secondary-glow: rgba(99, 102, 241, 0.1);
+   251→  --success: #059669;
+   252→  --success-glow: rgba(5, 150, 105, 0.1);
+   253→  --warning: #d97706;
+   254→  --warning-glow: rgba(217, 119, 6, 0.1);
+   255→  --critical: #ef4444;
+   256→  --critical-glow: rgba(239, 68, 68, 0.1);
+   257→  --border-subtle: rgba(0, 0, 0, 0.04);
+   258→  --border-default: rgba(0, 0, 0, 0.08);
+   259→  --border-strong: rgba(0, 0, 0, 0.12);
+   260→  --border-accent: rgba(8, 145, 178, 0.2);
+   261→
+   262→  color-scheme: light;
+   263→}
+   264→
+   265→/* Light theme overrides for hardcoded dark elements */
+   266→.light .leaflet-container { background: #e2e8f0; }
+   267→.light .leaflet-tile-pane { filter: none; }
+   268→.light .leaflet-popup-content-wrapper {
+   269→  background: rgba(255, 255, 255, 0.95);
+   270→  color: #0f172a;
+   271→  border: 1px solid rgba(0, 0, 0, 0.08);
+   272→}
+   273→.light .leaflet-popup-tip { background: rgba(255, 255, 255, 0.95); }
+   274→.light .leaflet-control-zoom a {
+   275→  background: rgba(255, 255, 255, 0.9) !important;
+   276→  color: #334155 !important;
+   277→  border-color: rgba(0, 0, 0, 0.08) !important;
+   278→}
+   279→.light .leaflet-control-zoom a:hover {
+   280→  background: rgba(8, 145, 178, 0.1) !important;
+   281→  color: #0891b2 !important;
+   282→}
+   283→.light .glass { background: rgba(255, 255, 255, 0.6); border-color: rgba(0, 0, 0, 0.06); }
+   284→.light .glass-strong { background: rgba(255, 255, 255, 0.8); border-color: rgba(0, 0, 0, 0.08); }
+   285→.light .glass-card { background: rgba(255, 255, 255, 0.5); border-color: rgba(0, 0, 0, 0.06); }
+   286→.light .glass-card:hover { background: rgba(255, 255, 255, 0.7); border-color: rgba(8, 145, 178, 0.15); }
+   287→.light .cmdk-overlay { background: rgba(0, 0, 0, 0.3) !important; }
+   288→.light .cmdk { background: rgba(255, 255, 255, 0.95) !important; border-color: rgba(0, 0, 0, 0.08) !important; }
+   289→.light .cmdk-input { color: #0f172a !important; border-color: rgba(0, 0, 0, 0.06) !important; }
+   290→.light .cmdk-input::placeholder { color: #94a3b8 !important; }
+   291→.light .cmdk-item { color: #334155 !important; }
+   292→.light .cmdk-item[data-selected="true"] { background: rgba(8, 145, 178, 0.08) !important; color: #0891b2 !important; }
+   293→.light .cmdk-group-heading { color: #94a3b8 !important; }
+   294→.light .cmdk-separator { background: rgba(0, 0, 0, 0.06) !important; }
+   295→.light .cmdk-shortcut { color: #94a3b8 !important; background: rgba(0, 0, 0, 0.04) !important; border-color: rgba(0, 0, 0, 0.06) !important; }
+   296→.light ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.12); }
+   297→.light ::-webkit-scrollbar-thumb:hover { background: rgba(8, 145, 178, 0.3); }
+   298→.light .skeleton { background: linear-gradient(90deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.08) 50%, rgba(0, 0, 0, 0.04) 75%); }
+   299→.light .sidebar-active-glow::before { background: #0891b2; box-shadow: 0 0 12px rgba(8, 145, 178, 0.3), 0 0 24px rgba(8, 145, 178, 0.1); }
+   300→.light .border-glow { border-color: rgba(0, 0, 0, 0.06); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8); }
+   301→.light ::selection { background: rgba(8, 145, 178, 0.2); color: #0f172a; }
+   302→.light .force-graph-tooltip { background: rgba(255, 255, 255, 0.95) !important; color: #0f172a !important; border-color: rgba(0, 0, 0, 0.08) !important; }
+   303→.light .gradient-cyan { background: linear-gradient(135deg, rgba(8, 145, 178, 0.06) 0%, transparent 60%); }
+   304→.light .gradient-indigo { background: linear-gradient(135deg, rgba(99, 102, 241, 0.06) 0%, transparent 60%); }
+   305→.light .gradient-emerald { background: linear-gradient(135deg, rgba(5, 150, 105, 0.06) 0%, transparent 60%); }
+   306→.light .gradient-amber { background: linear-gradient(135deg, rgba(217, 119, 6, 0.06) 0%, transparent 60%); }
+   307→.light .gradient-rose { background: linear-gradient(135deg, rgba(239, 68, 68, 0.06) 0%, transparent 60%); }
+   308→
+   309→/* ═══════════════════════════════════════════════════════════════════════
+   310→   LIGHT MODE — Hardcoded dark-theme color overrides
+   311→   Components use Tailwind arbitrary values like text-[#f1f5f9] that
+   312→   are dark-only. These overrides remap them for light backgrounds.
+   313→   ═══════════════════════════════════════════════════════════════════════ */
+   314→
+   315→/* ── Primary heading text ─────────────────────────────────────────── */
+   316→.light .text-\[\#f1f5f9\] { color: #0f172a !important; }
+   317→.light .text-\[\#e8edf5\] { color: #0f172a !important; }
+   318→
+   319→/* ── Secondary body text ─────────────────────────────────────────── */
+   320→.light .text-\[\#8b97b0\] { color: #475569 !important; }
+   321→
+   322→/* ── Tertiary / hint text ────────────────────────────────────────── */
+   323→.light .text-\[\#5a657a\] { color: #94a3b8 !important; }
+   324→
+   325→/* ── Muted / placeholder text ────────────────────────────────────── */
+   326→.light .text-\[\#3d4659\] { color: #cbd5e1 !important; }
+   327→
+   328→/* ── Background tints (white-on-dark) ────────────────────────────── */
+   329→.light .bg-white\/5 { background-color: rgba(0, 0, 0, 0.03) !important; }
+   330→.light .bg-white\/\[0\.03\] { background-color: rgba(0, 0, 0, 0.02) !important; }
+   331→.light .bg-white\/\[0\.04\] { background-color: rgba(0, 0, 0, 0.025) !important; }
+   332→.light .bg-white\/\[0\.05\] { background-color: rgba(0, 0, 0, 0.03) !important; }
+   333→.light .bg-white\/\[0\.06\] { background-color: rgba(0, 0, 0, 0.04) !important; }
+   334→.light .bg-white\/\[0\.08\] { background-color: rgba(0, 0, 0, 0.05) !important; }
+   335→.light .bg-white\/\[0\.1\] { background-color: rgba(0, 0, 0, 0.06) !important; }
+   336→.light .bg-white\/10 { background-color: rgba(0, 0, 0, 0.06) !important; }
+   337→.light .bg-white\/\[0\.15\] { background-color: rgba(0, 0, 0, 0.08) !important; }
+   338→.light .bg-white\/\[0\.2\] { background-color: rgba(0, 0, 0, 0.1) !important; }
+   339→.light .bg-white\/20 { background-color: rgba(0, 0, 0, 0.1) !important; }
+   340→
+   341→/* ── Border tints (white-on-dark) ────────────────────────────────── */
+   342→.light .border-white\/5 { border-color: rgba(0, 0, 0, 0.04) !important; }
+   343→.light .border-white\/\[0\.05\] { border-color: rgba(0, 0, 0, 0.04) !important; }
+   344→.light .border-white\/\[0\.06\] { border-color: rgba(0, 0, 0, 0.06) !important; }
+   345→.light .border-white\/\[0\.08\] { border-color: rgba(0, 0, 0, 0.08) !important; }
+   346→.light .border-white\/\[0\.1\] { border-color: rgba(0, 0, 0, 0.1) !important; }
+   347→.light .border-white\/10 { border-color: rgba(0, 0, 0, 0.1) !important; }
+   348→.light .border-white\/\[0\.12\] { border-color: rgba(0, 0, 0, 0.12) !important; }
+   349→.light .border-white\/\[0\.15\] { border-color: rgba(0, 0, 0, 0.15) !important; }
+   350→.light .border-white\/\[0\.2\] { border-color: rgba(0, 0, 0, 0.2) !important; }
+   351→
+   352→/* ── Accent text colors (darken for light bg) ────────────────────── */
+   353→.light .text-\[\#22d3ee\] { color: #0891b2 !important; }
+   354→.light .text-\[\#818cf8\] { color: #6366f1 !important; }
+   355→.light .text-\[\#34d399\] { color: #059669 !important; }
+   356→.light .text-\[\#fbbf24\] { color: #d97706 !important; }
+   357→.light .text-\[\#f87171\] { color: #ef4444 !important; }
+   358→.light .text-\[\#ec4899\] { color: #db2777 !important; }
+   359→.light .text-\[\#84cc16\] { color: #65a30d !important; }
+   360→.light .text-\[\#06b6d4\] { color: #0891b2 !important; }
+   361→
+   362→/* ── Badge background tints ──────────────────────────────────────── */
+   363→.light .bg-\[\#22d3ee\]\/10 { background-color: rgba(8, 145, 178, 0.08) !important; }
+   364→.light .bg-\[\#22d3ee\]\/20 { background-color: rgba(8, 145, 178, 0.15) !important; }
+   365→.light .bg-\[\#818cf8\]\/10 { background-color: rgba(99, 102, 241, 0.08) !important; }
+   366→.light .bg-\[\#818cf8\]\/15 { background-color: rgba(99, 102, 241, 0.1) !important; }
+   367→.light .bg-\[\#34d399\]\/10 { background-color: rgba(5, 150, 105, 0.08) !important; }
+   368→.light .bg-\[\#34d399\]\/20 { background-color: rgba(5, 150, 105, 0.15) !important; }
+   369→.light .bg-\[\#fbbf24\]\/10 { background-color: rgba(217, 119, 6, 0.08) !important; }
+   370→.light .bg-\[\#fbbf24\]\/20 { background-color: rgba(217, 119, 6, 0.15) !important; }
+   371→.light .bg-\[\#f87171\]\/10 { background-color: rgba(239, 68, 68, 0.08) !important; }
+   372→.light .bg-\[\#f87171\]\/20 { background-color: rgba(239, 68, 68, 0.15) !important; }
+   373→.light .bg-\[\#ec4899\]\/10 { background-color: rgba(219, 39, 119, 0.08) !important; }
+   374→.light .bg-\[\#ec4899\]\/20 { background-color: rgba(219, 39, 119, 0.15) !important; }
+   375→
+   376→/* ── Badge text (300-shade → darker for light) ───────────────────── */
+   377→.light .text-red-300 { color: #dc2626 !important; }
+   378→.light .text-amber-300 { color: #d97706 !important; }
+   379→.light .text-emerald-300 { color: #059669 !important; }
+   380→.light .text-cyan-300 { color: #0891b2 !important; }
+   381→.light .text-pink-300 { color: #db2777 !important; }
+   382→.light .text-lime-300 { color: #65a30d !important; }
+   383→
+   384→/* ── Separator / divider backgrounds ─────────────────────────────── */
+   385→.light .bg-white\/10,
+   386→.light .bg-white\/\[0\.1\] { background-color: rgba(0, 0, 0, 0.08) !important; }
+   387→.light .bg-white\/\[0\.12\] { background-color: rgba(0, 0, 0, 0.1) !important; }
+   388→
+   389→/* ── Hover states ────────────────────────────────────────────────── */
+   390→.light .hover\:bg-white\/5:hover { background-color: rgba(0, 0, 0, 0.04) !important; }
+   391→.light .hover\:bg-white\/\[0\.05\]:hover { background-color: rgba(0, 0, 0, 0.04) !important; }
+   392→.light .hover\:bg-white\/10:hover { background-color: rgba(0, 0, 0, 0.06) !important; }
+   393→.light .hover\:bg-white\/\[0\.1\]:hover { background-color: rgba(0, 0, 0, 0.06) !important; }
+   394→.light .hover\:bg-white\/\[0\.08\]:hover { background-color: rgba(0, 0, 0, 0.05) !important; }
+   395→.light .hover\:bg-white\/\[0\.06\]:hover { background-color: rgba(0, 0, 0, 0.04) !important; }
+   396→
+   397→/* ── Active / selected tab states ────────────────────────────────── */
+   398→.light .data-\[state\=active\]\:bg-white\/10,
+   399→.light .data-\[state\=active\]\:bg-white\/\[0\.1\] { background-color: rgba(0, 0, 0, 0.06) !important; }
+   400→.light .data-\[state\=active\]\:text-\[\#f1f5f9\] { color: #0f172a !important; }
+   401→.light .data-\[state\=active\]\:text-\[\#8b97b0\] { color: #0891b2 !important; }
+   402→
+   403→/* ── Theme selector card borders ─────────────────────────────────── */
+   404→.light .border-blue-500 { border-color: #0891b2 !important; }
+   405→.light .ring-blue-500\/30 { --tw-ring-color: rgba(8, 145, 178, 0.3) !important; }
+   406→
+   407→/* ── Focus ring for light mode ───────────────────────────────────── */
+   408→.light :focus-visible {
+   409→  outline: 2px solid rgba(8, 145, 178, 0.5);
+   410→}
+   411→
+   412→/* ── Recharts / chart text in light mode ─────────────────────────── */
+   413→.light .recharts-cartesian-axis-tick-value { fill: #64748b !important; }
+   414→.light .recharts-legend-item-text { fill: #475569 !important; }
+   415→.light .recharts-tooltip-label { fill: #0f172a !important; }
+   416→.light .recharts-tooltip-item { color: #334155 !important; }
+   417→
+   418→/* ── Notification panel bg tints ─────────────────────────────────── */
+   419→.light .whilehover\:bg-white\/\[0\.02\] { background-color: rgba(0, 0, 0, 0.02) !important; }
+   420→
+   421→/* ── Inline bg tints with rgba ───────────────────────────────────── */
+   422→.light .bg-\[\#22d3ee\]\/15 { background-color: rgba(8, 145, 178, 0.1) !important; }
+   423→.light .bg-\[\#34d399\]\/15 { background-color: rgba(5, 150, 105, 0.1) !important; }
+   424→.light .bg-\[\#fbbf24\]\/15 { background-color: rgba(217, 119, 6, 0.1) !important; }
+   425→.light .bg-\[\#f87171\]\/15 { background-color: rgba(239, 68, 68, 0.1) !important; }
+   426→
+   427→/* ── Additional patterns seen in components ──────────────────────── */
+   428→.light .bg-\[rgba\(34\,211\,238\,0\.15\)\] { background-color: rgba(8, 145, 178, 0.1) !important; }
+   429→.light .bg-\[rgba\(129\,140\,248\,0\.08\)\] { background-color: rgba(99, 102, 241, 0.06) !important; }
+   430→.light .bg-\[rgba\(129\,140\,248\,0\.15\)\] { background-color: rgba(99, 102, 241, 0.1) !important; }
+   431→.light .bg-\[rgba\(52\,211\,153\,0\.08\)\] { background-color: rgba(5, 150, 105, 0.06) !important; }
+   432→.light .bg-\[rgba\(52\,211\,153\,0\.15\)\] { background-color: rgba(5, 150, 105, 0.1) !important; }
+   433→.light .bg-\[rgba\(251\,191\,36\,0\.08\)\] { background-color: rgba(217, 119, 6, 0.06) !important; }
+   434→.light .bg-\[rgba\(248\,113\,113\,0\.08\)\] { background-color: rgba(239, 68, 68, 0.06) !important; }
+   435→.light .bg-\[rgba\(236\,72\,153\,0\.08\)\] { background-color: rgba(219, 39, 119, 0.06) !important; }
+   436→
+   437→/* ── Border patterns with rgba ───────────────────────────────────── */
+   438→.light .border-\[\#22d3ee\]\/20,
+   439→.light .border-\[rgba\(34\,211\,238\,0\.2\)\] { border-color: rgba(8, 145, 178, 0.2) !important; }
+   440→.light .border-\[rgba\(129\,140\,248\,0\.15\)\] { border-color: rgba(99, 102, 241, 0.15) !important; }
+   441→.light .border-\[rgba\(255\,255\,255\,0\.06\)\] { border-color: rgba(0, 0, 0, 0.06) !important; }
+   442→.light .border-\[rgba\(255\,255\,255\,0\.08\)\] { border-color: rgba(0, 0, 0, 0.08) !important; }
+   443→.light .border-\[rgba\(255\,255\,255\,0\.1\)\] { border-color: rgba(0, 0, 0, 0.1) !important; }
+   444→.light .border-\[rgba\(255\,255\,255\,0\.12\)\] { border-color: rgba(0, 0, 0, 0.12) !important; }
+   445→.light .border-\[rgba\(255\,255\,255\,0\.15\)\] { border-color: rgba(0, 0, 0, 0.15) !important; }
+   446→.light .border-\[rgba\(255\,255\,255\,0\.2\)\] { border-color: rgba(0, 0, 0, 0.2) !important; }
+   447→
+   448→/* ── Ambient background for light mode ───────────────────────────── */
+   449→.light .ambient-bg::before {
+   450→  background:
+   451→    radial-gradient(ellipse at 15% 50%, rgba(8, 145, 178, 0.04) 0%, transparent 50%),
+   452→    radial-gradient(ellipse at 85% 20%, rgba(99, 102, 241, 0.03) 0%, transparent 50%),
+   453→    radial-gradient(ellipse at 50% 85%, rgba(5, 150, 105, 0.025) 0%, transparent 50%);
+   454→}
+   455→
+   456→/* ── Notification dropdown shadow for light mode ─────────────────── */
+   457→.light [style*="box-shadow"] {
+   458→  filter: none;
+   459→}
+   460→
+   461→/* ═══════════════════════════════════════════════════════════════════════
+   462→   RADIX PORTAL — Ensure all dropdowns/popovers are always on top
+   463→   ═══════════════════════════════════════════════════════════════════════ */
+   464→
+   465→[data-radix-popper-content-wrapper] {
+   466→  z-index: 9999 !important;
+   467→  position: fixed !important;
+   468→}
+   469→[data-radix-portal] {
+   470→  z-index: 9999 !important;
+   471→}
+   472→
+   473→/* ── Solid opaque backgrounds for ALL dropdown/popover portals ───── */
+   474→[data-slot="select-content"] {
+   475→  background: var(--bg-card) !important;
+   476→  border: 1px solid var(--border-subtle) !important;
+   477→  box-shadow:
+   478→    0 4px 6px -1px rgba(0, 0, 0, 0.3),
+   479→    0 10px 15px -3px rgba(0, 0, 0, 0.25),
+   480→    0 0 0 1px var(--border-subtle) !important;
+   481→  backdrop-filter: none !important;
+   482→  border-radius: 0.625rem !important;
+   483→}
+   484→[data-slot="select-content"] [data-slot="select-item"] {
+   485→  border-radius: 0.375rem;
+   486→  margin: 2px 4px;
+   487→  padding: 7px 10px;
+   488→  font-size: 0.8125rem;
+   489→}
+   490→[data-slot="select-content"] [data-slot="select-item"][data-highlighted] {
+   491→  background: var(--primary-glow) !important;
+   492→  color: var(--text-primary) !important;
+   493→}
+   494→[data-slot="select-content"] [data-slot="select-item"][data-state="checked"] {
+   495→  background: var(--primary-glow) !important;
+   496→  color: var(--primary) !important;
+   497→  font-weight: 500;
+   498→}
+   499→
+   500→/* ═══════════════════════════════════════════════════════════════════════
+   501→   BASE LAYER
+   502→   ═══════════════════════════════════════════════════════════════════════ */
+   503→
+   504→@layer base {
+   505→  * {
+   506→    @apply border-border outline-ring/50;
+   507→  }
+   508→  html, body {
+   509→    overflow: hidden;
+   510→    height: 100%;
+   511→    margin: 0;
+   512→    padding: 0;
+   513→  }
+   514→  body {
+   515→    @apply bg-background text-foreground antialiased;
+   516→    font-family: var(--font-geist-sans), "Inter", system-ui, -apple-system, sans-serif;
+   517→    -webkit-font-smoothing: antialiased;
+   518→    -moz-osx-font-smoothing: grayscale;
+   519→  }
+   520→  #__next {
+   521→    height: 100%;
+   522→    overflow: hidden;
+   523→  }
+   524→
+   525→  /* Focus ring — accessible, cyan-tinted */
+   526→  :focus-visible {
+   527→    outline: 2px solid rgba(34, 211, 238, 0.5);
+   528→    outline-offset: 2px;
+   529→    border-radius: 4px;
+   530→  }
+   531→}
+   532→
+   533→/* ═══════════════════════════════════════════════════════════════════════
+   534→   SCROLLBAR — Ultra-thin, minimal
+   535→   ═══════════════════════════════════════════════════════════════════════ */
+   536→
+   537→::-webkit-scrollbar {
+   538→  width: 5px;
+   539→  height: 5px;
+   540→}
+   541→::-webkit-scrollbar-track {
+   542→  background: transparent;
+   543→}
+   544→::-webkit-scrollbar-thumb {
+   545→  background: rgba(255, 255, 255, 0.08);
+   546→  border-radius: 10px;
+   547→}
+   548→::-webkit-scrollbar-thumb:hover {
+   549→  background: rgba(34, 211, 238, 0.3);
+   550→}
+   551→
+   552→/* ═══════════════════════════════════════════════════════════════════════
+   553→   LEAFLET OVERRIDES
+   554→   ═══════════════════════════════════════════════════════════════════════ */
+   555→
+   556→.leaflet-container {
+   557→  background: #050810;
+   558→}
+   559→.leaflet-popup-content-wrapper {
+   560→  background: rgba(15, 21, 36, 0.95);
+   561→  color: #e8edf5;
+   562→  border: 1px solid rgba(255, 255, 255, 0.08);
+   563→  border-radius: 12px;
+   564→  backdrop-filter: blur(16px);
+   565→  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+   566→}
+   567→.leaflet-popup-tip {
+   568→  background: rgba(15, 21, 36, 0.95);
+   569→}
+   570→.leaflet-tile-pane {
+   571→  filter: brightness(0.6) contrast(1.15) saturate(0.6) hue-rotate(180deg);
+   572→}
+   573→.leaflet-control-zoom a {
+   574→  background: rgba(15, 21, 36, 0.9) !important;
+   575→  color: #c8d0e0 !important;
+   576→  border-color: rgba(255, 255, 255, 0.08) !important;
+   577→  backdrop-filter: blur(8px);
+   578→  transition: all 0.2s ease;
+   579→}
+   580→.leaflet-control-zoom a:hover {
+   581→  background: rgba(34, 211, 238, 0.15) !important;
+   582→  color: #22d3ee !important;
+   583→}
+   584→
+   585→/* ═══════════════════════════════════════════════════════════════════════
+   586→   PREMIUM GLASS SYSTEM
+   587→   ═══════════════════════════════════════════════════════════════════════ */
+   588→
+   589→.glass {
+   590→  background: rgba(15, 21, 36, 0.5);
+   591→  backdrop-filter: blur(20px);
+   592→  -webkit-backdrop-filter: blur(20px);
+   593→  border: 1px solid rgba(255, 255, 255, 0.06);
+   594→}
+   595→.glass-strong {
+   596→  background: rgba(15, 21, 36, 0.75);
+   597→  backdrop-filter: blur(32px);
+   598→  -webkit-backdrop-filter: blur(32px);
+   599→  border: 1px solid rgba(255, 255, 255, 0.08);
+   600→}
+   601→.glass-card {
+   602→  background: rgba(15, 21, 36, 0.45);
+   603→  backdrop-filter: blur(24px);
+   604→  -webkit-backdrop-filter: blur(24px);
+   605→  border: 1px solid rgba(255, 255, 255, 0.06);
+   606→  border-radius: 12px;
+   607→  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+   608→}
+   609→.glass-card:hover {
+   610→  background: rgba(15, 21, 36, 0.6);
+   611→  border-color: rgba(34, 211, 238, 0.12);
+   612→  box-shadow: 0 8px 40px rgba(34, 211, 238, 0.04);
+   613→  transform: translateY(-1px);
+   614→}
+   615→
+   616→/* ═══════════════════════════════════════════════════════════════════════
+   617→   AMBIENT BACKGROUND — Subtle radial gradients
+   618→   ═══════════════════════════════════════════════════════════════════════ */
+   619→
+   620→.ambient-bg {
+   621→  position: relative;
+   622→  overflow: hidden;
+   623→}
+   624→.ambient-bg::before {
+   625→  content: "";
+   626→  position: absolute;
+   627→  top: -50%;
+   628→  left: -50%;
+   629→  width: 200%;
+   630→  height: 200%;
+   631→  background:
+   632→    radial-gradient(ellipse at 15% 50%, rgba(34, 211, 238, 0.03) 0%, transparent 50%),
+   633→    radial-gradient(ellipse at 85% 20%, rgba(129, 140, 248, 0.025) 0%, transparent 50%),
+   634→    radial-gradient(ellipse at 50% 85%, rgba(52, 211, 153, 0.02) 0%, transparent 50%);
+   635→  animation: ambientFloat 25s ease-in-out infinite;
+   636→  pointer-events: none;
+   637→  z-index: 0;
+   638→}
+   639→@keyframes ambientFloat {
+   640→  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+   641→  33% { transform: translate(1.5%, -0.5%) rotate(0.5deg); }
+   642→  66% { transform: translate(-0.5%, 1.5%) rotate(-0.5deg); }
+   643→}
+   644→
+   645→/* ═══════════════════════════════════════════════════════════════════════
+   646→   SKELETON LOADERS
+   647→   ═══════════════════════════════════════════════════════════════════════ */
+   648→
+   649→@keyframes shimmer {
+   650→  0% { background-position: -200% 0; }
+   651→  100% { background-position: 200% 0; }
+   652→}
+   653→.skeleton {
+   654→  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.06) 50%, rgba(255, 255, 255, 0.03) 75%);
+   655→  background-size: 200% 100%;
+   656→  animation: shimmer 2s ease-in-out infinite;
+   657→  border-radius: 6px;
+   658→}
+   659→
+   660→/* ═══════════════════════════════════════════════════════════════════════
+   661→   ANIMATIONS — Framer Motion compatible
+   662→   ═══════════════════════════════════════════════════════════════════════ */
+   663→
+   664→@keyframes fadeInUp {
+   665→  from { opacity: 0; transform: translateY(16px); }
+   666→  to { opacity: 1; transform: translateY(0); }
+   667→}
+   668→@keyframes fadeIn {
+   669→  from { opacity: 0; }
+   670→  to { opacity: 1; }
+   671→}
+   672→@keyframes slideInRight {
+   673→  from { opacity: 0; transform: translateX(24px); }
+   674→  to { opacity: 1; transform: translateX(0); }
+   675→}
+   676→@keyframes slideInLeft {
+   677→  from { opacity: 0; transform: translateX(-24px); }
+   678→  to { opacity: 1; transform: translateX(0); }
+   679→}
+   680→@keyframes pulse-glow {
+   681→  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.2); }
+   682→  50% { box-shadow: 0 0 24px 4px rgba(34, 211, 238, 0.08); }
+   683→}
+   684→@keyframes scaleIn {
+   685→  from { opacity: 0; transform: scale(0.96); }
+   686→  to { opacity: 1; transform: scale(1); }
+   687→}
+   688→@keyframes shimmer-line {
+   689→  0% { transform: translateX(-100%); }
+   690→  100% { transform: translateX(100%); }
+   691→}
+   692→@keyframes glow-pulse {
+   693→  0%, 100% { opacity: 0.4; }
+   694→  50% { opacity: 1; }
+   695→}
+   696→
+   697→.animate-fade-in-up { animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+   698→.animate-fade-in { animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+   699→.animate-slide-in-right { animation: slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+   700→.animate-slide-in-left { animation: slideInLeft 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+   701→.animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+   702→.animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+   703→
+   704→.stagger-1 { animation-delay: 0.05s; opacity: 0; }
+   705→.stagger-2 { animation-delay: 0.1s; opacity: 0; }
+   706→.stagger-3 { animation-delay: 0.15s; opacity: 0; }
+   707→.stagger-4 { animation-delay: 0.2s; opacity: 0; }
+   708→.stagger-5 { animation-delay: 0.25s; opacity: 0; }
+   709→.stagger-6 { animation-delay: 0.3s; opacity: 0; }
+   710→
+   711→/* ═══════════════════════════════════════════════════════════════════════
+   712→   SPARKLINE
+   713→   ═══════════════════════════════════════════════════════════════════════ */
+   714→
+   715→.sparkline-path {
+   716→  stroke-dasharray: 1000;
+   717→  stroke-dashoffset: 1000;
+   718→  animation: sparklineDraw 1.5s ease-out forwards;
+   719→}
+   720→@keyframes sparklineDraw {
+   721→  to { stroke-dashoffset: 0; }
+   722→}
+   723→
+   724→/* ═══════════════════════════════════════════════════════════════════════
+   725→   TIMELINE
+   726→   ═══════════════════════════════════════════════════════════════════════ */
+   727→
+   728→@keyframes timelinePulse {
+   729→  0%, 100% { transform: scale(1); opacity: 1; }
+   730→  50% { transform: scale(1.4); opacity: 0.5; }
+   731→}
+   732→.timeline-pulse {
+   733→  animation: timelinePulse 2.5s ease-in-out infinite;
+   734→}
+   735→
+   736→/* ═══════════════════════════════════════════════════════════════════════
+   737→   COMMAND PALETTE
+   738→   ═══════════════════════════════════════════════════════════════════════ */
+   739→
+   740→.cmdk-overlay {
+   741→  background: rgba(0, 0, 0, 0.6) !important;
+   742→  backdrop-filter: blur(8px);
+   743→}
+   744→.cmdk {
+   745→  background: rgba(15, 21, 36, 0.95) !important;
+   746→  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+   747→  border-radius: 16px !important;
+   748→  box-shadow: 0 32px 64px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
+   749→  backdrop-filter: blur(32px);
+   750→}
+   751→.cmdk-input {
+   752→  color: #f1f5f9 !important;
+   753→  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+   754→}
+   755→.cmdk-input::placeholder {
+   756→  color: #5a657a !important;
+   757→}
+   758→.cmdk-item {
+   759→  color: #c8d0e0 !important;
+   760→  border-radius: 10px !important;
+   761→  transition: all 0.15s ease;
+   762→}
+   763→.cmdk-item[data-selected="true"] {
+   764→  background: rgba(34, 211, 238, 0.08) !important;
+   765→  color: #22d3ee !important;
+   766→}
+   767→.cmdk-group-heading {
+   768→  color: #5a657a !important;
+   769→  font-size: 11px !important;
+   770→  letter-spacing: 0.05em;
+   771→}
+   772→.cmdk-separator {
+   773→  background: rgba(255, 255, 255, 0.06) !important;
+   774→}
+   775→.cmdk-shortcut {
+   776→  color: #5a657a !important;
+   777→  background: rgba(255, 255, 255, 0.04) !important;
+   778→  border-radius: 6px !important;
+   779→  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+   780→}
+   781→
+   782→/* ═══════════════════════════════════════════════════════════════════════
+   783→   CONFIDENCE RING
+   784→   ═══════════════════════════════════════════════════════════════════════ */
+   785→
+   786→.confidence-ring {
+   787→  transform: rotate(-90deg);
+   788→}
+   789→.confidence-ring-circle {
+   790→  transition: stroke-dashoffset 1s ease-out;
+   791→}
+   792→
+   793→/* ═══════════════════════════════════════════════════════════════════════
+   794→   BLACKBIRD UTILITIES
+   795→   ═══════════════════════════════════════════════════════════════════════ */
+   796→
+   797→/* Metric card gradient overlays */
+   798→.gradient-cyan {
+   799→  background: linear-gradient(135deg, rgba(34, 211, 238, 0.08) 0%, transparent 60%);
+   800→}
+   801→.gradient-indigo {
+   802→  background: linear-gradient(135deg, rgba(129, 140, 248, 0.08) 0%, transparent 60%);
+   803→}
+   804→.gradient-emerald {
+   805→  background: linear-gradient(135deg, rgba(52, 211, 153, 0.08) 0%, transparent 60%);
+   806→}
+   807→.gradient-amber {
+   808→  background: linear-gradient(135deg, rgba(251, 191, 36, 0.08) 0%, transparent 60%);
+   809→}
+   810→.gradient-rose {
+   811→  background: linear-gradient(135deg, rgba(248, 113, 113, 0.08) 0%, transparent 60%);
+   812→}
+   813→
+   814→/* Active sidebar indicator glow */
+   815→.sidebar-active-glow {
+   816→  position: relative;
+   817→}
+   818→.sidebar-active-glow::before {
+   819→  content: "";
+   820→  position: absolute;
+   821→  left: 0;
+   822→  top: 50%;
+   823→  transform: translateY(-50%);
+   824→  width: 3px;
+   825→  height: 60%;
+   826→  border-radius: 0 4px 4px 0;
+   827→  background: #22d3ee;
+   828→  box-shadow: 0 0 12px rgba(34, 211, 238, 0.4), 0 0 24px rgba(34, 211, 238, 0.15);
+   829→}
+   830→
+   831→/* Premium border treatment */
+   832→.border-glow {
+   833→  border: 1px solid rgba(255, 255, 255, 0.06);
+   834→  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+   835→}
+   836→
+   837→/* Status dot pulse */
+   838→@keyframes status-pulse {
+   839→  0%, 100% { opacity: 1; transform: scale(1); }
+   840→  50% { opacity: 0.5; transform: scale(1.5); }
+   841→}
+   842→.status-pulse {
+   843→  animation: status-pulse 2s ease-in-out infinite;
+   844→}
+   845→
+   846→/* Number counter animation */
+   847→@keyframes countUp {
+   848→  from { opacity: 0; transform: translateY(8px); }
+   849→  to { opacity: 1; transform: translateY(0); }
+   850→}
+   851→.animate-count-up {
+   852→  animation: countUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+   853→}
+   854→
+   855→/* Force graph tooltip */
+   856→.force-graph-tooltip {
+   857→  background: rgba(15, 21, 36, 0.95) !important;
+   858→  color: #e8edf5 !important;
+   859→  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+   860→  border-radius: 12px !important;
+   861→  padding: 12px 16px !important;
+   862→  font-size: 13px !important;
+   863→  backdrop-filter: blur(16px);
+   864→  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5) !important;
+   865→}
+   866→
+   867→/* Typing indicator dots */
+   868→@keyframes typing-dot {
+   869→  0%, 60%, 100% { transform: translateY(0); opacity: 0.3; }
+   870→  30% { transform: translateY(-4px); opacity: 1; }
+   871→}
+   872→.typing-dot {
+   873→  animation: typing-dot 1.4s ease-in-out infinite;
+   874→}
+   875→
+   876→/* Selection highlight */
+   877→::selection {
+   878→  background: rgba(34, 211, 238, 0.25);
+   879→  color: #f1f5f9;
+   880→}
