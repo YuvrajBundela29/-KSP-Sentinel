@@ -39,71 +39,7 @@ import {
 import { useState, memo, useCallback, useEffect } from "react";
 import type { ViewType } from "@/lib/types";
 import { canAccessView } from "@/lib/permissions";
-
-/* ═══════════════════════════════════════════════════════════════════════
-   LABELS — EN / KN
-   ═══════════════════════════════════════════════════════════════════════ */
-
-const LABELS: Record<string, Record<string, string>> = {
-  en: {
-    dashboard: "Mission Control",
-    chat: "AI Copilot",
-    network: "Network Graph",
-    map: "Crime Map",
-    accused: "Accused Profile",
-    timeline: "Investigation Timeline",
-    report: "Generate Report",
-    logout: "Sign Out",
-    dataMgmt: "Data Management",
-    dmDashboard: "Data Management Dashboard",
-    dmFir: "FIR Management",
-    dmEvidence: "Evidence Management",
-    dmCriminals: "Criminals Database",
-    dmVictims: "Victims Registry",
-    dmVehicles: "Vehicle Records",
-    dmFinancial: "Financial Records",
-    dmImport: "Import Center",
-    dmAudit: "Audit Logs",
-    dmAiQueue: "AI Processing Queue",
-    dmSettings: "Settings",
-    dmSociological: "Sociological Insights",
-    dmForecasting: "Crime Forecasting",
-    dmFinancialNetwork: "Financial Network",
-    intelligence: "Intelligence",
-    analytics: "Analytics & AI",
-    commandPalette: "Command Palette",
-    helpGuide: "Help Guide",
-  },
-  kn: {
-    dashboard: "ಮಿಷನ್ ಕಂಟ್ರೋಲ್",
-    chat: "AI ಸಹಾಯಕ",
-    network: "ನೆಟ್‌ವರ್ಕ್ ಗ್ರಾಫ್",
-    map: "ಅಪರಾಧ ನಕ್ಷೆ",
-    accused: "ಆರೋಪಿ ಪ್ರೊಫೈಲ್",
-    timeline: "ತನಿಖಾ ಟೈಮ್‌ಲೈನ್",
-    report: "ವರದಿ ರಚಿಸಿ",
-    logout: "ಲಾಗ್ ಔಟ್",
-    dataMgmt: "ದತ್ತಾಂಶ ನಿರ್ವಹಣೆ",
-    dmDashboard: "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
-    dmFir: "ಎಫ್‌ಐಆರ್ ನಿರ್ವಹಣೆ",
-    dmEvidence: "ಪುರಾವೆ ನಿರ್ವಹಣೆ",
-    dmCriminals: "ಅಪರಾಧಿಗಳ ಡೇಟಾಬೇಸ್",
-    dmVictims: "ಬಲಿಪಂಜುಗಳ ನೋಂದಣಿ",
-    dmVehicles: "ವಾಹನ ದಾಖಲೆಗಳು",
-    dmFinancial: "ಹಣಕಾಸು ದಾಖಲೆಗಳು",
-    dmImport: "ಆಮದು ಕೇಂದ್ರ",
-    dmAudit: "ಆಡಿಟ್ ಲಾಗ್‌ಗಳು",
-    dmAiQueue: "AI ಪ್ರಕ್ರಿಯೆ",
-    dmSettings: "ಸೆಟ್ಟಿಂಗ್‌ಗಳು",
-    dmSociological: "ಸಾಮಾಜಿಕ ಒಳನೋಟಗಳು",
-    dmForecasting: "ಅಪರಾಧ ಮುನ್ಸೂಚನೆ",
-    dmFinancialNetwork: "ಹಣಕಾಸು ನೆಟ್‌ವರ್ಕ್",
-    intelligence: "ಗುಪ್ತಚರ",
-    analytics: "ವಿಶ್ಲೇಷಣೆ & AI",
-    commandPalette: "ಕಮಾಂಡ್ ಪ್ಯಾಲೆಟ್",
-    helpGuide: "ಸಹಾಯ ಮಾರ್ಗದರ್ಶಿ",
-  },
-};
+import { getLabel } from "@/lib/translations";
 
 /* ═══════════════════════════════════════════════════════════════════════
    NAV STRUCTURE — Items with keyboard shortcuts & sections
@@ -200,14 +136,14 @@ const SectionHeader = memo(function SectionHeader({
 const NavItem = memo(function NavItem({
   item,
   isActive,
-  labels,
+  getLabelFn,
   collapsed,
   accentColor,
   onClick,
 }: {
   item: NavItemDef;
   isActive: boolean;
-  labels: Record<string, string>;
+  getLabelFn: (key: string) => string;
   collapsed: boolean;
   accentColor: string;
   onClick: () => void;
@@ -226,7 +162,7 @@ const NavItem = memo(function NavItem({
       onClick={onClick}
       whileHover={{ x: collapsed ? 0 : 2 }}
       transition={{ duration: 0.15 }}
-      title={collapsed ? `${labels[item.key]}${item.shortcut ? ` (${item.shortcut})` : ""}` : undefined}
+      title={collapsed ? `${getLabelFn(item.key)}${item.shortcut ? ` (${item.shortcut})` : ""}` : undefined}
       className="w-full group relative flex items-center gap-2.5 rounded-lg text-[13px] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/30"
       style={{
         padding: collapsed ? "9px" : "7px 10px",
@@ -295,7 +231,7 @@ const NavItem = memo(function NavItem({
       {/* Label + Shortcut */}
       {!collapsed && (
         <div className="flex-1 flex items-center justify-between min-w-0 gap-1">
-          <span className="truncate font-medium text-[13px]">{labels[item.key]}</span>
+          <span className="truncate font-medium text-[13px]">{getLabelFn(item.key)}</span>
           {item.shortcut && (
             <kbd
               className="flex-shrink-0 text-[9px] font-mono px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200"
@@ -332,7 +268,7 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dmOpen, setDmOpen] = useState(true);
   const [analyticsOpen, setAnalyticsOpen] = useState(true);
-  const labels = LABELS[lang];
+  const getLabelFn = useCallback((key: string) => getLabel(lang, key), [lang]);
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const handleNav = useCallback(
@@ -451,7 +387,7 @@ export default function Sidebar() {
               className="text-[10px] font-bold uppercase tracking-[0.12em]"
               style={{ color: "var(--text-tertiary)" }}
             >
-              {labels.intelligence}
+              {getLabel(lang, "intelligence")}
             </span>
           </div>
         )}
@@ -467,7 +403,7 @@ export default function Sidebar() {
               key={item.key}
               item={item}
               isActive={isActive}
-              labels={labels}
+              getLabelFn={getLabelFn}
               collapsed={sidebarCollapsed}
               accentColor="#22d3ee"
               onClick={() => handleNav(item.view)}
@@ -480,7 +416,7 @@ export default function Sidebar() {
         {/* ANALYTICS & AI Section */}
         {!sidebarCollapsed ? (
           <SectionHeader
-            label={labels.analytics}
+            label={getLabel(lang, "analytics")}
             icon={BrainCircuit}
             color="#34d399"
             open={analyticsOpen}
@@ -513,7 +449,7 @@ export default function Sidebar() {
                     key={item.key}
                     item={item}
                     isActive={isActive}
-                    labels={labels}
+                    getLabelFn={getLabelFn}
                     collapsed={sidebarCollapsed}
                     accentColor="#34d399"
                     onClick={() => handleNav(item.view)}
@@ -529,7 +465,7 @@ export default function Sidebar() {
         {/* DATA MANAGEMENT Section */}
         {!sidebarCollapsed ? (
           <SectionHeader
-            label={labels.dataMgmt}
+            label={getLabel(lang, "dataMgmt")}
             icon={Database}
             color="#818cf8"
             open={dmOpen}
@@ -562,7 +498,7 @@ export default function Sidebar() {
                     key={item.key}
                     item={item}
                     isActive={isActive}
-                    labels={labels}
+                    getLabelFn={getLabelFn}
                     collapsed={sidebarCollapsed}
                     accentColor="#818cf8"
                     onClick={() => handleNav(item.view)}
@@ -604,7 +540,7 @@ export default function Sidebar() {
             }}
           >
             <Command className="w-3.5 h-3.5" />
-            <span className="flex-1 text-left">{labels.commandPalette}</span>
+            <span className="flex-1 text-left">{getLabel(lang, "commandPalette")}</span>
             <kbd
               className="text-[9px] px-1.5 py-0.5 rounded font-mono"
               style={{
@@ -639,7 +575,7 @@ export default function Sidebar() {
             }}
           >
             <BookOpen className="w-3.5 h-3.5" />
-            <span className="flex-1 text-left">{labels.helpGuide || "Help Guide"}</span>
+            <span className="flex-1 text-left">{getLabel(lang, "helpGuide")}</span>
           </button>
         )}
 
@@ -708,7 +644,7 @@ export default function Sidebar() {
           }}
         >
           <LogOut className="w-4 h-4 flex-shrink-0" />
-          {!sidebarCollapsed && <span>{labels.logout}</span>}
+          {!sidebarCollapsed && <span>{getLabel(lang, "logout")}</span>}
         </button>
       </div>
     </div>

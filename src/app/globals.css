@@ -307,6 +307,158 @@
 .light .gradient-rose { background: linear-gradient(135deg, rgba(239, 68, 68, 0.06) 0%, transparent 60%); }
 
 /* ═══════════════════════════════════════════════════════════════════════
+   LIGHT MODE — Hardcoded dark-theme color overrides
+   Components use Tailwind arbitrary values like text-[#f1f5f9] that
+   are dark-only. These overrides remap them for light backgrounds.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Primary heading text ─────────────────────────────────────────── */
+.light .text-\[\#f1f5f9\] { color: #0f172a !important; }
+.light .text-\[\#e8edf5\] { color: #0f172a !important; }
+
+/* ── Secondary body text ─────────────────────────────────────────── */
+.light .text-\[\#8b97b0\] { color: #475569 !important; }
+
+/* ── Tertiary / hint text ────────────────────────────────────────── */
+.light .text-\[\#5a657a\] { color: #94a3b8 !important; }
+
+/* ── Muted / placeholder text ────────────────────────────────────── */
+.light .text-\[\#3d4659\] { color: #cbd5e1 !important; }
+
+/* ── Background tints (white-on-dark) ────────────────────────────── */
+.light .bg-white\/5 { background-color: rgba(0, 0, 0, 0.03) !important; }
+.light .bg-white\/\[0\.03\] { background-color: rgba(0, 0, 0, 0.02) !important; }
+.light .bg-white\/\[0\.04\] { background-color: rgba(0, 0, 0, 0.025) !important; }
+.light .bg-white\/\[0\.05\] { background-color: rgba(0, 0, 0, 0.03) !important; }
+.light .bg-white\/\[0\.06\] { background-color: rgba(0, 0, 0, 0.04) !important; }
+.light .bg-white\/\[0\.08\] { background-color: rgba(0, 0, 0, 0.05) !important; }
+.light .bg-white\/\[0\.1\] { background-color: rgba(0, 0, 0, 0.06) !important; }
+.light .bg-white\/10 { background-color: rgba(0, 0, 0, 0.06) !important; }
+.light .bg-white\/\[0\.15\] { background-color: rgba(0, 0, 0, 0.08) !important; }
+.light .bg-white\/\[0\.2\] { background-color: rgba(0, 0, 0, 0.1) !important; }
+.light .bg-white\/20 { background-color: rgba(0, 0, 0, 0.1) !important; }
+
+/* ── Border tints (white-on-dark) ────────────────────────────────── */
+.light .border-white\/5 { border-color: rgba(0, 0, 0, 0.04) !important; }
+.light .border-white\/\[0\.05\] { border-color: rgba(0, 0, 0, 0.04) !important; }
+.light .border-white\/\[0\.06\] { border-color: rgba(0, 0, 0, 0.06) !important; }
+.light .border-white\/\[0\.08\] { border-color: rgba(0, 0, 0, 0.08) !important; }
+.light .border-white\/\[0\.1\] { border-color: rgba(0, 0, 0, 0.1) !important; }
+.light .border-white\/10 { border-color: rgba(0, 0, 0, 0.1) !important; }
+.light .border-white\/\[0\.12\] { border-color: rgba(0, 0, 0, 0.12) !important; }
+.light .border-white\/\[0\.15\] { border-color: rgba(0, 0, 0, 0.15) !important; }
+.light .border-white\/\[0\.2\] { border-color: rgba(0, 0, 0, 0.2) !important; }
+
+/* ── Accent text colors (darken for light bg) ────────────────────── */
+.light .text-\[\#22d3ee\] { color: #0891b2 !important; }
+.light .text-\[\#818cf8\] { color: #6366f1 !important; }
+.light .text-\[\#34d399\] { color: #059669 !important; }
+.light .text-\[\#fbbf24\] { color: #d97706 !important; }
+.light .text-\[\#f87171\] { color: #ef4444 !important; }
+.light .text-\[\#ec4899\] { color: #db2777 !important; }
+.light .text-\[\#84cc16\] { color: #65a30d !important; }
+.light .text-\[\#06b6d4\] { color: #0891b2 !important; }
+
+/* ── Badge background tints ──────────────────────────────────────── */
+.light .bg-\[\#22d3ee\]\/10 { background-color: rgba(8, 145, 178, 0.08) !important; }
+.light .bg-\[\#22d3ee\]\/20 { background-color: rgba(8, 145, 178, 0.15) !important; }
+.light .bg-\[\#818cf8\]\/10 { background-color: rgba(99, 102, 241, 0.08) !important; }
+.light .bg-\[\#818cf8\]\/15 { background-color: rgba(99, 102, 241, 0.1) !important; }
+.light .bg-\[\#34d399\]\/10 { background-color: rgba(5, 150, 105, 0.08) !important; }
+.light .bg-\[\#34d399\]\/20 { background-color: rgba(5, 150, 105, 0.15) !important; }
+.light .bg-\[\#fbbf24\]\/10 { background-color: rgba(217, 119, 6, 0.08) !important; }
+.light .bg-\[\#fbbf24\]\/20 { background-color: rgba(217, 119, 6, 0.15) !important; }
+.light .bg-\[\#f87171\]\/10 { background-color: rgba(239, 68, 68, 0.08) !important; }
+.light .bg-\[\#f87171\]\/20 { background-color: rgba(239, 68, 68, 0.15) !important; }
+.light .bg-\[\#ec4899\]\/10 { background-color: rgba(219, 39, 119, 0.08) !important; }
+.light .bg-\[\#ec4899\]\/20 { background-color: rgba(219, 39, 119, 0.15) !important; }
+
+/* ── Badge text (300-shade → darker for light) ───────────────────── */
+.light .text-red-300 { color: #dc2626 !important; }
+.light .text-amber-300 { color: #d97706 !important; }
+.light .text-emerald-300 { color: #059669 !important; }
+.light .text-cyan-300 { color: #0891b2 !important; }
+.light .text-pink-300 { color: #db2777 !important; }
+.light .text-lime-300 { color: #65a30d !important; }
+
+/* ── Separator / divider backgrounds ─────────────────────────────── */
+.light .bg-white\/10,
+.light .bg-white\/\[0\.1\] { background-color: rgba(0, 0, 0, 0.08) !important; }
+.light .bg-white\/\[0\.12\] { background-color: rgba(0, 0, 0, 0.1) !important; }
+
+/* ── Hover states ────────────────────────────────────────────────── */
+.light .hover\:bg-white\/5:hover { background-color: rgba(0, 0, 0, 0.04) !important; }
+.light .hover\:bg-white\/\[0\.05\]:hover { background-color: rgba(0, 0, 0, 0.04) !important; }
+.light .hover\:bg-white\/10:hover { background-color: rgba(0, 0, 0, 0.06) !important; }
+.light .hover\:bg-white\/\[0\.1\]:hover { background-color: rgba(0, 0, 0, 0.06) !important; }
+.light .hover\:bg-white\/\[0\.08\]:hover { background-color: rgba(0, 0, 0, 0.05) !important; }
+.light .hover\:bg-white\/\[0\.06\]:hover { background-color: rgba(0, 0, 0, 0.04) !important; }
+
+/* ── Active / selected tab states ────────────────────────────────── */
+.light .data-\[state\=active\]\:bg-white\/10,
+.light .data-\[state\=active\]\:bg-white\/\[0\.1\] { background-color: rgba(0, 0, 0, 0.06) !important; }
+.light .data-\[state\=active\]\:text-\[\#f1f5f9\] { color: #0f172a !important; }
+.light .data-\[state\=active\]\:text-\[\#8b97b0\] { color: #0891b2 !important; }
+
+/* ── Theme selector card borders ─────────────────────────────────── */
+.light .border-blue-500 { border-color: #0891b2 !important; }
+.light .ring-blue-500\/30 { --tw-ring-color: rgba(8, 145, 178, 0.3) !important; }
+
+/* ── Focus ring for light mode ───────────────────────────────────── */
+.light :focus-visible {
+  outline: 2px solid rgba(8, 145, 178, 0.5);
+}
+
+/* ── Recharts / chart text in light mode ─────────────────────────── */
+.light .recharts-cartesian-axis-tick-value { fill: #64748b !important; }
+.light .recharts-legend-item-text { fill: #475569 !important; }
+.light .recharts-tooltip-label { fill: #0f172a !important; }
+.light .recharts-tooltip-item { color: #334155 !important; }
+
+/* ── Notification panel bg tints ─────────────────────────────────── */
+.light .whilehover\:bg-white\/\[0\.02\] { background-color: rgba(0, 0, 0, 0.02) !important; }
+
+/* ── Inline bg tints with rgba ───────────────────────────────────── */
+.light .bg-\[\#22d3ee\]\/15 { background-color: rgba(8, 145, 178, 0.1) !important; }
+.light .bg-\[\#34d399\]\/15 { background-color: rgba(5, 150, 105, 0.1) !important; }
+.light .bg-\[\#fbbf24\]\/15 { background-color: rgba(217, 119, 6, 0.1) !important; }
+.light .bg-\[\#f87171\]\/15 { background-color: rgba(239, 68, 68, 0.1) !important; }
+
+/* ── Additional patterns seen in components ──────────────────────── */
+.light .bg-\[rgba\(34\,211\,238\,0\.15\)\] { background-color: rgba(8, 145, 178, 0.1) !important; }
+.light .bg-\[rgba\(129\,140\,248\,0\.08\)\] { background-color: rgba(99, 102, 241, 0.06) !important; }
+.light .bg-\[rgba\(129\,140\,248\,0\.15\)\] { background-color: rgba(99, 102, 241, 0.1) !important; }
+.light .bg-\[rgba\(52\,211\,153\,0\.08\)\] { background-color: rgba(5, 150, 105, 0.06) !important; }
+.light .bg-\[rgba\(52\,211\,153\,0\.15\)\] { background-color: rgba(5, 150, 105, 0.1) !important; }
+.light .bg-\[rgba\(251\,191\,36\,0\.08\)\] { background-color: rgba(217, 119, 6, 0.06) !important; }
+.light .bg-\[rgba\(248\,113\,113\,0\.08\)\] { background-color: rgba(239, 68, 68, 0.06) !important; }
+.light .bg-\[rgba\(236\,72\,153\,0\.08\)\] { background-color: rgba(219, 39, 119, 0.06) !important; }
+
+/* ── Border patterns with rgba ───────────────────────────────────── */
+.light .border-\[\#22d3ee\]\/20,
+.light .border-\[rgba\(34\,211\,238\,0\.2\)\] { border-color: rgba(8, 145, 178, 0.2) !important; }
+.light .border-\[rgba\(129\,140\,248\,0\.15\)\] { border-color: rgba(99, 102, 241, 0.15) !important; }
+.light .border-\[rgba\(255\,255\,255\,0\.06\)\] { border-color: rgba(0, 0, 0, 0.06) !important; }
+.light .border-\[rgba\(255\,255\,255\,0\.08\)\] { border-color: rgba(0, 0, 0, 0.08) !important; }
+.light .border-\[rgba\(255\,255\,255\,0\.1\)\] { border-color: rgba(0, 0, 0, 0.1) !important; }
+.light .border-\[rgba\(255\,255\,255\,0\.12\)\] { border-color: rgba(0, 0, 0, 0.12) !important; }
+.light .border-\[rgba\(255\,255\,255\,0\.15\)\] { border-color: rgba(0, 0, 0, 0.15) !important; }
+.light .border-\[rgba\(255\,255\,255\,0\.2\)\] { border-color: rgba(0, 0, 0, 0.2) !important; }
+
+/* ── Ambient background for light mode ───────────────────────────── */
+.light .ambient-bg::before {
+  background:
+    radial-gradient(ellipse at 15% 50%, rgba(8, 145, 178, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 20%, rgba(99, 102, 241, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 85%, rgba(5, 150, 105, 0.025) 0%, transparent 50%);
+}
+
+/* ── Notification dropdown shadow for light mode ─────────────────── */
+.light [style*="box-shadow"] {
+  filter: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
    BASE LAYER
    ═══════════════════════════════════════════════════════════════════════ */
 

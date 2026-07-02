@@ -2,6 +2,8 @@
 
 import { create } from "zustand";
 import type { ViewType, AuthUser, CrimeDataset, ChatMessage, AuditLogEntry, EvidenceItem, ImportJob, AIQueueItem } from "./types";
+import type { LangCode } from "./translations";
+import { LANGUAGES } from "./translations";
 
 interface AppState {
   // Auth
@@ -35,7 +37,8 @@ interface AppState {
   setChatLoading: (loading: boolean) => void;
 
   // Language
-  lang: "en" | "kn";
+  lang: LangCode;
+  setLang: (lang: LangCode) => void;
   toggleLang: () => void;
 
   // Data Management
@@ -106,8 +109,20 @@ export const useAppStore = create<AppState>((set) => ({
   setChatLoading: (loading) => set({ chatLoading: loading }),
 
   // Language
-  lang: "en",
-  toggleLang: () => set((s) => ({ lang: s.lang === "en" ? "kn" : "en" })),
+  lang: (typeof window !== "undefined" ? (localStorage.getItem("ksp_lang") as LangCode) : null) || "en",
+  setLang: (lang) => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("ksp_lang", lang);
+    }
+    set({ lang });
+  },
+  toggleLang: () => {
+    const langs = LANGUAGES.map((l) => l.code);
+    const cur = useAppStore.getState().lang;
+    const idx = langs.indexOf(cur);
+    const next = langs[(idx + 1) % langs.length];
+    useAppStore.getState().setLang(next);
+  },
 
   // Data Management
   auditLogs: [],

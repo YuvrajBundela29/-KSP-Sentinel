@@ -38,6 +38,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
+import { LANGUAGES } from "@/lib/translations";
+import type { LangCode } from "@/lib/translations";
 import type { RoleName, RolePermission } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -150,7 +152,7 @@ function getDefaultPermissions(): Record<RoleName, Record<string, boolean>> {
 // ─── Settings State Types ────────────────────────────────────────────
 interface UIPrefs {
   theme: "dark" | "light";
-  language: "en" | "kn";
+  language: LangCode;
   pageSize: number;
   autoRefresh: number;
   compactMode: boolean;
@@ -196,7 +198,7 @@ const DEFAULT_SYS_CONFIG: SysConfig = {
 
 // ─── Main Component ─────────────────────────────────────────────────
 export default function SettingsPage() {
-  const { user, toggleLang, addNotification } = useAppStore();
+  const { user, lang, setLang, addNotification } = useAppStore();
   const theme = useAppStore((s) => s.theme);
   const setTheme = useAppStore((s) => s.setTheme);
   const { toast } = useToast();
@@ -495,16 +497,17 @@ export default function SettingsPage() {
               {/* Language */}
               <div className="space-y-2.5">
                 <Label className="text-[#8b97b0] text-xs font-medium">Language</Label>
-                <Select value={uiPrefs.language} onValueChange={(v) => {
-                  setUiPrefs(p => ({ ...p, language: v as "en" | "kn" }));
-                  if (v !== uiPrefs.language) toggleLang();
+                <Select value={lang} onValueChange={(v) => {
+                  setLang(v as LangCode);
+                  setUiPrefs(p => ({ ...p, language: v as LangCode }));
                 }}>
                   <SelectTrigger className="w-full bg-white/5 border-white/10 text-[#f1f5f9]">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.08)]">
-                    <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="kn">ಕನ್ನಡ (Kannada)</SelectItem>
+                  <SelectContent className="bg-[rgba(15,21,36,0.45)] border-[rgba(255,255,255,0.08)] max-h-64">
+                    {LANGUAGES.map((l) => (
+                      <SelectItem key={l.code} value={l.code}>{l.label} ({l.labelEn})</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

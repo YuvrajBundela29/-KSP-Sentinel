@@ -20,4 +20,30 @@ Stage Summary:
 - Build: PASS (compiled successfully, zero errors)
 - All existing features preserved (login, dashboard, chat, network, map, accused, timeline, report)
 - 11 new pages fully functional with dark glassmorphism theme
-- Code-split via React.lazy for DM components
+- Code-split via React.lazy for DM components---
+Task ID: 1
+Agent: main
+Task: Fix ChunkLoadError, light mode text readability, add all Indian languages
+
+Work Log:
+- Cleared stale .next cache to fix Turbopack ChunkLoadError for SociologicalInsights
+- Added comprehensive .light CSS overrides in globals.css for all hardcoded dark-theme Tailwind classes
+  - Primary text (#f1f5f9, #e8edf5), secondary (#8b97b0), tertiary (#5a657a), muted (#3d4659)
+  - Background tints (bg-white/5, bg-white/[0.03-0.2])
+  - Border tints (border-white/5 through border-white/20)
+  - Accent colors (cyan, indigo, emerald, amber, red)
+  - Badge colors, hover states, tab active states, focus rings
+  - Recharts text, notification panels, ambient backgrounds
+- Created centralized translations system (src/lib/translations.ts) with all 22 Indian scheduled languages
+  - English, Hindi, Bengali, Telugu, Marathi, Tamil, Gujarati, Urdu, Kannada, Odia, Malayalam, Punjabi, Assamese, Sanskrit, Kashmiri, Sindhi, Nepali, Konkani, Dogri, Manipuri, Bodo, Santali, Maithili
+- Updated store.ts: lang type now supports all LangCode values, added setLang function, toggleLang cycles through all languages
+- Updated Header.tsx: replaced language toggle button with dropdown showing all 23 languages with native + English names
+- Updated Sidebar.tsx: replaced inline LABELS object with centralized getLabel() function
+- Updated SettingsPage.tsx: language selector now shows all 23 Indian languages
+- Built and deployed successfully
+
+Stage Summary:
+- Light mode now fully readable on all pages
+- All 22 Indian scheduled languages + English integrated across sidebar, header, settings
+- Language persists via localStorage
+- Server running on port 3000, returning HTTP 200

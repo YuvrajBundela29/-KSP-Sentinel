@@ -3,74 +3,21 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppStore } from "@/lib/store";
-import { Languages, Bell, X, Check, Wifi, Activity } from "lucide-react";
-
-const VIEW_LABELS: Record<string, Record<string, string>> = {
-  en: {
-    dashboard: "Mission Control",
-    chat: "AI Copilot",
-    network: "Network Graph",
-    map: "Crime Map",
-    accused: "Accused Profile",
-    timeline: "Investigation Timeline",
-    report: "Report Generator",
-    "dm-dashboard": "Data Management",
-    "dm-fir": "FIR Management",
-    "dm-evidence": "Evidence Management",
-    "dm-criminals": "Criminals",
-    "dm-victims": "Victims",
-    "dm-vehicles": "Vehicles",
-    "dm-financial": "Financial Records",
-    "dm-import": "Import Center",
-    "dm-audit": "Audit Logs",
-    "dm-ai-queue": "AI Processing Queue",
-    "dm-settings": "Settings",
-    "dm-sociological": "Sociological Insights",
-    "dm-forecasting": "Crime Forecasting",
-    "dm-financial-network": "Financial Network",
-  },
-  kn: {
-    dashboard: "ಮಿಷನ್ ಕಂಟ್ರೋಲ್",
-    chat: "AI ಸಹಾಯಕ",
-    network: "ನೆಟ್‌ವರ್ಕ್ ಗ್ರಾಫ್",
-    map: "ಅಪರಾಧ ನಕ್ಷೆ",
-    accused: "ಆರೋಪಿತ ಪ್ರೊಫೈಲ್",
-    timeline: "ತನಿಖೆ ಟೈಮ್‌ಲೈನ್",
-    report: "ವರದಿ ಜನರೇಟರ್",
-    "dm-dashboard": "ದತ್ತಾಂಶ ನಿರ್ವಹಣೆ",
-    "dm-fir": "ಎಫ್‌ಐಆರ್ ನಿರ್ವಹಣೆ",
-    "dm-evidence": "ಪುರಾವೆ ನಿರ್ವಹಣೆ",
-    "dm-criminals": "ಅಪರಾಧಿಗಳು",
-    "dm-victims": "ಬಲಿಪಂಜುಗಳು",
-    "dm-vehicles": "ವಾಹನಗಳು",
-    "dm-financial": "ಹಣಕಾಸು ದಾಖಲೆಗಳು",
-    "dm-import": "ಆಮದು ಕೇಂದ್ರ",
-    "dm-audit": "ಆಡಿಟ್ ಲಾಗ್‌ಗಳು",
-    "dm-ai-queue": "AI ಪ್ರಕ್ರಿಯೆ",
-    "dm-settings": "ಸೆಟ್ಟಿಂಗ್‌ಗಳು",
-    "dm-sociological": "ಸಾಮಾಜಿಕ ಒಳನೋಟ",
-    "dm-forecasting": "ಅಪರಾಧ ಮುನ್ಸೂಚನೆ",
-    "dm-financial-network": "ಹಣಕಾಸು ನೆಟ್‌ವರ್ಕ್",
-  },
-};
-
-const NOTIF_COLORS: Record<string, string> = {
-  info: "#22d3ee",
-  warning: "#fbbf24",
-  error: "#f87171",
-  success: "#34d399",
-};
+import { Languages, Bell, X, Check, Wifi, Activity, ChevronDown } from "lucide-react";
+import { LANGUAGES, getLabel, type LangCode } from "@/lib/translations";
 
 export default function Header() {
   const currentView = useAppStore((s) => s.currentView);
   const lang = useAppStore((s) => s.lang);
-  const toggleLang = useAppStore((s) => s.toggleLang);
+  const setLang = useAppStore((s) => s.setLang);
   const notifications = useAppStore((s) => s.notifications);
   const markNotificationRead = useAppStore((s) => s.markNotificationRead);
   const user = useAppStore((s) => s.user);
   const [clock, setClock] = useState("");
   const [notifOpen, setNotifOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
+  const langRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const update = () => {
@@ -93,27 +40,29 @@ export default function Header() {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
         setNotifOpen(false);
       }
+      if (langRef.current && !langRef.current.contains(e.target as Node)) {
+        setLangOpen(false);
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const labels = VIEW_LABELS[lang];
-  const viewTitle = labels[currentView] || currentView;
+  const viewTitle = getLabel(lang, currentView);
   const unreadCount = notifications.filter((n) => !n.read).length;
   const isDM = currentView.startsWith("dm-");
+  const currentLangInfo = LANGUAGES.find((l) => l.code === lang) ?? LANGUAGES[0];
 
   const formatTime = (ts: string) => {
     const diff = Date.now() - new Date(ts).getTime();
-    if (diff < 60000) return "Just now";
+    if (diff < 60000) return getLabel(lang, "justNow");
     if (diff < 3600000) return `${Math.floor(diff / 60000)}m`;
     if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`;
     return new Date(ts).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
   };
 
-  // Breadcrumb segments
   const breadcrumbs = isDM
-    ? [{ label: "Data Management", view: "dm-dashboard" as const }, { label: viewTitle }]
+    ? [{ label: getLabel(lang, "dataMgmt"), view: "dm-dashboard" as const }, { label: viewTitle }]
     : [{ label: viewTitle }];
 
   return (
@@ -151,7 +100,7 @@ export default function Header() {
         <div className="hidden md:flex items-center gap-2 mr-2 px-2.5 py-1 rounded-lg" style={{ background: "rgba(52,211,153,0.05)" }}>
           <div className="flex items-center gap-1">
             <Wifi className="w-3 h-3" style={{ color: "#34d399" }} />
-            <span className="text-[10px] font-medium" style={{ color: "#34d399" }}>Online</span>
+            <span className="text-[10px] font-medium" style={{ color: "#34d399" }}>{getLabel(lang, "online")}</span>
           </div>
           <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>|</span>
           <div className="flex items-center gap-1">
@@ -160,22 +109,67 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Language Toggle */}
-        <button
-          onClick={toggleLang}
-          className="flex items-center justify-center w-8 h-8 rounded-lg cursor-pointer transition-all duration-200"
-          style={{ color: "var(--text-tertiary)" }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = "var(--border-subtle)"; e.currentTarget.style.color = "var(--text-primary)"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-tertiary)"; }}
-          title={lang === "en" ? "Switch to Kannada" : "Switch to English"}
-        >
-          <Languages className="w-3.5 h-3.5" />
-        </button>
+        {/* Language Dropdown */}
+        <div className="relative" ref={langRef}>
+          <button
+            onClick={() => { setLangOpen(!langOpen); setNotifOpen(false); }}
+            className="flex items-center justify-center gap-1 w-8 h-8 rounded-lg cursor-pointer transition-all duration-200"
+            style={{ color: langOpen ? "var(--text-primary)" : "var(--text-tertiary)" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--border-subtle)"; e.currentTarget.style.color = "var(--text-primary)"; }}
+            onMouseLeave={(e) => { if (!langOpen) e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-tertiary)"; }}
+            title={currentLangInfo.label}
+          >
+            <Languages className="w-3.5 h-3.5" />
+          </button>
+
+          <AnimatePresence>
+            {langOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                transition={{ duration: 0.15 }}
+                className="absolute right-0 top-11 w-56 max-w-[calc(100vw-2rem)] rounded-xl overflow-hidden border-glow"
+                style={{
+                  background: "var(--bg-card)",
+                  backdropFilter: "blur(32px)",
+                  boxShadow: "0 24px 48px -8px rgba(0,0,0,0.5), 0 0 0 1px var(--border-subtle)",
+                  zIndex: 100,
+                }}
+              >
+                <div className="px-3 py-2.5" style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+                  <span className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>{getLabel(lang, "language")}</span>
+                </div>
+                <div className="max-h-72 overflow-y-auto py-1">
+                  {LANGUAGES.map((l) => (
+                    <button
+                      key={l.code}
+                      onClick={() => { setLang(l.code); setLangOpen(false); }}
+                      className="w-full flex items-center justify-between px-3 py-2 text-left cursor-pointer transition-colors"
+                      style={{
+                        background: lang === l.code ? "rgba(34,211,238,0.06)" : "transparent",
+                      }}
+                      onMouseEnter={(e) => { if (lang !== l.code) e.currentTarget.style.background = "var(--border-subtle)"; }}
+                      onMouseLeave={(e) => { if (lang !== l.code) e.currentTarget.style.background = "transparent"; }}
+                    >
+                      <span className="text-xs font-medium" style={{ color: lang === l.code ? "var(--text-primary)" : "var(--text-secondary)" }}>
+                        {l.label}
+                      </span>
+                      <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+                        {l.labelEn}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* Notification Bell */}
         <div className="relative" ref={notifRef}>
           <button
-            onClick={() => setNotifOpen(!notifOpen)}
+            onClick={() => { setNotifOpen(!notifOpen); setLangOpen(false); }}
             className="flex items-center justify-center w-8 h-8 rounded-lg cursor-pointer transition-all duration-200 relative"
             style={{ color: notifOpen ? "var(--text-primary)" : "var(--text-tertiary)" }}
             onMouseEnter={(e) => { if (!notifOpen) e.currentTarget.style.background = "var(--border-subtle)"; e.currentTarget.style.color = "var(--text-primary)"; }}
@@ -211,14 +205,14 @@ export default function Header() {
               >
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--border-subtle)" }}>
-                  <span className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>Notifications</span>
+                  <span className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>{getLabel(lang, "notifications")}</span>
                   {notifications.some((n) => !n.read) && (
                     <button
                       onClick={() => notifications.forEach((n) => markNotificationRead(n.id))}
                       className="flex items-center gap-1 text-[10px] cursor-pointer transition-colors"
                       style={{ color: "#22d3ee" }}
                     >
-                      <Check className="w-3 h-3" /> Mark all read
+                      <Check className="w-3 h-3" /> {getLabel(lang, "markAllRead")}
                     </button>
                   )}
                 </div>
@@ -228,7 +222,7 @@ export default function Header() {
                   {notifications.length === 0 ? (
                     <div className="py-8 text-center">
                       <Bell className="w-5 h-5 mx-auto mb-2" style={{ color: "var(--text-muted)" }} />
-                      <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>No notifications</p>
+                      <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>{getLabel(lang, "noNotifications")}</p>
                     </div>
                   ) : (
                     notifications.slice(0, 10).map((n) => (
@@ -284,3 +278,10 @@ export default function Header() {
     </header>
   );
 }
+
+const NOTIF_COLORS: Record<string, string> = {
+  info: "#22d3ee",
+  warning: "#fbbf24",
+  error: "#f87171",
+  success: "#34d399",
+};
