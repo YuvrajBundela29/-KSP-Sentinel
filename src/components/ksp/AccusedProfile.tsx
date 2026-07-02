@@ -573,8 +573,8 @@ export default function AccusedProfile() {
             </h2>
 
             {firs.length === 0 ? (
-              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                No FIR records found for this accused.
+              <p className="terminal-empty">
+                <span className="terminal-empty-prompt">{">"}</span>NO FIR RECORDS FOUND FOR THIS ACCUSED_<span className="terminal-cursor" style={{ marginLeft: 0, height: 14, width: 7 }} />
               </p>
             ) : (
               <div className="relative pl-6 max-h-96 overflow-y-auto space-y-0">
@@ -674,7 +674,9 @@ export default function AccusedProfile() {
                   </span>
                 </div>
                 {firs.length === 0 ? (
-                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>No data</p>
+                  <p className="terminal-empty">
+                    <span className="terminal-empty-prompt">{">"}</span>NO DATA_<span className="terminal-cursor" style={{ marginLeft: 0, height: 14, width: 7 }} />
+                  </p>
                 ) : (
                   <div className="space-y-2">
                     {(
@@ -741,7 +743,9 @@ export default function AccusedProfile() {
                     {preferredCrimeType}
                   </p>
                 ) : (
-                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>No data</p>
+                  <p className="terminal-empty">
+                    <span className="terminal-empty-prompt">{">"}</span>NO DATA_<span className="terminal-cursor" style={{ marginLeft: 0, height: 14, width: 7 }} />
+                  </p>
                 )}
               </div>
 
@@ -770,7 +774,9 @@ export default function AccusedProfile() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>No data</p>
+                  <p className="terminal-empty">
+                    <span className="terminal-empty-prompt">{">"}</span>NO DATA_<span className="terminal-cursor" style={{ marginLeft: 0, height: 14, width: 7 }} />
+                  </p>
                 )}
               </div>
 
@@ -800,7 +806,9 @@ export default function AccusedProfile() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>No vehicles linked</p>
+                  <p className="terminal-empty">
+                    <span className="terminal-empty-prompt">{">"}</span>NO VEHICLES LINKED_<span className="terminal-cursor" style={{ marginLeft: 0, height: 14, width: 7 }} />
+                  </p>
                 )}
               </div>
 
@@ -832,8 +840,8 @@ export default function AccusedProfile() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                    No gang affiliation or no associates found
+                  <p className="terminal-empty">
+                    <span className="terminal-empty-prompt">{">"}</span>NO GANG AFFILIATION OR NO ASSOCIATES FOUND_<span className="terminal-cursor" style={{ marginLeft: 0, height: 14, width: 7 }} />
                   </p>
                 )}
               </div>
@@ -990,8 +998,8 @@ export default function AccusedProfile() {
             </h2>
 
             {financialTransactions.length === 0 ? (
-              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                No financial transactions linked to this accused.
+              <p className="terminal-empty">
+                <span className="terminal-empty-prompt">{">"}</span>NO FINANCIAL TRANSACTIONS LINKED TO THIS ACCUSED_<span className="terminal-cursor" style={{ marginLeft: 0, height: 14, width: 7 }} />
               </p>
             ) : (
               <div className="space-y-3 max-h-96 overflow-y-auto">

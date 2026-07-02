@@ -51,7 +51,7 @@ import {
 } from "@/components/ui/table";
 
 // ─── Sparkline helper ────────────────────────────────────────────
-function Sparkline({ data, color = "#22d3ee" }: { data: { month: string; count: number }[]; color?: string }) {
+function Sparkline({ data, color = "#00FF66" }: { data: { month: string; count: number }[]; color?: string }) {
   if (data.length < 2) return null;
   const max = Math.max(...data.map((d) => d.count), 1);
   const w = 80, h = 24, pad = 2;
@@ -64,12 +64,6 @@ function Sparkline({ data, color = "#22d3ee" }: { data: { month: string; count: 
     .join(" ");
   return (
     <svg width={w} height={h} className="mt-2 opacity-50">
-      <defs>
-        <linearGradient id={`spark-grad-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-      </defs>
       <polyline
         points={points}
         fill="none"
@@ -77,7 +71,6 @@ function Sparkline({ data, color = "#22d3ee" }: { data: { month: string; count: 
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="sparkline-path"
       />
     </svg>
   );
@@ -85,19 +78,19 @@ function Sparkline({ data, color = "#22d3ee" }: { data: { month: string; count: 
 
 // ─── Severity Badge ──────────────────────────────────────────────
 function SeverityBadge({ severity }: { severity: string }) {
-  const config: Record<string, { color: string; bg: string; border: string }> = {
-    critical: { color: "var(--critical)", bg: "rgba(248,113,113,0.08)", border: "rgba(248,113,113,0.15)" },
-    high: { color: "var(--warning)", bg: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.15)" },
-    medium: { color: "var(--warning)", bg: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.15)" },
-    low: { color: "var(--success)", bg: "rgba(52,211,153,0.08)", border: "rgba(52,211,153,0.15)" },
+  const config: Record<string, string> = {
+    critical: "var(--critical)",
+    high: "var(--warning)",
+    medium: "var(--warning)",
+    low: "var(--success)",
   };
   const c = config[severity] || config.low;
   return (
     <span
-      className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
-      style={{ color: c.color, backgroundColor: c.bg, border: `1px solid ${c.border}` }}
+      className="bracket-badge"
+      style={{ color: c }}
     >
-      {severity}
+      [{severity.toUpperCase()}]
     </span>
   );
 }
@@ -126,62 +119,51 @@ function StatCard({
 }) {
   return (
     <motion.div
-      className={`glass-card p-4 ${stagger} animate-fade-in-up`}
+      className={`glass-card border-glow reticule-hover p-4 ${stagger} animate-fade-in-up`}
       whileHover={{ y: -2, transition: { duration: 0.2 } }}
-      style={{ position: "relative", overflow: "hidden" }}
+      style={{ position: "relative" }}
     >
-      {/* Gradient overlay */}
-      <div className={`absolute inset-0 ${gradientClass} pointer-events-none`} style={{ borderRadius: "inherit" }} />
-
-      {/* Top accent line */}
-      <div
-        className="absolute top-0 left-4 right-4 h-px"
-        style={{ background: `linear-gradient(90deg, ${accentColor}30, transparent)` }}
-      />
-
-      <div className="relative z-10">
-        <div className="flex items-start justify-between mb-3">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center"
+      <div className="flex items-start justify-between mb-3">
+        <div
+          className="w-8 h-8 flex items-center justify-center"
+          style={{
+            background: `${accentColor}10`,
+            border: `1px solid ${accentColor}15`,
+            borderRadius: "2px",
+          }}
+        >
+          <Icon className="w-3.5 h-3.5" style={{ color: accentColor }} />
+        </div>
+        {delta !== undefined && (
+          <span
+            className="bracket-badge"
             style={{
-              background: `${accentColor}10`,
-              border: `1px solid ${accentColor}15`,
+              color: delta >= 0 ? "#00FF66" : "var(--alert, #FF6B00)",
             }}
           >
-            <Icon className="w-3.5 h-3.5" style={{ color: accentColor }} />
-          </div>
-          {delta !== undefined && (
-            <span
-              className="inline-flex items-center gap-0.5 text-[10px] font-semibold rounded-full px-1.5 py-0.5"
-              style={{
-                color: delta >= 0 ? "#34d399" : "#f87171",
-                backgroundColor: delta >= 0 ? "rgba(52,211,153,0.08)" : "rgba(248,113,113,0.08)",
-              }}
-            >
-              {delta >= 0 ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
-              {Math.abs(delta)}%
-            </span>
-          )}
-        </div>
-
-        <p className="text-[26px] font-bold tracking-tight leading-none animate-count-up" style={{ color: "var(--text-primary)" }}>
-          {value.toLocaleString()}
-        </p>
-        <p className="text-[11px] mt-1.5 uppercase tracking-widest font-medium" style={{ color: "var(--text-tertiary)" }}>
-          {label}
-        </p>
-        {subtitle && (
-          <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>{subtitle}</p>
+            {delta >= 0 ? <ArrowUpRight className="w-2.5 h-2.5 inline" /> : <ArrowDownRight className="w-2.5 h-2.5 inline" />}
+            {" "}{Math.abs(delta)}%
+          </span>
         )}
-        <Sparkline data={sparkData} color={accentColor} />
       </div>
+
+      <p className="text-[26px] font-bold tracking-tight leading-none animate-count-up font-mono" style={{ color: "var(--text-primary)" }}>
+        {value.toLocaleString()}
+      </p>
+      <p className="text-[11px] mt-1.5 label-tracked" style={{ color: "var(--text-tertiary)" }}>
+        {label}
+      </p>
+      {subtitle && (
+        <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>{subtitle}</p>
+      )}
+      <Sparkline data={sparkData} color={accentColor} />
     </motion.div>
   );
 }
 
 // ─── Risk Bar ────────────────────────────────────────────────────
 function RiskBar({ score }: { score: number }) {
-  const color = score > 80 ? "#f87171" : score > 60 ? "#fbbf24" : "#34d399";
+  const color = score > 80 ? "var(--critical)" : score > 60 ? "var(--warning)" : "var(--success)";
   return (
     <div className="flex items-center gap-2.5 min-w-[120px]">
       <div
@@ -209,16 +191,17 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
   if (!active || !payload?.length) return null;
   return (
     <div
-      className="rounded-lg px-3.5 py-2.5"
+      className="px-3.5 py-2.5"
       style={{
-        background: "rgba(15,21,36,0.95)",
-        border: "1px solid var(--border-subtle)",
+        background: "rgba(13,17,23,0.95)",
+        border: "1px solid rgba(0,255,102,0.15)",
         backdropFilter: "blur(16px)",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03)",
+        borderRadius: "2px",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
       }}
     >
-      <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "var(--text-tertiary)" }}>{label}</p>
-      <p className="text-[13px] font-bold" style={{ color: "var(--text-primary)" }}>
+      <p className="text-[10px] label-tracked mb-1" style={{ color: "var(--text-tertiary)" }}>{label}</p>
+      <p className="text-[13px] font-bold font-mono" style={{ color: "var(--text-primary)" }}>
         {payload[0].value} <span className="font-normal text-[11px]" style={{ color: "var(--text-secondary)" }}>FIRs filed</span>
       </p>
     </div>
@@ -242,39 +225,27 @@ function PriorityBadge({ score }: { score: number }) {
   if (score > 90)
     return (
       <span
-        className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold tabular-nums"
-        style={{
-          backgroundColor: "rgba(248,113,113,0.1)",
-          color: "var(--critical)",
-          border: "1px solid rgba(248,113,113,0.15)",
-        }}
+        className="bracket-badge tabular-nums"
+        style={{ color: "var(--critical)" }}
       >
-        {score}
+        [{score} CRITICAL]
       </span>
     );
   if (score > 70)
     return (
       <span
-        className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold tabular-nums"
-        style={{
-          backgroundColor: "rgba(251,191,36,0.1)",
-          color: "var(--warning)",
-          border: "1px solid rgba(251,191,36,0.15)",
-        }}
+        className="bracket-badge tabular-nums"
+        style={{ color: "var(--warning)" }}
       >
-        {score}
+        [{score} HIGH]
       </span>
     );
   return (
     <span
-      className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold tabular-nums"
-      style={{
-        backgroundColor: "rgba(52,211,153,0.1)",
-        color: "var(--success)",
-        border: "1px solid rgba(52,211,153,0.15)",
-      }}
+      className="bracket-badge tabular-nums"
+      style={{ color: "var(--success)" }}
     >
-      {score}
+      [{score} LOW]
     </span>
   );
 }
@@ -292,10 +263,11 @@ function IntelTypeIcon({ type }: { type: string }) {
   const Icon = c.icon;
   return (
     <div
-      className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
+      className="w-6 h-6 flex items-center justify-center shrink-0"
       style={{
         background: `${c.color}10`,
         border: `1px solid ${c.color}15`,
+        borderRadius: "2px",
       }}
     >
       <Icon className="w-3 h-3" style={{ color: c.color }} />
@@ -320,21 +292,17 @@ function SectionHeader({
   return (
     <div className="flex items-center gap-2.5 mb-4">
       <div className="flex items-center gap-2">
-        <div className="w-1 h-4 rounded-full" style={{ backgroundColor: accentColor }} />
+        <div className="w-1 h-4" style={{ backgroundColor: accentColor, borderRadius: "1px" }} />
         <Icon className="w-3.5 h-3.5" style={{ color: accentColor }} />
-        <h3 className="text-[11px] font-semibold tracking-[0.1em] uppercase" style={{ color: "var(--text-primary)" }}>
+        <h3 className="text-[11px] label-tracked" style={{ color: "var(--text-primary)" }}>
           {title}
         </h3>
         {count !== undefined && (
           <span
-            className="text-[10px] font-mono tabular-nums px-1.5 py-0.5 rounded-md"
-            style={{
-              color: accentColor,
-              backgroundColor: `${accentColor}10`,
-              border: `1px solid ${accentColor}15`,
-            }}
+            className="bracket-badge tabular-nums"
+            style={{ color: accentColor }}
           >
-            {count}
+            [{count}]
           </span>
         )}
       </div>
@@ -431,12 +399,12 @@ export default function DashboardHome() {
   if (!crimeData || !stats) return <LoadingSpinner message="Loading crime intelligence data..." />;
 
   const statCards = [
-    { icon: FileText, label: "Total FIRs", value: stats.totalFIRs, gradientClass: "gradient-cyan", accentColor: "#22d3ee", subtitle: `${stats.districtCount} districts`, delta: 12 },
-    { icon: Search, label: "Active Cases", value: stats.activeCases, gradientClass: "gradient-indigo", accentColor: "#818cf8", subtitle: "Under investigation", delta: 3 },
-    { icon: UserX, label: "Arrested", value: stats.arrestedCount, gradientClass: "gradient-emerald", accentColor: "#34d399", subtitle: `${stats.closureRate}% closure rate`, delta: 8 },
-    { icon: AlertTriangle, label: "High Risk", value: stats.highRiskCount, gradientClass: "gradient-rose", accentColor: "#f87171", subtitle: "Score above 80", delta: -5 },
-    { icon: MapPin, label: "Districts", value: stats.districtCount, gradientClass: "gradient-amber", accentColor: "#fbbf24", subtitle: "Active coverage" },
-    { icon: Users, label: "Gang Networks", value: stats.gangCount, gradientClass: "gradient-indigo", accentColor: "#818cf8", subtitle: `${crimeData.accused.filter(a => a.gang).length} identified members` },
+    { icon: FileText, label: "Total FIRs", value: stats.totalFIRs, gradientClass: "gradient-cyan", accentColor: "var(--primary)", subtitle: `${stats.districtCount} districts`, delta: 12 },
+    { icon: Search, label: "Active Cases", value: stats.activeCases, gradientClass: "gradient-indigo", accentColor: "var(--primary)", subtitle: "Under investigation", delta: 3 },
+    { icon: UserX, label: "Arrested", value: stats.arrestedCount, gradientClass: "gradient-emerald", accentColor: "var(--success)", subtitle: `${stats.closureRate}% closure rate`, delta: 8 },
+    { icon: AlertTriangle, label: "High Risk", value: stats.highRiskCount, gradientClass: "gradient-rose", accentColor: "var(--critical)", subtitle: "Score above 80", delta: -5 },
+    { icon: MapPin, label: "Districts", value: stats.districtCount, gradientClass: "gradient-amber", accentColor: "var(--warning)", subtitle: "Active coverage" },
+    { icon: Users, label: "Gang Networks", value: stats.gangCount, gradientClass: "gradient-indigo", accentColor: "var(--primary)", subtitle: `${crimeData.accused.filter(a => a.gang).length} identified members` },
   ];
 
   const staggerClasses = ["stagger-1", "stagger-2", "stagger-3", "stagger-4", "stagger-5", "stagger-6"];
@@ -447,7 +415,7 @@ export default function DashboardHome() {
       <div className="animate-fade-in-up stagger-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <div className="flex items-center gap-2.5 mb-1">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.15)" }}>
+            <div className="w-7 h-7 flex items-center justify-center" style={{ background: "rgba(0,255,102,0.1)", border: "1px solid rgba(0,255,102,0.15)", borderRadius: "2px" }}>
               <RadioTower className="w-3.5 h-3.5" style={{ color: "var(--primary)" }} />
             </div>
             <h1 className="text-[16px] font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>
@@ -461,10 +429,10 @@ export default function DashboardHome() {
         <div className="flex items-center gap-4 ml-[38px] sm:ml-0">
           <div className="flex items-center gap-2">
             <span className="relative flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: "#34d399" }} />
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ backgroundColor: "#34d399" }} />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: "var(--success)" }} />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ backgroundColor: "var(--success)" }} />
             </span>
-            <span className="text-[10px] uppercase tracking-widest font-medium" style={{ color: "var(--success)" }}>Systems Online</span>
+            <span className="bracket-badge" style={{ color: "var(--success)" }}>[ACTIVE]</span>
           </div>
           <div className="h-3 w-px" style={{ backgroundColor: "var(--border-default)" }} />
           <span className="text-[10px] font-mono tabular-nums" style={{ color: "var(--text-muted)" }}>
@@ -474,7 +442,7 @@ export default function DashboardHome() {
       </div>
 
       {/* ═══ Divider ══════════════════════════════════════════════ */}
-      <div className="h-px animate-fade-in" style={{ background: "linear-gradient(90deg, rgba(34,211,238,0.2), rgba(129,140,248,0.1), transparent)" }} />
+      <div className="h-px animate-fade-in" style={{ background: "linear-gradient(90deg, rgba(0,255,102,0.2), transparent)" }} />
 
       {/* ═══ Row 1: Premium Stat Cards ════════════════════════════ */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
@@ -498,13 +466,13 @@ export default function DashboardHome() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
         {/* Bar Chart */}
         <motion.div
-          className="glass-card p-5 lg:col-span-3 animate-fade-in-up stagger-3"
+          className="glass-card border-glow p-5 lg:col-span-3 animate-fade-in-up stagger-3"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.4 }}
         >
           <SectionHeader
-            accentColor="#22d3ee"
+            accentColor="#00FF66"
             icon={TrendingUp}
             title="FIRs by Crime Type"
             count={chartData.length}
@@ -532,15 +500,15 @@ export default function DashboardHome() {
                   tickLine={false}
                   allowDecimals={false}
                 />
-                <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(34,211,238,0.04)" }} />
+                <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(0,255,102,0.04)" }} />
                 <defs>
                   <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.9" />
-                    <stop offset="50%" stopColor="#22d3ee" stopOpacity="0.5" />
-                    <stop offset="100%" stopColor="#22d3ee" stopOpacity="0.2" />
+                    <stop offset="0%" stopColor="#00FF66" stopOpacity="0.9" />
+                    <stop offset="50%" stopColor="#00FF66" stopOpacity="0.5" />
+                    <stop offset="100%" stopColor="#00FF66" stopOpacity="0.2" />
                   </linearGradient>
                 </defs>
-                <Bar dataKey="count" fill="url(#barGrad)" radius={[4, 4, 0, 0]} maxBarSize={36} />
+                <Bar dataKey="count" fill="url(#barGrad)" radius={[2, 2, 0, 0]} maxBarSize={36} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -578,7 +546,7 @@ export default function DashboardHome() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4 + idx * 0.05, duration: 0.25 }}
                 whileHover={{ x: 3 }}
-                className="rounded-lg p-3 cursor-pointer transition-all duration-200 group"
+                className="p-3 cursor-pointer transition-all duration-200 group"
                 style={{
                   backgroundColor: "rgba(255,255,255,0.015)",
                   border: "1px solid var(--border-subtle)",
@@ -602,19 +570,18 @@ export default function DashboardHome() {
                   {fir.crime_type}
                 </p>
                 <div className="flex items-center gap-2 mt-2">
-                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ color: "var(--text-secondary)", backgroundColor: "rgba(255,255,255,0.03)" }}>
+                  <span className="text-[10px] font-medium px-1.5 py-0.5" style={{ color: "var(--text-secondary)", backgroundColor: "rgba(255,255,255,0.03)" }}>
                     {fir.district}
                   </span>
                   <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{fir.date}</span>
                   <span className="ml-auto">
                     <span
-                      className="text-[9px] font-medium px-1.5 py-0.5 rounded-full"
+                      className="bracket-badge"
                       style={{
-                        color: fir.investigation_status === "Under Investigation" ? "#fbbf24" : fir.investigation_status === "Arrested" ? "#34d399" : "#8b97b0",
-                        backgroundColor: fir.investigation_status === "Under Investigation" ? "rgba(251,191,36,0.08)" : fir.investigation_status === "Arrested" ? "rgba(52,211,153,0.08)" : "rgba(139,151,176,0.08)",
+                        color: fir.investigation_status === "Under Investigation" ? "#fbbf24" : fir.investigation_status === "Arrested" ? "#00FF66" : "#8b97b0",
                       }}
                     >
-                      {fir.investigation_status}
+                      [{fir.investigation_status === "Under Investigation" ? "ACTIVE" : fir.investigation_status === "Arrested" ? "ARRESTED" : "CLOSED"}]
                     </span>
                   </span>
                 </div>
@@ -635,11 +602,7 @@ export default function DashboardHome() {
             count={intelFeed.length}
             trailing={
               <div className="flex items-center gap-1.5">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: "#f87171" }} />
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ backgroundColor: "#f87171" }} />
-                </span>
-                <span className="text-[10px] font-medium" style={{ color: "var(--critical)" }}>LIVE</span>
+                <span className="bracket-badge" style={{ color: "var(--critical)" }}>[LIVE]</span>
               </div>
             }
           />
@@ -650,7 +613,7 @@ export default function DashboardHome() {
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.45 + idx * 0.04, duration: 0.25 }}
-                className="rounded-lg p-3 group cursor-pointer transition-all duration-200"
+                className="p-3 group cursor-pointer transition-all duration-200"
                 style={{
                   backgroundColor: item.severity === "critical" ? "rgba(248,113,113,0.03)" : "rgba(255,255,255,0.015)",
                   border: `1px solid ${item.severity === "critical" ? "rgba(248,113,113,0.08)" : "var(--border-subtle)"}`,
@@ -703,10 +666,7 @@ export default function DashboardHome() {
             title="AI Recommendations"
             count={recommendations.length}
             trailing={
-              <div className="flex items-center gap-1.5">
-                <Zap className="w-3 h-3" style={{ color: "var(--primary)" }} />
-                <span className="text-[10px] font-medium" style={{ color: "var(--primary)" }}>AI Powered</span>
-              </div>
+              <span className="bracket-badge" style={{ color: "var(--primary)" }}>[AI ACTIVE]</span>
             }
           />
           <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
@@ -719,7 +679,7 @@ export default function DashboardHome() {
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.5 + idx * 0.07, duration: 0.25 }}
-                  className="rounded-lg p-3.5 cursor-pointer transition-all duration-200 group"
+                  className="p-3.5 cursor-pointer transition-all duration-200 group"
                   style={{
                     backgroundColor: isHigh ? `${accentCol}05` : "rgba(255,255,255,0.015)",
                     border: `1px solid ${isHigh ? `${accentCol}10` : "var(--border-subtle)"}`,
@@ -748,14 +708,10 @@ export default function DashboardHome() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span
-                          className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider"
-                          style={{
-                            color: accentCol,
-                            backgroundColor: `${accentCol}08`,
-                            border: `1px solid ${accentCol}12`,
-                          }}
+                          className="bracket-badge"
+                          style={{ color: accentCol }}
                         >
-                          {rec.priority}
+                          [{rec.priority.toUpperCase()}]
                         </span>
                         <p className="text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>
                           {rec.title}
@@ -890,7 +846,7 @@ export default function DashboardHome() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.7 + idx * 0.05, duration: 0.25 }}
                 whileHover={{ x: 3 }}
-                className="rounded-lg p-3 cursor-pointer transition-all duration-200"
+                className="p-3 cursor-pointer transition-all duration-200"
                 style={{
                   backgroundColor: alert.risk >= 90 ? "rgba(248,113,113,0.04)" : "rgba(251,191,36,0.03)",
                   border: `1px solid ${alert.risk >= 90 ? "rgba(248,113,113,0.10)" : "rgba(251,191,36,0.08)"}`,
@@ -1018,14 +974,12 @@ export default function DashboardHome() {
                   <TableCell className="hidden md:table-cell">
                     {a.gang ? (
                       <span
-                        className="text-[10px] font-medium px-2 py-0.5 rounded-full"
+                        className="bracket-badge"
                         style={{
                           color: "var(--secondary)",
-                          backgroundColor: "rgba(129,140,248,0.08)",
-                          border: "1px solid rgba(129,140,248,0.12)",
                         }}
                       >
-                        {a.gang}
+                        [{a.gang}]
                       </span>
                     ) : (
                       <span className="text-[11px] italic" style={{ color: "var(--text-muted)" }}>Unknown</span>

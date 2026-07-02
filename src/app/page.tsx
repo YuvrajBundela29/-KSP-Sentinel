@@ -2,19 +2,22 @@
 
 import { useEffect, lazy, Suspense } from "react";
 import { useAppStore } from "@/lib/store";
-import LoginView from "@/components/ksp/LoginView";
-import Sidebar from "@/components/ksp/Sidebar";
-import Header from "@/components/ksp/Header";
-import DashboardHome from "@/components/ksp/DashboardHome";
-import ChatView from "@/components/ksp/ChatView";
-import NetworkGraph from "@/components/ksp/NetworkGraph";
-import CrimeMap from "@/components/ksp/CrimeMap";
-import AccusedProfile from "@/components/ksp/AccusedProfile";
-import InvestigationTimeline from "@/components/ksp/InvestigationTimeline";
-import ReportGenerator from "@/components/ksp/ReportGenerator";
-import CommandPalette from "@/components/ksp/CommandPalette";
 import LoadingSpinner from "@/components/ksp/LoadingSpinner";
-import WelcomeOnboarding from "@/components/ksp/WelcomeOnboarding";
+
+// Lazy load all view components
+const Sidebar = lazy(() => import("@/components/ksp/Sidebar"));
+const Header = lazy(() => import("@/components/ksp/Header"));
+const CommandPalette = lazy(() => import("@/components/ksp/CommandPalette"));
+const WelcomeOnboarding = lazy(() => import("@/components/ksp/WelcomeOnboarding"));
+
+// Lazy load all view components to isolate errors
+const DashboardHome = lazy(() => import("@/components/ksp/DashboardHome"));
+const ChatView = lazy(() => import("@/components/ksp/ChatView"));
+const NetworkGraph = lazy(() => import("@/components/ksp/NetworkGraph"));
+const CrimeMap = lazy(() => import("@/components/ksp/CrimeMap"));
+const AccusedProfile = lazy(() => import("@/components/ksp/AccusedProfile"));
+const InvestigationTimeline = lazy(() => import("@/components/ksp/InvestigationTimeline"));
+const ReportGenerator = lazy(() => import("@/components/ksp/ReportGenerator"));
 
 // Lazy load DM components for code splitting
 const DataManagementDashboard = lazy(() => import("@/components/ksp/dm/DataManagementDashboard"));
@@ -159,24 +162,26 @@ export default function Home() {
   return (
     <div className="flex h-full w-full overflow-hidden" style={{ backgroundColor: "var(--background)" }}>
       {/* Sidebar — fixed width, full height */}
-      <Sidebar />
+      <Suspense fallback={<LoadingSpinner />}><Sidebar /></Suspense>
 
       {/* Main content area — takes remaining space */}
       <div className="flex flex-col flex-1 min-w-0 h-full relative">
         {/* Header — sticky top, no vertical overflow */}
-        <Header />
+        <Suspense fallback={<LoadingSpinner />}><Header /></Suspense>
 
         {/* Scrollable content area — only this scrolls */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden relative">
-          {renderContent()}
+          <Suspense fallback={<LoadingSpinner />}>
+            {renderContent()}
+          </Suspense>
         </main>
       </div>
 
       {/* Command palette overlay */}
-      <CommandPalette />
+      <Suspense fallback={null}><CommandPalette /></Suspense>
 
       {/* Onboarding guide overlay */}
-      <WelcomeOnboarding />
+      <Suspense fallback={null}><WelcomeOnboarding /></Suspense>
     </div>
   );
 }

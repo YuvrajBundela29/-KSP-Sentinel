@@ -393,18 +393,11 @@ function EmptyState({
       transition={{ duration: 0.5 }}
       className="flex flex-col items-center justify-center py-20 px-6 text-center"
     >
-      <div
-        className="w-20 h-20 rounded-2xl glass-card flex items-center justify-center mb-6"
-        style={{ boxShadow: "0 0 40px rgba(34,211,238,0.06)" }}
-      >
-        <Clock className="w-9 h-9 text-[#5a657a]" />
-      </div>
-      <h3 className="text-lg font-semibold text-[#f1f5f9] mb-2">
-        Select an FIR to view its investigation timeline
-      </h3>
-      <p className="text-sm text-[#8b97b0] mb-8 max-w-md">
-        Choose a First Information Report from the dropdown above or click one
-        of the cases below to explore the chronological investigation events.
+      <p className="terminal-empty mb-2">
+        <span className="terminal-empty-prompt">{">"}</span>AWAITING FIR SELECTION<span className="terminal-cursor" style={{ marginLeft: 0, height: 14, width: 7 }} />
+      </p>
+      <p className="terminal-empty mb-8" style={{ fontSize: "0.75rem" }}>
+        <span className="terminal-empty-prompt">{">"}</span>SELECT A CASE FROM THE DROPDOWN OR LIST BELOW
       </p>
       {firs.length > 0 && (
         <div className="flex flex-wrap items-center justify-center gap-2 max-w-lg">
@@ -685,13 +678,12 @@ export default function InvestigationTimeline() {
             animate={{ opacity: 1 }}
             className="flex flex-col items-center justify-center py-20 text-center"
           >
-            <div className="w-16 h-16 rounded-2xl glass-card flex items-center justify-center mb-4">
-              <AlertTriangle className="w-8 h-8 text-[#5a657a]" />
-            </div>
-            <p className="text-sm text-[#8b97b0]">
+            <p className="terminal-empty">
+              <span className="terminal-empty-prompt">{">"}</span>
               {allEvents.length > 0
-                ? "No events match the current filters."
-                : "No timeline events found for this FIR."}
+                ? "NO EVENTS MATCH CURRENT FILTERS_"
+                : "NO TIMELINE EVENTS FOUND FOR THIS FIR_"}
+              <span className="terminal-cursor" style={{ marginLeft: 0, height: 14, width: 7 }} />
             </p>
             {allEvents.length > 0 && (
               <button

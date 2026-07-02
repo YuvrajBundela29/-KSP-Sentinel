@@ -1,0 +1,1204 @@
+     1→     1→"use client";
+     2→     2→
+     3→     3→import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+     4→     4→import {
+     5→     5→  Send,
+     6→     6→  Mic,
+     7→     7→  MicOff,
+     8→     8→  FileText,
+     9→     9→  Shield,
+    10→    10→  User,
+    11→    11→  Trash2,
+    12→    12→  Loader2,
+    13→    13→  ChevronDown,
+    14→    14→  Link,
+    15→    15→  Brain,
+    16→    16→  Sparkles,
+    17→    17→  Zap,
+    18→    18→  Lightbulb,
+    19→    19→  FileDown,
+    20→    20→  Languages,
+    21→    21→  PanelRightOpen,
+    22→    22→  PanelRightClose,
+    23→    23→} from "lucide-react";
+    24→    24→import { Input } from "@/components/ui/input";
+    25→    25→import { useAppStore } from "@/lib/store";
+    26→    26→import type { ChatMessage, FIR, ExplainableResponse } from "@/lib/types";
+    27→    27→import { searchFIRs } from "@/lib/data";
+    28→    28→import { motion, AnimatePresence } from "framer-motion";
+    29→    29→import jsPDF from "jspdf";
+    30→    30→
+    31→    31→/* ═══════════════════════════════════════════════════════════════════════════
+    32→    32→   CONSTANTS & HELPERS
+    33→    33→   ═══════════════════════════════════════════════════════════════════════════ */
+    34→    34→
+    35→    35→const EXAMPLE_QUERIES = [
+    36→    36→  "Show all chain snatching cases in Mysuru",
+    37→    37→  "Who are the members of the Silk City Gang?",
+    38→    38→  "Which accused has the highest risk score?",
+    39→    39→  "Are there patterns in vehicle theft crimes?",
+    40→    40→  "Show financial links in jewellery heist cases",
+    41→    41→];
+    42→    42→
+    43→    43→const SEVERITY_BORDER: Record<string, string> = {
+    44→    44→  critical: "#f87171",
+    45→    45→  high: "#fbbf24",
+    46→    46→  medium: "#fbbf24",
+    47→    47→  low: "#34d399",
+    48→    48→};
+    49→    49→
+    50→    50→const SEVERITY_BADGE: Record<string, { bg: string; color: string; border: string }> = {
+    51→    51→  critical: { bg: "rgba(248,113,113,0.1)", color: "var(--critical)", border: "rgba(248,113,113,0.2)" },
+    52→    52→  high: { bg: "rgba(251,191,36,0.1)", color: "var(--warning)", border: "rgba(251,191,36,0.2)" },
+    53→    53→  medium: { bg: "rgba(251,191,36,0.1)", color: "var(--warning)", border: "rgba(251,191,36,0.2)" },
+    54→    54→  low: { bg: "rgba(52,211,153,0.1)", color: "var(--success)", border: "rgba(52,211,153,0.2)" },
+    55→    55→};
+    56→    56→
+    57→    57→function extractFIRIds(text: string): string[] {
+    58→    58→  const m = text.match(/FIR-\d{4}-KA-\d{4}/g);
+    59→    59→  return m ? [...new Set(m)] : [];
+    60→    60→}
+    61→    61→
+    62→    62→function fmtTime(d: Date): string {
+    63→    63→  return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+    64→    64→}
+    65→    65→
+    66→    66→function getConfidenceColor(score: number): string {
+    67→    67→  if (score >= 80) return "#34d399";
+    68→    68→  if (score >= 60) return "#fbbf24";
+    69→    69→  return "#f87171";
+    70→    70→}
+    71→    71→
+    72→    72→function getConfidenceLabel(score: number): string {
+    73→    73→  if (score >= 80) return "High";
+    74→    74→  if (score >= 60) return "Medium";
+    75→    75→  return "Low";
+    76→    76→}
+    77→    77→
+    78→    78→/* ═══════════════════════════════════════════════════════════════════════════
+    79→    79→   CONFIDENCE RING — SVG circular progress indicator
+    80→    80→   ═══════════════════════════════════════════════════════════════════════════ */
+    81→    81→
+    82→    82→function ConfidenceRing({ score, size = 36 }: { score: number; size?: number }) {
+    83→    83→  const color = getConfidenceColor(score);
+    84→    84→  const strokeWidth = 3;
+    85→    85→  const radius = (size - strokeWidth) / 2;
+    86→    86→  const circumference = 2 * Math.PI * radius;
+    87→    87→  const offset = circumference - (score / 100) * circumference;
+    88→    88→  const center = size / 2;
+    89→    89→
+    90→    90→  return (
+    91→    91→    <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+    92→    92→      <svg width={size} height={size} className="confidence-ring">
+    93→    93→        {/* Track */}
+    94→    94→        <circle
+    95→    95→          cx={center}
+    96→    96→          cy={center}
+    97→    97→          r={radius}
+    98→    98→          fill="none"
+    99→    99→          stroke="rgba(255,255,255,0.04)"
+   100→   100→          strokeWidth={strokeWidth}
+   101→   101→        />
+   102→   102→        {/* Progress */}
+   103→   103→        <circle
+   104→   104→          cx={center}
+   105→   105→          cy={center}
+   106→   106→          r={radius}
+   107→   107→          fill="none"
+   108→   108→          stroke={color}
+   109→   109→          strokeWidth={strokeWidth}
+   110→   110→          strokeDasharray={circumference}
+   111→   111→          strokeDashoffset={offset}
+   112→   112→          strokeLinecap="round"
+   113→   113→          className="confidence-ring-circle"
+   114→   114→          style={{ filter: `drop-shadow(0 0 4px ${color}40)` }}
+   115→   115→        />
+   116→   116→      </svg>
+   117→   117→      <div className="absolute inset-0 flex items-center justify-center">
+   118→   118→        <span className="text-[9px] font-bold" style={{ color }}>
+   119→   119→          {score}
+   120→   120→        </span>
+   121→   121→      </div>
+   122→   122→    </div>
+   123→   123→  );
+   124→   124→}
+   125→   125→
+   126→   126→/* ═══════════════════════════════════════════════════════════════════════════
+   127→   127→   EXPLAINABLE AI PANEL
+   128→   128→   ═══════════════════════════════════════════════════════════════════════════ */
+   129→   129→
+   130→   130→function ExplainablePanel({ exp }: { exp: ExplainableResponse }) {
+   131→   131→  const [open, setOpen] = useState(false);
+   132→   132→  const confColor = getConfidenceColor(exp.confidenceScore);
+   133→   133→
+   134→   134→  return (
+   135→   135→    <motion.div
+   136→   136→      initial={{ opacity: 0, height: 0 }}
+   137→   137→      animate={{ opacity: 1, height: "auto" }}
+   138→   138→      className="mt-2.5 rounded-xl overflow-hidden glass-card"
+   139→   139→    >
+   140→   140→      {/* Toggle Header */}
+   141→   141→      <button
+   142→   142→        onClick={() => setOpen(!open)}
+   143→   143→        className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer transition-colors duration-200 hover:bg-white/[0.015]"
+   144→   144→        style={{ borderBottom: open ? "1px solid var(--border-subtle)" : "none" }}
+   145→   145→      >
+   146→   146→        <Brain className="w-3.5 h-3.5 flex-shrink-0" style={{ color: confColor }} />
+   147→   147→        <span className="text-[11px] font-semibold tracking-wider uppercase" style={{ color: "var(--text-secondary)" }}>
+   148→   148→          Explainable AI
+   149→   149→        </span>
+   150→   150→        <span
+   151→   151→          className="text-[10px] px-2 py-0.5 rounded-full font-bold"
+   152→   152→          style={{
+   153→   153→            backgroundColor: `${confColor}12`,
+   154→   154→            color: confColor,
+   155→   155→            border: `1px solid ${confColor}20`,
+   156→   156→          }}
+   157→   157→        >
+   158→   158→          {getConfidenceLabel(exp.confidenceScore)} · {exp.confidenceScore}%
+   159→   159→        </span>
+   160→   160→        {exp.evidenceChain.length > 0 && (
+   161→   161→          <span className="text-[10px] flex items-center gap-1" style={{ color: "var(--text-tertiary)" }}>
+   162→   162→            <Link className="w-3 h-3" />
+   163→   163→            {exp.evidenceChain.length} source{exp.evidenceChain.length > 1 ? "s" : ""}
+   164→   164→          </span>
+   165→   165→        )}
+   166→   166→        <motion.div
+   167→   167→          animate={{ rotate: open ? 180 : 0 }}
+   168→   168→          transition={{ duration: 0.2 }}
+   169→   169→          className="ml-auto"
+   170→   170→        >
+   171→   171→          <ChevronDown className="w-3.5 h-3.5" style={{ color: "var(--text-tertiary)" }} />
+   172→   172→        </motion.div>
+   173→   173→      </button>
+   174→   174→
+   175→   175→      {/* Expandable Content */}
+   176→   176→      <AnimatePresence>
+   177→   177→        {open && (
+   178→   178→          <motion.div
+   179→   179→            initial={{ opacity: 0, height: 0 }}
+   180→   180→            animate={{ opacity: 1, height: "auto" }}
+   181→   181→            exit={{ opacity: 0, height: 0 }}
+   182→   182→            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+   183→   183→            className="px-4 py-3.5 space-y-3.5 overflow-hidden"
+   184→   184→          >
+   185→   185→            {/* Confidence Score + Evidence Chain Pills */}
+   186→   186→            <div className="flex items-center gap-4">
+   187→   187→              <ConfidenceRing score={exp.confidenceScore} size={40} />
+   188→   188→              {exp.evidenceChain.length > 0 && (
+   189→   189→                <div className="flex flex-wrap gap-1.5 flex-1">
+   190→   190→                  {exp.evidenceChain.map((e, i) => (
+   191→   191→                    <span
+   192→   192→                      key={i}
+   193→   193→                      className="text-[10px] px-2.5 py-1 rounded-lg font-mono font-medium"
+   194→   194→                      style={{
+   195→   195→                        backgroundColor: "rgba(34,211,238,0.08)",
+   196→   196→                        color: "var(--primary)",
+   197→   197→                        border: "1px solid rgba(34,211,238,0.15)",
+   198→   198→                      }}
+   199→   199→                    >
+   200→   200→                      {e.firId}
+   201→   201→                    </span>
+   202→   202→                  ))}
+   203→   203→                </div>
+   204→   204→              )}
+   205→   205→            </div>
+   206→   206→
+   207→   207→            {/* Reasoning Summary */}
+   208→   208→            <div>
+   209→   209→              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--text-tertiary)" }}>
+   210→   210→                Reasoning
+   211→   211→              </p>
+   212→   212→              <p className="text-[12px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+   213→   213→                {exp.reasoningSummary}
+   214→   214→              </p>
+   215→   215→            </div>
+   216→   216→
+   217→   217→            {/* Reasoning Steps */}
+   218→   218→            {exp.reasoningSteps && exp.reasoningSteps.length > 0 && (
+   219→   219→              <div>
+   220→   220→                <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
+   221→   221→                  Analysis Steps
+   222→   222→                </p>
+   223→   223→                <div className="space-y-2">
+   224→   224→                  {exp.reasoningSteps.map((step) => (
+   225→   225→                    <div key={step.step} className="flex items-start gap-2.5">
+   226→   226→                      <div
+   227→   227→                        className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 text-[9px] font-bold mt-0.5"
+   228→   228→                        style={{
+   229→   229→                          backgroundColor: "rgba(34,211,238,0.08)",
+   230→   230→                          color: "var(--primary)",
+   231→   231→                          border: "1px solid rgba(34,211,238,0.12)",
+   232→   232→                        }}
+   233→   233→                      >
+   234→   234→                        {step.step}
+   235→   235→                      </div>
+   236→   236→                      <div className="flex-1 min-w-0">
+   237→   237→                        <p className="text-[11px] font-medium" style={{ color: "var(--text-primary)" }}>
+   238→   238→                          {step.finding}
+   239→   239→                        </p>
+   240→   240→                        {step.evidence.length > 0 && (
+   241→   241→                          <div className="flex flex-wrap gap-1 mt-1">
+   242→   242→                            {step.evidence.map((ev, i) => (
+   243→   243→                              <span
+   244→   244→                                key={i}
+   245→   245→                                className="text-[9px] px-1.5 py-0.5 rounded font-mono"
+   246→   246→                                style={{
+   247→   247→                                  backgroundColor: "rgba(129,140,248,0.06)",
+   248→   248→                                  color: "var(--secondary)",
+   249→   249→                                  border: "1px solid rgba(129,140,248,0.1)",
+   250→   250→                                }}
+   251→   251→                              >
+   252→   252→                                {ev}
+   253→   253→                              </span>
+   254→   254→                            ))}
+   255→   255→                          </div>
+   256→   256→                        )}
+   257→   257→                      </div>
+   258→   258→                    </div>
+   259→   259→                  ))}
+   260→   260→                </div>
+   261→   261→              </div>
+   262→   262→            )}
+   263→   263→
+   264→   264→            {/* Evidence Detail List */}
+   265→   265→            {exp.evidenceChain.length > 0 && (
+   266→   266→              <div>
+   267→   267→                <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
+   268→   268→                  Evidence Details
+   269→   269→                </p>
+   270→   270→                <div className="space-y-1.5">
+   271→   271→                  {exp.evidenceChain.map((e, i) => (
+   272→   272→                    <div
+   273→   273→                      key={i}
+   274→   274→                      className="flex items-start gap-2.5 p-2 rounded-lg transition-colors duration-150"
+   275→   275→                      style={{ backgroundColor: "rgba(255,255,255,0.015)" }}
+   276→   276→                    >
+   277→   277→                      <span
+   278→   278→                        className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
+   279→   279→                        style={{ backgroundColor: "#22d3ee", boxShadow: "0 0 6px rgba(34,211,238,0.4)" }}
+   280→   280→                      />
+   281→   281→                      <div>
+   282→   282→                        <span className="text-[11px] font-mono font-bold" style={{ color: "var(--text-primary)" }}>
+   283→   283→                          {e.firId}
+   284→   284→                        </span>
+   285→   285→                        <span className="text-[11px] ml-2" style={{ color: "var(--text-secondary)" }}>
+   286→   286→                          {e.relevance}
+   287→   287→                        </span>
+   288→   288→                      </div>
+   289→   289→                    </div>
+   290→   290→                  ))}
+   291→   291→                </div>
+   292→   292→              </div>
+   293→   293→            )}
+   294→   294→
+   295→   295→            {/* Alternative Explanations */}
+   296→   296→            {exp.alternativeExplanations && exp.alternativeExplanations.length > 0 && (
+   297→   297→              <div>
+   298→   298→                <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--warning)" }}>
+   299→   299→                  Alternative Explanations
+   300→   300→                </p>
+   301→   301→                {exp.alternativeExplanations.map((alt, i) => (
+   302→   302→                  <p
+   303→   303→                    key={i}
+   304→   304→                    className="text-[11px] leading-relaxed pl-3 py-0.5"
+   305→   305→                    style={{ color: "var(--text-secondary)", borderLeft: "2px solid rgba(251,191,36,0.2)" }}
+   306→   306→                  >
+   307→   307→                    {alt}
+   308→   308→                  </p>
+   309→   309→                ))}
+   310→   310→              </div>
+   311→   311→            )}
+   312→   312→          </motion.div>
+   313→   313→        )}
+   314→   314→      </AnimatePresence>
+   315→   315→    </motion.div>
+   316→   316→  );
+   317→   317→}
+   318→   318→
+   319→   319→/* ═══════════════════════════════════════════════════════════════════════════
+   320→   320→   TYPING INDICATOR
+   321→   321→   ═══════════════════════════════════════════════════════════════════════════ */
+   322→   322→
+   323→   323→function TypingIndicator() {
+   324→   324→  return (
+   325→   325→    <div className="flex items-center gap-1.5 py-0.5">
+   326→   326→      <span className="w-1.5 h-1.5 rounded-full typing-dot" style={{ backgroundColor: "#22d3ee" }} />
+   327→   327→      <span className="w-1.5 h-1.5 rounded-full typing-dot" style={{ backgroundColor: "#22d3ee", animationDelay: "0.15s" }} />
+   328→   328→      <span className="w-1.5 h-1.5 rounded-full typing-dot" style={{ backgroundColor: "#22d3ee", animationDelay: "0.3s" }} />
+   329→   329→    </div>
+   330→   330→  );
+   331→   331→}
+   332→   332→
+   333→   333→/* ═══════════════════════════════════════════════════════════════════════════
+   334→   334→   THINKING STATE — Animated multi-step loading
+   335→   335→   ═══════════════════════════════════════════════════════════════════════════ */
+   336→   336→
+   337→   337→function ThinkingState() {
+   338→   338→  const steps = [
+   339→   339→    "Parsing query semantics...",
+   340→   340→    "Searching crime database...",
+   341→   341→    "Cross-referencing FIRs...",
+   342→   342→    "Generating response...",
+   343→   343→  ];
+   344→   344→  const [step, setStep] = useState(0);
+   345→   345→
+   346→   346→  useEffect(() => {
+   347→   347→    const iv = setInterval(() => {
+   348→   348→      setStep((s) => (s + 1) % steps.length);
+   349→   349→    }, 1200);
+   350→   350→    return () => clearInterval(iv);
+   351→   351→  }, [steps.length]);
+   352→   352→
+   353→   353→  return (
+   354→   354→    <div className="flex items-center gap-3 px-1">
+   355→   355→      <div
+   356→   356→        className="w-6 h-6 rounded-lg flex items-center justify-center"
+   357→   357→        style={{
+   358→   358→          background: "rgba(34,211,238,0.1)",
+   359→   359→          border: "1px solid rgba(34,211,238,0.15)",
+   360→   360→          boxShadow: "0 0 12px var(--primary-glow)",
+   361→   361→        }}
+   362→   362→      >
+   363→   363→        <Sparkles className="w-3.5 h-3.5" style={{ color: "var(--primary)" }} />
+   364→   364→      </div>
+   365→   365→      <div className="flex flex-col gap-0.5">
+   366→   366→        <p className="text-[11px] font-medium" style={{ color: "var(--primary)" }}>
+   367→   367→          {steps[step]}
+   368→   368→        </p>
+   369→   369→        <TypingIndicator />
+   370→   370→      </div>
+   371→   371→    </div>
+   372→   372→  );
+   373→   373→}
+   374→   374→
+   375→   375→/* ═══════════════════════════════════════════════════════════════════════════
+   376→   376→   WELCOME SCREEN
+   377→   377→   ═══════════════════════════════════════════════════════════════════════════ */
+   378→   378→
+   379→   379→function WelcomeScreen({
+   380→   380→  onQueryClick,
+   381→   381→  inputRef,
+   382→   382→}: {
+   383→   383→  onQueryClick: (q: string) => void;
+   384→   384→  inputRef: React.RefObject<HTMLInputElement | null>;
+   385→   385→}) {
+   386→   386→  return (
+   387→   387→    <div className="flex flex-col items-center justify-center h-full text-center gap-6 px-4 animate-fade-in">
+   388→   388→      {/* Hero Icon */}
+   389→   389→      <motion.div
+   390→   390→        initial={{ scale: 0.9, opacity: 0 }}
+   391→   391→        animate={{ scale: 1, opacity: 1 }}
+   392→   392→        transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
+   393→   393→        className="relative"
+   394→   394→      >
+   395→   395→        <div
+   396→   396→          className="w-[72px] h-[72px] rounded-2xl flex items-center justify-center"
+   397→   397→          style={{
+   398→   398→            background: "linear-gradient(135deg, rgba(34,211,238,0.12) 0%, rgba(129,140,248,0.08) 100%)",
+   399→   399→            border: "1px solid rgba(34,211,238,0.15)",
+   400→   400→            boxShadow: "0 0 40px rgba(34,211,238,0.06), inset 0 1px 0 rgba(255,255,255,0.04)",
+   401→   401→          }}
+   402→   402→        >
+   403→   403→          <Shield className="w-8 h-8" style={{ color: "var(--primary)" }} />
+   404→   404→        </div>
+   405→   405→        {/* Ambient glow */}
+   406→   406→        <div
+   407→   407→          className="absolute -inset-6 rounded-3xl animate-pulse-glow pointer-events-none"
+   408→   408→          style={{
+   409→   409→            background: "radial-gradient(circle, rgba(34,211,238,0.06) 0%, transparent 70%)",
+   410→   410→          }}
+   411→   411→        />
+   412→   412→      </motion.div>
+   413→   413→
+   414→   414→      {/* Title + Description */}
+   415→   415→      <div className="space-y-2.5 max-w-md">
+   416→   416→        <div className="flex items-center justify-center gap-2.5">
+   417→   417→          <h2 className="text-lg font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>
+   418→   418→            KSP AI Copilot
+   419→   419→          </h2>
+   420→   420→          <span
+   421→   421→            className="text-[9px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider animate-pulse-glow"
+   422→   422→            style={{
+   423→   423→              background: "rgba(34,211,238,0.08)",
+   424→   424→              color: "var(--primary)",
+   425→   425→              border: "1px solid rgba(34,211,238,0.12)",
+   426→   426→            }}
+   427→   427→          >
+   428→   428→            Online
+   429→   429→          </span>
+   430→   430→        </div>
+   431→   431→        <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+   432→   432→          Ask about crimes, patterns, gang connections, or specific FIRs.
+   433→   433→          Intelligence analysis powered by pattern recognition and explainable AI.
+   434→   434→        </p>
+   435→   435→      </div>
+   436→   436→
+   437→   437→      {/* Example Queries */}
+   438→   438→      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-lg">
+   439→   439→        {EXAMPLE_QUERIES.map((q, i) => (
+   440→   440→          <motion.button
+   441→   441→            key={i}
+   442→   442→            initial={{ opacity: 0, y: 8 }}
+   443→   443→            animate={{ opacity: 1, y: 0 }}
+   444→   444→            transition={{ delay: 0.15 + i * 0.06, duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+   445→   445→            whileHover={{ y: -2, transition: { duration: 0.15 } }}
+   446→   446→            whileTap={{ scale: 0.98 }}
+   447→   447→            onClick={() => onQueryClick(q)}
+   448→   448→            className="text-left p-3.5 rounded-xl cursor-pointer transition-all duration-200 group glass-card"
+   449→   449→          >
+   450→   450→            <div className="flex items-start gap-2.5">
+   451→   451→              <Lightbulb
+   452→   452→                className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 transition-colors duration-200"
+   453→   453→                style={{ color: "var(--text-muted)" }}
+   454→   454→              />
+   455→   455→              <span className="text-[12px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+   456→   456→                {q}
+   457→   457→              </span>
+   458→   458→            </div>
+   459→   459→          </motion.button>
+   460→   460→        ))}
+   461→   461→      </div>
+   462→   462→
+   463→   463→      {/* Quick Action Chips */}
+   464→   464→      <div className="flex items-center gap-2 flex-wrap justify-center">
+   465→   465→        <span className="text-[10px] uppercase tracking-wider font-medium" style={{ color: "var(--text-muted)" }}>
+   466→   466→          Explore:
+   467→   467→        </span>
+   468→   468→        {["High risk analysis", "Gang mapping", "Crime trends", "FIR lookup"].map((chip) => (
+   469→   469→          <button
+   470→   470→            key={chip}
+   471→   471→            onClick={() => onQueryClick(chip)}
+   472→   472→            className="text-[10px] px-2.5 py-1 rounded-full cursor-pointer transition-all duration-200 font-medium"
+   473→   473→            style={{
+   474→   474→              color: "var(--text-tertiary)",
+   475→   475→              border: "1px solid var(--border-default)",
+   476→   476→            }}
+   477→   477→            onMouseEnter={(e) => {
+   478→   478→              e.currentTarget.style.color = "#22d3ee";
+   479→   479→              e.currentTarget.style.borderColor = "rgba(34,211,238,0.2)";
+   480→   480→              e.currentTarget.style.background = "rgba(34,211,238,0.06)";
+   481→   481→            }}
+   482→   482→            onMouseLeave={(e) => {
+   483→   483→              e.currentTarget.style.color = "var(--text-tertiary)";
+   484→   484→              e.currentTarget.style.borderColor = "var(--border-default)";
+   485→   485→              e.currentTarget.style.background = "transparent";
+   486→   486→            }}
+   487→   487→          >
+   488→   488→            {chip}
+   489→   489→          </button>
+   490→   490→        ))}
+   491→   491→      </div>
+   492→   492→    </div>
+   493→   493→  );
+   494→   494→}
+   495→   495→
+   496→   496→/* ═══════════════════════════════════════════════════════════════════════════
+   497→   497→   FIR EVIDENCE CARD
+   498→   498→   ═══════════════════════════════════════════════════════════════════════════ */
+   499→   499→
+   500→   500→function FIREvidenceCard({ fir, index }: { fir: FIR; index: number }) {
+   501→   501→  const sev = SEVERITY_BADGE[fir.severity] || SEVERITY_BADGE.low;
+   502→   502→  const borderColor = SEVERITY_BORDER[fir.severity] || "#fbbf24";
+   503→   503→
+   504→   504→  return (
+   505→   505→    <motion.div
+   506→   506→      initial={{ opacity: 0, x: 8 }}
+   507→   507→      animate={{ opacity: 1, x: 0 }}
+   508→   508→      transition={{ delay: index * 0.06, duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+   509→   509→      className="p-4 rounded-xl cursor-default transition-all duration-200 group glass-card"
+   510→   510→      style={{ borderLeft: `3px solid ${borderColor}` }}
+   511→   511→    >
+   512→   512→      {/* Header Row */}
+   513→   513→      <div className="flex items-center justify-between mb-2.5">
+   514→   514→        <span className="text-[12px] font-mono font-bold tracking-wide" style={{ color: "var(--text-primary)" }}>
+   515→   515→          {fir.fir_id}
+   516→   516→        </span>
+   517→   517→        <span
+   518→   518→          className="text-[9px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider"
+   519→   519→          style={{ backgroundColor: sev.bg, color: sev.color, border: `1px solid ${sev.border}` }}
+   520→   520→        >
+   521→   521→          {fir.severity}
+   522→   522→        </span>
+   523→   523→      </div>
+   524→   524→
+   525→   525→      {/* Meta */}
+   526→   526→      <p className="text-[11px] mb-2" style={{ color: "var(--text-tertiary)" }}>
+   527→   527→        {fir.date} · {fir.time}
+   528→   528→      </p>
+   529→   529→
+   530→   530→      {/* Details */}
+   531→   531→      <div className="space-y-1">
+   532→   532→        <p className="text-[12px]" style={{ color: "var(--text-primary)" }}>
+   533→   533→          <span style={{ color: "var(--text-tertiary)" }}>Crime: </span>
+   534→   534→          {fir.crime_type}
+   535→   535→        </p>
+   536→   536→        <p className="text-[12px]" style={{ color: "var(--text-primary)" }}>
+   537→   537→          <span style={{ color: "var(--text-tertiary)" }}>District: </span>
+   538→   538→          {fir.district}
+   539→   539→        </p>
+   540→   540→        <p className="text-[11px] font-mono" style={{ color: "var(--text-tertiary)" }}>
+   541→   541→          {fir.ipc_section}
+   542→   542→        </p>
+   543→   543→      </div>
+   544→   544→
+   545→   545→      {/* Accused */}
+   546→   546→      {fir.accused.length > 0 && (
+   547→   547→        <div className="mt-2.5 pt-2.5" style={{ borderTop: "1px solid var(--border-subtle)" }}>
+   548→   548→          <p className="text-[10px] uppercase tracking-wider mb-1.5 font-medium" style={{ color: "var(--text-tertiary)" }}>
+   549→   549→            Accused
+   550→   550→          </p>
+   551→   551→          <div className="flex flex-wrap gap-1">
+   552→   552→            {fir.accused.slice(0, 4).map((a) => (
+   553→   553→              <span
+   554→   554→                key={a}
+   555→   555→                className="text-[10px] px-2 py-0.5 rounded-md font-mono"
+   556→   556→                style={{
+   557→   557→                  backgroundColor: "rgba(248,113,113,0.06)",
+   558→   558→                  color: "var(--critical)",
+   559→   559→                  border: "1px solid rgba(248,113,113,0.1)",
+   560→   560→                }}
+   561→   561→              >
+   562→   562→                {a}
+   563→   563→              </span>
+   564→   564→            ))}
+   565→   565→            {fir.accused.length > 4 && (
+   566→   566→              <span className="text-[10px] px-2 py-0.5 rounded-md" style={{ color: "var(--text-tertiary)" }}>
+   567→   567→                +{fir.accused.length - 4} more
+   568→   568→              </span>
+   569→   569→            )}
+   570→   570→          </div>
+   571→   571→        </div>
+   572→   572→      )}
+   573→   573→    </motion.div>
+   574→   574→  );
+   575→   575→}
+   576→   576→
+   577→   577→/* ═══════════════════════════════════════════════════════════════════════════
+   578→   578→   MAIN CHAT VIEW
+   579→   579→   ═══════════════════════════════════════════════════════════════════════════ */
+   580→   580→
+   581→   581→export default function ChatView() {
+   582→   582→  const crimeData = useAppStore((s) => s.crimeData);
+   583→   583→  const chatMessages = useAppStore((s) => s.chatMessages);
+   584→   584→  const addChatMessage = useAppStore((s) => s.addChatMessage);
+   585→   585→  const clearChat = useAppStore((s) => s.clearChat);
+   586→   586→  const chatLoading = useAppStore((s) => s.chatLoading);
+   587→   587→  const setChatLoading = useAppStore((s) => s.setChatLoading);
+   588→   588→  const user = useAppStore((s) => s.user);
+   589→   589→
+   590→   590→  const [input, setInput] = useState("");
+   591→   591→  const [voiceLang, setVoiceLang] = useState<"en" | "kn">("en");
+   592→   592→  const [isListening, setIsListening] = useState(false);
+   593→   593→  const [inputFocused, setInputFocused] = useState(false);
+   594→   594→  const [evidenceOpen, setEvidenceOpen] = useState(true);
+   595→   595→
+   596→   596→  const endRef = useRef<HTMLDivElement>(null);
+   597→   597→  const inputRef = useRef<HTMLInputElement>(null);
+   598→   598→  const recogRef = useRef<any>(null);
+   599→   599→  const messagesContainerRef = useRef<HTMLDivElement>(null);
+   600→   600→
+   601→   601→  // Auto-scroll to bottom
+   602→   602→  useEffect(() => {
+   603→   603→    endRef.current?.scrollIntoView({ behavior: "smooth" });
+   604→   604→  }, [chatMessages, chatLoading]);
+   605→   605→
+   606→   606→  // Extract FIR IDs from last AI message
+   607→   607→  const extractedFIRs = useMemo(() => {
+   608→   608→    if (!crimeData) return [];
+   609→   609→    const lastAI = [...chatMessages].reverse().find((m) => m.role === "assistant");
+   610→   610→    if (!lastAI) return [];
+   611→   611→    const ids = extractFIRIds(lastAI.content);
+   612→   612→    const matched: FIR[] = [];
+   613→   613→    for (const id of ids) {
+   614→   614→      matched.push(...searchFIRs(crimeData, { fir_id: id }));
+   615→   615→    }
+   616→   616→    return matched;
+   617→   617→  }, [chatMessages, crimeData]);
+   618→   618→
+   619→   619→  // Send message
+   620→   620→  const handleSend = useCallback(async () => {
+   621→   621→    const trimmed = input.trim();
+   622→   622→    if (!trimmed || chatLoading) return;
+   623→   623→    setInput("");
+   624→   624→    addChatMessage({ role: "user", content: trimmed });
+   625→   625→    setChatLoading(true);
+   626→   626→    try {
+   627→   627→      const res = await fetch("/api/chat?XTransformPort=3000", {
+   628→   628→        method: "POST",
+   629→   629→        headers: { "Content-Type": "application/json" },
+   630→   630→        body: JSON.stringify({ message: trimmed, history: chatMessages }),
+   631→   631→      });
+   632→   632→      if (!res.ok) throw new Error("Failed");
+   633→   633→      const data = await res.json();
+   634→   634→      addChatMessage({
+   635→   635→        role: "assistant",
+   636→   636→        content: data.response ?? "No response.",
+   637→   637→        explainable: data.explainable,
+   638→   638→      });
+   639→   639→    } catch {
+   640→   640→      addChatMessage({
+   641→   641→        role: "assistant",
+   642→   642→        content: "Unable to reach the intelligence server. Please try again.",
+   643→   643→      });
+   644→   644→    } finally {
+   645→   645→      setChatLoading(false);
+   646→   646→      inputRef.current?.focus();
+   647→   647→    }
+   648→   648→  }, [input, chatLoading, chatMessages, addChatMessage, setChatLoading]);
+   649→   649→
+   650→   650→  const handleKeyDown = (e: React.KeyboardEvent) => {
+   651→   651→    if (e.key === "Enter" && !e.shiftKey) {
+   652→   652→      e.preventDefault();
+   653→   653→      handleSend();
+   654→   654→    }
+   655→   655→  };
+   656→   656→
+   657→   657→  // Voice recognition
+   658→   658→  const toggleVoice = useCallback(() => {
+   659→   659→    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+   660→   660→    if (!SR) {
+   661→   661→      alert("Speech recognition not supported.");
+   662→   662→      return;
+   663→   663→    }
+   664→   664→    if (isListening && recogRef.current) {
+   665→   665→      recogRef.current.stop();
+   666→   666→      setIsListening(false);
+   667→   667→      recogRef.current = null;
+   668→   668→      return;
+   669→   669→    }
+   670→   670→    const r = new SR();
+   671→   671→    r.lang = voiceLang === "en" ? "en-IN" : "kn-IN";
+   672→   672→    r.continuous = false;
+   673→   673→    r.interimResults = false;
+   674→   674→    r.onresult = (ev: any) => {
+   675→   675→      setInput(ev.results[0][0].transcript);
+   676→   676→      setIsListening(false);
+   677→   677→      recogRef.current = null;
+   678→   678→    };
+   679→   679→    r.onerror = () => {
+   680→   680→      setIsListening(false);
+   681→   681→      recogRef.current = null;
+   682→   682→    };
+   683→   683→    r.onend = () => {
+   684→   684→      setIsListening(false);
+   685→   685→      recogRef.current = null;
+   686→   686→    };
+   687→   687→    recogRef.current = r;
+   688→   688→    r.start();
+   689→   689→    setIsListening(true);
+   690→   690→  }, [isListening, voiceLang]);
+   691→   691→
+   692→   692→  // PDF export
+   693→   693→  const exportPDF = useCallback(() => {
+   694→   694→    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+   695→   695→    const pw = doc.internal.pageSize.getWidth();
+   696→   696→    const mg = 20;
+   697→   697→    const cw = pw - mg * 2;
+   698→   698→    let y = 20;
+   699→   699→    doc.setFontSize(20);
+   700→   700→    doc.setFont("helvetica", "bold");
+   701→   701→    doc.text("KSP Intelligence Briefing", pw / 2, y, { align: "center" });
+   702→   702→    y += 10;
+   703→   703→    doc.setFontSize(10);
+   704→   704→    doc.setFont("helvetica", "normal");
+   705→   705→    doc.setTextColor(120, 120, 120);
+   706→   706→    const ds = new Date().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+   707→   707→    doc.text(
+   708→   708→      `Generated: ${ds}${user?.role ? ` | Role: ${user.role}` : ""}`,
+   709→   709→      pw / 2,
+   710→   710→      y,
+   711→   711→      { align: "center" }
+   712→   712→    );
+   713→   713→    y += 12;
+   714→   714→    doc.setDrawColor(200, 200, 200);
+   715→   715→    doc.line(mg, y, pw - mg, y);
+   716→   716→    y += 8;
+   717→   717→    doc.setTextColor(40, 40, 40);
+   718→   718→    doc.setFontSize(11);
+   719→   719→    for (const msg of chatMessages) {
+   720→   720→      if (y > 270) {
+   721→   721→        doc.addPage();
+   722→   722→        y = 20;
+   723→   723→      }
+   724→   724→      doc.setFont("helvetica", "bold");
+   725→   725→      doc.text(
+   726→   726→        msg.role === "user" ? "OFFICER QUERY:" : "AI COPILOT RESPONSE:",
+   727→   727→        mg,
+   728→   728→        y
+   729→   729→      );
+   730→   730→      y += 5;
+   731→   731→      doc.setFont("helvetica", "normal");
+   732→   732→      for (const line of doc.splitTextToSize(msg.content, cw)) {
+   733→   733→        if (y > 275) {
+   734→   734→          doc.addPage();
+   735→   735→          y = 20;
+   736→   736→        }
+   737→   737→        doc.text(line, mg, y);
+   738→   738→        y += 4.5;
+   739→   739→      }
+   740→   740→      y += 6;
+   741→   741→    }
+   742→   742→    const tp = doc.getNumberOfPages();
+   743→   743→    for (let i = 1; i <= tp; i++) {
+   744→   744→      doc.setPage(i);
+   745→   745→      doc.setFontSize(8);
+   746→   746→      doc.setTextColor(150, 150, 150);
+   747→   747→      doc.text(
+   748→   748→        "KSP Sentinel AI - Confidential",
+   749→   749→        pw / 2,
+   750→   750→        doc.internal.pageSize.getHeight() - 8,
+   751→   751→        { align: "center" }
+   752→   752→      );
+   753→   753→    }
+   754→   754→    doc.save(`ksp_briefing_${new Date().toISOString().slice(0, 10)}.pdf`);
+   755→   755→  }, [chatMessages, user]);
+   756→   756→
+   757→   757→  const handleExampleClick = useCallback(
+   758→   758→    (q: string) => {
+   759→   759→      setInput(q);
+   760→   760→      inputRef.current?.focus();
+   761→   761→    },
+   762→   762→    []
+   763→   763→  );
+   764→   764→
+   765→   765→  /* ═══════════════════════════════════════════════════════════════════════
+   766→   766→     RENDER
+   767→   767→     ═══════════════════════════════════════════════════════════════════════ */
+   768→   768→
+   769→   769→  return (
+   770→   770→    <div className="flex flex-col h-full w-full">
+   771→   771→      {/* ── Header Bar ──────────────────────────────────────────────────── */}
+   772→   772→      <header
+   773→   773→        className="flex items-center justify-between px-5 h-11 flex-shrink-0"
+   774→   774→        style={{ borderBottom: "1px solid var(--border-subtle)" }}
+   775→   775→      >
+   776→   776→        <div className="flex items-center gap-2.5">
+   777→   777→          <div
+   778→   778→            className="w-6 h-6 rounded-lg flex items-center justify-center"
+   779→   779→            style={{
+   780→   780→              background: "linear-gradient(135deg, rgba(34,211,238,0.15), rgba(34,211,238,0.05))",
+   781→   781→              border: "1px solid rgba(34,211,238,0.12)",
+   782→   782→            }}
+   783→   783→          >
+   784→   784→            <Shield className="w-3 h-3" style={{ color: "var(--primary)" }} />
+   785→   785→          </div>
+   786→   786→          <span className="text-[13px] font-semibold tracking-wide" style={{ color: "var(--text-primary)" }}>
+   787→   787→            AI Copilot
+   788→   788→          </span>
+   789→   789→          <span
+   790→   790→            className="text-[9px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider"
+   791→   791→            style={{
+   792→   792→              background: "rgba(34,211,238,0.08)",
+   793→   793→              color: "var(--primary)",
+   794→   794→              border: "1px solid rgba(34,211,238,0.12)",
+   795→   795→            }}
+   796→   796→          >
+   797→   797→            Live
+   798→   798→          </span>
+   799→   799→        </div>
+   800→   800→
+   801→   801→        <div className="flex items-center gap-1.5">
+   802→   802→          {/* Evidence Panel Toggle */}
+   803→   803→          {extractedFIRs.length > 0 && (
+   804→   804→            <motion.button
+   805→   805→              initial={{ opacity: 0, scale: 0.9 }}
+   806→   806→              animate={{ opacity: 1, scale: 1 }}
+   807→   807→              onClick={() => setEvidenceOpen(!evidenceOpen)}
+   808→   808→              whileHover={{ scale: 1.04 }}
+   809→   809→              whileTap={{ scale: 0.96 }}
+   810→   810→              className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] rounded-lg cursor-pointer transition-all duration-200"
+   811→   811→              style={{
+   812→   812→                color: evidenceOpen ? "#818cf8" : "var(--text-tertiary)",
+   813→   813→                border: `1px solid ${evidenceOpen ? "rgba(129,140,248,0.2)" : "var(--border-default)"}`,
+   814→   814→                backgroundColor: evidenceOpen ? "rgba(129,140,248,0.06)" : "transparent",
+   815→   815→              }}
+   816→   816→            >
+   817→   817→              {evidenceOpen ? (
+   818→   818→                <PanelRightClose className="w-3 h-3" />
+   819→   819→              ) : (
+   820→   820→                <PanelRightOpen className="w-3 h-3" />
+   821→   821→              )}
+   822→   822→              <span className="hidden sm:inline">Evidence</span>
+   823→   823→              <span
+   824→   824→                className="text-[9px] px-1.5 py-0.5 rounded-full font-bold"
+   825→   825→                style={{
+   826→   826→                  backgroundColor: "rgba(129,140,248,0.1)",
+   827→   827→                  color: "var(--secondary)",
+   828→   828→                }}
+   829→   829→              >
+   830→   830→                {extractedFIRs.length}
+   831→   831→              </span>
+   832→   832→            </motion.button>
+   833→   833→          )}
+   834→   834→
+   835→   835→          {/* Clear Chat */}
+   836→   836→          {chatMessages.length > 0 && (
+   837→   837→            <motion.button
+   838→   838→              initial={{ opacity: 0, scale: 0.9 }}
+   839→   839→              animate={{ opacity: 1, scale: 1 }}
+   840→   840→              onClick={() => clearChat()}
+   841→   841→              whileHover={{ scale: 1.04 }}
+   842→   842→              whileTap={{ scale: 0.96 }}
+   843→   843→              className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] rounded-lg cursor-pointer transition-all duration-200"
+   844→   844→              style={{ color: "var(--text-tertiary)", border: "1px solid var(--border-default)" }}
+   845→   845→              onMouseEnter={(e) => {
+   846→   846→                e.currentTarget.style.background = "rgba(248,113,113,0.06)";
+   847→   847→                e.currentTarget.style.color = "#f87171";
+   848→   848→                e.currentTarget.style.borderColor = "rgba(248,113,113,0.15)";
+   849→   849→              }}
+   850→   850→              onMouseLeave={(e) => {
+   851→   851→                e.currentTarget.style.background = "transparent";
+   852→   852→                e.currentTarget.style.color = "var(--text-tertiary)";
+   853→   853→                e.currentTarget.style.borderColor = "var(--border-default)";
+   854→   854→              }}
+   855→   855→            >
+   856→   856→              <Trash2 className="w-3 h-3" />
+   857→   857→              <span className="hidden sm:inline">Clear</span>
+   858→   858→            </motion.button>
+   859→   859→          )}
+   860→   860→        </div>
+   861→   861→      </header>
+   862→   862→
+   863→   863→      {/* ── Main Content Area ───────────────────────────────────────────── */}
+   864→   864→      <div className="flex-1 overflow-hidden flex min-h-0">
+   865→   865→        {/* ── Chat Messages Column ──────────────────────────────────────── */}
+   866→   866→        <div className="flex-1 flex flex-col min-w-0">
+   867→   867→          <div
+   868→   868→            ref={messagesContainerRef}
+   869→   869→            className="flex-1 overflow-y-auto"
+   870→   870→          >
+   871→   871→            <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+   872→   872→              {/* Welcome Screen */}
+   873→   873→              {chatMessages.length === 0 && !chatLoading && (
+   874→   874→                <WelcomeScreen onQueryClick={handleExampleClick} inputRef={inputRef} />
+   875→   875→              )}
+   876→   876→
+   877→   877→              {/* Chat Messages */}
+   878→   878→              <AnimatePresence mode="popLayout">
+   879→   879→                {chatMessages.map((msg, idx) => (
+   880→   880→                  <motion.div
+   881→   881→                    key={idx}
+   882→   882→                    initial={{ opacity: 0, y: 12 }}
+   883→   883→                    animate={{ opacity: 1, y: 0 }}
+   884→   884→                    transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+   885→   885→                    className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+   886→   886→                  >
+   887→   887→                    {/* AI Avatar */}
+   888→   888→                    {msg.role === "assistant" && (
+   889→   889→                      <div
+   890→   890→                        className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5"
+   891→   891→                        style={{
+   892→   892→                          background: "linear-gradient(135deg, rgba(34,211,238,0.15), rgba(129,140,248,0.1))",
+   893→   893→                          border: "1px solid rgba(34,211,238,0.15)",
+   894→   894→                          boxShadow: "0 0 12px rgba(34,211,238,0.06)",
+   895→   895→                        }}
+   896→   896→                      >
+   897→   897→                        <Shield className="w-3.5 h-3.5" style={{ color: "var(--primary)" }} />
+   898→   898→                      </div>
+   899→   899→                    )}
+   900→   900→
+   901→   901→                    {/* Message Bubble */}
+   902→   902→                    <div className="flex flex-col max-w-[82%] min-w-0">
+   903→   903→                      <div
+   904→   904→                        className="px-4 py-3 text-[13px] leading-[1.65] whitespace-pre-wrap"
+   905→   905→                        style={
+   906→   906→                          msg.role === "user"
+   907→   907→                            ? {
+   908→   908→                                background: "linear-gradient(135deg, rgba(34,211,238,0.12) 0%, rgba(34,211,238,0.06) 100%)",
+   909→   909→                                color: "var(--text-primary)",
+   910→   910→                                borderRadius: "16px 16px 4px 16px",
+   911→   911→                                border: "1px solid rgba(34,211,238,0.15)",
+   912→   912→                                boxShadow: "0 2px 16px rgba(34,211,238,0.04)",
+   913→   913→                              }
+   914→   914→                            : {
+   915→   915→                                backgroundColor: "var(--bg-card)",
+   916→   916→                                backdropFilter: "blur(12px)",
+   917→   917→                                border: "1px solid var(--border-default)",
+   918→   918→                                color: "var(--text-primary)",
+   919→   919→                                borderRadius: "16px 16px 16px 4px",
+   920→   920→                                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.02)",
+   921→   921→                              }
+   922→   922→                        }
+   923→   923→                      >
+   924→   924→                        {msg.content}
+   925→   925→                      </div>
+   926→   926→
+   927→   927→                      {/* Explainable AI Panel */}
+   928→   928→                      {msg.role === "assistant" && msg.explainable && (
+   929→   929→                        <ExplainablePanel exp={msg.explainable} />
+   930→   930→                      )}
+   931→   931→
+   932→   932→                      {/* AI Disclaimer */}
+   933→   933→                      {msg.role === "assistant" && idx === chatMessages.length - 1 && (
+   934→   934→                        <div className="flex items-center gap-1.5 mt-1.5 ml-1">
+   935→   935→                          <Zap className="w-3 h-3" style={{ color: "var(--text-muted)" }} />
+   936→   936→                          <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+   937→   937→                            AI Generated — Verify with sources
+   938→   938→                          </span>
+   939→   939→                        </div>
+   940→   940→                      )}
+   941→   941→
+   942→   942→                      {/* Timestamp */}
+   943→   943→                      <span className="text-[10px] mt-1.5 px-1" style={{ color: "var(--text-muted)" }}>
+   944→   944→                        {fmtTime(new Date())}
+   945→   945→                      </span>
+   946→   946→                    </div>
+   947→   947→
+   948→   948→                    {/* User Avatar */}
+   949→   949→                    {msg.role === "user" && (
+   950→   950→                      <div
+   951→   951→                        className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5"
+   952→   952→                        style={{
+   953→   953→                          background: "rgba(129,140,248,0.1)",
+   954→   954→                          border: "1px solid rgba(129,140,248,0.15)",
+   955→   955→                        }}
+   956→   956→                      >
+   957→   957→                        <User className="w-3.5 h-3.5" style={{ color: "var(--secondary)" }} />
+   958→   958→                      </div>
+   959→   959→                    )}
+   960→   960→                  </motion.div>
+   961→   961→                ))}
+   962→   962→              </AnimatePresence>
+   963→   963→
+   964→   964→              {/* Thinking / Loading Indicator */}
+   965→   965→              <AnimatePresence>
+   966→   966→                {chatLoading && (
+   967→   967→                  <motion.div
+   968→   968→                    initial={{ opacity: 0, y: 8 }}
+   969→   969→                    animate={{ opacity: 1, y: 0 }}
+   970→   970→                    exit={{ opacity: 0, y: -8 }}
+   971→   971→                    transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+   972→   972→                    className="flex gap-3 justify-start"
+   973→   973→                  >
+   974→   974→                    <div
+   975→   975→                      className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5"
+   976→   976→                      style={{
+   977→   977→                        background: "linear-gradient(135deg, rgba(34,211,238,0.15), rgba(129,140,248,0.1))",
+   978→   978→                        border: "1px solid rgba(34,211,238,0.15)",
+   979→   979→                        boxShadow: "0 0 12px rgba(34,211,238,0.06)",
+   980→   980→                      }}
+   981→   981→                    >
+   982→   982→                      <Shield className="w-3.5 h-3.5" style={{ color: "var(--primary)" }} />
+   983→   983→                    </div>
+   984→   984→                    <div
+   985→   985→                      className="px-4 py-3.5 rounded-2xl glass"
+   986→   986→                      style={{ borderRadius: "16px 16px 16px 4px" }}
+   987→   987→                    >
+   988→   988→                      <ThinkingState />
+   989→   989→                    </div>
+   990→   990→                  </motion.div>
+   991→   991→                )}
+   992→   992→              </AnimatePresence>
+   993→   993→
+   994→   994→              {/* Scroll Anchor */}
+   995→   995→              <div ref={endRef} />
+   996→   996→            </div>
+   997→   997→          </div>
+   998→   998→        </div>
+   999→   999→
+  1000→  1000→        {/* ── Evidence Panel (Right Column) ─────────────────────────────── */}
+  1001→  1001→        <AnimatePresence>
+  1002→  1002→          {evidenceOpen && extractedFIRs.length > 0 && (
+  1003→  1003→            <motion.div
+  1004→  1004→              initial={{ width: 0, opacity: 0 }}
+  1005→  1005→              animate={{ width: 320, opacity: 1 }}
+  1006→  1006→              exit={{ width: 0, opacity: 0 }}
+  1007→  1007→              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+  1008→  1008→              className="hidden lg:flex flex-col flex-shrink-0 overflow-hidden"
+  1009→  1009→              style={{ borderLeft: "1px solid var(--border-subtle)" }}
+  1010→  1010→            >
+  1011→  1011→              {/* Panel Header */}
+  1012→  1012→              <div
+  1013→  1013→                className="flex items-center gap-2.5 px-4 h-11 flex-shrink-0"
+  1014→  1014→                style={{ borderBottom: "1px solid var(--border-subtle)" }}
+  1015→  1015→              >
+  1016→  1016→                <FileText className="w-3.5 h-3.5" style={{ color: "var(--secondary)" }} />
+  1017→  1017→                <span className="text-[12px] font-semibold tracking-wide" style={{ color: "var(--text-primary)" }}>
+  1018→  1018→                  Linked Evidence
+  1019→  1019→                </span>
+  1020→  1020→                <motion.span
+  1021→  1021→                  initial={{ scale: 0.8, opacity: 0 }}
+  1022→  1022→                  animate={{ scale: 1, opacity: 1 }}
+  1023→  1023→                  className="ml-auto text-[10px] px-2 py-0.5 rounded-full font-semibold"
+  1024→  1024→                  style={{
+  1025→  1025→                    backgroundColor: "rgba(129,140,248,0.08)",
+  1026→  1026→                    color: "var(--secondary)",
+  1027→  1027→                    border: "1px solid rgba(129,140,248,0.12)",
+  1028→  1028→                  }}
+  1029→  1029→                >
+  1030→  1030→                  {extractedFIRs.length} FIR{extractedFIRs.length > 1 ? "s" : ""}
+  1031→  1031→                </motion.span>
+  1032→  1032→              </div>
+  1033→  1033→
+  1034→  1034→              {/* Panel Content */}
+  1035→  1035→              <div className="flex-1 overflow-y-auto p-3.5 space-y-3">
+  1036→  1036→                {extractedFIRs.map((fir, idx) => (
+  1037→  1037→                  <FIREvidenceCard key={fir.fir_id} fir={fir} index={idx} />
+  1038→  1038→                ))}
+  1039→  1039→              </div>
+  1040→  1040→            </motion.div>
+  1041→  1041→          )}
+  1042→  1042→        </AnimatePresence>
+  1043→  1043→      </div>
+  1044→  1044→
+  1045→  1045→      {/* ── Input Bar (Sticky Bottom) ──────────────────────────────────── */}
+  1046→  1046→      <div className="flex-shrink-0 px-4 sm:px-6 pb-4 pt-3">
+  1047→  1047→        <div className="max-w-3xl mx-auto">
+  1048→  1048→          <div
+  1049→  1049→            className="glass-strong rounded-2xl p-1.5 transition-all duration-300"
+  1050→  1050→            style={{
+  1051→  1051→              boxShadow: inputFocused
+  1052→  1052→                ? "0 0 0 1px rgba(34,211,238,0.25), 0 0 24px rgba(34,211,238,0.06), 0 8px 32px rgba(0,0,0,0.3)"
+  1053→  1053→                : "0 0 0 1px var(--border-default), 0 8px 32px rgba(0,0,0,0.2)",
+  1054→  1054→              borderColor: inputFocused ? "rgba(34,211,238,0.25)" : "var(--border-default)",
+  1055→  1055→            }}
+  1056→  1056→          >
+  1057→  1057→            <div className="flex items-center gap-2">
+  1058→  1058→              {/* Text Input */}
+  1059→  1059→              <div className="flex-1 min-w-0 px-2">
+  1060→  1060→                <Input
+  1061→  1061→                  ref={inputRef}
+  1062→  1062→                  value={input}
+  1063→  1063→                  onChange={(e) => setInput(e.target.value)}
+  1064→  1064→                  onKeyDown={handleKeyDown}
+  1065→  1065→                  onFocus={() => setInputFocused(true)}
+  1066→  1066→                  onBlur={() => setInputFocused(false)}
+  1067→  1067→                  placeholder={
+  1068→  1068→                    voiceLang === "en"
+  1069→  1069→                      ? "Ask about crimes, FIRs, gangs, patterns..."
+  1070→  1070→                      : "ಅಪರಾಧ, FIR, ಗ್ಯಾಂಗ್ ಬಗ್ಗೆ ಕೇಳಿ..."
+  1071→  1071→                  }
+  1072→  1072→                  disabled={chatLoading}
+  1073→  1073→                  className="h-10 rounded-xl text-[13px] border-0 bg-transparent shadow-none focus-visible:ring-0 placeholder:text-[var(--text-muted)]"
+  1074→  1074→                  style={{ color: "var(--text-primary)" }}
+  1075→  1075→                />
+  1076→  1076→              </div>
+  1077→  1077→
+  1078→  1078→              {/* Send Button */}
+  1079→  1079→              <motion.button
+  1080→  1080→                onClick={handleSend}
+  1081→  1081→                disabled={chatLoading || !input.trim()}
+  1082→  1082→                whileHover={{ scale: 1.04 }}
+  1083→  1083→                whileTap={{ scale: 0.96 }}
+  1084→  1084→                className="flex items-center justify-center w-10 h-10 rounded-xl cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed transition-all duration-200 flex-shrink-0"
+  1085→  1085→                style={{
+  1086→  1086→                  background: !chatLoading && input.trim()
+  1087→  1087→                    ? "linear-gradient(135deg, #22d3ee, #06b6d4)"
+  1088→  1088→                    : "var(--border-subtle)",
+  1089→  1089→                  color: !chatLoading && input.trim() ? "#050810" : "var(--text-muted)",
+  1090→  1090→                  boxShadow: !chatLoading && input.trim()
+  1091→  1091→                    ? "0 0 16px rgba(34,211,238,0.2)"
+  1092→  1092→                    : "none",
+  1093→  1093→                }}
+  1094→  1094→              >
+  1095→  1095→                <Send className="w-4 h-4" />
+  1096→  1096→              </motion.button>
+  1097→  1097→
+  1098→  1098→              {/* Divider */}
+  1099→  1099→              <div
+  1100→  1100→                className="w-px h-6 flex-shrink-0"
+  1101→  1101→                style={{ backgroundColor: "var(--border-default)" }}
+  1102→  1102→              />
+  1103→  1103→
+  1104→  1104→              {/* Voice Toggle */}
+  1105→  1105→              <motion.button
+  1106→  1106→                whileHover={{ scale: 1.04 }}
+  1107→  1107→                whileTap={{ scale: 0.96 }}
+  1108→  1108→                onClick={toggleVoice}
+  1109→  1109→                className="flex items-center justify-center w-10 h-10 rounded-xl cursor-pointer transition-all duration-200 relative flex-shrink-0"
+  1110→  1110→                style={{
+  1111→  1111→                  border: isListening
+  1112→  1112→                    ? "1px solid rgba(248,113,113,0.3)"
+  1113→  1113→                    : "1px solid var(--border-default)",
+  1114→  1114→                  backgroundColor: isListening
+  1115→  1115→                    ? "rgba(248,113,113,0.08)"
+  1116→  1116→                    : "transparent",
+  1117→  1117→                }}
+  1118→  1118→                title={isListening ? "Stop listening" : "Voice input"}
+  1119→  1119→              >
+  1120→  1120→                {isListening && (
+  1121→  1121→                  <span
+  1122→  1122→                    className="absolute inset-0 rounded-xl animate-ping"
+  1123→  1123→                    style={{
+  1124→  1124→                      backgroundColor: "rgba(248,113,113,0.1)",
+  1125→  1125→                      animationDuration: "1.5s",
+  1126→  1126→                    }}
+  1127→  1127→                  />
+  1128→  1128→                )}
+  1129→  1129→                {isListening ? (
+  1130→  1130→                  <Mic className="w-4 h-4" style={{ color: "var(--critical)" }} />
+  1131→  1131→                ) : (
+  1132→  1132→                  <MicOff className="w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
+  1133→  1133→                )}
+  1134→  1134→              </motion.button>
+  1135→  1135→
+  1136→  1136→              {/* Language Toggle */}
+  1137→  1137→              <motion.button
+  1138→  1138→                whileHover={{ scale: 1.04 }}
+  1139→  1139→                whileTap={{ scale: 0.96 }}
+  1140→  1140→                onClick={() => setVoiceLang((v) => (v === "en" ? "kn" : "en"))}
+  1141→  1141→                className="flex items-center justify-center w-10 h-10 rounded-xl cursor-pointer transition-all duration-200 flex-shrink-0"
+  1142→  1142→                style={{
+  1143→  1143→                  border:
+  1144→  1144→                    voiceLang === "kn"
+  1145→  1145→                      ? "1px solid rgba(34,211,238,0.2)"
+  1146→  1146→                      : "1px solid var(--border-default)",
+  1147→  1147→                  backgroundColor:
+  1148→  1148→                    voiceLang === "kn"
+  1149→  1149→                      ? "rgba(34,211,238,0.06)"
+  1150→  1150→                      : "transparent",
+  1151→  1151→                  color: voiceLang === "kn" ? "#22d3ee" : "var(--text-tertiary)",
+  1152→  1152→                }}
+  1153→  1153→                title={`Switch to ${voiceLang === "en" ? "Kannada" : "English"}`}
+  1154→  1154→              >
+  1155→  1155→                <Languages className="w-4 h-4" />
+  1156→  1156→              </motion.button>
+  1157→  1157→
+  1158→  1158→              {/* PDF Export */}
+  1159→  1159→              <motion.button
+  1160→  1160→                whileHover={{ scale: 1.04 }}
+  1161→  1161→                whileTap={{ scale: 0.96 }}
+  1162→  1162→                onClick={exportPDF}
+  1163→  1163→                disabled={chatMessages.length === 0}
+  1164→  1164→                className="flex items-center justify-center w-10 h-10 rounded-xl cursor-pointer disabled:opacity-15 disabled:cursor-not-allowed transition-all duration-200 flex-shrink-0"
+  1165→  1165→                style={{
+  1166→  1166→                  border: "1px solid var(--border-default)",
+  1167→  1167→                  backgroundColor: "transparent",
+  1168→  1168→                }}
+  1169→  1169→                onMouseEnter={(e) => {
+  1170→  1170→                  if (chatMessages.length > 0) {
+  1171→  1171→                    e.currentTarget.style.borderColor = "rgba(34,211,238,0.15)";
+  1172→  1172→                    e.currentTarget.style.background = "rgba(34,211,238,0.06)";
+  1173→  1173→                  }
+  1174→  1174→                }}
+  1175→  1175→                onMouseLeave={(e) => {
+  1176→  1176→                  e.currentTarget.style.borderColor = "var(--border-default)";
+  1177→  1177→                  e.currentTarget.style.background = "transparent";
+  1178→  1178→                }}
+  1179→  1179→                title="Export as PDF"
+  1180→  1180→              >
+  1181→  1181→                <FileDown
+  1182→  1182→                  className="w-4 h-4"
+  1183→  1183→                  style={{ color: chatMessages.length > 0 ? "var(--text-secondary)" : "var(--text-muted)" }}
+  1184→  1184→                />
+  1185→  1185→              </motion.button>
+  1186→  1186→            </div>
+  1187→  1187→          </div>
+  1188→  1188→
+  1189→  1189→          {/* Subtle hint below input */}
+  1190→  1190→          <div className="flex items-center justify-center gap-4 mt-2 px-2">
+  1191→  1191→            <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+  1192→  1192→              Press <kbd className="px-1.5 py-0.5 rounded text-[9px] font-mono" style={{ backgroundColor: "var(--border-subtle)", border: "1px solid var(--border-default)" }}>Enter</kbd> to send
+  1193→  1193→            </span>
+  1194→  1194→            {voiceLang === "kn" && (
+  1195→  1195→              <span className="text-[10px]" style={{ color: "var(--primary)" }}>
+  1196→  1196→                · Kannada mode active
+  1197→  1197→              </span>
+  1198→  1198→            )}
+  1199→  1199→          </div>
+  1200→  1200→        </div>
+  1201→  1201→      </div>
+  1202→  1202→    </div>
+  1203→  1203→  );
+  1204→  1204→}

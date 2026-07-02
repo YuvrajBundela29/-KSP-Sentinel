@@ -1,0 +1,749 @@
+     1→"use client";
+     2→
+     3→import React, { useState, useMemo } from "react";
+     4→import { motion, AnimatePresence } from "framer-motion";
+     5→import {
+     6→  Clock,
+     7→  FileText,
+     8→  MessageSquare,
+     9→  Users,
+    10→  Camera,
+    11→  Phone,
+    12→  Car,
+    13→  Banknote,
+    14→  Search,
+    15→  ShieldAlert,
+    16→  AlertTriangle,
+    17→  ChevronRight,
+    18→  Filter,
+    19→  Eye,
+    20→  CheckCircle2,
+    21→  Loader2,
+    22→} from "lucide-react";
+    23→import {
+    24→  Select,
+    25→  SelectContent,
+    26→  SelectItem,
+    27→  SelectTrigger,
+    28→  SelectValue,
+    29→} from "@/components/ui/select";
+    30→import { Badge } from "@/components/ui/badge";
+    31→import { useAppStore } from "@/lib/store";
+    32→import { generateTimeline } from "@/lib/intelligence";
+    33→import type { TimelineEvent } from "@/lib/types";
+    34→
+    35→// ─── Icon Rendering ───────────────────────────────────────────────────
+    36→function TimelineIcon({
+    37→  name,
+    38→  className,
+    39→  style,
+    40→}: {
+    41→  name: string;
+    42→  className?: string;
+    43→  style?: React.CSSProperties;
+    44→}) {
+    45→  const props = { className, style };
+    46→  switch (name) {
+    47→    case "FileText":
+    48→      return <FileText {...props} />;
+    49→    case "MessageSquare":
+    50→      return <MessageSquare {...props} />;
+    51→    case "Users":
+    52→      return <Users {...props} />;
+    53→    case "Camera":
+    54→      return <Camera {...props} />;
+    55→    case "Phone":
+    56→      return <Phone {...props} />;
+    57→    case "Car":
+    58→      return <Car {...props} />;
+    59→    case "Banknote":
+    60→      return <Banknote {...props} />;
+    61→    case "Search":
+    62→      return <Search {...props} />;
+    63→    case "ShieldAlert":
+    64→    case "Handcuffs":
+    65→    case "CircleStop":
+    66→      return <ShieldAlert {...props} />;
+    67→    default:
+    68→      return <AlertTriangle {...props} />;
+    69→  }
+    70→}
+    71→
+    72→// ─── Color System ──────────────────────────────────────────────────────
+    73→
+    74→// Event TYPE colors (what kind of event it is)
+    75→const TYPE_COLORS: Record<TimelineEvent["type"], { color: string; glow: string; bg: string; label: string }> = {
+    76→  complaint:     { color: "#22d3ee", glow: "rgba(34,211,238,0.25)",  bg: "rgba(34,211,238,0.08)",  label: "Complaint" },
+    77→  fir_filed:     { color: "#22d3ee", glow: "rgba(34,211,238,0.25)",  bg: "rgba(34,211,238,0.08)",  label: "FIR Filed" },
+    78→  witness:       { color: "#818cf8", glow: "rgba(129,140,248,0.25)", bg: "rgba(129,140,248,0.08)", label: "Witness" },
+    79→  cctv:          { color: "#818cf8", glow: "rgba(129,140,248,0.25)", bg: "rgba(129,140,248,0.08)", label: "CCTV" },
+    80→  phone:         { color: "#34d399", glow: "rgba(52,211,153,0.25)",  bg: "rgba(52,211,153,0.08)",  label: "Phone" },
+    81→  vehicle:       { color: "#fbbf24", glow: "rgba(251,191,36,0.25)",  bg: "rgba(251,191,36,0.08)",  label: "Vehicle" },
+    82→  financial:     { color: "#fbbf24", glow: "rgba(251,191,36,0.25)",  bg: "rgba(251,191,36,0.08)",  label: "Financial" },
+    83→  investigation: { color: "#2dd4bf", glow: "rgba(45,212,191,0.25)",  bg: "rgba(45,212,191,0.08)",  label: "Investigation" },
+    84→  arrest:        { color: "#f87171", glow: "rgba(248,113,113,0.25)", bg: "rgba(248,113,113,0.08)", label: "Arrest" },
+    85→};
+    86→
+    87→// Status colors (completion state)
+    88→const STATUS_COLORS: Record<TimelineEvent["status"], string> = {
+    89→  completed: "#34d399",
+    90→  in_progress: "#22d3ee",
+    91→  pending: "#fbbf24",
+    92→  unknown: "#5a657a",
+    93→};
+    94→
+    95→const STATUS_LABELS: Record<TimelineEvent["status"], string> = {
+    96→  completed: "Completed",
+    97→  in_progress: "In Progress",
+    98→  pending: "Pending",
+    99→  unknown: "Unknown",
+   100→};
+   101→
+   102→const SEVERITY_COLORS: Record<string, string> = {
+   103→  critical: "bg-[#f87171]/20 text-[#f87171] border-[rgba(248,113,113,0.15)]",
+   104→  high: "bg-[#fbbf24]/20 text-[#fbbf24] border-[rgba(251,191,36,0.15)]",
+   105→  medium: "bg-[#fbbf24]/20 text-[#fbbf24] border-[rgba(251,191,36,0.15)]",
+   106→  low: "bg-[#34d399]/20 text-[#34d399] border-[rgba(52,211,153,0.15)]",
+   107→};
+   108→
+   109→const SEVERITY_DOT_COLORS: Record<string, string> = {
+   110→  critical: "#f87171",
+   111→  high: "#fbbf24",
+   112→  medium: "#eab308",
+   113→  low: "#34d399",
+   114→};
+   115→
+   116→// ─── Helpers ─────────────────────────────────────────────────────────
+   117→function formatTimestamp(ts: string): string {
+   118→  try {
+   119→    const d = new Date(ts);
+   120→    return d.toLocaleString("en-IN", {
+   121→      day: "2-digit",
+   122→      month: "short",
+   123→      year: "numeric",
+   124→      hour: "2-digit",
+   125→      minute: "2-digit",
+   126→      hour12: true,
+   127→    });
+   128→  } catch {
+   129→    return ts;
+   130→  }
+   131→}
+   132→
+   133→// ─── Filter Pill Button ───────────────────────────────────────────────
+   134→function FilterPill({
+   135→  label,
+   136→  active,
+   137→  onClick,
+   138→  color,
+   139→}: {
+   140→  label: string;
+   141→  active: boolean;
+   142→  onClick: () => void;
+   143→  color?: string;
+   144→}) {
+   145→  return (
+   146→    <button
+   147→      onClick={onClick}
+   148→      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200 cursor-pointer"
+   149→      style={{
+   150→        background: active
+   151→          ? color
+   152→            ? `${color}15`
+   153→            : "rgba(34,211,238,0.12)"
+   154→          : "transparent",
+   155→        borderColor: active
+   156→          ? color
+   157→            ? `${color}40`
+   158→            : "rgba(34,211,238,0.3)"
+   159→          : "rgba(255,255,255,0.06)",
+   160→        color: active
+   161→          ? color ?? "#22d3ee"
+   162→          : "#8b97b0",
+   163→        boxShadow: active
+   164→          ? color
+   165→            ? `0 0 16px ${color}20`
+   166→            : "0 0 16px rgba(34,211,238,0.12)"
+   167→          : "none",
+   168→      }}
+   169→    >
+   170→      {label}
+   171→    </button>
+   172→  );
+   173→}
+   174→
+   175→// ─── Event Node (left-aligned icon) ───────────────────────────────────
+   176→function LeftNode({
+   177→  event,
+   178→  index,
+   179→}: {
+   180→  event: TimelineEvent;
+   181→  index: number;
+   182→}) {
+   183→  const typeInfo = TYPE_COLORS[event.type] ?? TYPE_COLORS.complaint;
+   184→  const statusColor = STATUS_COLORS[event.status];
+   185→  const isInProgress = event.status === "in_progress";
+   186→
+   187→  return (
+   188→    <motion.div
+   189→      initial={{ opacity: 0, scale: 0.5 }}
+   190→      whileInView={{ opacity: 1, scale: 1 }}
+   191→      viewport={{ once: true }}
+   192→      transition={{
+   193→        delay: index * 0.08 + 0.05,
+   194→        duration: 0.35,
+   195→        ease: "easeOut",
+   196→      }}
+   197→      className="relative z-10 flex items-center justify-center w-11 h-11 rounded-xl shrink-0"
+   198→      style={{
+   199→        backgroundColor: typeInfo.bg,
+   200→        border: `1.5px solid ${typeInfo.color}40`,
+   201→        boxShadow: isInProgress
+   202→          ? `0 0 20px ${typeInfo.glow}, 0 0 40px ${typeInfo.bg}`
+   203→          : `0 4px 12px rgba(0,0,0,0.3)`,
+   204→      }}
+   205→    >
+   206→      {isInProgress && (
+   207→        <div className="timeline-pulse absolute inset-[-3px] rounded-xl" style={{ border: `1.5px solid ${typeInfo.color}30` }} />
+   208→      )}
+   209→      <TimelineIcon
+   210→        name={event.icon}
+   211→        className="w-4.5 h-4.5 relative z-10"
+   212→        style={{ color: typeInfo.color }}
+   213→      />
+   214→    </motion.div>
+   215→  );
+   216→}
+   217→
+   218→// ─── Event Card Content ───────────────────────────────────────────────
+   219→function EventCardContent({
+   220→  event,
+   221→  index,
+   222→}: {
+   223→  event: TimelineEvent;
+   224→  index: number;
+   225→}) {
+   226→  const typeInfo = TYPE_COLORS[event.type] ?? TYPE_COLORS.complaint;
+   227→  const statusColor = STATUS_COLORS[event.status];
+   228→
+   229→  return (
+   230→    <motion.div
+   231→      initial={{ opacity: 0, x: 16 }}
+   232→      whileInView={{ opacity: 1, x: 0 }}
+   233→      viewport={{ once: true }}
+   234→      transition={{
+   235→        delay: index * 0.08 + 0.1,
+   236→        duration: 0.4,
+   237→        ease: [0.4, 0, 0.2, 1],
+   238→      }}
+   239→      className="glass-card p-4 flex-1 min-w-0 group"
+   240→      style={{
+   241→        borderColor: `${typeInfo.color}15`,
+   242→      }}
+   243→    >
+   244→      {/* Top accent line */}
+   245→      <div
+   246→        className="absolute top-0 left-4 right-4 h-[1px]"
+   247→        style={{
+   248→          background: `linear-gradient(90deg, ${typeInfo.color}30, transparent)`,
+   249→        }}
+   250→      />
+   251→
+   252→      <div className="relative space-y-2.5">
+   253→        {/* Title row */}
+   254→        <div className="flex items-center gap-2 flex-wrap">
+   255→          <span
+   256→            className="inline-flex items-center justify-center w-6 h-6 rounded-md"
+   257→            style={{
+   258→              backgroundColor: typeInfo.bg,
+   259→              border: `1px solid ${typeInfo.color}20`,
+   260→            }}
+   261→          >
+   262→            <TimelineIcon
+   263→              name={event.icon}
+   264→              className="w-3 h-3"
+   265→              style={{ color: typeInfo.color }}
+   266→            />
+   267→          </span>
+   268→          <h4 className="text-sm font-semibold text-[#f1f5f9] leading-tight">
+   269→            {event.title}
+   270→          </h4>
+   271→          <span
+   272→            className="text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full"
+   273→            style={{
+   274→              color: typeInfo.color,
+   275→              background: typeInfo.bg,
+   276→              border: `1px solid ${typeInfo.color}15`,
+   277→            }}
+   278→          >
+   279→            {typeInfo.label}
+   280→          </span>
+   281→        </div>
+   282→
+   283→        {/* Description */}
+   284→        <p className="text-xs text-[#8b97b0] leading-relaxed pl-8">
+   285→          {event.description}
+   286→        </p>
+   287→
+   288→        {/* Footer: timestamp + status */}
+   289→        <div className="flex items-center justify-between gap-2 flex-wrap pl-8">
+   290→          <span className="text-[10px] text-[#5a657a] flex items-center gap-1.5">
+   291→            <Clock className="w-3 h-3" />
+   292→            {formatTimestamp(event.timestamp)}
+   293→          </span>
+   294→          <div className="flex items-center gap-2">
+   295→            {/* Status dot + label */}
+   296→            <span className="flex items-center gap-1.5">
+   297→              <span
+   298→                className="w-1.5 h-1.5 rounded-full"
+   299→                style={{
+   300→                  backgroundColor: statusColor,
+   301→                  boxShadow: event.status === "in_progress" ? `0 0 8px ${statusColor}` : "none",
+   302→                }}
+   303→              />
+   304→              <span
+   305→                className="text-[10px] font-medium"
+   306→                style={{ color: statusColor }}
+   307→              >
+   308→                {STATUS_LABELS[event.status]}
+   309→              </span>
+   310→            </span>
+   311→          </div>
+   312→        </div>
+   313→      </div>
+   314→    </motion.div>
+   315→  );
+   316→}
+   317→
+   318→// ─── Summary Bar ─────────────────────────────────────────────────────
+   319→function SummaryBar({ events }: { events: TimelineEvent[] }) {
+   320→  const total = events.length;
+   321→  const completed = events.filter((e) => e.status === "completed").length;
+   322→  const inProgress = events.filter((e) => e.status === "in_progress").length;
+   323→  const pending = events.filter((e) => e.status === "pending").length;
+   324→  const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+   325→
+   326→  return (
+   327→    <motion.div
+   328→      initial={{ opacity: 0, y: 16 }}
+   329→      whileInView={{ opacity: 1, y: 0 }}
+   330→      viewport={{ once: true }}
+   331→      transition={{ delay: 0.3, duration: 0.4 }}
+   332→      className="glass-card p-5"
+   333→    >
+   334→      {/* Stats row */}
+   335→      <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+   336→        <div className="flex items-center gap-6 text-xs">
+   337→          <span className="text-[#8b97b0]">
+   338→            Total Events:{" "}
+   339→            <span className="text-[#f1f5f9] font-bold text-sm">{total}</span>
+   340→          </span>
+   341→          <span className="flex items-center gap-2 text-[#8b97b0]">
+   342→            <span className="w-2 h-2 rounded-full bg-[#34d399]" style={{ boxShadow: "0 0 8px rgba(52,211,153,0.4)" }} />
+   343→            <span className="text-[#34d399] font-semibold">{completed}</span> Done
+   344→          </span>
+   345→          <span className="flex items-center gap-2 text-[#8b97b0]">
+   346→            <span className="w-2 h-2 rounded-full bg-[#22d3ee]" style={{ boxShadow: "0 0 8px rgba(34,211,238,0.4)" }} />
+   347→            <span className="text-[#22d3ee] font-semibold">{inProgress}</span> Active
+   348→          </span>
+   349→          <span className="flex items-center gap-2 text-[#8b97b0]">
+   350→            <span className="w-2 h-2 rounded-full bg-[#fbbf24]" style={{ boxShadow: "0 0 8px rgba(251,191,36,0.4)" }} />
+   351→            <span className="text-[#fbbf24] font-semibold">{pending}</span> Pending
+   352→          </span>
+   353→        </div>
+   354→        <span className="text-xs text-[#8b97b0]">
+   355→          Investigation Progress:{" "}
+   356→          <span className="text-[#f1f5f9] font-bold text-sm">{pct}%</span>
+   357→        </span>
+   358→      </div>
+   359→
+   360→      {/* Progress bar */}
+   361→      <div
+   362→        className="w-full h-2.5 rounded-full overflow-hidden"
+   363→        style={{ background: "rgba(15,21,36,0.6)", border: "1px solid rgba(255,255,255,0.04)" }}
+   364→      >
+   365→        <motion.div
+   366→          initial={{ width: 0 }}
+   367→          whileInView={{ width: `${pct}%` }}
+   368→          viewport={{ once: true }}
+   369→          transition={{ delay: 0.5, duration: 0.8, ease: "easeOut" }}
+   370→          className="h-full rounded-full"
+   371→          style={{
+   372→            background: "linear-gradient(90deg, #22d3ee, #818cf8)",
+   373→            boxShadow: "0 0 12px rgba(34,211,238,0.3), 0 0 24px rgba(129,140,248,0.15)",
+   374→          }}
+   375→        />
+   376→      </div>
+   377→    </motion.div>
+   378→  );
+   379→}
+   380→
+   381→// ─── Empty State ─────────────────────────────────────────────────────
+   382→function EmptyState({
+   383→  firs,
+   384→  onSelectFir,
+   385→}: {
+   386→  firs: { fir_id: string; crime_type: string; severity: string }[];
+   387→  onSelectFir: (id: string) => void;
+   388→}) {
+   389→  return (
+   390→    <motion.div
+   391→      initial={{ opacity: 0, y: 20 }}
+   392→      animate={{ opacity: 1, y: 0 }}
+   393→      transition={{ duration: 0.5 }}
+   394→      className="flex flex-col items-center justify-center py-20 px-6 text-center"
+   395→    >
+   396→      <div
+   397→        className="w-20 h-20 rounded-2xl glass-card flex items-center justify-center mb-6"
+   398→        style={{ boxShadow: "0 0 40px rgba(34,211,238,0.06)" }}
+   399→      >
+   400→        <Clock className="w-9 h-9 text-[#5a657a]" />
+   401→      </div>
+   402→      <h3 className="text-lg font-semibold text-[#f1f5f9] mb-2">
+   403→        Select an FIR to view its investigation timeline
+   404→      </h3>
+   405→      <p className="text-sm text-[#8b97b0] mb-8 max-w-md">
+   406→        Choose a First Information Report from the dropdown above or click one
+   407→        of the cases below to explore the chronological investigation events.
+   408→      </p>
+   409→      {firs.length > 0 && (
+   410→        <div className="flex flex-wrap items-center justify-center gap-2 max-w-lg">
+   411→          {firs.map((fir, i) => (
+   412→            <motion.button
+   413→              key={fir.fir_id}
+   414→              initial={{ opacity: 0, scale: 0.9 }}
+   415→              animate={{ opacity: 1, scale: 1 }}
+   416→              transition={{ delay: i * 0.06, duration: 0.3 }}
+   417→              onClick={() => onSelectFir(fir.fir_id)}
+   418→              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium border border-[rgba(255,255,255,0.06)] bg-[rgba(15,21,36,0.45)] text-[#8b97b0] hover:text-[#f1f5f9] hover:border-[rgba(34,211,238,0.3)] hover:bg-[rgba(34,211,238,0.08)] hover:shadow-[0_0_20px_rgba(34,211,238,0.08)] transition-all duration-200 cursor-pointer"
+   419→            >
+   420→              <span
+   421→                className="w-2 h-2 rounded-full shrink-0"
+   422→                style={{
+   423→                  backgroundColor:
+   424→                    SEVERITY_DOT_COLORS[fir.severity] ?? "#5a657a",
+   425→                  boxShadow: `0 0 6px ${SEVERITY_DOT_COLORS[fir.severity] ?? "#5a657a"}60`,
+   426→                }}
+   427→              />
+   428→              <span className="font-mono">{fir.fir_id}</span>
+   429→              <span className="text-[#5a657a]">—</span>
+   430→              <span>{fir.crime_type}</span>
+   431→              <ChevronRight className="w-3 h-3 opacity-40" />
+   432→            </motion.button>
+   433→          ))}
+   434→        </div>
+   435→      )}
+   436→    </motion.div>
+   437→  );
+   438→}
+   439→
+   440→// ─── Main Component ──────────────────────────────────────────────────
+   441→export default function InvestigationTimeline() {
+   442→  const { crimeData, selectedFirId, setSelectedFirId } = useAppStore();
+   443→  const [activeFirId, setActiveFirId] = useState<string>(() => {
+   444→    if (selectedFirId) return selectedFirId;
+   445→    return "";
+   446→  });
+   447→
+   448→  // Filter state
+   449→  const [filterStatus, setFilterStatus] = useState<string>("all");
+   450→  const [filterType, setFilterType] = useState<string>("all");
+   451→
+   452→  // Derive effective FIR ID
+   453→  const effectiveFirId = useMemo(() => {
+   454→    if (activeFirId) return activeFirId;
+   455→    if (
+   456→      selectedFirId &&
+   457→      crimeData?.firs.some((f) => f.fir_id === selectedFirId)
+   458→    ) {
+   459→      return selectedFirId;
+   460→    }
+   461→    return "";
+   462→  }, [activeFirId, selectedFirId, crimeData]);
+   463→
+   464→  // Generate timeline events
+   465→  const allEvents = useMemo<TimelineEvent[]>(() => {
+   466→    if (!crimeData || !effectiveFirId) return [];
+   467→    return generateTimeline(crimeData, effectiveFirId);
+   468→  }, [crimeData, effectiveFirId]);
+   469→
+   470→  // Apply filters
+   471→  const events = useMemo(() => {
+   472→    let filtered = allEvents;
+   473→    if (filterStatus !== "all") {
+   474→      filtered = filtered.filter((e) => e.status === filterStatus);
+   475→    }
+   476→    if (filterType !== "all") {
+   477→      filtered = filtered.filter((e) => e.type === filterType);
+   478→    }
+   479→    return filtered;
+   480→  }, [allEvents, filterStatus, filterType]);
+   481→
+   482→  // Current FIR metadata
+   483→  const currentFir = useMemo(() => {
+   484→    if (!crimeData || !effectiveFirId) return null;
+   485→    return crimeData.firs.find((f) => f.fir_id === effectiveFirId) ?? null;
+   486→  }, [crimeData, effectiveFirId]);
+   487→
+   488→  const handleFirSelect = (firId: string) => {
+   489→    setActiveFirId(firId);
+   490→    setSelectedFirId(firId);
+   491→    // Reset filters
+   492→    setFilterStatus("all");
+   493→    setFilterType("all");
+   494→  };
+   495→
+   496→  if (!crimeData) {
+   497→    return (
+   498→      <div className="flex items-center justify-center h-64 text-[#8b97b0] text-sm">
+   499→        Loading crime data...
+   500→      </div>
+   501→    );
+   502→  }
+   503→
+   504→  // Get unique types present in events for type filter
+   505→  const eventTypes = useMemo(() => {
+   506→    const types = new Set(allEvents.map((e) => e.type));
+   507→    return Array.from(types);
+   508→  }, [allEvents]);
+   509→
+   510→  return (
+   511→    <div className="p-5 h-full flex flex-col animate-fade-in-up">
+   512→      {/* ── Header ─────────────────────────────────────────────── */}
+   513→      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
+   514→        <div className="flex items-center gap-3">
+   515→          <div
+   516→            className="w-10 h-10 rounded-xl flex items-center justify-center"
+   517→            style={{
+   518→              background: "rgba(34,211,238,0.1)",
+   519→              border: "1px solid rgba(34,211,238,0.15)",
+   520→              boxShadow: "0 0 20px rgba(34,211,238,0.08)",
+   521→            }}
+   522→          >
+   523→            <Clock className="w-5 h-5 text-[#22d3ee]" />
+   524→          </div>
+   525→          <div>
+   526→            <h1 className="text-xl font-bold tracking-tight text-[#f1f5f9]">
+   527→              INVESTIGATION TIMELINE
+   528→            </h1>
+   529→            <p className="text-xs text-[#8b97b0] mt-0.5">
+   530→              Chronological view of investigation events
+   531→            </p>
+   532→          </div>
+   533→        </div>
+   534→
+   535→        <div className="flex items-center gap-3">
+   536→          {crimeData.firs.length > 0 && (
+   537→            <Select
+   538→              value={effectiveFirId || undefined}
+   539→              onValueChange={handleFirSelect}
+   540→            >
+   541→              <SelectTrigger
+   542→                className="w-[240px] text-[#f1f5f9] text-xs h-9"
+   543→                style={{
+   544→                  background: "rgba(15,21,36,0.6)",
+   545→                  border: "1px solid rgba(255,255,255,0.08)",
+   546→                }}
+   547→              >
+   548→                <SelectValue placeholder="Select FIR..." />
+   549→              </SelectTrigger>
+   550→              <SelectContent
+   551→                style={{
+   552→                  background: "var(--bg-card)",
+   553→                  border: "1px solid var(--border-subtle)",
+   554→                }}
+   555→              >
+   556→                {crimeData.firs.map((fir) => (
+   557→                  <SelectItem
+   558→                    key={fir.fir_id}
+   559→                    value={fir.fir_id}
+   560→                    className="text-[#f1f5f9] text-xs focus:bg-[rgba(34,211,238,0.1)] focus:text-[#22d3ee]"
+   561→                  >
+   562→                    <span className="flex items-center gap-2">
+   563→                      <span className="font-mono">{fir.fir_id}</span>
+   564→                      <span className="text-[#5a657a]">—</span>
+   565→                      <span className="text-[#8b97b0]">{fir.crime_type}</span>
+   566→                    </span>
+   567→                  </SelectItem>
+   568→                ))}
+   569→              </SelectContent>
+   570→            </Select>
+   571→          )}
+   572→
+   573→          {currentFir && (
+   574→            <AnimatePresence mode="wait">
+   575→              <motion.div
+   576→                key={currentFir.fir_id}
+   577→                initial={{ opacity: 0, x: 8 }}
+   578→                animate={{ opacity: 1, x: 0 }}
+   579→                exit={{ opacity: 0, x: -8 }}
+   580→                transition={{ duration: 0.2 }}
+   581→                className="flex items-center gap-2"
+   582→              >
+   583→                <span className="text-xs text-[#8b97b0] hidden sm:inline">
+   584→                  {currentFir.crime_type}
+   585→                </span>
+   586→                <Badge
+   587→                  variant="outline"
+   588→                  className={`text-[10px] font-semibold uppercase tracking-wider ${SEVERITY_COLORS[currentFir.severity] ?? "bg-gray-500/20 text-gray-400 border-gray-500/30"}`}
+   589→                >
+   590→                  {currentFir.severity}
+   591→                </Badge>
+   592→              </motion.div>
+   593→            </AnimatePresence>
+   594→          )}
+   595→        </div>
+   596→      </div>
+   597→
+   598→      {/* ── Filter Toolbar ──────────────────────────────────────── */}
+   599→      {effectiveFirId && allEvents.length > 0 && (
+   600→        <motion.div
+   601→          initial={{ opacity: 0, y: 8 }}
+   602→          animate={{ opacity: 1, y: 0 }}
+   603→          transition={{ duration: 0.3 }}
+   604→          className="glass-card p-4 mb-5"
+   605→          style={{ borderColor: "rgba(255,255,255,0.04)" }}
+   606→        >
+   607→          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+   608→            {/* Filter icon + label */}
+   609→            <div className="flex items-center gap-2 text-xs text-[#5a657a] font-medium uppercase tracking-wider shrink-0">
+   610→              <Filter className="w-3.5 h-3.5" />
+   611→              Filters
+   612→            </div>
+   613→
+   614→            {/* Status filters */}
+   615→            <div className="flex items-center gap-2 flex-wrap">
+   616→              <FilterPill
+   617→                label="All"
+   618→                active={filterStatus === "all"}
+   619→                onClick={() => setFilterStatus("all")}
+   620→              />
+   621→              <FilterPill
+   622→                label="Completed"
+   623→                active={filterStatus === "completed"}
+   624→                onClick={() => setFilterStatus("completed")}
+   625→                color="#34d399"
+   626→              />
+   627→              <FilterPill
+   628→                label="In Progress"
+   629→                active={filterStatus === "in_progress"}
+   630→                onClick={() => setFilterStatus("in_progress")}
+   631→                color="#22d3ee"
+   632→              />
+   633→              <FilterPill
+   634→                label="Pending"
+   635→                active={filterStatus === "pending"}
+   636→                onClick={() => setFilterStatus("pending")}
+   637→                color="#fbbf24"
+   638→              />
+   639→            </div>
+   640→
+   641→            {/* Separator */}
+   642→            <div className="hidden sm:block w-px h-6 bg-[rgba(255,255,255,0.06)]" />
+   643→
+   644→            {/* Type filters */}
+   645→            <div className="flex items-center gap-2 flex-wrap">
+   646→              <FilterPill
+   647→                label="All Types"
+   648→                active={filterType === "all"}
+   649→                onClick={() => setFilterType("all")}
+   650→              />
+   651→              {eventTypes.map((t) => {
+   652→                const info = TYPE_COLORS[t];
+   653→                return (
+   654→                  <FilterPill
+   655→                    key={t}
+   656→                    label={info.label}
+   657→                    active={filterType === t}
+   658→                    onClick={() => setFilterType(t)}
+   659→                    color={info.color}
+   660→                  />
+   661→                );
+   662→              })}
+   663→            </div>
+   664→          </div>
+   665→
+   666→          {/* Active filter count */}
+   667→          {(filterStatus !== "all" || filterType !== "all") && (
+   668→            <div className="mt-3 pt-3 flex items-center gap-2" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+   669→              <Eye className="w-3 h-3 text-[#5a657a]" />
+   670→              <span className="text-[10px] text-[#5a657a]">
+   671→                Showing {events.length} of {allEvents.length} events
+   672→              </span>
+   673→            </div>
+   674→          )}
+   675→        </motion.div>
+   676→      )}
+   677→
+   678→      {/* ── Content ────────────────────────────────────────────── */}
+   679→      <div className="flex-1 min-h-0">
+   680→        {!effectiveFirId ? (
+   681→          <EmptyState firs={crimeData.firs} onSelectFir={handleFirSelect} />
+   682→        ) : events.length === 0 ? (
+   683→          <motion.div
+   684→            initial={{ opacity: 0 }}
+   685→            animate={{ opacity: 1 }}
+   686→            className="flex flex-col items-center justify-center py-20 text-center"
+   687→          >
+   688→            <div className="w-16 h-16 rounded-2xl glass-card flex items-center justify-center mb-4">
+   689→              <AlertTriangle className="w-8 h-8 text-[#5a657a]" />
+   690→            </div>
+   691→            <p className="text-sm text-[#8b97b0]">
+   692→              {allEvents.length > 0
+   693→                ? "No events match the current filters."
+   694→                : "No timeline events found for this FIR."}
+   695→            </p>
+   696→            {allEvents.length > 0 && (
+   697→              <button
+   698→                onClick={() => {
+   699→                  setFilterStatus("all");
+   700→                  setFilterType("all");
+   701→                }}
+   702→                className="mt-3 text-xs text-[#22d3ee] hover:underline cursor-pointer"
+   703→              >
+   704→                Clear all filters
+   705→              </button>
+   706→            )}
+   707→          </motion.div>
+   708→        ) : (
+   709→          <div className="relative h-full overflow-y-auto pr-1">
+   710→            {/* Vertical glowing line — left-aligned */}
+   711→            <div
+   712→              className="absolute left-[22px] top-0 bottom-0 w-[2px] z-0"
+   713→              style={{
+   714→                background:
+   715→                  "linear-gradient(to bottom, #22d3ee, #818cf8 50%, #22d3ee)",
+   716→                opacity: 0.3,
+   717→                boxShadow: "0 0 8px rgba(34,211,238,0.1), 0 0 16px rgba(129,140,248,0.06)",
+   718→              }}
+   719→            />
+   720→
+   721→            {/* Timeline events */}
+   722→            <div className="space-y-6 relative z-10">
+   723→              {events.map((event, index) => {
+   724→                const typeInfo = TYPE_COLORS[event.type] ?? TYPE_COLORS.complaint;
+   725→
+   726→                return (
+   727→                  <div key={event.id} className="relative flex items-start w-full gap-4">
+   728→                    {/* Node */}
+   729→                    <LeftNode event={event} index={index} />
+   730→
+   731→                    {/* Card */}
+   732→                    <EventCardContent event={event} index={index} />
+   733→                  </div>
+   734→                );
+   735→              })}
+   736→            </div>
+   737→          </div>
+   738→        )}
+   739→      </div>
+   740→
+   741→      {/* ── Summary Bar ─────────────────────────────────────────── */}
+   742→      {effectiveFirId && allEvents.length > 0 && (
+   743→        <div className="mt-5 shrink-0">
+   744→          <SummaryBar events={allEvents} />
+   745→        </div>
+   746→      )}
+   747→    </div>
+   748→  );
+   749→}

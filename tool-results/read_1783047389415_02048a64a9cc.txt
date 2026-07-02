@@ -1,0 +1,1113 @@
+     1→     1→@import "tailwindcss";
+     2→     2→@import "tw-animate-css";
+     3→     3→
+     4→     4→@custom-variant dark (&:is(.dark *));
+     5→     5→
+     6→     6→@theme inline {
+     7→     7→  --color-background: var(--background);
+     8→     8→  --color-foreground: var(--foreground);
+     9→     9→  --font-sans: var(--font-geist-sans);
+    10→    10→  --font-mono: var(--font-geist-mono);
+    11→    11→  --color-sidebar-ring: var(--sidebar-ring);
+    12→    12→  --color-sidebar-border: var(--sidebar-border);
+    13→    13→  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    14→    14→  --color-sidebar-accent: var(--sidebar-accent);
+    15→    15→  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    16→    16→  --color-sidebar-primary: var(--sidebar-primary);
+    17→    17→  --color-sidebar-foreground: var(--sidebar-foreground);
+    18→    18→  --color-sidebar: var(--sidebar);
+    19→    19→  --color-chart-5: var(--chart-5);
+    20→    20→  --color-chart-4: var(--chart-4);
+    21→    21→  --color-chart-3: var(--chart-3);
+    22→    22→  --color-chart-2: var(--chart-2);
+    23→    23→  --color-chart-1: var(--chart-1);
+    24→    24→  --color-ring: var(--ring);
+    25→    25→  --color-input: var(--input);
+    26→    26→  --color-border: var(--border);
+    27→    27→  --color-destructive: var(--destructive);
+    28→    28→  --color-accent-foreground: var(--accent-foreground);
+    29→    29→  --color-accent: var(--accent);
+    30→    30→  --color-muted-foreground: var(--muted-foreground);
+    31→    31→  --color-muted: var(--muted);
+    32→    32→  --color-secondary-foreground: var(--secondary-foreground);
+    33→    33→  --color-secondary: var(--secondary);
+    34→    34→  --color-primary-foreground: var(--primary-foreground);
+    35→    35→  --color-primary: var(--primary);
+    36→    36→  --color-popover-foreground: var(--popover-foreground);
+    37→    37→  --color-popover: var(--popover);
+    38→    38→  --color-card-foreground: var(--card-foreground);
+    39→    39→  --color-card: var(--card);
+    40→    40→  --radius-sm: calc(var(--radius) - 4px);
+    41→    41→  --radius-md: calc(var(--radius) - 2px);
+    42→    42→  --radius-lg: var(--radius);
+    43→    43→  --radius-xl: calc(var(--radius) + 4px);
+    44→    44→}
+    45→    45→
+    46→    46→/* ═══════════════════════════════════════════════════════════════════════
+    47→    47→   BLACKBIRD DESIGN SYSTEM — KSP Sentinel AI
+    48→    48→   Palantir Gotham × Apple Vision Pro × Linear × Microsoft Security Copilot
+    49→    49→   ═══════════════════════════════════════════════════════════════════════ */
+    50→    50→
+    51→    51→:root {
+    52→    52→  --radius: 0.5rem;
+    53→    53→
+    54→    54→  /* ── Background Elevation Layers ─────────────────────────────────── */
+    55→    55→  --background: #050810;
+    56→    56→  --bg-elevated-1: #080c18;
+    57→    57→  --bg-elevated-2: #0d1221;
+    58→    58→  --bg-elevated-3: #111827;
+    59→    59→  --bg-card: #0f1524;
+    60→    60→  --bg-card-hover: #141c2f;
+    61→    61→  --bg-input: #0a0f1c;
+    62→    62→  --bg-sidebar: #070a14;
+    63→    63→
+    64→    64→  /* ── Foreground / Text ──────────────────────────────────────────── */
+    65→    65→  --foreground: #e8edf5;
+    66→    66→  --text-primary: #f1f5f9;
+    67→    67→  --text-secondary: #8b97b0;
+    68→    68→  --text-tertiary: #5a657a;
+    69→    69→  --text-muted: #3d4659;
+    70→    70→
+    71→    71→  /* ── Primary Accent: Electric Cyan ──────────────────────────────── */
+    72→    72→  --primary: #22d3ee;
+    73→    73→  --primary-foreground: #050810;
+    74→    74→  --primary-glow: rgba(34, 211, 238, 0.12);
+    75→    75→  --primary-glow-strong: rgba(34, 211, 238, 0.25);
+    76→    76→  --primary-subtle: rgba(34, 211, 238, 0.06);
+    77→    77→
+    78→    78→  /* ── Secondary Accent: Deep Indigo ──────────────────────────────── */
+    79→    79→  --secondary: #818cf8;
+    80→    80→  --secondary-foreground: #f1f5f9;
+    81→    81→  --secondary-glow: rgba(129, 140, 248, 0.12);
+    82→    82→
+    83→    83→  /* ── Status Colors ──────────────────────────────────────────────── */
+    84→    84→  --success: #34d399;
+    85→    85→  --success-glow: rgba(52, 211, 153, 0.12);
+    86→    86→  --warning: #fbbf24;
+    87→    87→  --warning-glow: rgba(251, 191, 36, 0.12);
+    88→    88→  --critical: #f87171;
+    89→    89→  --critical-glow: rgba(248, 113, 113, 0.12);
+    90→    90→
+    91→    91→  /* ── Muted / Neutral ────────────────────────────────────────────── */
+    92→    92→  --muted: #111827;
+    93→    93→  --muted-foreground: #8b97b0;
+    94→    94→  --accent: #1a2236;
+    95→    95→  --accent-foreground: #e8edf5;
+    96→    96→
+    97→    97→  /* ── Borders ────────────────────────────────────────────────────── */
+    98→    98→  --border: rgba(255, 255, 255, 0.06);
+    99→    99→  --border-subtle: rgba(255, 255, 255, 0.04);
+   100→   100→  --border-default: rgba(255, 255, 255, 0.08);
+   101→   101→  --border-strong: rgba(255, 255, 255, 0.12);
+   102→   102→  --border-accent: rgba(34, 211, 238, 0.15);
+   103→   103→
+   104→   104→  /* ── Destructive ────────────────────────────────────────────────── */
+   105→   105→  --destructive: #f87171;
+   106→   106→
+   107→   107→  /* ── Card & Popover ─────────────────────────────────────────────── */
+   108→   108→  --card: #0f1524;
+   109→   109→  --card-foreground: #e8edf5;
+   110→   110→  --popover: #0f1524;
+   111→   111→  --popover-foreground: #e8edf5;
+   112→   112→
+   113→   113→  /* ── Input ──────────────────────────────────────────────────────── */
+   114→   114→  --input: #0a0f1c;
+   115→   115→
+   116→   116→  /* ── Ring ───────────────────────────────────────────────────────── */
+   117→   117→  --ring: #22d3ee;
+   118→   118→
+   119→   119→  /* ── Charts ─────────────────────────────────────────────────────── */
+   120→   120→  --chart-1: #22d3ee;
+   121→   121→  --chart-2: #818cf8;
+   122→   122→  --chart-3: #34d399;
+   123→   123→  --chart-4: #f87171;
+   124→   124→  --chart-5: #fbbf24;
+   125→   125→
+   126→   126→  /* ── Sidebar ────────────────────────────────────────────────────── */
+   127→   127→  --sidebar: var(--bg-sidebar);
+   128→   128→  --sidebar-foreground: #c8d0e0;
+   129→   129→  --sidebar-primary: #22d3ee;
+   130→   130→  --sidebar-primary-foreground: #050810;
+   131→   131→  --sidebar-accent: rgba(34, 211, 238, 0.06);
+   132→   132→  --sidebar-accent-foreground: #e8edf5;
+   133→   133→  --sidebar-border: rgba(255, 255, 255, 0.05);
+   134→   134→  --sidebar-ring: #22d3ee;
+   135→   135→}
+   136→   136→
+   137→   137→.dark {
+   138→   138→  --background: #050810;
+   139→   139→  --foreground: #e8edf5;
+   140→   140→  --card: #0f1524;
+   141→   141→  --card-foreground: #e8edf5;
+   142→   142→  --popover: #0f1524;
+   143→   143→  --popover-foreground: #e8edf5;
+   144→   144→  --primary: #22d3ee;
+   145→   145→  --primary-foreground: #050810;
+   146→   146→  --secondary: #818cf8;
+   147→   147→  --secondary-foreground: #f1f5f9;
+   148→   148→  --muted: #111827;
+   149→   149→  --muted-foreground: #8b97b0;
+   150→   150→  --accent: #1a2236;
+   151→   151→  --accent-foreground: #e8edf5;
+   152→   152→  --destructive: #f87171;
+   153→   153→  --border: rgba(255, 255, 255, 0.06);
+   154→   154→  --input: #0a0f1c;
+   155→   155→  --ring: #22d3ee;
+   156→   156→  --chart-1: #22d3ee;
+   157→   157→  --chart-2: #818cf8;
+   158→   158→  --chart-3: #34d399;
+   159→   159→  --chart-4: #f87171;
+   160→   160→  --chart-5: #fbbf24;
+   161→   161→  --sidebar: var(--bg-sidebar);
+   162→   162→  --sidebar-foreground: #c8d0e0;
+   163→   163→  --sidebar-primary: #22d3ee;
+   164→   164→  --sidebar-primary-foreground: #050810;
+   165→   165→  --sidebar-accent: rgba(34, 211, 238, 0.06);
+   166→   166→  --sidebar-accent-foreground: #e8edf5;
+   167→   167→  --sidebar-border: rgba(255, 255, 255, 0.05);
+   168→   168→  --sidebar-ring: #22d3ee;
+   169→   169→
+   170→   170→  --bg-elevated-1: #080c18;
+   171→   171→  --bg-elevated-2: #0d1221;
+   172→   172→  --bg-elevated-3: #111827;
+   173→   173→  --bg-card: #0f1524;
+   174→   174→  --bg-card-hover: #141c2f;
+   175→   175→  --bg-input: #0a0f1c;
+   176→   176→  --bg-sidebar: #070a14;
+   177→   177→  --text-primary: #f1f5f9;
+   178→   178→  --text-secondary: #8b97b0;
+   179→   179→  --text-tertiary: #5a657a;
+   180→   180→  --text-muted: #3d4659;
+   181→   181→  --primary-glow: rgba(34, 211, 238, 0.12);
+   182→   182→  --primary-glow-strong: rgba(34, 211, 238, 0.25);
+   183→   183→  --primary-subtle: rgba(34, 211, 238, 0.06);
+   184→   184→  --secondary-glow: rgba(129, 140, 248, 0.12);
+   185→   185→  --success: #34d399;
+   186→   186→  --success-glow: rgba(52, 211, 153, 0.12);
+   187→   187→  --warning: #fbbf24;
+   188→   188→  --warning-glow: rgba(251, 191, 36, 0.12);
+   189→   189→  --critical: #f87171;
+   190→   190→  --critical-glow: rgba(248, 113, 113, 0.12);
+   191→   191→  --border-subtle: rgba(255, 255, 255, 0.04);
+   192→   192→  --border-default: rgba(255, 255, 255, 0.08);
+   193→   193→  --border-strong: rgba(255, 255, 255, 0.12);
+   194→   194→  --border-accent: rgba(34, 211, 238, 0.15);
+   195→   195→
+   196→   196→  color-scheme: dark;
+   197→   197→}
+   198→   198→
+   199→   199→/* ═══════════════════════════════════════════════════════════════════════
+   200→   200→   LIGHT THEME — Clean, professional, high-contrast
+   201→   201→   ═══════════════════════════════════════════════════════════════════════ */
+   202→   202→
+   203→   203→.light {
+   204→   204→  --background: #f8fafc;
+   205→   205→  --foreground: #0f172a;
+   206→   206→  --card: #ffffff;
+   207→   207→  --card-foreground: #0f172a;
+   208→   208→  --popover: #ffffff;
+   209→   209→  --popover-foreground: #0f172a;
+   210→   210→  --primary: #0891b2;
+   211→   211→  --primary-foreground: #ffffff;
+   212→   212→  --secondary: #6366f1;
+   213→   213→  --secondary-foreground: #ffffff;
+   214→   214→  --muted: #f1f5f9;
+   215→   215→  --muted-foreground: #64748b;
+   216→   216→  --accent: #e0f2fe;
+   217→   217→  --accent-foreground: #0c4a6e;
+   218→   218→  --destructive: #ef4444;
+   219→   219→  --border: rgba(0, 0, 0, 0.08);
+   220→   220→  --input: #e2e8f0;
+   221→   221→  --ring: #0891b2;
+   222→   222→  --chart-1: #0891b2;
+   223→   223→  --chart-2: #6366f1;
+   224→   224→  --chart-3: #059669;
+   225→   225→  --chart-4: #ef4444;
+   226→   226→  --chart-5: #d97706;
+   227→   227→  --sidebar: #ffffff;
+   228→   228→  --sidebar-foreground: #334155;
+   229→   229→  --sidebar-primary: #0891b2;
+   230→   230→  --sidebar-primary-foreground: #ffffff;
+   231→   231→  --sidebar-accent: rgba(8, 145, 178, 0.08);
+   232→   232→  --sidebar-accent-foreground: #0f172a;
+   233→   233→  --sidebar-border: rgba(0, 0, 0, 0.06);
+   234→   234→  --sidebar-ring: #0891b2;
+   235→   235→
+   236→   236→  --bg-elevated-1: #f1f5f9;
+   237→   237→  --bg-elevated-2: #e2e8f0;
+   238→   238→  --bg-elevated-3: #cbd5e1;
+   239→   239→  --bg-card: #ffffff;
+   240→   240→  --bg-card-hover: #f8fafc;
+   241→   241→  --bg-input: #f1f5f9;
+   242→   242→  --bg-sidebar: #ffffff;
+   243→   243→  --text-primary: #0f172a;
+   244→   244→  --text-secondary: #475569;
+   245→   245→  --text-tertiary: #94a3b8;
+   246→   246→  --text-muted: #cbd5e1;
+   247→   247→  --primary-glow: rgba(8, 145, 178, 0.1);
+   248→   248→  --primary-glow-strong: rgba(8, 145, 178, 0.2);
+   249→   249→  --primary-subtle: rgba(8, 145, 178, 0.05);
+   250→   250→  --secondary-glow: rgba(99, 102, 241, 0.1);
+   251→   251→  --success: #059669;
+   252→   252→  --success-glow: rgba(5, 150, 105, 0.1);
+   253→   253→  --warning: #d97706;
+   254→   254→  --warning-glow: rgba(217, 119, 6, 0.1);
+   255→   255→  --critical: #ef4444;
+   256→   256→  --critical-glow: rgba(239, 68, 68, 0.1);
+   257→   257→  --border-subtle: rgba(0, 0, 0, 0.04);
+   258→   258→  --border-default: rgba(0, 0, 0, 0.08);
+   259→   259→  --border-strong: rgba(0, 0, 0, 0.12);
+   260→   260→  --border-accent: rgba(8, 145, 178, 0.2);
+   261→   261→
+   262→   262→  color-scheme: light;
+   263→   263→}
+   264→   264→
+   265→   265→/* Light theme overrides for hardcoded dark elements */
+   266→   266→.light .leaflet-container { background: #e2e8f0; }
+   267→   267→.light .leaflet-tile-pane { filter: none; }
+   268→   268→.light .leaflet-popup-content-wrapper {
+   269→   269→  background: rgba(255, 255, 255, 0.95);
+   270→   270→  color: #0f172a;
+   271→   271→  border: 1px solid rgba(0, 0, 0, 0.08);
+   272→   272→}
+   273→   273→.light .leaflet-popup-tip { background: rgba(255, 255, 255, 0.95); }
+   274→   274→.light .leaflet-control-zoom a {
+   275→   275→  background: rgba(255, 255, 255, 0.9) !important;
+   276→   276→  color: #334155 !important;
+   277→   277→  border-color: rgba(0, 0, 0, 0.08) !important;
+   278→   278→}
+   279→   279→.light .leaflet-control-zoom a:hover {
+   280→   280→  background: rgba(8, 145, 178, 0.1) !important;
+   281→   281→  color: #0891b2 !important;
+   282→   282→}
+   283→   283→.light .glass { background: rgba(255, 255, 255, 0.6); border-color: rgba(0, 0, 0, 0.06); }
+   284→   284→.light .glass-strong { background: rgba(255, 255, 255, 0.8); border-color: rgba(0, 0, 0, 0.08); }
+   285→   285→.light .glass-card { background: rgba(255, 255, 255, 0.5); border-color: rgba(0, 0, 0, 0.06); }
+   286→   286→.light .glass-card:hover { background: rgba(255, 255, 255, 0.7); border-color: rgba(8, 145, 178, 0.15); }
+   287→   287→.light .cmdk-overlay { background: rgba(0, 0, 0, 0.3) !important; }
+   288→   288→.light .cmdk { background: rgba(255, 255, 255, 0.95) !important; border-color: rgba(0, 0, 0, 0.08) !important; }
+   289→   289→.light .cmdk-input { color: #0f172a !important; border-color: rgba(0, 0, 0, 0.06) !important; }
+   290→   290→.light .cmdk-input::placeholder { color: #94a3b8 !important; }
+   291→   291→.light .cmdk-item { color: #334155 !important; }
+   292→   292→.light .cmdk-item[data-selected="true"] { background: rgba(8, 145, 178, 0.08) !important; color: #0891b2 !important; }
+   293→   293→.light .cmdk-group-heading { color: #94a3b8 !important; }
+   294→   294→.light .cmdk-separator { background: rgba(0, 0, 0, 0.06) !important; }
+   295→   295→.light .cmdk-shortcut { color: #94a3b8 !important; background: rgba(0, 0, 0, 0.04) !important; border-color: rgba(0, 0, 0, 0.06) !important; }
+   296→   296→.light ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.12); }
+   297→   297→.light ::-webkit-scrollbar-thumb:hover { background: rgba(8, 145, 178, 0.3); }
+   298→   298→.light .skeleton { background: linear-gradient(90deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.08) 50%, rgba(0, 0, 0, 0.04) 75%); }
+   299→   299→.light .sidebar-active-glow::before { background: #0891b2; box-shadow: 0 0 12px rgba(8, 145, 178, 0.3), 0 0 24px rgba(8, 145, 178, 0.1); }
+   300→   300→.light .border-glow { border-color: rgba(0, 0, 0, 0.06); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8); }
+   301→   301→.light ::selection { background: rgba(8, 145, 178, 0.2); color: #0f172a; }
+   302→   302→.light .force-graph-tooltip { background: rgba(255, 255, 255, 0.95) !important; color: #0f172a !important; border-color: rgba(0, 0, 0, 0.08) !important; }
+   303→   303→.light .gradient-cyan { background: linear-gradient(135deg, rgba(8, 145, 178, 0.06) 0%, transparent 60%); }
+   304→   304→.light .gradient-indigo { background: linear-gradient(135deg, rgba(99, 102, 241, 0.06) 0%, transparent 60%); }
+   305→   305→.light .gradient-emerald { background: linear-gradient(135deg, rgba(5, 150, 105, 0.06) 0%, transparent 60%); }
+   306→   306→.light .gradient-amber { background: linear-gradient(135deg, rgba(217, 119, 6, 0.06) 0%, transparent 60%); }
+   307→   307→.light .gradient-rose { background: linear-gradient(135deg, rgba(239, 68, 68, 0.06) 0%, transparent 60%); }
+   308→   308→
+   309→   309→/* ═══════════════════════════════════════════════════════════════════════
+   310→   310→   LIGHT MODE — Hardcoded dark-theme color overrides
+   311→   311→   Components use Tailwind arbitrary values like text-[#f1f5f9] that
+   312→   312→   are dark-only. These overrides remap them for light backgrounds.
+   313→   313→   ═══════════════════════════════════════════════════════════════════════ */
+   314→   314→
+   315→   315→/* ── Primary heading text ─────────────────────────────────────────── */
+   316→   316→.light .text-\[\#f1f5f9\] { color: #0f172a !important; }
+   317→   317→.light .text-\[\#e8edf5\] { color: #0f172a !important; }
+   318→   318→
+   319→   319→/* ── Secondary body text ─────────────────────────────────────────── */
+   320→   320→.light .text-\[\#8b97b0\] { color: #475569 !important; }
+   321→   321→
+   322→   322→/* ── Tertiary / hint text ────────────────────────────────────────── */
+   323→   323→.light .text-\[\#5a657a\] { color: #94a3b8 !important; }
+   324→   324→
+   325→   325→/* ── Muted / placeholder text ────────────────────────────────────── */
+   326→   326→.light .text-\[\#3d4659\] { color: #cbd5e1 !important; }
+   327→   327→
+   328→   328→/* ── Background tints (white-on-dark) ────────────────────────────── */
+   329→   329→.light .bg-white\/5 { background-color: rgba(0, 0, 0, 0.03) !important; }
+   330→   330→.light .bg-white\/\[0\.03\] { background-color: rgba(0, 0, 0, 0.02) !important; }
+   331→   331→.light .bg-white\/\[0\.04\] { background-color: rgba(0, 0, 0, 0.025) !important; }
+   332→   332→.light .bg-white\/\[0\.05\] { background-color: rgba(0, 0, 0, 0.03) !important; }
+   333→   333→.light .bg-white\/\[0\.06\] { background-color: rgba(0, 0, 0, 0.04) !important; }
+   334→   334→.light .bg-white\/\[0\.08\] { background-color: rgba(0, 0, 0, 0.05) !important; }
+   335→   335→.light .bg-white\/\[0\.1\] { background-color: rgba(0, 0, 0, 0.06) !important; }
+   336→   336→.light .bg-white\/10 { background-color: rgba(0, 0, 0, 0.06) !important; }
+   337→   337→.light .bg-white\/\[0\.15\] { background-color: rgba(0, 0, 0, 0.08) !important; }
+   338→   338→.light .bg-white\/\[0\.2\] { background-color: rgba(0, 0, 0, 0.1) !important; }
+   339→   339→.light .bg-white\/20 { background-color: rgba(0, 0, 0, 0.1) !important; }
+   340→   340→
+   341→   341→/* ── Border tints (white-on-dark) ────────────────────────────────── */
+   342→   342→.light .border-white\/5 { border-color: rgba(0, 0, 0, 0.04) !important; }
+   343→   343→.light .border-white\/\[0\.05\] { border-color: rgba(0, 0, 0, 0.04) !important; }
+   344→   344→.light .border-white\/\[0\.06\] { border-color: rgba(0, 0, 0, 0.06) !important; }
+   345→   345→.light .border-white\/\[0\.08\] { border-color: rgba(0, 0, 0, 0.08) !important; }
+   346→   346→.light .border-white\/\[0\.1\] { border-color: rgba(0, 0, 0, 0.1) !important; }
+   347→   347→.light .border-white\/10 { border-color: rgba(0, 0, 0, 0.1) !important; }
+   348→   348→.light .border-white\/\[0\.12\] { border-color: rgba(0, 0, 0, 0.12) !important; }
+   349→   349→.light .border-white\/\[0\.15\] { border-color: rgba(0, 0, 0, 0.15) !important; }
+   350→   350→.light .border-white\/\[0\.2\] { border-color: rgba(0, 0, 0, 0.2) !important; }
+   351→   351→
+   352→   352→/* ── Accent text colors (darken for light bg) ────────────────────── */
+   353→   353→.light .text-\[\#22d3ee\] { color: #0891b2 !important; }
+   354→   354→.light .text-\[\#818cf8\] { color: #6366f1 !important; }
+   355→   355→.light .text-\[\#34d399\] { color: #059669 !important; }
+   356→   356→.light .text-\[\#fbbf24\] { color: #d97706 !important; }
+   357→   357→.light .text-\[\#f87171\] { color: #ef4444 !important; }
+   358→   358→.light .text-\[\#ec4899\] { color: #db2777 !important; }
+   359→   359→.light .text-\[\#84cc16\] { color: #65a30d !important; }
+   360→   360→.light .text-\[\#06b6d4\] { color: #0891b2 !important; }
+   361→   361→
+   362→   362→/* ── Badge background tints ──────────────────────────────────────── */
+   363→   363→.light .bg-\[\#22d3ee\]\/10 { background-color: rgba(8, 145, 178, 0.08) !important; }
+   364→   364→.light .bg-\[\#22d3ee\]\/20 { background-color: rgba(8, 145, 178, 0.15) !important; }
+   365→   365→.light .bg-\[\#818cf8\]\/10 { background-color: rgba(99, 102, 241, 0.08) !important; }
+   366→   366→.light .bg-\[\#818cf8\]\/15 { background-color: rgba(99, 102, 241, 0.1) !important; }
+   367→   367→.light .bg-\[\#34d399\]\/10 { background-color: rgba(5, 150, 105, 0.08) !important; }
+   368→   368→.light .bg-\[\#34d399\]\/20 { background-color: rgba(5, 150, 105, 0.15) !important; }
+   369→   369→.light .bg-\[\#fbbf24\]\/10 { background-color: rgba(217, 119, 6, 0.08) !important; }
+   370→   370→.light .bg-\[\#fbbf24\]\/20 { background-color: rgba(217, 119, 6, 0.15) !important; }
+   371→   371→.light .bg-\[\#f87171\]\/10 { background-color: rgba(239, 68, 68, 0.08) !important; }
+   372→   372→.light .bg-\[\#f87171\]\/20 { background-color: rgba(239, 68, 68, 0.15) !important; }
+   373→   373→.light .bg-\[\#ec4899\]\/10 { background-color: rgba(219, 39, 119, 0.08) !important; }
+   374→   374→.light .bg-\[\#ec4899\]\/20 { background-color: rgba(219, 39, 119, 0.15) !important; }
+   375→   375→
+   376→   376→/* ── Badge text (300-shade → darker for light) ───────────────────── */
+   377→   377→.light .text-red-300 { color: #dc2626 !important; }
+   378→   378→.light .text-amber-300 { color: #d97706 !important; }
+   379→   379→.light .text-emerald-300 { color: #059669 !important; }
+   380→   380→.light .text-cyan-300 { color: #0891b2 !important; }
+   381→   381→.light .text-pink-300 { color: #db2777 !important; }
+   382→   382→.light .text-lime-300 { color: #65a30d !important; }
+   383→   383→
+   384→   384→/* ── Separator / divider backgrounds ─────────────────────────────── */
+   385→   385→.light .bg-white\/10,
+   386→   386→.light .bg-white\/\[0\.1\] { background-color: rgba(0, 0, 0, 0.08) !important; }
+   387→   387→.light .bg-white\/\[0\.12\] { background-color: rgba(0, 0, 0, 0.1) !important; }
+   388→   388→
+   389→   389→/* ── Hover states ────────────────────────────────────────────────── */
+   390→   390→.light .hover\:bg-white\/5:hover { background-color: rgba(0, 0, 0, 0.04) !important; }
+   391→   391→.light .hover\:bg-white\/\[0\.05\]:hover { background-color: rgba(0, 0, 0, 0.04) !important; }
+   392→   392→.light .hover\:bg-white\/10:hover { background-color: rgba(0, 0, 0, 0.06) !important; }
+   393→   393→.light .hover\:bg-white\/\[0\.1\]:hover { background-color: rgba(0, 0, 0, 0.06) !important; }
+   394→   394→.light .hover\:bg-white\/\[0\.08\]:hover { background-color: rgba(0, 0, 0, 0.05) !important; }
+   395→   395→.light .hover\:bg-white\/\[0\.06\]:hover { background-color: rgba(0, 0, 0, 0.04) !important; }
+   396→   396→
+   397→   397→/* ── Active / selected tab states ────────────────────────────────── */
+   398→   398→.light .data-\[state\=active\]\:bg-white\/10,
+   399→   399→.light .data-\[state\=active\]\:bg-white\/\[0\.1\] { background-color: rgba(0, 0, 0, 0.06) !important; }
+   400→   400→.light .data-\[state\=active\]\:text-\[\#f1f5f9\] { color: #0f172a !important; }
+   401→   401→.light .data-\[state\=active\]\:text-\[\#8b97b0\] { color: #0891b2 !important; }
+   402→   402→
+   403→   403→/* ── Theme selector card borders ─────────────────────────────────── */
+   404→   404→.light .border-blue-500 { border-color: #0891b2 !important; }
+   405→   405→.light .ring-blue-500\/30 { --tw-ring-color: rgba(8, 145, 178, 0.3) !important; }
+   406→   406→
+   407→   407→/* ── Focus ring for light mode ───────────────────────────────────── */
+   408→   408→.light :focus-visible {
+   409→   409→  outline: 2px solid rgba(8, 145, 178, 0.5);
+   410→   410→}
+   411→   411→
+   412→   412→/* ── Recharts / chart text in light mode ─────────────────────────── */
+   413→   413→.light .recharts-cartesian-axis-tick-value { fill: #64748b !important; }
+   414→   414→.light .recharts-legend-item-text { fill: #475569 !important; }
+   415→   415→.light .recharts-tooltip-label { fill: #0f172a !important; }
+   416→   416→.light .recharts-tooltip-item { color: #334155 !important; }
+   417→   417→
+   418→   418→/* ── Notification panel bg tints ─────────────────────────────────── */
+   419→   419→.light .whilehover\:bg-white\/\[0\.02\] { background-color: rgba(0, 0, 0, 0.02) !important; }
+   420→   420→
+   421→   421→/* ── Inline bg tints with rgba ───────────────────────────────────── */
+   422→   422→.light .bg-\[\#22d3ee\]\/15 { background-color: rgba(8, 145, 178, 0.1) !important; }
+   423→   423→.light .bg-\[\#34d399\]\/15 { background-color: rgba(5, 150, 105, 0.1) !important; }
+   424→   424→.light .bg-\[\#fbbf24\]\/15 { background-color: rgba(217, 119, 6, 0.1) !important; }
+   425→   425→.light .bg-\[\#f87171\]\/15 { background-color: rgba(239, 68, 68, 0.1) !important; }
+   426→   426→
+   427→   427→/* ── Additional patterns seen in components ──────────────────────── */
+   428→   428→.light .bg-\[rgba\(34\,211\,238\,0\.15\)\] { background-color: rgba(8, 145, 178, 0.1) !important; }
+   429→   429→.light .bg-\[rgba\(129\,140\,248\,0\.08\)\] { background-color: rgba(99, 102, 241, 0.06) !important; }
+   430→   430→.light .bg-\[rgba\(129\,140\,248\,0\.15\)\] { background-color: rgba(99, 102, 241, 0.1) !important; }
+   431→   431→.light .bg-\[rgba\(52\,211\,153\,0\.08\)\] { background-color: rgba(5, 150, 105, 0.06) !important; }
+   432→   432→.light .bg-\[rgba\(52\,211\,153\,0\.15\)\] { background-color: rgba(5, 150, 105, 0.1) !important; }
+   433→   433→.light .bg-\[rgba\(251\,191\,36\,0\.08\)\] { background-color: rgba(217, 119, 6, 0.06) !important; }
+   434→   434→.light .bg-\[rgba\(248\,113\,113\,0\.08\)\] { background-color: rgba(239, 68, 68, 0.06) !important; }
+   435→   435→.light .bg-\[rgba\(236\,72\,153\,0\.08\)\] { background-color: rgba(219, 39, 119, 0.06) !important; }
+   436→   436→
+   437→   437→/* ── Border patterns with rgba ───────────────────────────────────── */
+   438→   438→.light .border-\[\#22d3ee\]\/20,
+   439→   439→.light .border-\[rgba\(34\,211\,238\,0\.2\)\] { border-color: rgba(8, 145, 178, 0.2) !important; }
+   440→   440→.light .border-\[rgba\(129\,140\,248\,0\.15\)\] { border-color: rgba(99, 102, 241, 0.15) !important; }
+   441→   441→.light .border-\[rgba\(255\,255\,255\,0\.06\)\] { border-color: rgba(0, 0, 0, 0.06) !important; }
+   442→   442→.light .border-\[rgba\(255\,255\,255\,0\.08\)\] { border-color: rgba(0, 0, 0, 0.08) !important; }
+   443→   443→.light .border-\[rgba\(255\,255\,255\,0\.1\)\] { border-color: rgba(0, 0, 0, 0.1) !important; }
+   444→   444→.light .border-\[rgba\(255\,255\,255\,0\.12\)\] { border-color: rgba(0, 0, 0, 0.12) !important; }
+   445→   445→.light .border-\[rgba\(255\,255\,255\,0\.15\)\] { border-color: rgba(0, 0, 0, 0.15) !important; }
+   446→   446→.light .border-\[rgba\(255\,255\,255\,0\.2\)\] { border-color: rgba(0, 0, 0, 0.2) !important; }
+   447→   447→
+   448→   448→/* ── Ambient background for light mode ───────────────────────────── */
+   449→   449→.light .ambient-bg::before {
+   450→   450→  background:
+   451→   451→    radial-gradient(ellipse at 15% 50%, rgba(8, 145, 178, 0.04) 0%, transparent 50%),
+   452→   452→    radial-gradient(ellipse at 85% 20%, rgba(99, 102, 241, 0.03) 0%, transparent 50%),
+   453→   453→    radial-gradient(ellipse at 50% 85%, rgba(5, 150, 105, 0.025) 0%, transparent 50%);
+   454→   454→}
+   455→   455→
+   456→   456→/* ── Notification dropdown shadow for light mode ─────────────────── */
+   457→   457→.light [style*="box-shadow"] {
+   458→   458→  filter: none;
+   459→   459→}
+   460→   460→
+   461→   461→/* ═══════════════════════════════════════════════════════════════════════
+   462→   462→   RADIX PORTAL — Ensure all dropdowns/popovers are always on top
+   463→   463→   ═══════════════════════════════════════════════════════════════════════ */
+   464→   464→
+   465→   465→[data-radix-popper-content-wrapper] {
+   466→   466→  z-index: 9999 !important;
+   467→   467→  position: fixed !important;
+   468→   468→}
+   469→   469→[data-radix-portal] {
+   470→   470→  z-index: 9999 !important;
+   471→   471→}
+   472→   472→
+   473→   473→/* ── SOLID OPAQUE BACKGROUNDS — ALL dropdown/popover/dialog types ── */
+   474→   474→
+   475→   475→/* Shared shadow recipe for premium depth */
+   476→   476→/* Dropdown Menu */
+   477→   477→[data-slot="dropdown-menu-content"],
+   478→   478→[data-slot="dropdown-menu-sub-content"] {
+   479→   479→  background: var(--bg-card) !important;
+   480→   480→  backdrop-filter: none !important;
+   481→   481→  -webkit-backdrop-filter: none !important;
+   482→   482→  border: 1px solid var(--border-default) !important;
+   483→   483→  border-radius: 0.625rem !important;
+   484→   484→  box-shadow:
+   485→   485→    0 4px 6px -1px rgba(0, 0, 0, 0.35),
+   486→   486→    0 10px 20px -5px rgba(0, 0, 0, 0.3),
+   487→   487→    0 20px 40px -10px rgba(0, 0, 0, 0.25),
+   488→   488→    0 0 0 1px var(--border-subtle) !important;
+   489→   489→  padding: 4px !important;
+   490→   490→}
+   491→   491→.light [data-slot="dropdown-menu-content"],
+   492→   492→.light [data-slot="dropdown-menu-sub-content"] {
+   493→   493→  box-shadow:
+   494→   494→    0 4px 6px -1px rgba(0, 0, 0, 0.07),
+   495→   495→    0 10px 20px -5px rgba(0, 0, 0, 0.08),
+   496→   496→    0 20px 40px -10px rgba(0, 0, 0, 0.05),
+   497→   497→    0 0 0 1px rgba(0, 0, 0, 0.06) !important;
+   498→   498→}
+   499→   499→
+   500→   500→/* Dropdown Menu Items — beautiful hover */
+   501→   501→[data-slot="dropdown-menu-item"],
+   502→   502→[data-slot="dropdown-menu-checkbox-item"],
+   503→   503→[data-slot="dropdown-menu-radio-item"],
+   504→   504→[data-slot="dropdown-menu-sub-trigger"] {
+   505→   505→  border-radius: 0.375rem !important;
+   506→   506→  margin: 1px 0 !important;
+   507→   507→  padding: 7px 10px !important;
+   508→   508→  font-size: 0.8125rem !important;
+   509→   509→  transition: background 0.15s ease, color 0.15s ease !important;
+   510→   510→}
+   511→   511→[data-slot="dropdown-menu-item"]:hover,
+   512→   512→[data-slot="dropdown-menu-item"][data-highlighted],
+   513→   513→[data-slot="dropdown-menu-checkbox-item"]:hover,
+   514→   514→[data-slot="dropdown-menu-checkbox-item"][data-highlighted],
+   515→   515→[data-slot="dropdown-menu-radio-item"]:hover,
+   516→   516→[data-slot="dropdown-menu-radio-item"][data-highlighted],
+   517→   517→[data-slot="dropdown-menu-sub-trigger"]:hover,
+   518→   518→[data-slot="dropdown-menu-sub-trigger"][data-highlighted] {
+   519→   519→  background: var(--primary-glow) !important;
+   520→   520→  color: var(--text-primary) !important;
+   521→   521→}
+   522→   522→[data-slot="dropdown-menu-item"][data-variant="destructive"]:hover {
+   523→   523→  background: var(--critical-glow) !important;
+   524→   524→  color: var(--critical) !important;
+   525→   525→}
+   526→   526→
+   527→   527→/* Dropdown Menu Label */
+   528→   528→[data-slot="dropdown-menu-label"] {
+   529→   529→  padding: 6px 10px 4px !important;
+   530→   530→  font-size: 0.6875rem !important;
+   531→   531→  font-weight: 600 !important;
+   532→   532→  text-transform: uppercase !important;
+   533→   533→  letter-spacing: 0.05em !important;
+   534→   534→  color: var(--text-muted) !important;
+   535→   535→}
+   536→   536→
+   537→   537→/* Dropdown Menu Separator */
+   538→   538→[data-slot="dropdown-menu-separator"] {
+   539→   539→  margin: 4px 6px !important;
+   540→   540→  height: 1px !important;
+   541→   541→  background: var(--border-subtle) !important;
+   542→   542→}
+   543→   543→
+   544→   544→/* Popover */
+   545→   545→[data-slot="popover-content"] {
+   546→   546→  background: var(--bg-card) !important;
+   547→   547→  backdrop-filter: none !important;
+   548→   548→  -webkit-backdrop-filter: none !important;
+   549→   549→  border: 1px solid var(--border-default) !important;
+   550→   550→  border-radius: 0.625rem !important;
+   551→   551→  box-shadow:
+   552→   552→    0 4px 6px -1px rgba(0, 0, 0, 0.35),
+   553→   553→    0 10px 20px -5px rgba(0, 0, 0, 0.3),
+   554→   554→    0 20px 40px -10px rgba(0, 0, 0, 0.25),
+   555→   555→    0 0 0 1px var(--border-subtle) !important;
+   556→   556→}
+   557→   557→.light [data-slot="popover-content"] {
+   558→   558→  box-shadow:
+   559→   559→    0 4px 6px -1px rgba(0, 0, 0, 0.07),
+   560→   560→    0 10px 20px -5px rgba(0, 0, 0, 0.08),
+   561→   561→    0 20px 40px -10px rgba(0, 0, 0, 0.05),
+   562→   562→    0 0 0 1px rgba(0, 0, 0, 0.06) !important;
+   563→   563→}
+   564→   564→
+   565→   565→/* Context Menu */
+   566→   566→[data-slot="context-menu-content"],
+   567→   567→[data-slot="context-menu-sub-content"] {
+   568→   568→  background: var(--bg-card) !important;
+   569→   569→  backdrop-filter: none !important;
+   570→   570→  -webkit-backdrop-filter: none !important;
+   571→   571→  border: 1px solid var(--border-default) !important;
+   572→   572→  border-radius: 0.625rem !important;
+   573→   573→  box-shadow:
+   574→   574→    0 4px 6px -1px rgba(0, 0, 0, 0.35),
+   575→   575→    0 10px 20px -5px rgba(0, 0, 0, 0.3),
+   576→   576→    0 0 0 1px var(--border-subtle) !important;
+   577→   577→  padding: 4px !important;
+   578→   578→}
+   579→   579→.light [data-slot="context-menu-content"],
+   580→   580→.light [data-slot="context-menu-sub-content"] {
+   581→   581→  box-shadow:
+   582→   582→    0 4px 6px -1px rgba(0, 0, 0, 0.07),
+   583→   583→    0 10px 20px -5px rgba(0, 0, 0, 0.08),
+   584→   584→    0 0 0 1px rgba(0, 0, 0, 0.06) !important;
+   585→   585→}
+   586→   586→
+   587→   587→/* Context Menu Items */
+   588→   588→[data-slot="context-menu-item"],
+   589→   589→[data-slot="context-menu-checkbox-item"],
+   590→   590→[data-slot="context-menu-radio-item"] {
+   591→   591→  border-radius: 0.375rem !important;
+   592→   592→  margin: 1px 0 !important;
+   593→   593→  padding: 7px 10px !important;
+   594→   594→  transition: background 0.15s ease, color 0.15s ease !important;
+   595→   595→}
+   596→   596→[data-slot="context-menu-item"]:hover,
+   597→   597→[data-slot="context-menu-item"][data-highlighted],
+   598→   598→[data-slot="context-menu-checkbox-item"]:hover,
+   599→   599→[data-slot="context-menu-checkbox-item"][data-highlighted],
+   600→   600→[data-slot="context-menu-radio-item"]:hover,
+   601→   601→[data-slot="context-menu-radio-item"][data-highlighted] {
+   602→   602→  background: var(--primary-glow) !important;
+   603→   603→  color: var(--text-primary) !important;
+   604→   604→}
+   605→   605→
+   606→   606→/* Select Content */
+   607→   607→[data-slot="select-content"] {
+   608→   608→  background: var(--bg-card) !important;
+   609→   609→  backdrop-filter: none !important;
+   610→   610→  -webkit-backdrop-filter: none !important;
+   611→   611→  border: 1px solid var(--border-default) !important;
+   612→   612→  border-radius: 0.625rem !important;
+   613→   613→  box-shadow:
+   614→   614→    0 4px 6px -1px rgba(0, 0, 0, 0.35),
+   615→   615→    0 10px 20px -5px rgba(0, 0, 0, 0.3),
+   616→   616→    0 20px 40px -10px rgba(0, 0, 0, 0.25),
+   617→   617→    0 0 0 1px var(--border-subtle) !important;
+   618→   618→  padding: 4px !important;
+   619→   619→}
+   620→   620→.light [data-slot="select-content"] {
+   621→   621→  box-shadow:
+   622→   622→    0 4px 6px -1px rgba(0, 0, 0, 0.07),
+   623→   623→    0 10px 20px -5px rgba(0, 0, 0, 0.08),
+   624→   624→    0 20px 40px -10px rgba(0, 0, 0, 0.05),
+   625→   625→    0 0 0 1px rgba(0, 0, 0, 0.06) !important;
+   626→   626→}
+   627→   627→[data-slot="select-content"] [data-slot="select-item"] {
+   628→   628→  border-radius: 0.375rem;
+   629→   629→  margin: 2px 4px;
+   630→   630→  padding: 7px 10px;
+   631→   631→  font-size: 0.8125rem;
+   632→   632→  transition: background 0.15s ease, color 0.15s ease;
+   633→   633→}
+   634→   634→[data-slot="select-content"] [data-slot="select-item"][data-highlighted] {
+   635→   635→  background: var(--primary-glow) !important;
+   636→   636→  color: var(--text-primary) !important;
+   637→   637→}
+   638→   638→[data-slot="select-content"] [data-slot="select-item"][data-state="checked"] {
+   639→   639→  background: var(--primary-glow) !important;
+   640→   640→  color: var(--primary) !important;
+   641→   641→  font-weight: 500;
+   642→   642→}
+   643→   643→
+   644→   644→/* Dialog Content */
+   645→   645→[data-slot="dialog-content"] {
+   646→   646→  background: var(--bg-card) !important;
+   647→   647→  backdrop-filter: none !important;
+   648→   648→  -webkit-backdrop-filter: none !important;
+   649→   649→  border: 1px solid var(--border-default) !important;
+   650→   650→  border-radius: 0.75rem !important;
+   651→   651→  box-shadow:
+   652→   652→    0 25px 50px -12px rgba(0, 0, 0, 0.5),
+   653→   653→    0 0 0 1px var(--border-subtle) !important;
+   654→   654→}
+   655→   655→.light [data-slot="dialog-content"] {
+   656→   656→  box-shadow:
+   657→   657→    0 25px 50px -12px rgba(0, 0, 0, 0.15),
+   658→   658→    0 0 0 1px rgba(0, 0, 0, 0.06) !important;
+   659→   659→}
+   660→   660→
+   661→   661→/* Command Palette Dialog */
+   662→   662→[data-slot="command"] {
+   663→   663→  background: var(--bg-card) !important;
+   664→   664→}
+   665→   665→
+   666→   666→/* Tooltip */
+   667→   667→[data-slot="tooltip-content"] {
+   668→   668→  background: var(--bg-elevated-3) !important;
+   669→   669→  backdrop-filter: none !important;
+   670→   670→  -webkit-backdrop-filter: none !important;
+   671→   671→  border: 1px solid var(--border-default) !important;
+   672→   672→  border-radius: 0.375rem !important;
+   673→   673→  box-shadow:
+   674→   674→    0 4px 12px rgba(0, 0, 0, 0.3),
+   675→   675→    0 0 0 1px var(--border-subtle) !important;
+   676→   676→  color: var(--text-primary) !important;
+   677→   677→  font-size: 0.75rem !important;
+   678→   678→  padding: 5px 10px !important;
+   679→   679→}
+   680→   680→
+   681→   681→/* Hover Card */
+   682→   682→[data-slot="hover-card-content"] {
+   683→   683→  background: var(--bg-card) !important;
+   684→   684→  backdrop-filter: none !important;
+   685→   685→  -webkit-backdrop-filter: none !important;
+   686→   686→  border: 1px solid var(--border-default) !important;
+   687→   687→  border-radius: 0.625rem !important;
+   688→   688→  box-shadow:
+   689→   689→    0 4px 6px -1px rgba(0, 0, 0, 0.35),
+   690→   690→    0 10px 20px -5px rgba(0, 0, 0, 0.3),
+   691→   691→    0 0 0 1px var(--border-subtle) !important;
+   692→   692→}
+   693→   693→
+   694→   694→/* Sheet (side panel) */
+   695→   695→[data-slot="sheet-content"] {
+   696→   696→  background: var(--bg-card) !important;
+   697→   697→  backdrop-filter: none !important;
+   698→   698→  -webkit-backdrop-filter: none !important;
+   699→   699→  border-color: var(--border-default) !important;
+   700→   700→  box-shadow: -8px 0 30px rgba(0, 0, 0, 0.4) !important;
+   701→   701→}
+   702→   702→[data-slot="sheet-content"][data-side="left"] {
+   703→   703→  box-shadow: 8px 0 30px rgba(0, 0, 0, 0.4) !important;
+   704→   704→}
+   705→   705→.light [data-slot="sheet-content"] {
+   706→   706→  box-shadow: -8px 0 30px rgba(0, 0, 0, 0.1) !important;
+   707→   707→}
+   708→   708→
+   709→   709→/* Drawer (mobile bottom sheet) */
+   710→   710→[data-radix-drawer-content] {
+   711→   711→  background: var(--bg-card) !important;
+   712→   712→  backdrop-filter: none !important;
+   713→   713→  -webkit-backdrop-filter: none !important;
+   714→   714→}
+   715→   715→
+   716→   716→/* Alert Dialog */
+   717→   717→[data-slot="alert-dialog-content"] {
+   718→   718→  background: var(--bg-card) !important;
+   719→   719→  backdrop-filter: none !important;
+   720→   720→  -webkit-backdrop-filter: none !important;
+   721→   721→  border: 1px solid var(--border-default) !important;
+   722→   722→  border-radius: 0.75rem !important;
+   723→   723→  box-shadow:
+   724→   724→    0 25px 50px -12px rgba(0, 0, 0, 0.5),
+   725→   725→    0 0 0 1px var(--border-subtle) !important;
+   726→   726→}
+   727→   727→.light [data-slot="alert-dialog-content"] {
+   728→   728→  box-shadow:
+   729→   729→    0 25px 50px -12px rgba(0, 0, 0, 0.15),
+   730→   730→    0 0 0 1px rgba(0, 0, 0, 0.06) !important;
+   731→   731→}
+   732→   732→
+   733→   733→/* ═══════════════════════════════════════════════════════════════════════
+   734→   734→   BASE LAYER
+   735→   735→   ═══════════════════════════════════════════════════════════════════════ */
+   736→   736→
+   737→   737→@layer base {
+   738→   738→  * {
+   739→   739→    @apply border-border outline-ring/50;
+   740→   740→  }
+   741→   741→  html, body {
+   742→   742→    overflow: hidden;
+   743→   743→    height: 100%;
+   744→   744→    margin: 0;
+   745→   745→    padding: 0;
+   746→   746→  }
+   747→   747→  body {
+   748→   748→    @apply bg-background text-foreground antialiased;
+   749→   749→    font-family: var(--font-geist-sans), "Inter", system-ui, -apple-system, sans-serif;
+   750→   750→    -webkit-font-smoothing: antialiased;
+   751→   751→    -moz-osx-font-smoothing: grayscale;
+   752→   752→  }
+   753→   753→  #__next {
+   754→   754→    height: 100%;
+   755→   755→    overflow: hidden;
+   756→   756→  }
+   757→   757→
+   758→   758→  /* Focus ring — accessible, cyan-tinted */
+   759→   759→  :focus-visible {
+   760→   760→    outline: 2px solid rgba(34, 211, 238, 0.5);
+   761→   761→    outline-offset: 2px;
+   762→   762→    border-radius: 4px;
+   763→   763→  }
+   764→   764→}
+   765→   765→
+   766→   766→/* ═══════════════════════════════════════════════════════════════════════
+   767→   767→   SCROLLBAR — Ultra-thin, minimal
+   768→   768→   ═══════════════════════════════════════════════════════════════════════ */
+   769→   769→
+   770→   770→::-webkit-scrollbar {
+   771→   771→  width: 5px;
+   772→   772→  height: 5px;
+   773→   773→}
+   774→   774→::-webkit-scrollbar-track {
+   775→   775→  background: transparent;
+   776→   776→}
+   777→   777→::-webkit-scrollbar-thumb {
+   778→   778→  background: rgba(255, 255, 255, 0.08);
+   779→   779→  border-radius: 10px;
+   780→   780→}
+   781→   781→::-webkit-scrollbar-thumb:hover {
+   782→   782→  background: rgba(34, 211, 238, 0.3);
+   783→   783→}
+   784→   784→
+   785→   785→/* ═══════════════════════════════════════════════════════════════════════
+   786→   786→   LEAFLET OVERRIDES
+   787→   787→   ═══════════════════════════════════════════════════════════════════════ */
+   788→   788→
+   789→   789→.leaflet-container {
+   790→   790→  background: #050810;
+   791→   791→}
+   792→   792→.leaflet-popup-content-wrapper {
+   793→   793→  background: rgba(15, 21, 36, 0.95);
+   794→   794→  color: #e8edf5;
+   795→   795→  border: 1px solid rgba(255, 255, 255, 0.08);
+   796→   796→  border-radius: 12px;
+   797→   797→  backdrop-filter: blur(16px);
+   798→   798→  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+   799→   799→}
+   800→   800→.leaflet-popup-tip {
+   801→   801→  background: rgba(15, 21, 36, 0.95);
+   802→   802→}
+   803→   803→.leaflet-tile-pane {
+   804→   804→  filter: brightness(0.6) contrast(1.15) saturate(0.6) hue-rotate(180deg);
+   805→   805→}
+   806→   806→.leaflet-control-zoom a {
+   807→   807→  background: rgba(15, 21, 36, 0.9) !important;
+   808→   808→  color: #c8d0e0 !important;
+   809→   809→  border-color: rgba(255, 255, 255, 0.08) !important;
+   810→   810→  backdrop-filter: blur(8px);
+   811→   811→  transition: all 0.2s ease;
+   812→   812→}
+   813→   813→.leaflet-control-zoom a:hover {
+   814→   814→  background: rgba(34, 211, 238, 0.15) !important;
+   815→   815→  color: #22d3ee !important;
+   816→   816→}
+   817→   817→
+   818→   818→/* ═══════════════════════════════════════════════════════════════════════
+   819→   819→   PREMIUM GLASS SYSTEM
+   820→   820→   ═══════════════════════════════════════════════════════════════════════ */
+   821→   821→
+   822→   822→.glass {
+   823→   823→  background: rgba(15, 21, 36, 0.5);
+   824→   824→  backdrop-filter: blur(20px);
+   825→   825→  -webkit-backdrop-filter: blur(20px);
+   826→   826→  border: 1px solid rgba(255, 255, 255, 0.06);
+   827→   827→}
+   828→   828→.glass-strong {
+   829→   829→  background: rgba(15, 21, 36, 0.75);
+   830→   830→  backdrop-filter: blur(32px);
+   831→   831→  -webkit-backdrop-filter: blur(32px);
+   832→   832→  border: 1px solid rgba(255, 255, 255, 0.08);
+   833→   833→}
+   834→   834→.glass-card {
+   835→   835→  background: rgba(15, 21, 36, 0.45);
+   836→   836→  backdrop-filter: blur(24px);
+   837→   837→  -webkit-backdrop-filter: blur(24px);
+   838→   838→  border: 1px solid rgba(255, 255, 255, 0.06);
+   839→   839→  border-radius: 12px;
+   840→   840→  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+   841→   841→}
+   842→   842→.glass-card:hover {
+   843→   843→  background: rgba(15, 21, 36, 0.6);
+   844→   844→  border-color: rgba(34, 211, 238, 0.12);
+   845→   845→  box-shadow: 0 8px 40px rgba(34, 211, 238, 0.04);
+   846→   846→  transform: translateY(-1px);
+   847→   847→}
+   848→   848→
+   849→   849→/* ═══════════════════════════════════════════════════════════════════════
+   850→   850→   AMBIENT BACKGROUND — Subtle radial gradients
+   851→   851→   ═══════════════════════════════════════════════════════════════════════ */
+   852→   852→
+   853→   853→.ambient-bg {
+   854→   854→  position: relative;
+   855→   855→  overflow: hidden;
+   856→   856→}
+   857→   857→.ambient-bg::before {
+   858→   858→  content: "";
+   859→   859→  position: absolute;
+   860→   860→  top: -50%;
+   861→   861→  left: -50%;
+   862→   862→  width: 200%;
+   863→   863→  height: 200%;
+   864→   864→  background:
+   865→   865→    radial-gradient(ellipse at 15% 50%, rgba(34, 211, 238, 0.03) 0%, transparent 50%),
+   866→   866→    radial-gradient(ellipse at 85% 20%, rgba(129, 140, 248, 0.025) 0%, transparent 50%),
+   867→   867→    radial-gradient(ellipse at 50% 85%, rgba(52, 211, 153, 0.02) 0%, transparent 50%);
+   868→   868→  animation: ambientFloat 25s ease-in-out infinite;
+   869→   869→  pointer-events: none;
+   870→   870→  z-index: 0;
+   871→   871→}
+   872→   872→@keyframes ambientFloat {
+   873→   873→  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+   874→   874→  33% { transform: translate(1.5%, -0.5%) rotate(0.5deg); }
+   875→   875→  66% { transform: translate(-0.5%, 1.5%) rotate(-0.5deg); }
+   876→   876→}
+   877→   877→
+   878→   878→/* ═══════════════════════════════════════════════════════════════════════
+   879→   879→   SKELETON LOADERS
+   880→   880→   ═══════════════════════════════════════════════════════════════════════ */
+   881→   881→
+   882→   882→@keyframes shimmer {
+   883→   883→  0% { background-position: -200% 0; }
+   884→   884→  100% { background-position: 200% 0; }
+   885→   885→}
+   886→   886→.skeleton {
+   887→   887→  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.06) 50%, rgba(255, 255, 255, 0.03) 75%);
+   888→   888→  background-size: 200% 100%;
+   889→   889→  animation: shimmer 2s ease-in-out infinite;
+   890→   890→  border-radius: 6px;
+   891→   891→}
+   892→   892→
+   893→   893→/* ═══════════════════════════════════════════════════════════════════════
+   894→   894→   ANIMATIONS — Framer Motion compatible
+   895→   895→   ═══════════════════════════════════════════════════════════════════════ */
+   896→   896→
+   897→   897→@keyframes fadeInUp {
+   898→   898→  from { opacity: 0; transform: translateY(16px); }
+   899→   899→  to { opacity: 1; transform: translateY(0); }
+   900→   900→}
+   901→   901→@keyframes fadeIn {
+   902→   902→  from { opacity: 0; }
+   903→   903→  to { opacity: 1; }
+   904→   904→}
+   905→   905→@keyframes slideInRight {
+   906→   906→  from { opacity: 0; transform: translateX(24px); }
+   907→   907→  to { opacity: 1; transform: translateX(0); }
+   908→   908→}
+   909→   909→@keyframes slideInLeft {
+   910→   910→  from { opacity: 0; transform: translateX(-24px); }
+   911→   911→  to { opacity: 1; transform: translateX(0); }
+   912→   912→}
+   913→   913→@keyframes pulse-glow {
+   914→   914→  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.2); }
+   915→   915→  50% { box-shadow: 0 0 24px 4px rgba(34, 211, 238, 0.08); }
+   916→   916→}
+   917→   917→@keyframes scaleIn {
+   918→   918→  from { opacity: 0; transform: scale(0.96); }
+   919→   919→  to { opacity: 1; transform: scale(1); }
+   920→   920→}
+   921→   921→@keyframes shimmer-line {
+   922→   922→  0% { transform: translateX(-100%); }
+   923→   923→  100% { transform: translateX(100%); }
+   924→   924→}
+   925→   925→@keyframes glow-pulse {
+   926→   926→  0%, 100% { opacity: 0.4; }
+   927→   927→  50% { opacity: 1; }
+   928→   928→}
+   929→   929→
+   930→   930→.animate-fade-in-up { animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+   931→   931→.animate-fade-in { animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+   932→   932→.animate-slide-in-right { animation: slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+   933→   933→.animate-slide-in-left { animation: slideInLeft 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+   934→   934→.animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+   935→   935→.animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+   936→   936→
+   937→   937→.stagger-1 { animation-delay: 0.05s; opacity: 0; }
+   938→   938→.stagger-2 { animation-delay: 0.1s; opacity: 0; }
+   939→   939→.stagger-3 { animation-delay: 0.15s; opacity: 0; }
+   940→   940→.stagger-4 { animation-delay: 0.2s; opacity: 0; }
+   941→   941→.stagger-5 { animation-delay: 0.25s; opacity: 0; }
+   942→   942→.stagger-6 { animation-delay: 0.3s; opacity: 0; }
+   943→   943→
+   944→   944→/* ═══════════════════════════════════════════════════════════════════════
+   945→   945→   SPARKLINE
+   946→   946→   ═══════════════════════════════════════════════════════════════════════ */
+   947→   947→
+   948→   948→.sparkline-path {
+   949→   949→  stroke-dasharray: 1000;
+   950→   950→  stroke-dashoffset: 1000;
+   951→   951→  animation: sparklineDraw 1.5s ease-out forwards;
+   952→   952→}
+   953→   953→@keyframes sparklineDraw {
+   954→   954→  to { stroke-dashoffset: 0; }
+   955→   955→}
+   956→   956→
+   957→   957→/* ═══════════════════════════════════════════════════════════════════════
+   958→   958→   TIMELINE
+   959→   959→   ═══════════════════════════════════════════════════════════════════════ */
+   960→   960→
+   961→   961→@keyframes timelinePulse {
+   962→   962→  0%, 100% { transform: scale(1); opacity: 1; }
+   963→   963→  50% { transform: scale(1.4); opacity: 0.5; }
+   964→   964→}
+   965→   965→.timeline-pulse {
+   966→   966→  animation: timelinePulse 2.5s ease-in-out infinite;
+   967→   967→}
+   968→   968→
+   969→   969→/* ═══════════════════════════════════════════════════════════════════════
+   970→   970→   COMMAND PALETTE
+   971→   971→   ═══════════════════════════════════════════════════════════════════════ */
+   972→   972→
+   973→   973→.cmdk-overlay {
+   974→   974→  background: rgba(0, 0, 0, 0.6) !important;
+   975→   975→  backdrop-filter: blur(8px);
+   976→   976→}
+   977→   977→.cmdk {
+   978→   978→  background: rgba(15, 21, 36, 0.95) !important;
+   979→   979→  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+   980→   980→  border-radius: 16px !important;
+   981→   981→  box-shadow: 0 32px 64px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
+   982→   982→  backdrop-filter: blur(32px);
+   983→   983→}
+   984→   984→.cmdk-input {
+   985→   985→  color: #f1f5f9 !important;
+   986→   986→  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+   987→   987→}
+   988→   988→.cmdk-input::placeholder {
+   989→   989→  color: #5a657a !important;
+   990→   990→}
+   991→   991→.cmdk-item {
+   992→   992→  color: #c8d0e0 !important;
+   993→   993→  border-radius: 10px !important;
+   994→   994→  transition: all 0.15s ease;
+   995→   995→}
+   996→   996→.cmdk-item[data-selected="true"] {
+   997→   997→  background: rgba(34, 211, 238, 0.08) !important;
+   998→   998→  color: #22d3ee !important;
+   999→   999→}
+  1000→  1000→.cmdk-group-heading {
+  1001→  1001→  color: #5a657a !important;
+  1002→  1002→  font-size: 11px !important;
+  1003→  1003→  letter-spacing: 0.05em;
+  1004→  1004→}
+  1005→  1005→.cmdk-separator {
+  1006→  1006→  background: rgba(255, 255, 255, 0.06) !important;
+  1007→  1007→}
+  1008→  1008→.cmdk-shortcut {
+  1009→  1009→  color: #5a657a !important;
+  1010→  1010→  background: rgba(255, 255, 255, 0.04) !important;
+  1011→  1011→  border-radius: 6px !important;
+  1012→  1012→  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  1013→  1013→}
+  1014→  1014→
+  1015→  1015→/* ═══════════════════════════════════════════════════════════════════════
+  1016→  1016→   CONFIDENCE RING
+  1017→  1017→   ═══════════════════════════════════════════════════════════════════════ */
+  1018→  1018→
+  1019→  1019→.confidence-ring {
+  1020→  1020→  transform: rotate(-90deg);
+  1021→  1021→}
+  1022→  1022→.confidence-ring-circle {
+  1023→  1023→  transition: stroke-dashoffset 1s ease-out;
+  1024→  1024→}
+  1025→  1025→
+  1026→  1026→/* ═══════════════════════════════════════════════════════════════════════
+  1027→  1027→   BLACKBIRD UTILITIES
+  1028→  1028→   ═══════════════════════════════════════════════════════════════════════ */
+  1029→  1029→
+  1030→  1030→/* Metric card gradient overlays */
+  1031→  1031→.gradient-cyan {
+  1032→  1032→  background: linear-gradient(135deg, rgba(34, 211, 238, 0.08) 0%, transparent 60%);
+  1033→  1033→}
+  1034→  1034→.gradient-indigo {
+  1035→  1035→  background: linear-gradient(135deg, rgba(129, 140, 248, 0.08) 0%, transparent 60%);
+  1036→  1036→}
+  1037→  1037→.gradient-emerald {
+  1038→  1038→  background: linear-gradient(135deg, rgba(52, 211, 153, 0.08) 0%, transparent 60%);
+  1039→  1039→}
+  1040→  1040→.gradient-amber {
+  1041→  1041→  background: linear-gradient(135deg, rgba(251, 191, 36, 0.08) 0%, transparent 60%);
+  1042→  1042→}
+  1043→  1043→.gradient-rose {
+  1044→  1044→  background: linear-gradient(135deg, rgba(248, 113, 113, 0.08) 0%, transparent 60%);
+  1045→  1045→}
+  1046→  1046→
+  1047→  1047→/* Active sidebar indicator glow */
+  1048→  1048→.sidebar-active-glow {
+  1049→  1049→  position: relative;
+  1050→  1050→}
+  1051→  1051→.sidebar-active-glow::before {
+  1052→  1052→  content: "";
+  1053→  1053→  position: absolute;
+  1054→  1054→  left: 0;
+  1055→  1055→  top: 50%;
+  1056→  1056→  transform: translateY(-50%);
+  1057→  1057→  width: 3px;
+  1058→  1058→  height: 60%;
+  1059→  1059→  border-radius: 0 4px 4px 0;
+  1060→  1060→  background: #22d3ee;
+  1061→  1061→  box-shadow: 0 0 12px rgba(34, 211, 238, 0.4), 0 0 24px rgba(34, 211, 238, 0.15);
+  1062→  1062→}
+  1063→  1063→
+  1064→  1064→/* Premium border treatment */
+  1065→  1065→.border-glow {
+  1066→  1066→  border: 1px solid rgba(255, 255, 255, 0.06);
+  1067→  1067→  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  1068→  1068→}
+  1069→  1069→
+  1070→  1070→/* Status dot pulse */
+  1071→  1071→@keyframes status-pulse {
+  1072→  1072→  0%, 100% { opacity: 1; transform: scale(1); }
+  1073→  1073→  50% { opacity: 0.5; transform: scale(1.5); }
+  1074→  1074→}
+  1075→  1075→.status-pulse {
+  1076→  1076→  animation: status-pulse 2s ease-in-out infinite;
+  1077→  1077→}
+  1078→  1078→
+  1079→  1079→/* Number counter animation */
+  1080→  1080→@keyframes countUp {
+  1081→  1081→  from { opacity: 0; transform: translateY(8px); }
+  1082→  1082→  to { opacity: 1; transform: translateY(0); }
+  1083→  1083→}
+  1084→  1084→.animate-count-up {
+  1085→  1085→  animation: countUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  1086→  1086→}
+  1087→  1087→
+  1088→  1088→/* Force graph tooltip */
+  1089→  1089→.force-graph-tooltip {
+  1090→  1090→  background: rgba(15, 21, 36, 0.95) !important;
+  1091→  1091→  color: #e8edf5 !important;
+  1092→  1092→  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  1093→  1093→  border-radius: 12px !important;
+  1094→  1094→  padding: 12px 16px !important;
+  1095→  1095→  font-size: 13px !important;
+  1096→  1096→  backdrop-filter: blur(16px);
+  1097→  1097→  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5) !important;
+  1098→  1098→}
+  1099→  1099→
+  1100→  1100→/* Typing indicator dots */
+  1101→  1101→@keyframes typing-dot {
+  1102→  1102→  0%, 60%, 100% { transform: translateY(0); opacity: 0.3; }
+  1103→  1103→  30% { transform: translateY(-4px); opacity: 1; }
+  1104→  1104→}
+  1105→  1105→.typing-dot {
+  1106→  1106→  animation: typing-dot 1.4s ease-in-out infinite;
+  1107→  1107→}
+  1108→  1108→
+  1109→  1109→/* Selection highlight */
+  1110→  1110→::selection {
+  1111→  1111→  background: rgba(34, 211, 238, 0.25);
+  1112→  1112→  color: #f1f5f9;
+  1113→  1113→}

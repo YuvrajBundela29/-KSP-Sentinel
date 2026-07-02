@@ -98,8 +98,14 @@ export default function CommandPalette() {
       <div className="cmdk-overlay fixed inset-0" onClick={() => setCommandPaletteOpen(false)} />
       <div className="fixed inset-0 flex items-start justify-center pt-[15vh]">
         <Command className="cmdk w-full max-w-xl animate-scale-in rounded-xl backdrop-blur-xl shadow-2xl shadow-black/60">
-          <div className="flex items-center gap-2 px-4 py-3 border-b">
-            <Search className="w-4 h-4 text-[#5a657a] flex-shrink-0" />
+          <div className="px-4 pt-3 pb-1 border-b flex items-center">
+            <span className="font-mono text-[10px] tracking-wider" style={{ color: "var(--primary)", opacity: 0.7 }}>
+              KSP-SENTINEL v2.4.1 // CLASSIFIED
+            </span>
+          </div>
+          <div className="flex items-center gap-0 px-4 py-3 border-b">
+            <span className="font-mono text-sm font-bold flex-shrink-0" style={{ color: "var(--primary)" }}>{">"}</span>
+            <span className="terminal-cursor flex-shrink-0" />
             <Command.Input
               placeholder="Search commands, navigate, find FIRs..."
               className="cmdk-input flex-1 bg-transparent text-sm outline-none py-1"
@@ -107,8 +113,11 @@ export default function CommandPalette() {
             <kbd className="cmdk-shortcut text-[10px] px-1.5 py-0.5 font-mono">ESC</kbd>
           </div>
           <Command.List className="max-h-80 overflow-y-auto p-2">
-            <Command.Empty className="cmdk-empty py-6 text-center text-sm">
-              No results found.
+            <Command.Empty className="cmdk-empty py-6 text-center">
+              <span className="terminal-empty">
+                <span className="terminal-empty-prompt">{">"}</span>
+                NO RESULTS FOUND<span className="terminal-cursor" style={{ marginLeft: 0 }} />
+              </span>
             </Command.Empty>
             <Command.Group heading="Intelligence" className="px-1 py-1.5">
               {MAIN_COMMANDS.map((cmd) => (
@@ -138,10 +147,8 @@ export default function CommandPalette() {
               ))}
             </Command.Group>
           </Command.List>
-          <div className="flex items-center gap-4 px-4 py-2 border-t text-[10px] text-[#3d4659]">
-            <span><kbd className="font-mono px-1 rounded" style={{ backgroundColor: "rgba(255,255,255,0.04)" }}>↑↓</kbd> Navigate</span>
-            <span><kbd className="font-mono px-1 rounded" style={{ backgroundColor: "rgba(255,255,255,0.04)" }}>↵</kbd> Select</span>
-            <span><kbd className="font-mono px-1 rounded" style={{ backgroundColor: "rgba(255,255,255,0.04)" }}>Esc</kbd> Close</span>
+          <div className="px-4 py-2 border-t font-mono text-[10px] tracking-wider" style={{ color: "var(--muted-foreground, #3d4659)" }}>
+            [ESC] CLOSE&nbsp;&nbsp;//&nbsp;&nbsp;[↑↓] NAVIGATE&nbsp;&nbsp;//&nbsp;&nbsp;[ENTER] SELECT
           </div>
         </Command>
       </div>

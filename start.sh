@@ -1,4 +1,11 @@
 #!/bin/bash
 cd /home/z/my-project
 export NODE_ENV=production
-exec bun .next/standalone/server.js
+
+# Always sync static assets
+rm -rf .next/standalone/.next/static
+cp -r .next/static .next/standalone/.next/
+rm -rf .next/standalone/public
+cp -r public .next/standalone/
+
+exec node scripts/serve.js

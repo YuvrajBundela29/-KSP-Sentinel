@@ -128,8 +128,7 @@ export default function Header() {
   // Shared dropdown panel style — fully opaque, no transparency, premium depth
   const panelStyle: React.CSSProperties = {
     background: "var(--bg-card)",
-    boxShadow:
-      "0 4px 6px -1px rgba(0,0,0,0.35), 0 10px 20px -5px rgba(0,0,0,0.3), 0 20px 40px -10px rgba(0,0,0,0.25), 0 0 0 1px var(--border-subtle)",
+    boxShadow: "0 0 8px rgba(0, 255, 102, 0.08)",
     zIndex: 9999,
     border: "1px solid var(--border-default)",
   };
@@ -144,7 +143,7 @@ export default function Header() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -8, scale: 0.96 }}
           transition={{ duration: 0.15 }}
-          className="fixed w-56 max-w-[calc(100vw-2rem)] rounded-xl overflow-hidden"
+          className="fixed w-56 max-w-[calc(100vw-2rem)] overflow-hidden"
           style={{ ...panelStyle, top: langPos.top, right: langPos.right }}
         >
           <div className="px-3 py-2.5" style={{ borderBottom: "1px solid var(--border-subtle)" }}>
@@ -187,7 +186,7 @@ export default function Header() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -8, scale: 0.96 }}
           transition={{ duration: 0.15 }}
-          className="fixed w-80 max-w-[calc(100vw-2rem)] rounded-xl overflow-hidden"
+          className="fixed w-80 max-w-[calc(100vw-2rem)] overflow-hidden"
           style={{ ...panelStyle, top: notifPos.top, right: notifPos.right }}
         >
           {/* Header */}
@@ -256,8 +255,7 @@ export default function Header() {
       className="h-12 flex items-center justify-between px-5 sticky top-0 z-30 border-b flex-shrink-0"
       style={{
         background: "var(--bg-elevated-1)",
-        backdropFilter: "blur(20px)",
-        borderBottom: "1px solid var(--border-subtle)",
+        borderBottom: "1px solid var(--border-default)",
       }}
     >
       {/* Left: Breadcrumbs */}
@@ -273,26 +271,37 @@ export default function Header() {
           </div>
         ))}
         {isDM && (
-          <span className="hidden sm:inline-flex items-center text-[9px] px-2 py-0.5 rounded-full font-semibold tracking-wider uppercase flex-shrink-0"
-            style={{ background: "var(--secondary-glow)", color: "var(--secondary)", border: "1px solid var(--secondary-glow)" }}>
-            Data Mgmt
+          <span className="hidden sm:inline-flex items-center text-[9px] px-2 py-0.5 bracket-badge"
+            style={{ color: "var(--text-tertiary)" }}>
+            DATA MGMT
           </span>
         )}
       </div>
 
       {/* Right: Controls */}
       <div className="flex items-center gap-1.5">
-        {/* System Status */}
-        <div className="hidden md:flex items-center gap-2 mr-2 px-2.5 py-1 rounded-lg" style={{ background: "var(--success-glow)" }}>
-          <div className="flex items-center gap-1">
-            <Wifi className="w-3 h-3" style={{ color: "var(--success)" }} />
-            <span className="text-[10px] font-medium" style={{ color: "var(--success)" }}>{getLabel(lang, "online")}</span>
-          </div>
-          <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>|</span>
-          <div className="flex items-center gap-1">
-            <Activity className="w-3 h-3" style={{ color: "var(--primary)" }} />
-            <span className="text-[10px] font-mono" style={{ color: "var(--text-tertiary)" }}>{clock}</span>
-          </div>
+        {/* Classified status readout */}
+        <div className="hidden md:flex items-center gap-2 mr-2">
+          <span
+            className="text-[10px] font-mono tracking-wide"
+            style={{ color: "var(--primary)", fontFamily: "var(--font-ibm-plex-mono), monospace" }}
+          >
+            CLEARANCE: LEVEL {user?.role === "super_admin" ? "5" : "3"}
+          </span>
+          <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>//</span>
+          <span
+            className="text-[10px] font-mono"
+            style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-ibm-plex-mono), monospace" }}
+          >
+            SYNC: {clock}
+          </span>
+          <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>//</span>
+          <span
+            className="text-[10px] font-mono"
+            style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-ibm-plex-mono), monospace" }}
+          >
+            {user?.role === "super_admin" ? "ALL" : "RESTRICTED"} RECORDS
+          </span>
         </div>
 
         {/* Language Dropdown — trigger only, panel is portaled */}

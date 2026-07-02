@@ -1,0 +1,1292 @@
+     1→"use client";
+     2→
+     3→import { useState, useMemo } from "react";
+     4→import {
+     5→  FileText,
+     6→  Download,
+     7→  Shield,
+     8→  Clock,
+     9→  AlertTriangle,
+    10→  CheckCircle2,
+    11→  XCircle,
+    12→  Lock,
+    13→  User,
+    14→  Network,
+    15→  FileDown,
+    16→  Copy,
+    17→  Printer,
+    18→  Sparkles,
+    19→} from "lucide-react";
+    20→import { Button } from "@/components/ui/button";
+    21→import {
+    22→  Select,
+    23→  SelectContent,
+    24→  SelectItem,
+    25→  SelectTrigger,
+    26→  SelectValue,
+    27→} from "@/components/ui/select";
+    28→import { Badge } from "@/components/ui/badge";
+    29→import jsPDF from "jspdf";
+    30→import { useAppStore } from "@/lib/store";
+    31→import {
+    32→  generateInvestigationBrief,
+    33→  computeSimilarCrimes,
+    34→  generateTimeline,
+    35→  getIntelFeedItems,
+    36→} from "@/lib/intelligence";
+    37→import type {
+    38→  FIR,
+    39→  Accused,
+    40→  InvestigationBrief,
+    41→  SimilarCrimeResult,
+    42→  TimelineEvent,
+    43→  IntelFeedItem,
+    44→} from "@/lib/types";
+    45→import { motion } from "framer-motion";
+    46→
+    47→// ─── Confidence Ring SVG ────────────────────────────────────────────
+    48→function ConfidenceRing({ score, size = 100 }: { score: number; size?: number }) {
+    49→  const r = size * 0.4;
+    50→  const cx = size / 2;
+    51→  const cy = size / 2;
+    52→  const c = 2 * Math.PI * r;
+    53→  const offset = c - (score / 100) * c;
+    54→  const color =
+    55→    score >= 80 ? "#34d399" : score >= 60 ? "#fbbf24" : "#f87171";
+    56→
+    57→  return (
+    58→    <svg width={size} height={size} className="confidence-ring">
+    59→      <circle
+    60→        cx={cx}
+    61→        cy={cy}
+    62→        r={r}
+    63→        fill="none"
+    64→        stroke="rgba(255,255,255,0.04)"
+    65→        strokeWidth="5"
+    66→      />
+    67→      <circle
+    68→        cx={cx}
+    69→        cy={cy}
+    70→        r={r}
+    71→        fill="none"
+    72→        stroke={color}
+    73→        strokeWidth="5"
+    74→        strokeDasharray={c}
+    75→        strokeDashoffset={offset}
+    76→        strokeLinecap="round"
+    77→        className="confidence-ring-circle"
+    78→        style={{ filter: `drop-shadow(0 0 8px ${color}50)` }}
+    79→      />
+    80→      <text
+    81→        x={cx}
+    82→        y={cy}
+    83→        textAnchor="middle"
+    84→        dominantBaseline="central"
+    85→        fill="#f1f5f9"
+    86→        fontSize={size * 0.2}
+    87→        fontWeight="bold"
+    88→        className="!transform-none"
+    89→      >
+    90→        {score}%
+    91→      </text>
+    92→    </svg>
+    93→  );
+    94→}
+    95→
+    96→// ─── Status Badge Helper ────────────────────────────────────────────
+    97→function StatusBadge({ status }: { status: string }) {
+    98→  const map: Record<string, { bg: string; color: string; border: string }> = {
+    99→    completed:    { bg: "rgba(52,211,153,0.08)",  color: "var(--success)", border: "rgba(52,211,153,0.2)" },
+   100→    in_progress:  { bg: "rgba(251,191,36,0.08)",  color: "var(--warning)", border: "rgba(251,191,36,0.2)" },
+   101→    pending:      { bg: "rgba(90,101,122,0.08)",  color: "var(--text-secondary)", border: "rgba(255,255,255,0.08)" },
+   102→  };
+   103→  const s = map[status] ?? { bg: "rgba(248,113,113,0.08)", color: "var(--critical)", border: "rgba(248,113,113,0.2)" };
+   104→
+   105→  return (
+   106→    <span
+   107→      className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider"
+   108→      style={{ background: s.bg, color: s.color, borderColor: s.border }}
+   109→    >
+   110→      {status.replace(/_/g, " ")}
+   111→    </span>
+   112→  );
+   113→}
+   114→
+   115→// ─── Timeline Icon Helper ───────────────────────────────────────────
+   116→function TimelineIcon({ type }: { type: TimelineEvent["type"] }) {
+   117→  const typeMap: Record<TimelineEvent["type"], React.ReactNode> = {
+   118→    fir_filed:     <FileText className="w-4 h-4 text-[#22d3ee]" />,
+   119→    complaint:     <FileText className="w-4 h-4 text-[#22d3ee]" />,
+   120→    witness:       <User className="w-4 h-4 text-[#818cf8]" />,
+   121→    cctv:          <Shield className="w-4 h-4 text-[#818cf8]" />,
+   122→    phone:         <Network className="w-4 h-4 text-[#34d399]" />,
+   123→    vehicle:       <Clock className="w-4 h-4 text-[#fbbf24]" />,
+   124→    financial:     <AlertTriangle className="w-4 h-4 text-[#fbbf24]" />,
+   125→    investigation: <CheckCircle2 className="w-4 h-4 text-[#2dd4bf]" />,
+   126→    arrest:        <XCircle className="w-4 h-4 text-[#f87171]" />,
+   127→  };
+   128→  return <>{typeMap[type] ?? <Clock className="w-4 h-4 text-[#8b97b0]" />}</>;
+   129→}
+   130→
+   131→// ─── Report Template Cards ──────────────────────────────────────────
+   132→const REPORT_TEMPLATES = [
+   133→  {
+   134→    id: "full",
+   135→    title: "Full Intelligence Brief",
+   136→    description: "Comprehensive AI-generated analysis with executive summary, network intelligence, evidence chain, and recommendations.",
+   137→    icon: <Shield className="w-5 h-5 text-[#22d3ee]" />,
+   138→    gradient: "linear-gradient(135deg, rgba(34,211,238,0.08), transparent 60%)",
+   139→    accent: "#22d3ee",
+   140→  },
+   141→  {
+   142→    id: "similar",
+   143→    title: "Similar Crimes Analysis",
+   144→    description: "Cross-referenced pattern analysis matching modus operandi, geography, and behavioral signatures across the database.",
+   145→    icon: <Network className="w-5 h-5 text-[#818cf8]" />,
+   146→    gradient: "linear-gradient(135deg, rgba(129,140,248,0.08), transparent 60%)",
+   147→    accent: "#818cf8",
+   148→  },
+   149→  {
+   150→    id: "timeline",
+   151→    title: "Investigation Timeline Report",
+   152→    description: "Detailed chronological reconstruction of all investigation events, evidence collection milestones, and status updates.",
+   153→    icon: <Clock className="w-5 h-5 text-[#34d399]" />,
+   154→    gradient: "linear-gradient(135deg, rgba(52,211,153,0.08), transparent 60%)",
+   155→    accent: "#34d399",
+   156→  },
+   157→];
+   158→
+   159→// ─── Main Component ─────────────────────────────────────────────────
+   160→export default function ReportGenerator() {
+   161→  const { crimeData, user } = useAppStore();
+   162→
+   163→  const [selectedFirId, setSelectedFirId] = useState<string>("");
+   164→  const [selectedAccusedId, setSelectedAccusedId] = useState<string>("");
+   165→  const [reportType, setReportType] = useState<string>("full");
+   166→  const [reportGenerated, setReportGenerated] = useState(false);
+   167→  const [isGenerating, setIsGenerating] = useState(false);
+   168→  const [reportId, setReportId] = useState<string>("");
+   169→
+   170→  // Derived data
+   171→  const firs = useMemo(() => crimeData?.firs ?? [], [crimeData]);
+   172→  const accusedList = useMemo(
+   173→    () => crimeData?.accused ?? [],
+   174→    [crimeData],
+   175→  );
+   176→
+   177→  // Selected FIR and accused objects
+   178→  const selectedFir = useMemo(
+   179→    () => firs.find((f) => f.fir_id === selectedFirId) ?? null,
+   180→    [firs, selectedFirId],
+   181→  );
+   182→  const selectedAccused = useMemo(
+   183→    () => accusedList.find((a) => a.id === selectedAccusedId) ?? null,
+   184→    [accusedList, selectedAccusedId],
+   185→  );
+   186→
+   187→  // Computed report data
+   188→  const brief: InvestigationBrief | null = useMemo(() => {
+   189→    if (!crimeData || !reportGenerated) return null;
+   190→    if (selectedAccusedId) {
+   191→      return generateInvestigationBrief(crimeData, selectedAccusedId, "accused");
+   192→    }
+   193→    if (selectedFirId) {
+   194→      return generateInvestigationBrief(crimeData, selectedFirId, "fir");
+   195→    }
+   196→    return null;
+   197→  }, [crimeData, selectedAccusedId, selectedFirId, reportGenerated]);
+   198→
+   199→  const timeline: TimelineEvent[] = useMemo(() => {
+   200→    if (!crimeData || !selectedFirId || !reportGenerated) return [];
+   201→    return generateTimeline(crimeData, selectedFirId);
+   202→  }, [crimeData, selectedFirId, reportGenerated]);
+   203→
+   204→  const similarCrimes: SimilarCrimeResult[] = useMemo(() => {
+   205→    if (!crimeData || !selectedFirId || !reportGenerated) return [];
+   206→    return computeSimilarCrimes(crimeData, selectedFirId, 3);
+   207→  }, [crimeData, selectedFirId, reportGenerated]);
+   208→
+   209→  const intelFeed: IntelFeedItem[] = useMemo(() => {
+   210→    if (!crimeData || !reportGenerated) return [];
+   211→    return getIntelFeedItems(crimeData);
+   212→  }, [crimeData, reportGenerated]);
+   213→
+   214→  // Generate handler
+   215→  const handleGenerate = () => {
+   216→    if (!selectedFirId && !selectedAccusedId) return;
+   217→    setIsGenerating(true);
+   218→    setReportId(crypto.randomUUID().slice(0, 8).toUpperCase());
+   219→    setTimeout(() => {
+   220→      setIsGenerating(false);
+   221→      setReportGenerated(true);
+   222→    }, 1200);
+   223→  };
+   224→
+   225→  // PDF Export
+   226→  const handleExportPDF = () => {
+   227→    const doc = new jsPDF();
+   228→    const now = new Date().toLocaleString("en-IN", {
+   229→      dateStyle: "medium",
+   230→      timeStyle: "short",
+   231→    });
+   232→
+   233→    doc.setFont("helvetica", "bold");
+   234→    doc.setFontSize(18);
+   235→    doc.text("KSP SENTINEL AI — INTELLIGENCE REPORT", 20, 25);
+   236→
+   237→    doc.setFont("helvetica", "normal");
+   238→    doc.setFontSize(10);
+   239→    doc.setTextColor(200, 0, 0);
+   240→    doc.text("CLASSIFICATION: CONFIDENTIAL", 20, 33);
+   241→
+   242→    doc.setTextColor(0, 0, 0);
+   243→    doc.text(`Report ID: RPT-${reportId}`, 20, 42);
+   244→    doc.text(`Generated: ${now}`, 20, 48);
+   245→    doc.text(`Officer: ${user?.username ?? "Unknown"} (${user?.role ?? "N/A"})`, 20, 54);
+   246→
+   247→    if (selectedFir) {
+   248→      doc.setFontSize(12);
+   249→      doc.setFont("helvetica", "bold");
+   250→      doc.text(`FIR: ${selectedFir.fir_id}`, 20, 66);
+   251→      doc.text(`Crime: ${selectedFir.crime_type} — ${selectedFir.ipc_section}`, 20, 73);
+   252→      doc.text(`District: ${selectedFir.district} | Station: ${selectedFir.police_station}`, 20, 80);
+   253→    }
+   254→
+   255→    if (brief) {
+   256→      doc.setFontSize(13);
+   257→      doc.setFont("helvetica", "bold");
+   258→      doc.text("Executive Summary", 20, 94);
+   259→
+   260→      doc.setFont("helvetica", "normal");
+   261→      doc.setFontSize(10);
+   262→      const lines = doc.splitTextToSize(brief.executiveSummary, 170);
+   263→      doc.text(lines, 20, 102);
+   264→
+   265→      let y = 102 + lines.length * 5 + 10;
+   266→
+   267→      if (brief.suggestedActions.length > 0) {
+   268→        doc.setFont("helvetica", "bold");
+   269→        doc.setFontSize(12);
+   270→        doc.text("Suggested Actions", 20, y);
+   271→        y += 7;
+   272→        doc.setFontSize(10);
+   273→        doc.setFont("helvetica", "normal");
+   274→        for (const action of brief.suggestedActions) {
+   275→          const actionLines = doc.splitTextToSize(
+   276→            `• ${action.action} — ${action.rationale}`,
+   277→            170,
+   278→          );
+   279→          doc.text(actionLines, 20, y);
+   280→          y += actionLines.length * 5 + 2;
+   281→        }
+   282→      }
+   283→
+   284→      y += 6;
+   285→      if (brief.missingEvidence.length > 0) {
+   286→        doc.setFont("helvetica", "bold");
+   287→        doc.setFontSize(12);
+   288→        doc.text("Missing Evidence", 20, y);
+   289→        y += 7;
+   290→        doc.setFontSize(10);
+   291→        doc.setFont("helvetica", "normal");
+   292→        for (const ev of brief.missingEvidence) {
+   293→          doc.text(`• [${ev.priority}] ${ev.description}`, 20, y);
+   294→          y += 6;
+   295→        }
+   296→      }
+   297→    }
+   298→
+   299→    doc.setFontSize(8);
+   300→    doc.setTextColor(120, 120, 120);
+   301→    const pageH = doc.internal.pageSize.height;
+   302→    doc.text(
+   303→      "This report was auto-generated by KSP Sentinel AI. CLASSIFICATION: CONFIDENTIAL — FOR AUTHORIZED PERSONNEL ONLY",
+   304→      20,
+   305→      pageH - 10,
+   306→    );
+   307→
+   308→    const dateStr = new Date().toISOString().slice(0, 10);
+   309→    doc.save(`ksp_intelligence_report_${dateStr}.pdf`);
+   310→  };
+   311→
+   312→  const inputStyle: React.CSSProperties = {
+   313→    background: "rgba(10,15,28,0.8)",
+   314→    border: "1px solid var(--border-subtle)",
+   315→    color: "var(--text-primary)",
+   316→  };
+   317→
+   318→  const selectContentStyle: React.CSSProperties = {
+   319→    background: "var(--bg-card)",
+   320→    border: "1px solid var(--border-subtle)",
+   321→  };
+   322→
+   323→  return (
+   324→    <div className="p-5 h-full overflow-y-auto space-y-6 animate-fade-in-up">
+   325→      {/* ─── Header ─────────────────────────────────────────────── */}
+   326→      <motion.div
+   327→        initial={{ opacity: 0, y: -12 }}
+   328→        animate={{ opacity: 1, y: 0 }}
+   329→        transition={{ duration: 0.4 }}
+   330→        className="flex items-center gap-3"
+   331→      >
+   332→        <div
+   333→          className="p-2.5 rounded-xl"
+   334→          style={{
+   335→            background: "rgba(34,211,238,0.1)",
+   336→            border: "1px solid rgba(34,211,238,0.15)",
+   337→            boxShadow: "0 0 20px rgba(34,211,238,0.08)",
+   338→          }}
+   339→        >
+   340→          <FileText className="w-6 h-6 text-[#22d3ee]" />
+   341→        </div>
+   342→        <div>
+   343→          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-[#f1f5f9]">
+   344→            INTELLIGENCE REPORT GENERATOR
+   345→          </h1>
+   346→          <p className="text-sm text-[#8b97b0]">
+   347→            Generate professional investigation reports with AI analysis
+   348→          </p>
+   349→        </div>
+   350→      </motion.div>
+   351→
+   352→      {/* ─── Template Selector ───────────────────────────────────── */}
+   353→      <motion.div
+   354→        initial={{ opacity: 0, y: 12 }}
+   355→        animate={{ opacity: 1, y: 0 }}
+   356→        transition={{ duration: 0.4, delay: 0.05 }}
+   357→        className="space-y-3"
+   358→      >
+   359→        <h2 className="text-xs font-semibold uppercase tracking-wider text-[#5a657a] flex items-center gap-2">
+   360→          <Sparkles className="w-3.5 h-3.5 text-[#22d3ee]" />
+   361→          Report Template
+   362→        </h2>
+   363→        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+   364→          {REPORT_TEMPLATES.map((tpl) => (
+   365→            <button
+   366→              key={tpl.id}
+   367→              onClick={() => setReportType(tpl.id)}
+   368→              className="glass-card p-5 text-left cursor-pointer transition-all duration-300 relative overflow-hidden group"
+   369→              style={{
+   370→                borderColor:
+   371→                  reportType === tpl.id
+   372→                    ? `${tpl.accent}30`
+   373→                    : "rgba(255,255,255,0.06)",
+   374→                boxShadow:
+   375→                  reportType === tpl.id
+   376→                    ? `0 0 30px ${tpl.accent}10, inset 0 1px 0 rgba(255,255,255,0.03)`
+   377→                    : "none",
+   378→              }}
+   379→            >
+   380→              {/* Gradient overlay */}
+   381→              <div
+   382→                className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+   383→                style={{ background: tpl.gradient }}
+   384→              />
+   385→              {/* Active accent line top */}
+   386→              {reportType === tpl.id && (
+   387→                <div
+   388→                  className="absolute top-0 left-0 right-0 h-[2px]"
+   389→                  style={{
+   390→                    background: `linear-gradient(90deg, ${tpl.accent}, transparent)`,
+   391→                    boxShadow: `0 0 12px ${tpl.accent}40`,
+   392→                  }}
+   393→                />
+   394→              )}
+   395→              <div className="relative">
+   396→                <div className="mb-3">{tpl.icon}</div>
+   397→                <h3
+   398→                  className="text-sm font-semibold mb-1.5"
+   399→                  style={{ color: reportType === tpl.id ? tpl.accent : "#f1f5f9" }}
+   400→                >
+   401→                  {tpl.title}
+   402→                </h3>
+   403→                <p className="text-xs text-[#8b97b0] leading-relaxed">
+   404→                  {tpl.description}
+   405→                </p>
+   406→                {reportType === tpl.id && (
+   407→                  <div
+   408→                    className="mt-3 inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider"
+   409→                    style={{ color: tpl.accent }}
+   410→                  >
+   411→                    <CheckCircle2 className="w-3 h-3" />
+   412→                    Selected
+   413→                  </div>
+   414→                )}
+   415→              </div>
+   416→            </button>
+   417→          ))}
+   418→        </div>
+   419→      </motion.div>
+   420→
+   421→      {/* ─── Configuration Panel ─────────────────────────────────── */}
+   422→      <motion.div
+   423→        initial={{ opacity: 0, y: 12 }}
+   424→        animate={{ opacity: 1, y: 0 }}
+   425→        transition={{ duration: 0.4, delay: 0.1 }}
+   426→        className="glass-card p-5 md:p-6 space-y-5"
+   427→        style={{ borderColor: "rgba(255,255,255,0.04)" }}
+   428→      >
+   429→        <h2 className="text-sm font-semibold flex items-center gap-2 text-[#f1f5f9]">
+   430→          <Lock className="w-4 h-4 text-[#22d3ee]" />
+   431→          Report Configuration
+   432→        </h2>
+   433→
+   434→        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+   435→          {/* FIR Selector */}
+   436→          <div className="space-y-2">
+   437→            <label className="text-xs font-medium text-[#8b97b0] uppercase tracking-wider">
+   438→              FIR Reference
+   439→            </label>
+   440→            <Select value={selectedFirId} onValueChange={setSelectedFirId}>
+   441→              <SelectTrigger style={inputStyle}>
+   442→                <SelectValue placeholder="Select an FIR…" />
+   443→              </SelectTrigger>
+   444→              <SelectContent style={selectContentStyle}>
+   445→                {firs.map((fir) => (
+   446→                  <SelectItem key={fir.fir_id} value={fir.fir_id}>
+   447→                    <span className="font-mono text-xs">{fir.fir_id}</span>
+   448→                    <span className="text-[#5a657a] mx-1.5">—</span>
+   449→                    <span className="text-[#8b97b0] text-xs">{fir.crime_type}</span>
+   450→                  </SelectItem>
+   451→                ))}
+   452→              </SelectContent>
+   453→            </Select>
+   454→          </div>
+   455→
+   456→          {/* Accused Focus */}
+   457→          <div className="space-y-2">
+   458→            <label className="text-xs font-medium text-[#8b97b0] uppercase tracking-wider">
+   459→              Accused Focus{" "}
+   460→              <span className="text-[#3d4659] normal-case">(optional)</span>
+   461→            </label>
+   462→            <Select
+   463→              value={selectedAccusedId}
+   464→              onValueChange={setSelectedAccusedId}
+   465→            >
+   466→              <SelectTrigger style={inputStyle}>
+   467→                <SelectValue placeholder="Select an accused…" />
+   468→              </SelectTrigger>
+   469→              <SelectContent style={selectContentStyle}>
+   470→                {accusedList.map((a) => (
+   471→                  <SelectItem key={a.id} value={a.id}>
+   472→                    <span className="text-xs">{a.name}</span>
+   473→                    <span className="text-[#5a657a] mx-1.5">—</span>
+   474→                    <span className="text-[#8b97b0] text-xs">Risk: {a.risk}</span>
+   475→                  </SelectItem>
+   476→                ))}
+   477→              </SelectContent>
+   478→            </Select>
+   479→          </div>
+   480→
+   481→          {/* Report Type */}
+   482→          <div className="space-y-2">
+   483→            <label className="text-xs font-medium text-[#8b97b0] uppercase tracking-wider">
+   484→              Report Type
+   485→            </label>
+   486→            <Select value={reportType} onValueChange={setReportType}>
+   487→              <SelectTrigger style={inputStyle}>
+   488→                <SelectValue />
+   489→              </SelectTrigger>
+   490→              <SelectContent style={selectContentStyle}>
+   491→                <SelectItem value="full">Full Intelligence Brief</SelectItem>
+   492→                <SelectItem value="similar">Similar Crimes Analysis</SelectItem>
+   493→                <SelectItem value="timeline">Investigation Timeline Report</SelectItem>
+   494→              </SelectContent>
+   495→            </Select>
+   496→          </div>
+   497→        </div>
+   498→
+   499→        {/* Generate Button */}
+   500→        <Button
+   501→          onClick={handleGenerate}
+   502→          disabled={(!selectedFirId && !selectedAccusedId) || isGenerating}
+   503→          className="px-8 py-3 rounded-xl text-sm font-semibold transition-all duration-300 cursor-pointer"
+   504→          style={{
+   505→            background: "linear-gradient(135deg, #22d3ee, #06b6d4)",
+   506→            color: "#050810",
+   507→            boxShadow: "0 0 24px rgba(34,211,238,0.2), 0 4px 16px rgba(0,0,0,0.3)",
+   508→          }}
+   509→        >
+   510→          {isGenerating ? (
+   511→            <span className="flex items-center gap-2">
+   512→              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+   513→              Generating Report…
+   514→            </span>
+   515→          ) : (
+   516→            <span className="flex items-center gap-2">
+   517→              <Sparkles className="w-4 h-4" />
+   518→              Generate Report
+   519→            </span>
+   520→          )}
+   521→        </Button>
+   522→      </motion.div>
+   523→
+   524→      {/* ─── Report Preview ──────────────────────────────────────── */}
+   525→      {reportGenerated && (
+   526→        <div className="space-y-5 animate-fade-in-up">
+   527→          {/* Export Button Bar */}
+   528→          <motion.div
+   529→            initial={{ opacity: 0, y: 8 }}
+   530→            animate={{ opacity: 1, y: 0 }}
+   531→            transition={{ duration: 0.3 }}
+   532→            className="flex items-center justify-between gap-3"
+   533→          >
+   534→            <span className="text-xs text-[#5a657a] uppercase tracking-wider font-medium">
+   535→              Report Preview
+   536→            </span>
+   537→            <div className="flex items-center gap-2">
+   538→              <Button
+   539→                onClick={handleExportPDF}
+   540→                className="px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer"
+   541→                style={{
+   542→                  background: "linear-gradient(135deg, rgba(34,211,238,0.12), rgba(34,211,238,0.06))",
+   543→                  color: "var(--primary)",
+   544→                  border: "1px solid rgba(34,211,238,0.2)",
+   545→                  boxShadow: "0 0 16px rgba(34,211,238,0.06)",
+   546→                }}
+   547→              >
+   548→                <FileDown className="w-3.5 h-3.5 mr-1.5" />
+   549→                Export PDF
+   550→              </Button>
+   551→              <Button
+   552→                onClick={() => {
+   553→                  // Copy report summary to clipboard
+   554→                  if (brief) navigator.clipboard.writeText(brief.executiveSummary);
+   555→                }}
+   556→                className="px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer"
+   557→                style={{
+   558→                  background: "rgba(129,140,248,0.08)",
+   559→                  color: "var(--secondary)",
+   560→                  border: "1px solid rgba(129,140,248,0.15)",
+   561→                }}
+   562→              >
+   563→                <Copy className="w-3.5 h-3.5 mr-1.5" />
+   564→                Copy
+   565→              </Button>
+   566→              <Button
+   567→                onClick={() => window.print()}
+   568→                className="px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer"
+   569→                style={{
+   570→                  background: "var(--border-subtle)",
+   571→                  color: "var(--text-secondary)",
+   572→                  border: "1px solid var(--border-subtle)",
+   573→                }}
+   574→              >
+   575→                <Printer className="w-3.5 h-3.5 mr-1.5" />
+   576→                Print
+   577→              </Button>
+   578→            </div>
+   579→          </motion.div>
+   580→
+   581→          {/* a. Report Header */}
+   582→          <motion.div
+   583→            initial={{ opacity: 0, y: 16 }}
+   584→            animate={{ opacity: 1, y: 0 }}
+   585→            transition={{ duration: 0.35 }}
+   586→            className="glass-card p-6 relative overflow-hidden"
+   587→          >
+   588→            {/* Subtle gradient overlay */}
+   589→            <div
+   590→              className="absolute inset-0 pointer-events-none"
+   591→              style={{ background: "linear-gradient(135deg, rgba(34,211,238,0.04) 0%, transparent 40%, rgba(129,140,248,0.03) 100%)" }}
+   592→            />
+   593→            <div className="relative flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+   594→              <div className="space-y-1.5">
+   595→                <h2 className="text-xl md:text-2xl font-bold tracking-wide text-[#f1f5f9]">
+   596→                  KSP SENTINEL AI — INTELLIGENCE REPORT
+   597→                </h2>
+   598→                <p className="text-xs text-[#8b97b0]">
+   599→                  Karnataka State Police — Crime Intelligence Division
+   600→                </p>
+   601→              </div>
+   602→              <div className="flex flex-col items-start md:items-end gap-1 text-sm text-[#8b97b0]">
+   603→                <span>
+   604→                  Report ID:{" "}
+   605→                  <span className="text-[#f1f5f9] font-mono text-xs">
+   606→                    RPT-{reportId}
+   607→                  </span>
+   608→                </span>
+   609→                <span className="text-xs">
+   610→                  Generated:{" "}
+   611→                  <span className="text-[#f1f5f9]">
+   612→                    {new Date().toLocaleString("en-IN")}
+   613→                  </span>
+   614→                </span>
+   615→                <span className="text-xs">
+   616→                  Officer:{" "}
+   617→                  <span className="text-[#f1f5f9]">
+   618→                    {user?.username ?? "Unknown"} ({user?.role ?? "N/A"})
+   619→                  </span>
+   620→                </span>
+   621→              </div>
+   622→            </div>
+   623→            <div className="relative mt-4 flex items-center gap-2">
+   624→              <span
+   625→                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold tracking-widest"
+   626→                style={{
+   627→                  background: "rgba(248,113,113,0.1)",
+   628→                  border: "1px solid rgba(248,113,113,0.15)",
+   629→                  color: "var(--critical)",
+   630→                }}
+   631→              >
+   632→                <Lock className="w-3 h-3" />
+   633→                CLASSIFICATION: CONFIDENTIAL
+   634→              </span>
+   635→              <Badge
+   636→                variant="outline"
+   637→                className="border-[rgba(34,211,238,0.3)] text-[#22d3ee] text-[10px]"
+   638→              >
+   639→                {reportType === "full"
+   640→                  ? "Full Intelligence Brief"
+   641→                  : reportType === "similar"
+   642→                    ? "Similar Crimes Analysis"
+   643→                    : "Investigation Timeline Report"}
+   644→              </Badge>
+   645→            </div>
+   646→          </motion.div>
+   647→
+   648→          {/* b. Executive Summary */}
+   649→          {brief && (
+   650→            <motion.div
+   651→              initial={{ opacity: 0, y: 16 }}
+   652→              animate={{ opacity: 1, y: 0 }}
+   653→              transition={{ duration: 0.35, delay: 0.08 }}
+   654→              className="glass-card p-6"
+   655→              style={{ borderColor: "rgba(255,255,255,0.04)" }}
+   656→            >
+   657→              <h3 className="text-base font-semibold mb-4 flex items-center gap-2 text-[#f1f5f9]">
+   658→                <Shield className="w-5 h-5 text-[#22d3ee]" />
+   659→                Executive Summary
+   660→              </h3>
+   661→              <div className="flex flex-col md:flex-row gap-6">
+   662→                <div className="flex-1">
+   663→                  <p className="text-sm text-[#8b97b0] leading-relaxed">
+   664→                    {brief.executiveSummary}
+   665→                  </p>
+   666→                  {selectedFir && (
+   667→                    <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+   668→                      <div>
+   669→                        <span className="text-[#5a657a] text-xs uppercase tracking-wider">FIR</span>
+   670→                        <p className="text-[#f1f5f9] font-medium font-mono text-xs mt-0.5">
+   671→                          {selectedFir.fir_id}
+   672→                        </p>
+   673→                      </div>
+   674→                      <div>
+   675→                        <span className="text-[#5a657a] text-xs uppercase tracking-wider">Crime</span>
+   676→                        <p className="text-[#f1f5f9] text-xs mt-0.5">{selectedFir.crime_type}</p>
+   677→                      </div>
+   678→                      <div>
+   679→                        <span className="text-[#5a657a] text-xs uppercase tracking-wider">District</span>
+   680→                        <p className="text-[#f1f5f9] text-xs mt-0.5">{selectedFir.district}</p>
+   681→                      </div>
+   682→                      <div>
+   683→                        <span className="text-[#5a657a] text-xs uppercase tracking-wider">Status</span>
+   684→                        <p className="mt-0.5">
+   685→                          <span
+   686→                            className="text-xs font-medium"
+   687→                            style={{
+   688→                              color: "var(--warning)",
+   689→                              background: "rgba(251,191,36,0.08)",
+   690→                              padding: "1px 8px",
+   691→                              borderRadius: "9999px",
+   692→                              border: "1px solid rgba(251,191,36,0.15)",
+   693→                            }}
+   694→                          >
+   695→                            {selectedFir.investigation_status}
+   696→                          </span>
+   697→                        </p>
+   698→                      </div>
+   699→                    </div>
+   700→                  )}
+   701→                </div>
+   702→                <div className="flex flex-col items-center gap-1 shrink-0">
+   703→                  <ConfidenceRing score={brief.confidenceScore} />
+   704→                  <span className="text-[10px] text-[#5a657a] uppercase tracking-wider mt-1">
+   705→                    Confidence
+   706→                  </span>
+   707→                </div>
+   708→              </div>
+   709→            </motion.div>
+   710→          )}
+   711→
+   712→          {/* c. Timeline Section */}
+   713→          {timeline.length > 0 && (
+   714→            <motion.div
+   715→              initial={{ opacity: 0, y: 16 }}
+   716→              animate={{ opacity: 1, y: 0 }}
+   717→              transition={{ duration: 0.35, delay: 0.16 }}
+   718→              className="glass-card p-6"
+   719→              style={{ borderColor: "rgba(255,255,255,0.04)" }}
+   720→            >
+   721→              <h3 className="text-base font-semibold mb-4 flex items-center gap-2 text-[#f1f5f9]">
+   722→                <Clock className="w-5 h-5 text-[#22d3ee]" />
+   723→                Investigation Timeline
+   724→                <Badge
+   725→                  variant="outline"
+   726→                  className="border-[rgba(255,255,255,0.06)] text-[#8b97b0] text-[10px] ml-1"
+   727→                >
+   728→                  {timeline.length} events
+   729→                </Badge>
+   730→              </h3>
+   731→              <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+   732→                {timeline.map((event, idx) => (
+   733→                  <div
+   734→                    key={event.id}
+   735→                    className="flex items-start gap-3 p-3.5 rounded-lg transition-colors duration-200"
+   736→                    style={{
+   737→                      background: "rgba(10,15,28,0.4)",
+   738→                      border: "1px solid rgba(255,255,255,0.04)",
+   739→                    }}
+   740→                  >
+   741→                    <div
+   742→                      className="mt-0.5 p-2 rounded-lg shrink-0"
+   743→                      style={{
+   744→                        background: "rgba(15,21,36,0.6)",
+   745→                        border: "1px solid var(--border-subtle)",
+   746→                      }}
+   747→                    >
+   748→                      <TimelineIcon type={event.type} />
+   749→                    </div>
+   750→                    <div className="flex-1 min-w-0">
+   751→                      <div className="flex items-center gap-2 flex-wrap">
+   752→                        <span className="text-sm font-medium text-[#f1f5f9]">
+   753→                          {event.title}
+   754→                        </span>
+   755→                        <StatusBadge status={event.status} />
+   756→                      </div>
+   757→                      <p className="text-xs text-[#8b97b0] mt-1 line-clamp-2 leading-relaxed">
+   758→                        {event.description}
+   759→                      </p>
+   760→                    </div>
+   761→                    <span className="text-[10px] text-[#3d4659] whitespace-nowrap shrink-0 mt-1">
+   762→                      {event.timestamp}
+   763→                    </span>
+   764→                  </div>
+   765→                ))}
+   766→              </div>
+   767→            </motion.div>
+   768→          )}
+   769→
+   770→          {/* d. Similar Crimes Section */}
+   771→          {similarCrimes.length > 0 && (
+   772→            <motion.div
+   773→              initial={{ opacity: 0, y: 16 }}
+   774→              animate={{ opacity: 1, y: 0 }}
+   775→              transition={{ duration: 0.35, delay: 0.24 }}
+   776→              className="glass-card p-6"
+   777→              style={{ borderColor: "rgba(255,255,255,0.04)" }}
+   778→            >
+   779→              <h3 className="text-base font-semibold mb-4 flex items-center gap-2 text-[#f1f5f9]">
+   780→                <AlertTriangle className="w-5 h-5 text-[#fbbf24]" />
+   781→                Similar Crimes Analysis
+   782→              </h3>
+   783→              <div className="space-y-4">
+   784→                {similarCrimes.map((result) => (
+   785→                  <div
+   786→                    key={result.fir.fir_id}
+   787→                    className="p-4 rounded-lg space-y-3"
+   788→                    style={{
+   789→                      background: "rgba(10,15,28,0.4)",
+   790→                      border: "1px solid rgba(255,255,255,0.04)",
+   791→                    }}
+   792→                  >
+   793→                    <div className="flex items-center justify-between flex-wrap gap-2">
+   794→                      <div>
+   795→                        <span className="font-mono text-sm font-bold text-[#22d3ee]">
+   796→                          {result.fir.fir_id}
+   797→                        </span>
+   798→                        <span className="text-sm text-[#8b97b0] ml-2">
+   799→                          {result.fir.crime_type} — {result.fir.district}
+   800→                        </span>
+   801→                      </div>
+   802→                      <span
+   803→                        className="text-sm font-bold"
+   804→                        style={{
+   805→                          color:
+   806→                            result.similarityScore >= 75
+   807→                              ? "#f87171"
+   808→                              : result.similarityScore >= 50
+   809→                                ? "#fbbf24"
+   810→                                : "#34d399",
+   811→                        }}
+   812→                      >
+   813→                        {result.similarityScore}% match
+   814→                      </span>
+   815→                    </div>
+   816→
+   817→                    {/* Similarity Bar */}
+   818→                    <div
+   819→                      className="w-full h-2 rounded-full overflow-hidden"
+   820→                      style={{ background: "rgba(15,21,36,0.6)", border: "1px solid rgba(255,255,255,0.03)" }}
+   821→                    >
+   822→                      <div
+   823→                        className="h-full rounded-full transition-all duration-700"
+   824→                        style={{
+   825→                          width: `${result.similarityScore}%`,
+   826→                          background:
+   827→                            result.similarityScore >= 75
+   828→                              ? "linear-gradient(90deg, #f87171, #ef4444)"
+   829→                              : result.similarityScore >= 50
+   830→                                ? "linear-gradient(90deg, #fbbf24, #f59e0b)"
+   831→                                : "linear-gradient(90deg, #34d399, #10b981)",
+   832→                          boxShadow:
+   833→                            result.similarityScore >= 75
+   834→                              ? "0 0 12px rgba(248,113,113,0.3)"
+   835→                              : result.similarityScore >= 50
+   836→                                ? "0 0 12px rgba(251,191,36,0.3)"
+   837→                                : "0 0 12px rgba(52,211,153,0.3)",
+   838→                        }}
+   839→                      />
+   840→                    </div>
+   841→
+   842→                    {/* Matched Factors */}
+   843→                    <div className="flex flex-wrap gap-1.5">
+   844→                      {result.matchedFactors
+   845→                        .filter((f) => f.matched)
+   846→                        .map((f) => (
+   847→                          <Badge
+   848→                            key={f.factor}
+   849→                            variant="outline"
+   850→                            className="border-[rgba(52,211,153,0.2)] text-[#34d399] text-[10px]"
+   851→                            style={{ background: "rgba(52,211,153,0.06)" }}
+   852→                          >
+   853→                            <CheckCircle2 className="w-3 h-3 mr-1" />
+   854→                            {f.factor}
+   855→                          </Badge>
+   856→                        ))}
+   857→                      {result.matchedFactors
+   858→                        .filter((f) => !f.matched)
+   859→                        .map((f) => (
+   860→                          <Badge
+   861→                            key={f.factor}
+   862→                            variant="outline"
+   863→                            className="border-[rgba(248,113,113,0.12)] text-[rgba(248,113,113,0.5)] text-[10px]"
+   864→                            style={{ background: "rgba(248,113,113,0.04)" }}
+   865→                          >
+   866→                            <XCircle className="w-3 h-3 mr-1" />
+   867→                            {f.factor}
+   868→                          </Badge>
+   869→                        ))}
+   870→                    </div>
+   871→
+   872→                    <p className="text-xs text-[#8b97b0] leading-relaxed">
+   873→                      {result.explanation}
+   874→                    </p>
+   875→                  </div>
+   876→                ))}
+   877→              </div>
+   878→            </motion.div>
+   879→          )}
+   880→
+   881→          {/* e. Network Intelligence */}
+   882→          {brief && (brief.relatedCases.length > 0 || brief.likelyAssociates.length > 0) && (
+   883→            <motion.div
+   884→              initial={{ opacity: 0, y: 16 }}
+   885→              animate={{ opacity: 1, y: 0 }}
+   886→              transition={{ duration: 0.35, delay: 0.32 }}
+   887→              className="glass-card p-6"
+   888→              style={{ borderColor: "rgba(255,255,255,0.04)" }}
+   889→            >
+   890→              <h3 className="text-base font-semibold mb-4 flex items-center gap-2 text-[#f1f5f9]">
+   891→                <Network className="w-5 h-5 text-[#818cf8]" />
+   892→                Network Intelligence
+   893→              </h3>
+   894→
+   895→              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+   896→                {/* Associated Gang Members */}
+   897→                {brief.likelyAssociates.length > 0 && (
+   898→                  <div>
+   899→                    <h4 className="text-xs font-semibold text-[#5a657a] uppercase tracking-wider mb-3">
+   900→                      Likely Associates
+   901→                    </h4>
+   902→                    <div className="space-y-2 max-h-72 overflow-y-auto">
+   903→                      {brief.likelyAssociates.map((assoc) => (
+   904→                        <div
+   905→                          key={assoc.id}
+   906→                          className="flex items-center justify-between p-3 rounded-lg transition-colors duration-200"
+   907→                          style={{
+   908→                            background: "rgba(10,15,28,0.4)",
+   909→                            border: "1px solid rgba(255,255,255,0.04)",
+   910→                          }}
+   911→                        >
+   912→                          <div className="flex items-center gap-2.5">
+   913→                            <div
+   914→                              className="w-7 h-7 rounded-lg flex items-center justify-center"
+   915→                              style={{
+   916→                                background: "rgba(15,21,36,0.6)",
+   917→                                border: "1px solid var(--border-subtle)",
+   918→                              }}
+   919→                            >
+   920→                              <User className="w-3.5 h-3.5 text-[#8b97b0]" />
+   921→                            </div>
+   922→                            <div>
+   923→                              <span className="text-sm font-medium text-[#f1f5f9]">
+   924→                                {assoc.name}
+   925→                              </span>
+   926→                              <p className="text-[10px] text-[#5a657a]">
+   927→                                {assoc.connection}
+   928→                              </p>
+   929→                            </div>
+   930→                          </div>
+   931→                          <Badge
+   932→                            variant="outline"
+   933→                            className="text-[10px]"
+   934→                            style={
+   935→                              assoc.strength === "strong"
+   936→                                ? { borderColor: "rgba(248,113,113,0.2)", color: "var(--critical)", background: "rgba(248,113,113,0.06)" }
+   937→                                : assoc.strength === "moderate"
+   938→                                  ? { borderColor: "rgba(251,191,36,0.2)", color: "var(--warning)", background: "rgba(251,191,36,0.06)" }
+   939→                                  : { borderColor: "rgba(255,255,255,0.08)", color: "var(--text-secondary)", background: "var(--border-subtle)" }
+   940→                            }
+   941→                          >
+   942→                            {assoc.strength}
+   943→                          </Badge>
+   944→                        </div>
+   945→                      ))}
+   946→                    </div>
+   947→                  </div>
+   948→                )}
+   949→
+   950→                {/* Linked FIRs & Financial Links */}
+   951→                <div className="space-y-4">
+   952→                  {brief.relatedCases.length > 0 && (
+   953→                    <div>
+   954→                      <h4 className="text-xs font-semibold text-[#5a657a] uppercase tracking-wider mb-3">
+   955→                        Linked Cases
+   956→                      </h4>
+   957→                      <div className="space-y-2 max-h-36 overflow-y-auto">
+   958→                        {brief.relatedCases.map((rc) => (
+   959→                          <div
+   960→                            key={rc.firId}
+   961→                            className="flex items-center gap-2.5 p-2.5 rounded-lg transition-colors duration-200"
+   962→                            style={{
+   963→                              background: "rgba(10,15,28,0.4)",
+   964→                              border: "1px solid rgba(255,255,255,0.04)",
+   965→                            }}
+   966→                          >
+   967→                            <FileText className="w-3.5 h-3.5 text-[#22d3ee] shrink-0" />
+   968→                            <span className="font-mono text-xs text-[#22d3ee]">
+   969→                              {rc.firId}
+   970→                            </span>
+   971→                            <span className="text-[10px] text-[#5a657a] truncate">
+   972→                              {rc.crimeType} — {rc.relevance}
+   973→                            </span>
+   974→                          </div>
+   975→                        ))}
+   976→                      </div>
+   977→                    </div>
+   978→                  )}
+   979→
+   980→                  {brief.financialLinks.length > 0 && (
+   981→                    <div>
+   982→                      <h4 className="text-xs font-semibold text-[#5a657a] uppercase tracking-wider mb-3">
+   983→                        Financial Links
+   984→                      </h4>
+   985→                      <div className="space-y-2 max-h-36 overflow-y-auto">
+   986→                        {brief.financialLinks.map((fl, i) => (
+   987→                          <div
+   988→                            key={i}
+   989→                            className="p-3 rounded-lg"
+   990→                            style={{
+   991→                              background: "rgba(10,15,28,0.4)",
+   992→                              border: "1px solid rgba(255,255,255,0.04)",
+   993→                            }}
+   994→                          >
+   995→                            <div className="flex items-center justify-between">
+   996→                              <span className="text-xs font-medium text-[#f1f5f9]">
+   997→                                {fl.bank} — {fl.holder}
+   998→                              </span>
+   999→                              <span
+  1000→                                className="text-xs font-mono font-semibold"
+  1001→                                style={{ color: "var(--success)" }}
+  1002→                              >
+  1003→                                ₹{fl.totalAmount.toLocaleString("en-IN")}
+  1004→                              </span>
+  1005→                            </div>
+  1006→                            <p className="text-[10px] text-[#5a657a] mt-1">
+  1007→                              {fl.transactions} transactions — {fl.details}
+  1008→                            </p>
+  1009→                          </div>
+  1010→                        ))}
+  1011→                      </div>
+  1012→                    </div>
+  1013→                  )}
+  1014→                </div>
+  1015→              </div>
+  1016→            </motion.div>
+  1017→          )}
+  1018→
+  1019→          {/* f. AI Findings */}
+  1020→          {brief && (
+  1021→            <motion.div
+  1022→              initial={{ opacity: 0, y: 16 }}
+  1023→              animate={{ opacity: 1, y: 0 }}
+  1024→              transition={{ duration: 0.35, delay: 0.4 }}
+  1025→              className="glass-card p-6"
+  1026→              style={{ borderColor: "rgba(255,255,255,0.04)" }}
+  1027→            >
+  1028→              <h3 className="text-base font-semibold mb-4 flex items-center gap-2 text-[#f1f5f9]">
+  1029→                <Shield className="w-5 h-5 text-[#22d3ee]" />
+  1030→                AI Findings & Recommendations
+  1031→              </h3>
+  1032→
+  1033→              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+  1034→                {/* Suggested Actions */}
+  1035→                {brief.suggestedActions.length > 0 && (
+  1036→                  <div>
+  1037→                    <h4 className="text-xs font-semibold text-[#5a657a] uppercase tracking-wider mb-3">
+  1038→                      Suggested Actions
+  1039→                    </h4>
+  1040→                    <div className="space-y-2">
+  1041→                      {brief.suggestedActions.map((sa, i) => (
+  1042→                        <div
+  1043→                          key={i}
+  1044→                          className="flex items-start gap-2.5 p-3 rounded-lg"
+  1045→                          style={{
+  1046→                            background: "rgba(10,15,28,0.4)",
+  1047→                            border: "1px solid rgba(255,255,255,0.04)",
+  1048→                          }}
+  1049→                        >
+  1050→                          <div
+  1051→                            className="mt-1 w-2 h-2 rounded-full shrink-0"
+  1052→                            style={{
+  1053→                              backgroundColor:
+  1054→                                sa.priority === "immediate" ? "#f87171" :
+  1055→                                sa.priority === "short_term" ? "#fbbf24" : "#22d3ee",
+  1056→                              boxShadow:
+  1057→                                sa.priority === "immediate" ? "0 0 8px rgba(248,113,113,0.4)" :
+  1058→                                sa.priority === "short_term" ? "0 0 8px rgba(251,191,36,0.4)" : "0 0 8px rgba(34,211,238,0.4)",
+  1059→                            }}
+  1060→                          />
+  1061→                          <div>
+  1062→                            <p className="text-sm text-[#f1f5f9]">
+  1063→                              {sa.action}
+  1064→                            </p>
+  1065→                            <p className="text-[10px] text-[#5a657a] mt-0.5">
+  1066→                              {sa.rationale}
+  1067→                            </p>
+  1068→                          </div>
+  1069→                        </div>
+  1070→                      ))}
+  1071→                    </div>
+  1072→                  </div>
+  1073→                )}
+  1074→
+  1075→                <div className="space-y-6">
+  1076→                  {/* Missing Evidence */}
+  1077→                  {brief.missingEvidence.length > 0 && (
+  1078→                    <div>
+  1079→                      <h4 className="text-xs font-semibold text-[#5a657a] uppercase tracking-wider mb-3">
+  1080→                        Missing Evidence
+  1081→                      </h4>
+  1082→                      <div className="space-y-2">
+  1083→                        {brief.missingEvidence.map((me, i) => (
+  1084→                          <div
+  1085→                            key={i}
+  1086→                            className="flex items-start gap-2.5"
+  1087→                          >
+  1088→                            <XCircle
+  1089→                              className="w-4 h-4 shrink-0 mt-0.5"
+  1090→                              style={{
+  1091→                                color:
+  1092→                                  me.priority === "high" ? "#f87171" :
+  1093→                                  me.priority === "medium" ? "#fbbf24" : "#8b97b0",
+  1094→                              }}
+  1095→                            />
+  1096→                            <div>
+  1097→                              <span className="text-xs font-medium text-[#f1f5f9]">
+  1098→                                {me.type}
+  1099→                              </span>
+  1100→                              <p className="text-[10px] text-[#5a657a]">
+  1101→                                {me.description}
+  1102→                              </p>
+  1103→                            </div>
+  1104→                          </div>
+  1105→                        ))}
+  1106→                      </div>
+  1107→                    </div>
+  1108→                  )}
+  1109→
+  1110→                  {/* Behavioral Analysis */}
+  1111→                  {brief.behavioralAnalysis.length > 0 && (
+  1112→                    <div>
+  1113→                      <h4 className="text-xs font-semibold text-[#5a657a] uppercase tracking-wider mb-3">
+  1114→                        Behavioral Analysis
+  1115→                      </h4>
+  1116→                      <div className="space-y-2">
+  1117→                        {brief.behavioralAnalysis.map((ba, i) => (
+  1118→                          <div
+  1119→                            key={i}
+  1120→                            className="p-3 rounded-lg"
+  1121→                            style={{
+  1122→                              background: "rgba(10,15,28,0.4)",
+  1123→                              border: "1px solid rgba(255,255,255,0.04)",
+  1124→                            }}
+  1125→                          >
+  1126→                            <div className="flex items-center gap-2">
+  1127→                              <span className="text-xs font-medium text-[#f1f5f9]">
+  1128→                                {ba.pattern}
+  1129→                              </span>
+  1130→                              <Badge
+  1131→                                variant="outline"
+  1132→                                className="border-[rgba(255,255,255,0.06)] text-[#8b97b0] text-[10px]"
+  1133→                              >
+  1134→                                {ba.frequency}
+  1135→                              </Badge>
+  1136→                            </div>
+  1137→                            <p className="text-[10px] text-[#5a657a] mt-1 leading-relaxed">
+  1138→                              {ba.description}
+  1139→                            </p>
+  1140→                          </div>
+  1141→                        ))}
+  1142→                      </div>
+  1143→                    </div>
+  1144→                  )}
+  1145→                </div>
+  1146→              </div>
+  1147→            </motion.div>
+  1148→          )}
+  1149→
+  1150→          {/* g. Evidence Summary */}
+  1151→          {brief && (
+  1152→            <motion.div
+  1153→              initial={{ opacity: 0, y: 16 }}
+  1154→              animate={{ opacity: 1, y: 0 }}
+  1155→              transition={{ duration: 0.35, delay: 0.48 }}
+  1156→              className="glass-card p-6"
+  1157→              style={{ borderColor: "rgba(255,255,255,0.04)" }}
+  1158→            >
+  1159→              <h3 className="text-base font-semibold mb-4 flex items-center gap-2 text-[#f1f5f9]">
+  1160→                <CheckCircle2 className="w-5 h-5 text-[#34d399]" />
+  1161→                Evidence Summary
+  1162→              </h3>
+  1163→
+  1164→              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+  1165→                <div
+  1166→                  className="p-5 rounded-xl text-center"
+  1167→                  style={{
+  1168→                    background: "rgba(10,15,28,0.4)",
+  1169→                    border: "1px solid rgba(255,255,255,0.04)",
+  1170→                  }}
+  1171→                >
+  1172→                  <p className="text-3xl font-bold text-[#22d3ee]">
+  1173→                    {brief.relatedCases.length}
+  1174→                  </p>
+  1175→                  <p className="text-[10px] text-[#5a657a] uppercase tracking-wider mt-1">
+  1176→                    FIRs Referenced
+  1177→                  </p>
+  1178→                </div>
+  1179→                <div
+  1180→                  className="p-5 rounded-xl text-center"
+  1181→                  style={{
+  1182→                    background: "rgba(10,15,28,0.4)",
+  1183→                    border: "1px solid rgba(255,255,255,0.04)",
+  1184→                  }}
+  1185→                >
+  1186→                  <p
+  1187→                    className="text-3xl font-bold"
+  1188→                    style={{
+  1189→                      color:
+  1190→                        brief.missingEvidence.length === 0
+  1191→                          ? "#34d399"
+  1192→                          : brief.missingEvidence.filter((m) => m.priority === "high").length === 0
+  1193→                            ? "#fbbf24"
+  1194→                            : "#f87171",
+  1195→                    }}
+  1196→                  >
+  1197→                    {brief.missingEvidence.length === 0
+  1198→                      ? "Strong"
+  1199→                      : brief.missingEvidence.filter((m) => m.priority === "high").length === 0
+  1200→                        ? "Moderate"
+  1201→                        : "Weak"}
+  1202→                  </p>
+  1203→                  <p className="text-[10px] text-[#5a657a] uppercase tracking-wider mt-1">
+  1204→                    Evidence Chain
+  1205→                  </p>
+  1206→                </div>
+  1207→                <div
+  1208→                  className="p-5 rounded-xl flex flex-col items-center justify-center"
+  1209→                  style={{
+  1210→                    background: "rgba(10,15,28,0.4)",
+  1211→                    border: "1px solid rgba(255,255,255,0.04)",
+  1212→                  }}
+  1213→                >
+  1214→                  <ConfidenceRing score={brief.confidenceScore} size={80} />
+  1215→                  <p className="text-[10px] text-[#5a657a] uppercase tracking-wider mt-2">
+  1216→                    Overall Confidence
+  1217→                  </p>
+  1218→                </div>
+  1219→              </div>
+  1220→
+  1221→              {/* Evidence Chain Items */}
+  1222→              {brief.relatedCases.length > 0 && (
+  1223→                <div className="mt-5">
+  1224→                  <h4 className="text-xs font-semibold text-[#5a657a] uppercase tracking-wider mb-2.5">
+  1225→                    Evidence Chain
+  1226→                  </h4>
+  1227→                  <div className="flex flex-wrap gap-2">
+  1228→                    {brief.relatedCases.map((rc) => (
+  1229→                      <Badge
+  1230→                        key={rc.firId}
+  1231→                        variant="outline"
+  1232→                        className="border-[rgba(255,255,255,0.06)] text-[#f1f5f9] text-[10px]"
+  1233→                        style={{ background: "var(--border-subtle)" }}
+  1234→                      >
+  1235→                        {rc.firId} — {rc.relevance}
+  1236→                      </Badge>
+  1237→                    ))}
+  1238→                  </div>
+  1239→                </div>
+  1240→              )}
+  1241→            </motion.div>
+  1242→          )}
+  1243→
+  1244→          {/* h. Footer */}
+  1245→          <motion.div
+  1246→            initial={{ opacity: 0, y: 16 }}
+  1247→            animate={{ opacity: 1, y: 0 }}
+  1248→            transition={{ duration: 0.35, delay: 0.56 }}
+  1249→            className="glass-card p-6"
+  1250→            style={{ borderColor: "rgba(255,255,255,0.04)" }}
+  1251→          >
+  1252→            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+  1253→              <div className="flex-1 text-center md:text-left">
+  1254→                <p className="text-sm text-[#8b97b0]">
+  1255→                  This report was auto-generated by{" "}
+  1256→                  <span className="text-[#f1f5f9] font-medium">
+  1257→                    KSP Sentinel AI
+  1258→                  </span>
+  1259→                </p>
+  1260→                <p className="text-[10px] text-[#3d4659] mt-1">
+  1261→                  Generated: {new Date().toLocaleString("en-IN")}
+  1262→                </p>
+  1263→                <p
+  1264→                  className="text-[10px] mt-2 font-semibold tracking-widest uppercase"
+  1265→                  style={{ color: "rgba(248,113,113,0.6)" }}
+  1266→                >
+  1267→                  CLASSIFICATION: CONFIDENTIAL — FOR AUTHORIZED PERSONNEL ONLY
+  1268→                </p>
+  1269→              </div>
+  1270→
+  1271→              {/* QR Code Placeholder */}
+  1272→              <div className="flex flex-col items-center gap-1">
+  1273→                <div
+  1274→                  className="w-16 h-16 rounded-lg flex items-center justify-center"
+  1275→                  style={{
+  1276→                    background: "rgba(15,21,36,0.5)",
+  1277→                    border: "2px dashed rgba(255,255,255,0.06)",
+  1278→                  }}
+  1279→                >
+  1280→                  <span className="text-xs font-mono text-[#3d4659]">QR</span>
+  1281→                </div>
+  1282→                <span className="text-[10px] text-[#3d4659]">
+  1283→                  Verification Code
+  1284→                </span>
+  1285→              </div>
+  1286→            </div>
+  1287→          </motion.div>
+  1288→        </div>
+  1289→      )}
+  1290→    </div>
+  1291→  );
+  1292→}

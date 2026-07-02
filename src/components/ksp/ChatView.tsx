@@ -27,6 +27,80 @@ import type { ChatMessage, FIR, ExplainableResponse } from "@/lib/types";
 import { searchFIRs } from "@/lib/data";
 import { motion, AnimatePresence } from "framer-motion";
 import jsPDF from "jspdf";
+import ReactMarkdown from "react-markdown";
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TYPEWRITER TEXT — Character-by-character reveal for AI responses
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MARKDOWN COMPONENTS — Styled markdown rendering for AI responses
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const mdStyle: React.CSSProperties = { color: "var(--text-primary)" };
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mdComponents: any = {
+  h1: ({ children }: { children?: React.ReactNode }) => <h1 className="text-base font-bold mt-3 mb-1.5" style={mdStyle}>{children}</h1>,
+  h2: ({ children }: { children?: React.ReactNode }) => <h2 className="text-[15px] font-bold mt-2.5 mb-1" style={mdStyle}>{children}</h2>,
+  h3: ({ children }: { children?: React.ReactNode }) => <h3 className="text-sm font-bold mt-2 mb-1" style={mdStyle}>{children}</h3>,
+  p: ({ children }: { children?: React.ReactNode }) => <p className="mb-2 last:mb-0 leading-[1.65]">{children}</p>,
+  strong: ({ children }: { children?: React.ReactNode }) => <strong className="font-bold" style={{ color: "var(--text-primary)" }}>{children}</strong>,
+  em: ({ children }: { children?: React.ReactNode }) => <em className="italic opacity-90">{children}</em>,
+  ul: ({ children }: { children?: React.ReactNode }) => <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul>,
+  ol: ({ children }: { children?: React.ReactNode }) => <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>,
+  li: ({ children }: { children?: React.ReactNode }) => <li className="leading-[1.65]">{children}</li>,
+  code: ({ children, className }: { children?: React.ReactNode; className?: string }) =>
+    className ? (
+      <code className="block p-3 rounded text-[12px] font-mono overflow-x-auto my-2" style={{ background: "rgba(0,0,0,0.4)", color: "#e2e8f0" }}>{children}</code>
+    ) : (
+      <code className="px-1.5 py-0.5 rounded text-[12px] font-mono" style={{ background: "rgba(0,255,102,0.1)", color: "#00FF66" }}>{children}</code>
+    ),
+  pre: ({ children }: { children?: React.ReactNode }) => <pre className="mb-2 overflow-x-auto">{children}</pre>,
+  blockquote: ({ children }: { children?: React.ReactNode }) => (
+    <blockquote className="border-l-2 pl-3 my-2 italic" style={{ borderColor: "rgba(0,255,102,0.3)", color: "var(--text-secondary)" }}>{children}</blockquote>
+  ),
+  a: ({ children, href }: { children?: React.ReactNode; href?: string }) => (
+    <a href={href} className="underline" style={{ color: "#00FF66" }} target="_blank" rel="noopener noreferrer">{children}</a>
+  ),
+  hr: () => <hr className="my-3 border-t" style={{ borderColor: "var(--border-subtle)" }} />,};
+
+function TypewriterText({ text, speed = 30 }: { text: string; speed?: number }) {
+  const [displayed, setDisplayed] = useState("");
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    setDisplayed("");
+    setDone(false);
+    let i = 0;
+    const iv = setInterval(() => {
+      i++;
+      if (i >= text.length) {
+        setDisplayed(text);
+        setDone(true);
+        clearInterval(iv);
+      } else {
+        setDisplayed(text.slice(0, i));
+      }
+    }, speed);
+    return () => clearInterval(iv);
+  }, [text, speed]);
+
+  return (
+    <>
+      {displayed && <ReactMarkdown components={mdComponents}>{displayed}</ReactMarkdown>}
+      {!done && (
+        <span
+          className="inline-block w-[6px] h-[14px] ml-0.5 align-middle"
+          style={{
+            backgroundColor: "var(--primary)",
+            animation: "blink 0.8s step-end infinite",
+          }}
+        />
+      )}
+    </>
+  );
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    CONSTANTS & HELPERS
@@ -41,17 +115,17 @@ const EXAMPLE_QUERIES = [
 ];
 
 const SEVERITY_BORDER: Record<string, string> = {
-  critical: "#f87171",
-  high: "#fbbf24",
-  medium: "#fbbf24",
-  low: "#34d399",
+  critical: "var(--critical)",
+  high: "var(--warning)",
+  medium: "var(--warning)",
+  low: "var(--success)",
 };
 
 const SEVERITY_BADGE: Record<string, { bg: string; color: string; border: string }> = {
-  critical: { bg: "rgba(248,113,113,0.1)", color: "var(--critical)", border: "rgba(248,113,113,0.2)" },
-  high: { bg: "rgba(251,191,36,0.1)", color: "var(--warning)", border: "rgba(251,191,36,0.2)" },
-  medium: { bg: "rgba(251,191,36,0.1)", color: "var(--warning)", border: "rgba(251,191,36,0.2)" },
-  low: { bg: "rgba(52,211,153,0.1)", color: "var(--success)", border: "rgba(52,211,153,0.2)" },
+  critical: { bg: "var(--critical-glow)", color: "var(--critical)", border: "rgba(255,68,68,0.2)" },
+  high: { bg: "var(--warning-glow)", color: "var(--warning)", border: "rgba(255,107,0,0.2)" },
+  medium: { bg: "var(--warning-glow)", color: "var(--warning)", border: "rgba(255,107,0,0.2)" },
+  low: { bg: "var(--success-glow)", color: "var(--success)", border: "rgba(0,204,82,0.2)" },
 };
 
 function extractFIRIds(text: string): string[] {
@@ -135,7 +209,7 @@ function ExplainablePanel({ exp }: { exp: ExplainableResponse }) {
     <motion.div
       initial={{ opacity: 0, height: 0 }}
       animate={{ opacity: 1, height: "auto" }}
-      className="mt-2.5 rounded-xl overflow-hidden glass-card"
+      className="mt-2.5 overflow-hidden glass-card"
     >
       {/* Toggle Header */}
       <button
@@ -144,18 +218,16 @@ function ExplainablePanel({ exp }: { exp: ExplainableResponse }) {
         style={{ borderBottom: open ? "1px solid var(--border-subtle)" : "none" }}
       >
         <Brain className="w-3.5 h-3.5 flex-shrink-0" style={{ color: confColor }} />
-        <span className="text-[11px] font-semibold tracking-wider uppercase" style={{ color: "var(--text-secondary)" }}>
+        <span className="text-[11px] label-tracked" style={{ color: "var(--text-secondary)" }}>
           Explainable AI
         </span>
         <span
-          className="text-[10px] px-2 py-0.5 rounded-full font-bold"
+          className="bracket-badge"
           style={{
-            backgroundColor: `${confColor}12`,
             color: confColor,
-            border: `1px solid ${confColor}20`,
           }}
         >
-          {getConfidenceLabel(exp.confidenceScore)} · {exp.confidenceScore}%
+          [{getConfidenceLabel(exp.confidenceScore)} · {exp.confidenceScore}%]
         </span>
         {exp.evidenceChain.length > 0 && (
           <span className="text-[10px] flex items-center gap-1" style={{ color: "var(--text-tertiary)" }}>
@@ -192,9 +264,9 @@ function ExplainablePanel({ exp }: { exp: ExplainableResponse }) {
                       key={i}
                       className="text-[10px] px-2.5 py-1 rounded-lg font-mono font-medium"
                       style={{
-                        backgroundColor: "rgba(34,211,238,0.08)",
+                        backgroundColor: "rgba(0,255,102,0.08)",
                         color: "var(--primary)",
-                        border: "1px solid rgba(34,211,238,0.15)",
+                        border: "1px solid rgba(0,255,102,0.15)",
                       }}
                     >
                       {e.firId}
@@ -226,9 +298,9 @@ function ExplainablePanel({ exp }: { exp: ExplainableResponse }) {
                       <div
                         className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 text-[9px] font-bold mt-0.5"
                         style={{
-                          backgroundColor: "rgba(34,211,238,0.08)",
+                          backgroundColor: "rgba(0,255,102,0.08)",
                           color: "var(--primary)",
-                          border: "1px solid rgba(34,211,238,0.12)",
+                          border: "1px solid rgba(0,255,102,0.12)",
                         }}
                       >
                         {step.step}
@@ -276,7 +348,7 @@ function ExplainablePanel({ exp }: { exp: ExplainableResponse }) {
                     >
                       <span
                         className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
-                        style={{ backgroundColor: "#22d3ee", boxShadow: "0 0 6px rgba(34,211,238,0.4)" }}
+                        style={{ backgroundColor: "var(--primary)", boxShadow: "0 0 6px rgba(0,255,102,0.4)" }}
                       />
                       <div>
                         <span className="text-[11px] font-mono font-bold" style={{ color: "var(--text-primary)" }}>
@@ -323,9 +395,9 @@ function ExplainablePanel({ exp }: { exp: ExplainableResponse }) {
 function TypingIndicator() {
   return (
     <div className="flex items-center gap-1.5 py-0.5">
-      <span className="w-1.5 h-1.5 rounded-full typing-dot" style={{ backgroundColor: "#22d3ee" }} />
-      <span className="w-1.5 h-1.5 rounded-full typing-dot" style={{ backgroundColor: "#22d3ee", animationDelay: "0.15s" }} />
-      <span className="w-1.5 h-1.5 rounded-full typing-dot" style={{ backgroundColor: "#22d3ee", animationDelay: "0.3s" }} />
+      <span className="w-1.5 h-1.5 rounded-full typing-dot" style={{ backgroundColor: "var(--primary)" }} />
+      <span className="w-1.5 h-1.5 rounded-full typing-dot" style={{ backgroundColor: "var(--primary)", animationDelay: "0.15s" }} />
+      <span className="w-1.5 h-1.5 rounded-full typing-dot" style={{ backgroundColor: "var(--primary)", animationDelay: "0.3s" }} />
     </div>
   );
 }
@@ -353,11 +425,11 @@ function ThinkingState() {
   return (
     <div className="flex items-center gap-3 px-1">
       <div
-        className="w-6 h-6 rounded-lg flex items-center justify-center"
+        className="w-6 h-6 flex items-center justify-center"
         style={{
-          background: "rgba(34,211,238,0.1)",
-          border: "1px solid rgba(34,211,238,0.15)",
-          boxShadow: "0 0 12px var(--primary-glow)",
+          background: "rgba(0,255,102,0.1)",
+          border: "1px solid rgba(0,255,102,0.15)",
+          borderRadius: "2px",
         }}
       >
         <Sparkles className="w-3.5 h-3.5" style={{ color: "var(--primary)" }} />
@@ -385,52 +457,25 @@ function WelcomeScreen({
 }) {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center gap-6 px-4 animate-fade-in">
-      {/* Hero Icon */}
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
-        className="relative"
-      >
+      {/* Terminal prompt */}
+      <div className="glass-card p-6 w-full max-w-md">
         <div
-          className="w-[72px] h-[72px] rounded-2xl flex items-center justify-center"
-          style={{
-            background: "linear-gradient(135deg, rgba(34,211,238,0.12) 0%, rgba(129,140,248,0.08) 100%)",
-            border: "1px solid rgba(34,211,238,0.15)",
-            boxShadow: "0 0 40px rgba(34,211,238,0.06), inset 0 1px 0 rgba(255,255,255,0.04)",
-          }}
+          className="font-mono text-[13px] text-left"
+          style={{ color: "var(--primary)" }}
         >
-          <Shield className="w-8 h-8" style={{ color: "var(--primary)" }} />
-        </div>
-        {/* Ambient glow */}
-        <div
-          className="absolute -inset-6 rounded-3xl animate-pulse-glow pointer-events-none"
-          style={{
-            background: "radial-gradient(circle, rgba(34,211,238,0.06) 0%, transparent 70%)",
-          }}
-        />
-      </motion.div>
-
-      {/* Title + Description */}
-      <div className="space-y-2.5 max-w-md">
-        <div className="flex items-center justify-center gap-2.5">
-          <h2 className="text-lg font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>
-            KSP AI Copilot
-          </h2>
+          <span style={{ color: "var(--text-tertiary)" }}>ksp-sentinel:~$</span>{" "}
+          <span style={{ color: "var(--text-primary)" }}>AWAITING QUERY</span>
           <span
-            className="text-[9px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider animate-pulse-glow"
+            className="inline-block w-[7px] h-[15px] ml-0.5 align-middle"
             style={{
-              background: "rgba(34,211,238,0.08)",
-              color: "var(--primary)",
-              border: "1px solid rgba(34,211,238,0.12)",
+              backgroundColor: "var(--primary)",
+              animation: "blink 1s step-end infinite",
             }}
-          >
-            Online
-          </span>
+          />
         </div>
-        <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+        <div className="mt-3 h-px" style={{ background: "var(--border-subtle)" }} />
+        <p className="text-[11px] mt-3 text-left" style={{ color: "var(--text-muted)" }}>
           Ask about crimes, patterns, gang connections, or specific FIRs.
-          Intelligence analysis powered by pattern recognition and explainable AI.
         </p>
       </div>
 
@@ -445,13 +490,12 @@ function WelcomeScreen({
             whileHover={{ y: -2, transition: { duration: 0.15 } }}
             whileTap={{ scale: 0.98 }}
             onClick={() => onQueryClick(q)}
-            className="text-left p-3.5 rounded-xl cursor-pointer transition-all duration-200 group glass-card"
+            className="text-left p-3.5 cursor-pointer transition-all duration-200 group glass-card reticule-hover"
           >
             <div className="flex items-start gap-2.5">
-              <Lightbulb
-                className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 transition-colors duration-200"
-                style={{ color: "var(--text-muted)" }}
-              />
+              <span className="text-[11px] font-mono flex-shrink-0" style={{ color: "var(--text-muted)" }}>
+                &gt;
+              </span>
               <span className="text-[12px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
                 {q}
               </span>
@@ -462,30 +506,23 @@ function WelcomeScreen({
 
       {/* Quick Action Chips */}
       <div className="flex items-center gap-2 flex-wrap justify-center">
-        <span className="text-[10px] uppercase tracking-wider font-medium" style={{ color: "var(--text-muted)" }}>
-          Explore:
+        <span className="text-[10px] label-tracked" style={{ color: "var(--text-muted)" }}>
+          Explore
         </span>
         {["High risk analysis", "Gang mapping", "Crime trends", "FIR lookup"].map((chip) => (
           <button
             key={chip}
             onClick={() => onQueryClick(chip)}
-            className="text-[10px] px-2.5 py-1 rounded-full cursor-pointer transition-all duration-200 font-medium"
-            style={{
-              color: "var(--text-tertiary)",
-              border: "1px solid var(--border-default)",
-            }}
+            className="bracket-badge cursor-pointer transition-all duration-200"
+            style={{ color: "var(--text-tertiary)" }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.color = "#22d3ee";
-              e.currentTarget.style.borderColor = "rgba(34,211,238,0.2)";
-              e.currentTarget.style.background = "rgba(34,211,238,0.06)";
+              e.currentTarget.style.color = "var(--primary)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.color = "var(--text-tertiary)";
-              e.currentTarget.style.borderColor = "var(--border-default)";
-              e.currentTarget.style.background = "transparent";
             }}
           >
-            {chip}
+            [{chip}]
           </button>
         ))}
       </div>
@@ -506,8 +543,8 @@ function FIREvidenceCard({ fir, index }: { fir: FIR; index: number }) {
       initial={{ opacity: 0, x: 8 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.06, duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-      className="p-4 rounded-xl cursor-default transition-all duration-200 group glass-card"
-      style={{ borderLeft: `3px solid ${borderColor}` }}
+      className="p-4 cursor-default transition-all duration-200 group glass-card reticule-hover"
+      style={{ borderLeft: `2px solid ${borderColor}` }}
     >
       {/* Header Row */}
       <div className="flex items-center justify-between mb-2.5">
@@ -515,10 +552,10 @@ function FIREvidenceCard({ fir, index }: { fir: FIR; index: number }) {
           {fir.fir_id}
         </span>
         <span
-          className="text-[9px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider"
-          style={{ backgroundColor: sev.bg, color: sev.color, border: `1px solid ${sev.border}` }}
+          className="bracket-badge"
+          style={{ color: sev.color }}
         >
-          {fir.severity}
+          [{fir.severity.toUpperCase()}]
         </span>
       </div>
 
@@ -777,8 +814,8 @@ export default function ChatView() {
           <div
             className="w-6 h-6 rounded-lg flex items-center justify-center"
             style={{
-              background: "linear-gradient(135deg, rgba(34,211,238,0.15), rgba(34,211,238,0.05))",
-              border: "1px solid rgba(34,211,238,0.12)",
+              background: "linear-gradient(135deg, rgba(0,255,102,0.15), rgba(0,255,102,0.05))",
+              border: "1px solid rgba(0,255,102,0.12)",
             }}
           >
             <Shield className="w-3 h-3" style={{ color: "var(--primary)" }} />
@@ -787,14 +824,12 @@ export default function ChatView() {
             AI Copilot
           </span>
           <span
-            className="text-[9px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider"
+            className="bracket-badge"
             style={{
-              background: "rgba(34,211,238,0.08)",
               color: "var(--primary)",
-              border: "1px solid rgba(34,211,238,0.12)",
             }}
           >
-            Live
+            [LIVE]
           </span>
         </div>
 
@@ -821,13 +856,12 @@ export default function ChatView() {
               )}
               <span className="hidden sm:inline">Evidence</span>
               <span
-                className="text-[9px] px-1.5 py-0.5 rounded-full font-bold"
+                className="bracket-badge"
                 style={{
-                  backgroundColor: "rgba(129,140,248,0.1)",
                   color: "var(--secondary)",
                 }}
               >
-                {extractedFIRs.length}
+                [{extractedFIRs.length}]
               </span>
             </motion.button>
           )}
@@ -889,9 +923,9 @@ export default function ChatView() {
                       <div
                         className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5"
                         style={{
-                          background: "linear-gradient(135deg, rgba(34,211,238,0.15), rgba(129,140,248,0.1))",
-                          border: "1px solid rgba(34,211,238,0.15)",
-                          boxShadow: "0 0 12px rgba(34,211,238,0.06)",
+                          background: "linear-gradient(135deg, rgba(0,255,102,0.15), rgba(0,255,102,0.1))",
+                          border: "1px solid rgba(0,255,102,0.15)",
+                          boxShadow: "0 0 12px rgba(0,255,102,0.06)",
                         }}
                       >
                         <Shield className="w-3.5 h-3.5" style={{ color: "var(--primary)" }} />
@@ -901,27 +935,31 @@ export default function ChatView() {
                     {/* Message Bubble */}
                     <div className="flex flex-col max-w-[82%] min-w-0">
                       <div
-                        className="px-4 py-3 text-[13px] leading-[1.65] whitespace-pre-wrap"
+                        className={`px-4 py-3 text-[13px] leading-[1.65] ${msg.role === "user" ? "whitespace-pre-wrap" : ""}`}
                         style={
                           msg.role === "user"
                             ? {
-                                background: "linear-gradient(135deg, rgba(34,211,238,0.12) 0%, rgba(34,211,238,0.06) 100%)",
+                                background: "rgba(255,255,255,0.03)",
                                 color: "var(--text-primary)",
-                                borderRadius: "16px 16px 4px 16px",
-                                border: "1px solid rgba(34,211,238,0.15)",
-                                boxShadow: "0 2px 16px rgba(34,211,238,0.04)",
+                                borderRadius: "2px",
+                                border: "1px solid var(--border-subtle)",
                               }
                             : {
                                 backgroundColor: "var(--bg-card)",
-                                backdropFilter: "blur(12px)",
-                                border: "1px solid var(--border-default)",
+                                border: "1px solid var(--border-subtle)",
+                                borderLeft: "2px solid var(--primary)",
                                 color: "var(--text-primary)",
-                                borderRadius: "16px 16px 16px 4px",
-                                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.02)",
+                                borderRadius: "2px",
                               }
                         }
                       >
-                        {msg.content}
+                        {msg.role === "assistant" && idx === chatMessages.length - 1 ? (
+                          <TypewriterText text={msg.content} />
+                        ) : msg.role === "assistant" ? (
+                          <ReactMarkdown components={mdComponents}>{msg.content}</ReactMarkdown>
+                        ) : (
+                          msg.content
+                        )}
                       </div>
 
                       {/* Explainable AI Panel */}
@@ -974,16 +1012,15 @@ export default function ChatView() {
                     <div
                       className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5"
                       style={{
-                        background: "linear-gradient(135deg, rgba(34,211,238,0.15), rgba(129,140,248,0.1))",
-                        border: "1px solid rgba(34,211,238,0.15)",
-                        boxShadow: "0 0 12px rgba(34,211,238,0.06)",
+                        background: "linear-gradient(135deg, rgba(0,255,102,0.15), rgba(0,255,102,0.1))",
+                        border: "1px solid rgba(0,255,102,0.15)",
+                        boxShadow: "0 0 12px rgba(0,255,102,0.06)",
                       }}
                     >
                       <Shield className="w-3.5 h-3.5" style={{ color: "var(--primary)" }} />
                     </div>
                     <div
-                      className="px-4 py-3.5 rounded-2xl glass"
-                      style={{ borderRadius: "16px 16px 16px 4px" }}
+                      className="px-4 py-3.5 glass-card"
                     >
                       <ThinkingState />
                     </div>
@@ -1020,14 +1057,10 @@ export default function ChatView() {
                 <motion.span
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  className="ml-auto text-[10px] px-2 py-0.5 rounded-full font-semibold"
-                  style={{
-                    backgroundColor: "rgba(129,140,248,0.08)",
-                    color: "var(--secondary)",
-                    border: "1px solid rgba(129,140,248,0.12)",
-                  }}
+                  className="ml-auto bracket-badge"
+                  style={{ color: "var(--secondary)" }}
                 >
-                  {extractedFIRs.length} FIR{extractedFIRs.length > 1 ? "s" : ""}
+                  [{extractedFIRs.length} FIR{extractedFIRs.length > 1 ? "s" : ""}]
                 </motion.span>
               </div>
 
@@ -1046,17 +1079,23 @@ export default function ChatView() {
       <div className="flex-shrink-0 px-4 sm:px-6 pb-4 pt-3">
         <div className="max-w-3xl mx-auto">
           <div
-            className="glass-strong rounded-2xl p-1.5 transition-all duration-300"
+            className="glass-card p-1.5 transition-all duration-300"
             style={{
               boxShadow: inputFocused
-                ? "0 0 0 1px rgba(34,211,238,0.25), 0 0 24px rgba(34,211,238,0.06), 0 8px 32px rgba(0,0,0,0.3)"
+                ? "0 0 0 1px rgba(0,255,102,0.25), 0 0 24px rgba(0,255,102,0.06), 0 8px 32px rgba(0,0,0,0.3)"
                 : "0 0 0 1px var(--border-default), 0 8px 32px rgba(0,0,0,0.2)",
-              borderColor: inputFocused ? "rgba(34,211,238,0.25)" : "var(--border-default)",
             }}
           >
             <div className="flex items-center gap-2">
+              {/* Prompt prefix */}
+              <span
+                className="flex-shrink-0 pl-3 font-mono text-[13px] font-bold"
+                style={{ color: "var(--primary)" }}
+              >
+                &gt;
+              </span>
               {/* Text Input */}
-              <div className="flex-1 min-w-0 px-2">
+              <div className="flex-1 min-w-0">
                 <Input
                   ref={inputRef}
                   value={input}
@@ -1066,11 +1105,11 @@ export default function ChatView() {
                   onBlur={() => setInputFocused(false)}
                   placeholder={
                     voiceLang === "en"
-                      ? "Ask about crimes, FIRs, gangs, patterns..."
+                      ? "Enter query..."
                       : "ಅಪರಾಧ, FIR, ಗ್ಯಾಂಗ್ ಬಗ್ಗೆ ಕೇಳಿ..."
                   }
                   disabled={chatLoading}
-                  className="h-10 rounded-xl text-[13px] border-0 bg-transparent shadow-none focus-visible:ring-0 placeholder:text-[var(--text-muted)]"
+                  className="h-10 rounded-none text-[13px] border-0 bg-transparent shadow-none focus-visible:ring-0 placeholder:text-[var(--text-muted)] font-mono"
                   style={{ color: "var(--text-primary)" }}
                 />
               </div>
@@ -1081,14 +1120,15 @@ export default function ChatView() {
                 disabled={chatLoading || !input.trim()}
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
-                className="flex items-center justify-center w-10 h-10 rounded-xl cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed transition-all duration-200 flex-shrink-0"
+                className="flex items-center justify-center w-10 h-10 cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed transition-all duration-200 flex-shrink-0"
                 style={{
                   background: !chatLoading && input.trim()
-                    ? "linear-gradient(135deg, #22d3ee, #06b6d4)"
+                    ? "var(--primary)"
                     : "var(--border-subtle)",
-                  color: !chatLoading && input.trim() ? "#050810" : "var(--text-muted)",
+                  color: !chatLoading && input.trim() ? "#05070A" : "var(--text-muted)",
+                  borderRadius: "2px",
                   boxShadow: !chatLoading && input.trim()
-                    ? "0 0 16px rgba(34,211,238,0.2)"
+                    ? "0 0 16px rgba(0,255,102,0.2)"
                     : "none",
                 }}
               >
@@ -1106,7 +1146,7 @@ export default function ChatView() {
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
                 onClick={toggleVoice}
-                className="flex items-center justify-center w-10 h-10 rounded-xl cursor-pointer transition-all duration-200 relative flex-shrink-0"
+                className="flex items-center justify-center w-10 h-10 cursor-pointer transition-all duration-200 relative flex-shrink-0"
                 style={{
                   border: isListening
                     ? "1px solid rgba(248,113,113,0.3)"
@@ -1114,6 +1154,7 @@ export default function ChatView() {
                   backgroundColor: isListening
                     ? "rgba(248,113,113,0.08)"
                     : "transparent",
+                  borderRadius: "2px",
                 }}
                 title={isListening ? "Stop listening" : "Voice input"}
               >
@@ -1138,17 +1179,18 @@ export default function ChatView() {
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
                 onClick={() => setVoiceLang((v) => (v === "en" ? "kn" : "en"))}
-                className="flex items-center justify-center w-10 h-10 rounded-xl cursor-pointer transition-all duration-200 flex-shrink-0"
+                className="flex items-center justify-center w-10 h-10 cursor-pointer transition-all duration-200 flex-shrink-0"
                 style={{
                   border:
                     voiceLang === "kn"
-                      ? "1px solid rgba(34,211,238,0.2)"
+                      ? "1px solid rgba(0,255,102,0.2)"
                       : "1px solid var(--border-default)",
                   backgroundColor:
                     voiceLang === "kn"
-                      ? "rgba(34,211,238,0.06)"
+                      ? "rgba(0,255,102,0.06)"
                       : "transparent",
-                  color: voiceLang === "kn" ? "#22d3ee" : "var(--text-tertiary)",
+                  color: voiceLang === "kn" ? "var(--primary)" : "var(--text-tertiary)",
+                  borderRadius: "2px",
                 }}
                 title={`Switch to ${voiceLang === "en" ? "Kannada" : "English"}`}
               >
@@ -1161,15 +1203,16 @@ export default function ChatView() {
                 whileTap={{ scale: 0.96 }}
                 onClick={exportPDF}
                 disabled={chatMessages.length === 0}
-                className="flex items-center justify-center w-10 h-10 rounded-xl cursor-pointer disabled:opacity-15 disabled:cursor-not-allowed transition-all duration-200 flex-shrink-0"
+                className="flex items-center justify-center w-10 h-10 cursor-pointer disabled:opacity-15 disabled:cursor-not-allowed transition-all duration-200 flex-shrink-0"
                 style={{
                   border: "1px solid var(--border-default)",
                   backgroundColor: "transparent",
+                  borderRadius: "2px",
                 }}
                 onMouseEnter={(e) => {
                   if (chatMessages.length > 0) {
-                    e.currentTarget.style.borderColor = "rgba(34,211,238,0.15)";
-                    e.currentTarget.style.background = "rgba(34,211,238,0.06)";
+                    e.currentTarget.style.borderColor = "rgba(0,255,102,0.15)";
+                    e.currentTarget.style.background = "rgba(0,255,102,0.06)";
                   }
                 }}
                 onMouseLeave={(e) => {
@@ -1188,8 +1231,8 @@ export default function ChatView() {
 
           {/* Subtle hint below input */}
           <div className="flex items-center justify-center gap-4 mt-2 px-2">
-            <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-              Press <kbd className="px-1.5 py-0.5 rounded text-[9px] font-mono" style={{ backgroundColor: "var(--border-subtle)", border: "1px solid var(--border-default)" }}>Enter</kbd> to send
+            <span className="text-[10px] font-mono" style={{ color: "var(--text-muted)" }}>
+              Press <kbd className="px-1.5 py-0.5 text-[9px] font-mono" style={{ backgroundColor: "var(--border-subtle)", border: "1px solid var(--border-default)", borderRadius: "2px" }}>Enter</kbd> to send
             </span>
             {voiceLang === "kn" && (
               <span className="text-[10px]" style={{ color: "var(--primary)" }}>

@@ -1,35 +1,32 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ZoomIn,
-  ZoomOut,
-  RotateCcw,
   X,
   Circle,
   ArrowRight,
-  Wallet,
   User,
   FileText,
   Users,
   IndianRupee,
   Building2,
   ChevronRight,
-  Filter,
   Network,
-  AlertCircle,
+  RotateCcw,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { loadCrimeData } from "@/lib/data";
 import { buildFinancialNetwork } from "@/lib/intelligence";
 import type { FinancialNetworkNode, FinancialNetworkEdge } from "@/lib/intelligence";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
 import LoadingSpinner from "@/components/ksp/LoadingSpinner";
+import * as THREE from "three";
+import { Canvas, useFrame, useThree, ThreeEvent } from "@react-three/fiber";
+import { OrbitControls, Html } from "@react-three/drei";
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -39,7 +36,7 @@ const NODE_COLORS: Record<string, string> = {
   account: "#fbbf24",
   accused: "#f87171",
   fir: "#22d3ee",
-  gang: "#818cf8",
+  gang: "#a78bfa",
 };
 
 const NODE_LABELS: Record<string, string> = {
@@ -63,8 +60,9 @@ const EDGE_LABELS: Record<string, string> = {
   gang_member: "Gang Member",
 };
 
-const NODE_BASE_RADIUS = 16;
-const NODE_MAX_RADIUS = 40;
+const SCALE_2D_TO_3D = 0.02; // 2D pixel coords → 3D world units
+const CENTER_X_2D = 500;
+const CENTER_Y_2D = 400;
 
 /* ------------------------------------------------------------------ */
 /*  SimNode (runtime position added)                                   */
@@ -73,34 +71,605 @@ const NODE_MAX_RADIUS = 40;
 interface SimNode extends FinancialNetworkNode {
   x: number;
   y: number;
-  vx: number;
-  vy: number;
   radius: number;
 }
 
 /* ------------------------------------------------------------------ */
-/*  Component                                                          */
+/*  Force simulation (runs fixed iterations, synchronous)              */
 /* ------------------------------------------------------------------ */
 
-export default function FinancialNetworkView() {
+function runForceSimulation(
+  nodes: SimNode[],
+  edges: FinancialNetworkEdge[],
+  filterTypes: Set<string>,
+  iterations: number = 150
+): SimNode[] {
+  let current = nodes.map((n) => ({ ...n, vx: 0, vy: 0 }));
+  const repulsionStrength = 8000;
+  const attractionStrength = 0.005;
+  const centerPull = 0.01;
+  const damping = 0.85;
+  const alpha = 0.3;
+
+  for (let iter = 0; iter < iterations; iter++) {
+    const visibleNodes = current.filter((n) => filterTypes.has(n.type));
+    const visibleEdges = edges.filter((e) => {
+      const src = current.find((n) => n.id === e.source);
+      const tgt = current.find((n) => n.id === e.target);
+      return src && tgt && filterTypes.has(src.type) && filterTypes.has(tgt.type);
+    });
+
+    const forces = new Map<string, { fx: number; fy: number }>();
+    for (const n of visibleNodes) forces.set(n.id, { fx: 0, fy: 0 });
+
+    // Repulsion
+    for (let i = 0; i < visibleNodes.length; i++) {
+      for (let j = i + 1; j < visibleNodes.length; j++) {
+        const a = visibleNodes[i];
+        const b = visibleNodes[j];
+        const dx = a.x - b.x;
+        const dy = a.y - b.y;
+        const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
+        const force = repulsionStrength / (dist * dist);
+        const fx = (dx / dist) * force;
+        const fy = (dy / dist) * force;
+        forces.get(a.id)!.fx += fx;
+        forces.get(a.id)!.fy += fy;
+        forces.get(b.id)!.fx -= fx;
+        forces.get(b.id)!.fy -= fy;
+      }
+    }
+
+    // Attraction
+    for (const edge of visibleEdges) {
+      const src = visibleNodes.find((n) => n.id === edge.source);
+      const tgt = visibleNodes.find((n) => n.id === edge.target);
+      if (!src || !tgt) continue;
+      const dx = tgt.x - src.x;
+      const dy = tgt.y - src.y;
+      const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
+      const idealDist = 180;
+      const force = attractionStrength * (dist - idealDist);
+      const fx = (dx / dist) * force;
+      const fy = (dy / dist) * force;
+      forces.get(src.id)!.fx += fx;
+      forces.get(src.id)!.fy += fy;
+      forces.get(tgt.id)!.fx -= fx;
+      forces.get(tgt.id)!.fy -= fy;
+    }
+
+    // Center gravity
+    if (visibleNodes.length > 0) {
+      const cx = visibleNodes.reduce((s, n) => s + n.x, 0) / visibleNodes.length;
+      const cy = visibleNodes.reduce((s, n) => s + n.y, 0) / visibleNodes.length;
+      for (const n of visibleNodes) {
+        forces.get(n.id)!.fx += (cx - n.x) * centerPull;
+        forces.get(n.id)!.fy += (cy - n.y) * centerPull;
+      }
+    }
+
+    // Apply
+    current = current.map((n) => {
+      if (!forces.has(n.id)) return n;
+      const { fx, fy } = forces.get(n.id)!;
+      const vx = (n.vx + fx * alpha) * damping;
+      const vy = (n.vy + fy * alpha) * damping;
+      return { ...n, vx, vy, x: n.x + vx, y: n.y + vy };
+    });
+  }
+
+  // Strip velocity before returning
+  return current.map(({ vx, vy, ...rest }) => rest as SimNode);
+}
+
+/* ------------------------------------------------------------------ */
+/*  3D Sub-components                                                  */
+/* ------------------------------------------------------------------ */
+
+function to3D(ox: number, oy: number): [number, number, number] {
+  return [
+    (ox - CENTER_X_2D) * SCALE_2D_TO_3D,
+    0,
+    (oy - CENTER_Y_2D) * SCALE_2D_TO_3D,
+  ];
+}
+
+/* ---------- Particle Field ---------- */
+
+function FinancialParticles() {
+  const count = 600;
+  const meshRef = useRef<THREE.Points>(null);
+  const colorArray = useMemo(() => {
+    const colors = [
+      new THREE.Color("#fbbf24"),
+      new THREE.Color("#f87171"),
+      new THREE.Color("#22d3ee"),
+      new THREE.Color("#a78bfa"),
+    ];
+    const arr = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      const c = colors[Math.floor(Math.random() * colors.length)];
+      arr[i * 3] = c.r;
+      arr[i * 3 + 1] = c.g;
+      arr[i * 3 + 2] = c.b;
+    }
+    return arr;
+  }, []);
+
+  const positions = useMemo(() => {
+    const arr = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      arr[i * 3] = (Math.random() - 0.5) * 50;
+      arr[i * 3 + 1] = Math.random() * 20 - 2;
+      arr[i * 3 + 2] = (Math.random() - 0.5) * 50;
+    }
+    return arr;
+  }, []);
+
+  useFrame((state) => {
+    if (!meshRef.current) return;
+    const t = state.clock.elapsedTime * 0.02;
+    meshRef.current.rotation.y = t;
+    meshRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.1) * 0.3;
+  });
+
+  return (
+    <points ref={meshRef}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          args={[positions, 3]}
+          count={count}
+        />
+        <bufferAttribute
+          attach="attributes-color"
+          args={[colorArray, 3]}
+          count={count}
+        />
+      </bufferGeometry>
+      <pointsMaterial
+        size={0.06}
+        vertexColors
+        transparent
+        opacity={0.5}
+        sizeAttenuation
+        depthWrite={false}
+      />
+    </points>
+  );
+}
+
+/* ---------- Grid Floor ---------- */
+
+function GridFloor() {
+  return (
+    <gridHelper
+      args={[40, 40, "#1a1f3a", "#111528"]}
+      position={[0, -0.5, 0]}
+    />
+  );
+}
+
+/* ---------- Edge Component ---------- */
+
+function FinancialEdge({
+  edge,
+  nodeMap,
+  selectedNodeId,
+  hoveredNodeId,
+}: {
+  edge: FinancialNetworkEdge;
+  nodeMap: Map<string, SimNode>;
+  selectedNodeId: string | null;
+  hoveredNodeId: string | null;
+}) {
+  const lineRef = useRef<THREE.Line>(null);
+  const dashOffsetRef = useRef(0);
+  const matRef = useRef<THREE.LineDashedMaterial>(null);
+
+  const srcNode = nodeMap.get(edge.source);
+  const tgtNode = nodeMap.get(edge.target);
+  if (!srcNode || !tgtNode) return null;
+
+  const start = to3D(srcNode.x, srcNode.y);
+  const end = to3D(tgtNode.x, tgtNode.y);
+
+  // Quadratic bezier with midpoint raised
+  const mid: [number, number, number] = [
+    (start[0] + end[0]) / 2,
+    0.6,
+    (start[2] + end[2]) / 2,
+  ];
+
+  const curve = new THREE.QuadraticBezierCurve3(
+    new THREE.Vector3(...start),
+    new THREE.Vector3(...mid),
+    new THREE.Vector3(...end)
+  );
+  const points = curve.getPoints(32);
+
+  const isHighlighted =
+    (hoveredNodeId && (edge.source === hoveredNodeId || edge.target === hoveredNodeId)) ||
+    (selectedNodeId && (edge.source === selectedNodeId || edge.target === selectedNodeId));
+
+  const isDimmed = (hoveredNodeId || selectedNodeId) && !isHighlighted;
+
+  const color = EDGE_COLORS[edge.type] || "#5a657a";
+
+  useFrame(() => {
+    dashOffsetRef.current -= 0.03;
+    if (matRef.current) {
+      (matRef.current as any).dashOffset = dashOffsetRef.current;
+    }
+  });
+
+  const geometry = useMemo(() => {
+    const geo = new THREE.BufferGeometry().setFromPoints(points);
+    return geo;
+  }, [start.join(","), end.join(",")]);
+
+  return (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    <primitive ref={lineRef as any} object={(() => {
+      const mat = new THREE.LineDashedMaterial({
+        color,
+        dashSize: 0.3,
+        gapSize: 0.15,
+        transparent: true,
+        opacity: isDimmed ? 0.08 : isHighlighted ? 0.9 : 0.35,
+      });
+      if (matRef.current === null) matRef.current = mat;
+      const line = new THREE.Line(geometry, mat);
+      line.computeLineDistances();
+      return line;
+    })()}
+    geometry={geometry}
+  />
+  );
+}
+
+/* ---------- Node Mesh Component ---------- */
+
+function FinancialNodeMesh({
+  node,
+  isSelected,
+  isHovered,
+  isDimmed,
+  position3D,
+  onClick,
+  onHover,
+}: {
+  node: SimNode;
+  isSelected: boolean;
+  isHovered: boolean;
+  isDimmed: boolean;
+  position3D: [number, number, number];
+  onClick: (node: SimNode) => void;
+  onHover: (nodeId: string | null) => void;
+}) {
+  const groupRef = useRef<THREE.Group>(null);
+  const glowRef = useRef<THREE.Mesh>(null);
+  const ringRef = useRef<THREE.Mesh>(null);
+  const color = NODE_COLORS[node.type] || "#5a657a";
+  const threeColor = useMemo(() => new THREE.Color(color), [color]);
+
+  const baseRadius = node.radius * SCALE_2D_TO_3D * 0.5;
+  const radius = Math.max(0.15, Math.min(baseRadius, 0.8));
+
+  useFrame((state) => {
+    // Gang nodes rotate slowly
+    if (node.type === "gang" && groupRef.current) {
+      groupRef.current.rotation.y += 0.008;
+      groupRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.5) * 0.15;
+    }
+    // Glow pulse
+    if (glowRef.current) {
+      const scale = 1 + Math.sin(state.clock.elapsedTime * 2) * 0.08;
+      glowRef.current.scale.setScalar(scale);
+    }
+    // Selection ring rotation
+    if (ringRef.current && isSelected) {
+      ringRef.current.rotation.z += 0.02;
+    }
+  });
+
+  const opacity = isDimmed ? 0.15 : 1;
+  const emissiveIntensity = isDimmed ? 0.05 : isHovered || isSelected ? 0.6 : 0.3;
+
+  const showLabel = node.type === "gang" || isHovered || isSelected;
+
+  const label = node.label.length > 22 ? node.label.slice(0, 20) + "…" : node.label;
+
+  return (
+    <group
+      ref={groupRef}
+      position={position3D}
+      onClick={(e: ThreeEvent<MouseEvent>) => {
+        e.stopPropagation();
+        onClick(node);
+      }}
+      onPointerOver={(e: ThreeEvent<PointerEvent>) => {
+        e.stopPropagation();
+        document.body.style.cursor = "pointer";
+        onHover(node.id);
+      }}
+      onPointerOut={(e: ThreeEvent<PointerEvent>) => {
+        e.stopPropagation();
+        document.body.style.cursor = "default";
+        onHover(null);
+      }}
+    >
+      {/* Outer glow sphere */}
+      <mesh ref={glowRef}>
+        <sphereGeometry args={[radius * 1.8, 16, 16]} />
+        <meshBasicMaterial
+          color={threeColor}
+          transparent
+          opacity={isDimmed ? 0.02 : isHovered || isSelected ? 0.18 : 0.07}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Main geometry by type */}
+      {node.type === "account" && (
+        <mesh>
+          <sphereGeometry args={[radius, 24, 24]} />
+          <meshStandardMaterial
+            color={threeColor}
+            emissive={threeColor}
+            emissiveIntensity={emissiveIntensity}
+            metalness={0.7}
+            roughness={0.2}
+            transparent
+            opacity={opacity}
+          />
+        </mesh>
+      )}
+
+      {node.type === "accused" && (
+        <mesh>
+          <icosahedronGeometry args={[radius, 1]} />
+          <meshStandardMaterial
+            color={threeColor}
+            emissive={threeColor}
+            emissiveIntensity={emissiveIntensity}
+            metalness={0.7}
+            roughness={0.2}
+            transparent
+            opacity={opacity}
+          />
+        </mesh>
+      )}
+
+      {node.type === "fir" && (
+        <mesh rotation={[0, Math.PI / 4, 0]}>
+          <boxGeometry args={[radius * 1.4, radius * 0.15, radius * 1.0]} />
+          <meshStandardMaterial
+            color={threeColor}
+            emissive={threeColor}
+            emissiveIntensity={emissiveIntensity}
+            metalness={0.7}
+            roughness={0.2}
+            transparent
+            opacity={opacity}
+          />
+        </mesh>
+      )}
+
+      {node.type === "gang" && (
+        <mesh>
+          <octahedronGeometry args={[radius * 1.1, 0]} />
+          <meshStandardMaterial
+            color={threeColor}
+            emissive={threeColor}
+            emissiveIntensity={emissiveIntensity}
+            metalness={0.7}
+            roughness={0.2}
+            transparent
+            opacity={opacity}
+          />
+        </mesh>
+      )}
+
+      {/* Selection ring */}
+      {isSelected && (
+        <mesh ref={ringRef} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[radius * 1.5, 0.02, 8, 48]} />
+          <meshBasicMaterial color={threeColor} transparent opacity={0.9} />
+        </mesh>
+      )}
+
+      {/* HTML Label */}
+      {showLabel && (
+        <Html
+          position={[0, radius + 0.35, 0]}
+          center
+          style={{ pointerEvents: "none" }}
+          zIndexRange={[50, 0]}
+        >
+          <div
+            style={{
+              background: "rgba(5, 7, 16, 0.88)",
+              border: `1px solid ${color}66`,
+              borderRadius: 6,
+              padding: "3px 8px",
+              whiteSpace: "nowrap",
+              fontSize: 11,
+              fontWeight: isHovered || isSelected ? 700 : 500,
+              color: isDimmed ? "#3d4659" : "#f1f5f9",
+              backdropFilter: "blur(8px)",
+              boxShadow: `0 0 12px ${color}33`,
+            }}
+          >
+            {label}
+          </div>
+        </Html>
+      )}
+    </group>
+  );
+}
+
+/* ---------- Scene Controller ---------- */
+
+function FinancialScene({
+  nodes,
+  edges,
+  selectedNodeId,
+  hoveredNodeId,
+  filterTypes,
+  onSelect,
+  onHover,
+}: {
+  nodes: SimNode[];
+  edges: FinancialNetworkEdge[];
+  selectedNodeId: string | null;
+  hoveredNodeId: string | null;
+  filterTypes: Set<string>;
+  onSelect: (node: SimNode) => void;
+  onHover: (nodeId: string | null) => void;
+}) {
+  const { camera } = useThree();
+
+  // Set initial camera position on first render
+  useEffect(() => {
+    camera.position.set(0, 12, 8);
+    camera.lookAt(0, 0, 0);
+  }, [camera]);
+
+  const nodeMap = useMemo(() => {
+    const map = new Map<string, SimNode>();
+    for (const n of nodes) map.set(n.id, n);
+    return map;
+  }, [nodes]);
+
+  const connectedToHover = useMemo(() => {
+    if (!hoveredNodeId) return new Set<string>();
+    const connected = new Set<string>();
+    for (const e of edges) {
+      if (e.source === hoveredNodeId) connected.add(e.target);
+      if (e.target === hoveredNodeId) connected.add(e.source);
+    }
+    return connected;
+  }, [hoveredNodeId, edges]);
+
+  const connectedToSelected = useMemo(() => {
+    if (!selectedNodeId) return new Set<string>();
+    const connected = new Set<string>();
+    for (const e of edges) {
+      if (e.source === selectedNodeId) connected.add(e.target);
+      if (e.target === selectedNodeId) connected.add(e.source);
+    }
+    return connected;
+  }, [selectedNodeId, edges]);
+
+  const visibleNodes = useMemo(
+    () => nodes.filter((n) => filterTypes.has(n.type)),
+    [nodes, filterTypes]
+  );
+
+  const visibleEdges = useMemo(
+    () =>
+      edges.filter((e) => {
+        const src = nodeMap.get(e.source);
+        const tgt = nodeMap.get(e.target);
+        return src && tgt && filterTypes.has(src.type) && filterTypes.has(tgt.type);
+      }),
+    [edges, nodeMap, filterTypes]
+  );
+
+  const handleBackgroundClick = useCallback(() => {
+    onSelect(null as unknown as SimNode);
+  }, [onSelect]);
+
+  return (
+    <>
+      {/* Environment */}
+      <color attach="background" args={["#050710"]} />
+      <fog attach="fog" args={["#050710", 15, 45]} />
+
+      {/* Lights */}
+      <ambientLight intensity={0.25} />
+      <pointLight position={[5, 8, 5]} color="#fbbf24" intensity={15} distance={30} />
+      <pointLight position={[-5, 6, -5]} color="#f87171" intensity={12} distance={30} />
+      <pointLight position={[5, 6, -5]} color="#22d3ee" intensity={10} distance={30} />
+      <pointLight position={[-5, 8, 5]} color="#a78bfa" intensity={10} distance={30} />
+
+      {/* Grid */}
+      <GridFloor />
+
+      {/* Particles */}
+      <FinancialParticles />
+
+      {/* Clickable background to deselect */}
+      <mesh position={[0, -1, 0]} rotation={[-Math.PI / 2, 0, 0]} onClick={handleBackgroundClick} visible={false as boolean}>
+        <planeGeometry args={[100, 100]} />
+        <meshBasicMaterial transparent opacity={0} />
+      </mesh>
+
+      {/* Edges */}
+      {visibleEdges.map((edge, i) => (
+        <FinancialEdge
+          key={`edge-${i}`}
+          edge={edge}
+          nodeMap={nodeMap}
+          selectedNodeId={selectedNodeId}
+          hoveredNodeId={hoveredNodeId}
+        />
+      ))}
+
+      {/* Nodes */}
+      {visibleNodes.map((node) => {
+        const isConnectedHover =
+          connectedToHover.has(node.id) || node.id === hoveredNodeId;
+        const isConnectedSel =
+          connectedToSelected.has(node.id) || node.id === selectedNodeId;
+        const isDimmed =
+          (hoveredNodeId && !isConnectedHover) ||
+          (selectedNodeId && !isConnectedSel);
+
+        return (
+          <FinancialNodeMesh
+            key={node.id}
+            node={node}
+            isSelected={node.id === selectedNodeId}
+            isHovered={node.id === hoveredNodeId}
+            isDimmed={!!isDimmed}
+            position3D={to3D(node.x, node.y)}
+            onClick={onSelect}
+            onHover={onHover}
+          />
+        );
+      })}
+
+      {/* Controls */}
+      <OrbitControls
+        enableDamping
+        dampingFactor={0.08}
+        autoRotate
+        autoRotateSpeed={0.3}
+        minDistance={3}
+        maxDistance={30}
+        maxPolarAngle={Math.PI / 2.1}
+        minPolarAngle={0.2}
+      />
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Main Component (Inner)                                             */
+/* ------------------------------------------------------------------ */
+
+function FinancialNetworkViewInner() {
   const { crimeData, setCrimeData, dataLoading, setDataLoading } = useAppStore();
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const animFrameRef = useRef<number>(0);
-  const simRunningRef = useRef(false);
 
   // Network state
   const [simNodes, setSimNodes] = useState<SimNode[]>([]);
   const [edges, setEdges] = useState<FinancialNetworkEdge[]>([]);
-  const [zoom, setZoom] = useState(1);
-  const [panX, setPanX] = useState(0);
-  const [panY] = useState(0);
 
   // Interaction state
-  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<SimNode | null>(null);
-  const [dragNode, setDragNode] = useState<SimNode | null>(null);
-  const dragStartRef = useRef<{ mx: number; my: number; nx: number; ny: number } | null>(null);
 
   // Filter state
   const [filterTypes, setFilterTypes] = useState<Set<string>>(
@@ -126,6 +695,9 @@ export default function FinancialNetworkView() {
     }
   }, [crimeData, setCrimeData, setDataLoading]);
 
+  const NODE_BASE_RADIUS = 16;
+  const NODE_MAX_RADIUS = 40;
+
   useEffect(() => {
     if (!crimeData || networkBuilt) return;
     const { nodes, edges } = buildFinancialNetwork(crimeData);
@@ -139,11 +711,11 @@ export default function FinancialNetworkView() {
     const cx = 500;
     const cy = 400;
     const radius = Math.min(300, nodes.length * 25);
+    const maxValue = Math.max(...nodes.map((nn) => nn.value), 1);
 
     const initialized: SimNode[] = nodes.map((n, i) => {
       const angle = (2 * Math.PI * i) / nodes.length;
       const r = n.type === "gang" ? 0 : radius * (0.6 + Math.random() * 0.4);
-      const maxValue = Math.max(...nodes.map((nn) => nn.value), 1);
       const nodeRadius =
         n.value > 0
           ? NODE_BASE_RADIUS + (NODE_MAX_RADIUS - NODE_BASE_RADIUS) * (n.value / maxValue)
@@ -152,394 +724,40 @@ export default function FinancialNetworkView() {
         ...n,
         x: cx + Math.cos(angle) * r,
         y: cy + Math.sin(angle) * r,
-        vx: 0,
-        vy: 0,
         radius: nodeRadius,
       };
     });
 
-    setSimNodes(initialized);
+    // Run force simulation synchronously
+    const simulated = runForceSimulation(initialized, edges, filterTypes, 150);
+
+    setSimNodes(simulated);
     setEdges(edges);
     setNetworkBuilt(true);
   }, [crimeData, networkBuilt]);
 
-  /* ---------------------------------------------------------------- */
-  /*  Force-directed simulation                                        */
-  /* ---------------------------------------------------------------- */
-
-  const runSimulation = useCallback(() => {
-    if (simNodes.length < 2) return;
-    let nodes = simNodes;
-    const alpha = 0.3;
-    const repulsionStrength = 8000;
-    const attractionStrength = 0.005;
-    const centerPull = 0.01;
-    const damping = 0.85;
-
-    const step = () => {
-      const visibleNodes = nodes.filter((n) => filterTypes.has(n.type));
-      const visibleEdges = edges.filter((e) => {
-        const src = nodes.find((n) => n.id === e.source);
-        const tgt = nodes.find((n) => n.id === e.target);
-        return src && tgt && filterTypes.has(src.type) && filterTypes.has(tgt.type);
-      });
-
-      const forces = new Map<string, { fx: number; fy: number }>();
-      for (const n of visibleNodes) forces.set(n.id, { fx: 0, fy: 0 });
-
-      // Repulsion (Coulomb-like)
-      for (let i = 0; i < visibleNodes.length; i++) {
-        for (let j = i + 1; j < visibleNodes.length; j++) {
-          const a = visibleNodes[i];
-          const b = visibleNodes[j];
-          const dx = a.x - b.x;
-          const dy = a.y - b.y;
-          const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
-          const force = repulsionStrength / (dist * dist);
-          const fx = (dx / dist) * force;
-          const fy = (dy / dist) * force;
-          forces.get(a.id)!.fx += fx;
-          forces.get(a.id)!.fy += fy;
-          forces.get(b.id)!.fx -= fx;
-          forces.get(b.id)!.fy -= fy;
-        }
-      }
-
-      // Attraction along edges (Hooke-like)
-      for (const edge of visibleEdges) {
-        const src = visibleNodes.find((n) => n.id === edge.source);
-        const tgt = visibleNodes.find((n) => n.id === edge.target);
-        if (!src || !tgt) continue;
-        const dx = tgt.x - src.x;
-        const dy = tgt.y - src.y;
-        const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
-        const idealDist = 180;
-        const force = attractionStrength * (dist - idealDist);
-        const fx = (dx / dist) * force;
-        const fy = (dy / dist) * force;
-        forces.get(src.id)!.fx += fx;
-        forces.get(src.id)!.fy += fy;
-        forces.get(tgt.id)!.fx -= fx;
-        forces.get(tgt.id)!.fy -= fy;
-      }
-
-      // Center gravity
-      const cx = visibleNodes.reduce((s, n) => s + n.x, 0) / visibleNodes.length;
-      const cy = visibleNodes.reduce((s, n) => s + n.y, 0) / visibleNodes.length;
-      for (const n of visibleNodes) {
-        forces.get(n.id)!.fx += (cx - n.x) * centerPull;
-        forces.get(n.id)!.fy += (cy - n.y) * centerPull;
-      }
-
-      // Apply forces
-      nodes = nodes.map((n) => {
-        if (!forces.has(n.id)) return n;
-        if (n.id === dragNode?.id) return n;
-        const { fx, fy } = forces.get(n.id)!;
-        return {
-          ...n,
-          vx: (n.vx + fx * alpha) * damping,
-          vy: (n.vy + fy * alpha) * damping,
-          x: n.x + n.vx,
-          y: n.y + n.vy,
-        };
-      });
-
-      setSimNodes([...nodes]);
-
-      // Check if settled
-      let totalVelocity = 0;
-      for (const n of nodes) {
-        totalVelocity += Math.abs(n.vx) + Math.abs(n.vy);
-      }
-      if (totalVelocity > 0.5) {
-        animFrameRef.current = requestAnimationFrame(step);
-      } else {
-        simRunningRef.current = false;
-      }
-    };
-
-    simRunningRef.current = true;
-    animFrameRef.current = requestAnimationFrame(step);
-  }, [simNodes, edges, filterTypes, dragNode]);
-
+  // Re-run simulation when filters change
   useEffect(() => {
-    if (simNodes.length >= 2 && networkBuilt && !simRunningRef.current) {
-      runSimulation();
-    }
-    return () => {
-      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-    };
-  }, [simNodes.length, networkBuilt, runSimulation]);
-
-  /* ---------------------------------------------------------------- */
-  /*  Canvas rendering                                                 */
-  /* ---------------------------------------------------------------- */
-
-  const getConnectedIds = useCallback(
-    (nodeId: string): Set<string> => {
-      const connected = new Set<string>();
-      for (const e of edges) {
-        if (e.source === nodeId) connected.add(e.target);
-        if (e.target === nodeId) connected.add(e.source);
-      }
-      return connected;
-    },
-    [edges]
-  );
-
-  const renderCanvas = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const dpr = window.devicePixelRatio || 1;
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const w = rect.width;
-    const h = rect.height;
-
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    canvas.style.width = `${w}px`;
-    canvas.style.height = `${h}px`;
-    ctx.scale(dpr, dpr);
-
-    // Clear
-    ctx.fillStyle = "rgba(10,15,28,0.6)";
-    ctx.fillRect(0, 0, w, h);
-
-    // Apply zoom + pan
-    ctx.save();
-    ctx.translate(w / 2 + panX, h / 2 + panY);
-    ctx.scale(zoom, zoom);
-    ctx.translate(-w / 2, -h / 2);
-
-    const visibleNodes = simNodes.filter((n) => filterTypes.has(n.type));
-    const activeHover = hoveredNode;
-    const connectedToHover = activeHover ? getConnectedIds(activeHover) : new Set<string>();
-    const connectedToSelected = selectedNode ? getConnectedIds(selectedNode.id) : new Set<string>();
-
-    // Draw edges
-    for (const edge of edges) {
-      const src = visibleNodes.find((n) => n.id === edge.source);
-      const tgt = visibleNodes.find((n) => n.id === edge.target);
-      if (!src || !tgt) continue;
-
-      const isHighlighted =
-        activeHover &&
-        (edge.source === activeHover || edge.target === activeHover);
-      const isSelectedEdge =
-        selectedNode &&
-        (edge.source === selectedNode.id || edge.target === selectedNode.id);
-
-      ctx.beginPath();
-      ctx.moveTo(src.x, src.y);
-      ctx.lineTo(tgt.x, tgt.y);
-
-      if (isHighlighted || isSelectedEdge) {
-        ctx.strokeStyle = EDGE_COLORS[edge.type] || "#5a657a";
-        ctx.lineWidth = 2.5;
-        ctx.globalAlpha = 1;
-      } else if (activeHover || selectedNode) {
-        ctx.strokeStyle = "#1e293b";
-        ctx.lineWidth = 1;
-        ctx.globalAlpha = 0.3;
-      } else {
-        ctx.strokeStyle = EDGE_COLORS[edge.type] || "#5a657a";
-        ctx.lineWidth = 1.2;
-        ctx.globalAlpha = 0.5;
-      }
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-
-      // Amount label on transaction edges
-      if (edge.type === "transaction" && edge.amount && (isHighlighted || isSelectedEdge || (!activeHover && !selectedNode))) {
-        const mx = (src.x + tgt.x) / 2;
-        const my = (src.y + tgt.y) / 2;
-        ctx.font = "600 11px Inter, system-ui, sans-serif";
-        ctx.fillStyle = "#34d399";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-
-        const label = `₹${(edge.amount / 1000).toFixed(0)}K`;
-        const tw = ctx.measureText(label).width;
-        ctx.fillStyle = "rgba(10, 15, 30, 0.85)";
-        ctx.fillRect(mx - tw / 2 - 4, my - 8, tw + 8, 16);
-        ctx.fillStyle = "#34d399";
-        ctx.fillText(label, mx, my);
-      }
-    }
-
-    // Draw nodes
-    for (const node of visibleNodes) {
-      const isConnectedToHover = connectedToHover.has(node.id) || node.id === activeHover;
-      const isConnectedToSel = connectedToSelected.has(node.id) || node.id === selectedNode?.id;
-      const dimmed = (activeHover && !isConnectedToHover) || (selectedNode && !isConnectedToSel);
-      const highlighted = isConnectedToHover || isConnectedToSel;
-
-      const color = NODE_COLORS[node.type] || "#5a657a";
-
-      // Glow
-      if (highlighted) {
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, node.radius + 8, 0, Math.PI * 2);
-        const grad = ctx.createRadialGradient(node.x, node.y, node.radius, node.x, node.y, node.radius + 8);
-        grad.addColorStop(0, color + "44");
-        grad.addColorStop(1, "transparent");
-        ctx.fillStyle = grad;
-        ctx.fill();
-      }
-
-      // Circle
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
-      ctx.fillStyle = dimmed ? color + "33" : color + "cc";
-      ctx.fill();
-      ctx.strokeStyle = dimmed ? color + "22" : color;
-      ctx.lineWidth = highlighted ? 3 : 1.5;
-      ctx.stroke();
-
-      // Inner lighter fill
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, node.radius * 0.55, 0, Math.PI * 2);
-      ctx.fillStyle = dimmed ? color + "11" : color + "33";
-      ctx.fill();
-
-      // Label
-      if (!dimmed || highlighted) {
-        ctx.font = `${highlighted ? "700" : "500"} 11px Inter, system-ui, sans-serif`;
-        ctx.fillStyle = highlighted ? "#f1f5f9" : "#8b97b0";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "top";
-
-        const label = node.label.length > 18 ? node.label.slice(0, 16) + "..." : node.label;
-        ctx.fillText(label, node.x, node.y + node.radius + 6);
-      }
-    }
-
-    ctx.restore();
-  }, [simNodes, edges, zoom, panX, panY, hoveredNode, selectedNode, filterTypes, getConnectedIds]);
-
-  useEffect(() => {
-    renderCanvas();
-  }, [renderCanvas]);
-
-  // Resize observer
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    const observer = new ResizeObserver(() => renderCanvas());
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, [renderCanvas]);
-
-  /* ---------------------------------------------------------------- */
-  /*  Mouse interaction                                                */
-  /* ---------------------------------------------------------------- */
-
-  const canvasToWorld = useCallback(
-    (clientX: number, clientY: number) => {
-      const rect = canvasRef.current?.getBoundingClientRect();
-      if (!rect) return { x: 0, y: 0 };
-      const cx = rect.width / 2 + panX;
-      const cy = rect.height / 2 + panY;
-      const x = (clientX - rect.left - cx) / zoom + rect.width / 2;
-      const y = (clientY - rect.top - cy) / zoom + rect.height / 2;
-      return { x, y };
-    },
-    [zoom, panX]
-  );
-
-  const findNodeAt = useCallback(
-    (worldX: number, worldY: number) => {
-      const visible = simNodes.filter((n) => filterTypes.has(n.type));
-      // Reverse so top-drawn nodes are picked first
-      for (let i = visible.length - 1; i >= 0; i--) {
-        const n = visible[i];
-        const dx = worldX - n.x;
-        const dy = worldY - n.y;
-        if (dx * dx + dy * dy <= (n.radius + 4) * (n.radius + 4)) return n;
-      }
-      return null;
-    },
-    [simNodes, filterTypes]
-  );
-
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent) => {
-      const { x, y } = canvasToWorld(e.clientX, e.clientY);
-
-      if (dragNode && dragStartRef.current) {
-        const dx = x - dragStartRef.current.mx;
-        const dy = y - dragStartRef.current.my;
-        setSimNodes((prev) =>
-          prev.map((n) =>
-            n.id === dragNode.id
-              ? { ...n, x: dragStartRef.current!.nx + dx, y: dragStartRef.current!.ny + dy, vx: 0, vy: 0 }
-              : n
-          )
-        );
-        return;
-      }
-
-      const node = findNodeAt(x, y);
-      setHoveredNode(node?.id ?? null);
-      if (canvasRef.current) canvasRef.current.style.cursor = node ? "pointer" : "default";
-    },
-    [canvasToWorld, findNodeAt, dragNode]
-  );
-
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      const { x, y } = canvasToWorld(e.clientX, e.clientY);
-      const node = findNodeAt(x, y);
-      if (node) {
-        setDragNode(node);
-        dragStartRef.current = { mx: x, my: y, nx: node.x, ny: node.y };
-      }
-    },
-    [canvasToWorld, findNodeAt]
-  );
-
-  const handleMouseUp = useCallback(() => {
-    if (dragNode) {
-      // If barely moved, treat as click → select
-      const node = simNodes.find((n) => n.id === dragNode.id);
-      if (node && selectedNode?.id !== node.id) {
-        setSelectedNode(node);
-      } else if (node && selectedNode?.id === node.id) {
-        setSelectedNode(null);
-      }
-      setDragNode(null);
-      dragStartRef.current = null;
-    }
-  }, [dragNode, selectedNode, simNodes]);
+    if (!networkBuilt || simNodes.length < 2) return;
+    const simulated = runForceSimulation(simNodes, edges, filterTypes, 80);
+    setSimNodes(simulated);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterTypes]);
 
   /* ---------------------------------------------------------------- */
   /*  Controls                                                         */
   /* ---------------------------------------------------------------- */
 
-  const handleZoomIn = () => setZoom((z) => Math.min(z * 1.25, 4));
-  const handleZoomOut = () => setZoom((z) => Math.max(z / 1.25, 0.3));
-  const handleResetLayout = () => {
-    setZoom(1);
-    setPanX(0);
-    setSimNodes((prev) =>
-      prev.map((n, i) => {
-        const angle = (2 * Math.PI * i) / prev.length;
-        const r = n.type === "gang" ? 0 : 200 + Math.random() * 150;
-        return { ...n, x: 500 + Math.cos(angle) * r, y: 400 + Math.sin(angle) * r, vx: 0, vy: 0 };
-      })
-    );
-    simRunningRef.current = false;
-    setTimeout(() => {
-      simRunningRef.current = false;
-      // Trigger re-sim
-      setSimNodes((prev) => [...prev]);
-    }, 50);
-  };
+  const handleResetLayout = useCallback(() => {
+    if (simNodes.length === 0) return;
+    const reset = simNodes.map((n, i) => {
+      const angle = (2 * Math.PI * i) / simNodes.length;
+      const r = n.type === "gang" ? 0 : 200 + Math.random() * 150;
+      return { ...n, x: 500 + Math.cos(angle) * r, y: 400 + Math.sin(angle) * r };
+    });
+    const simulated = runForceSimulation(reset, edges, filterTypes, 150);
+    setSimNodes(simulated);
+  }, [simNodes, edges, filterTypes]);
 
   const toggleFilter = (type: string) => {
     setFilterTypes((prev) => {
@@ -588,6 +806,29 @@ export default function FinancialNetworkView() {
   }, [selectedNode, edges, simNodes]);
 
   /* ---------------------------------------------------------------- */
+  /*  3D Interaction handlers                                          */
+  /* ---------------------------------------------------------------- */
+
+  const handleNodeSelect = useCallback(
+    (node: SimNode) => {
+      if (!node || (node as unknown) === null) {
+        setSelectedNode(null);
+        return;
+      }
+      if (selectedNode?.id === node.id) {
+        setSelectedNode(null);
+      } else {
+        setSelectedNode(node);
+      }
+    },
+    [selectedNode]
+  );
+
+  const handleNodeHover = useCallback((nodeId: string | null) => {
+    setHoveredNodeId(nodeId);
+  }, []);
+
+  /* ---------------------------------------------------------------- */
   /*  Render                                                           */
   /* ---------------------------------------------------------------- */
 
@@ -605,16 +846,31 @@ export default function FinancialNetworkView() {
             borderRadius: 16,
           }}
         >
-          <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: "rgba(16,185,129,0.15)" }}>
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center"
+            style={{ background: "rgba(16,185,129,0.15)" }}
+          >
             <Network className="w-8 h-8 text-[#34d399]" />
           </div>
-          <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>No Financial Network Data</h3>
-          <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-            No financial transactions have been linked to FIR records yet. Once bank accounts and
-            transaction amounts are associated with cases, the financial network graph will appear here.
+          <h3
+            className="text-lg font-semibold"
+            style={{ color: "var(--text-primary)" }}
+          >
+            No Financial Network Data
+          </h3>
+          <p
+            className="text-sm leading-relaxed"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            No financial transactions have been linked to FIR records yet. Once
+            bank accounts and transaction amounts are associated with cases, the
+            financial network graph will appear here.
           </p>
           <div className="flex items-center gap-2 mt-2">
-            <IndianRupee className="w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
+            <IndianRupee
+              className="w-4 h-4"
+              style={{ color: "var(--text-tertiary)" }}
+            />
             <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>
               Link financial transactions to FIRs to see the network
             </span>
@@ -626,15 +882,35 @@ export default function FinancialNetworkView() {
 
   return (
     <div className="flex h-full gap-4 p-4 overflow-hidden">
-      {/* Left: Canvas + controls */}
+      {/* Left: 3D Canvas + controls */}
       <div className="flex-1 flex flex-col gap-4 min-w-0">
         {/* Stats Cards */}
         <div className="grid grid-cols-4 gap-3 shrink-0">
           {[
-            { label: "Total Accounts", value: stats.accounts, icon: Building2, color: "var(--warning)" },
-            { label: "Transactions", value: stats.transactions, icon: ArrowRight, color: "var(--success)" },
-            { label: "Total Value", value: `₹${stats.totalValue.toLocaleString("en-IN")}`, icon: IndianRupee, color: "var(--success)" },
-            { label: "Gangs Involved", value: stats.gangs, icon: Users, color: "var(--secondary)" },
+            {
+              label: "Total Accounts",
+              value: stats.accounts,
+              icon: Building2,
+              color: "var(--warning)",
+            },
+            {
+              label: "Transactions",
+              value: stats.transactions,
+              icon: ArrowRight,
+              color: "var(--success)",
+            },
+            {
+              label: "Total Value",
+              value: `₹${stats.totalValue.toLocaleString("en-IN")}`,
+              icon: IndianRupee,
+              color: "var(--success)",
+            },
+            {
+              label: "Gangs Involved",
+              value: stats.gangs,
+              icon: Users,
+              color: "var(--secondary)",
+            },
           ].map((stat) => (
             <div
               key={stat.label}
@@ -650,13 +926,22 @@ export default function FinancialNetworkView() {
                 className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
                 style={{ background: stat.color + "1a" }}
               >
-                <stat.icon className="w-4 h-4" style={{ color: stat.color }} />
+                <stat.icon
+                  className="w-4 h-4"
+                  style={{ color: stat.color }}
+                />
               </div>
               <div className="min-w-0">
-                <p className="text-xs truncate" style={{ color: "var(--text-tertiary)" }}>
+                <p
+                  className="text-xs truncate"
+                  style={{ color: "var(--text-tertiary)" }}
+                >
                   {stat.label}
                 </p>
-                <p className="text-sm font-bold truncate" style={{ color: "var(--text-primary)" }}>
+                <p
+                  className="text-sm font-bold truncate"
+                  style={{ color: "var(--text-primary)" }}
+                >
                   {stat.value}
                 </p>
               </div>
@@ -664,21 +949,39 @@ export default function FinancialNetworkView() {
           ))}
         </div>
 
-        {/* Canvas */}
-        <div className="flex-1 relative rounded-2xl overflow-hidden min-h-0" style={{ border: "1px solid var(--border-default)" }}>
-          <div ref={containerRef} className="absolute inset-0" style={{ background: "rgba(10,15,28,0.6)" }}>
-            <canvas ref={canvasRef} onMouseMove={handleMouseMove} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onMouseLeave={() => { setHoveredNode(null); setDragNode(null); dragStartRef.current = null; }} className="absolute inset-0 w-full h-full" />
-          </div>
+        {/* 3D Canvas */}
+        <div
+          className="flex-1 relative rounded-2xl overflow-hidden min-h-0"
+          style={{ border: "1px solid var(--border-default)" }}
+        >
+          <Canvas
+            camera={{ position: [0, 12, 8], fov: 50, near: 0.1, far: 100 }}
+            gl={{ antialias: true, alpha: false }}
+            dpr={[1, 2]}
+            style={{ background: "#050710" }}
+          >
+            <FinancialScene
+              nodes={simNodes}
+              edges={edges}
+              selectedNodeId={selectedNode?.id ?? null}
+              hoveredNodeId={hoveredNodeId}
+              filterTypes={filterTypes}
+              onSelect={handleNodeSelect}
+              onHover={handleNodeHover}
+            />
+          </Canvas>
 
           {/* Controls overlay */}
           <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
-            <button onClick={handleZoomIn} className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors" style={{ background: "var(--border-default)", border: "1px solid var(--border-default)", color: "var(--text-primary)" }}>
-              <ZoomIn className="w-4 h-4" />
-            </button>
-            <button onClick={handleZoomOut} className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors" style={{ background: "var(--border-default)", border: "1px solid var(--border-default)", color: "var(--text-primary)" }}>
-              <ZoomOut className="w-4 h-4" />
-            </button>
-            <button onClick={handleResetLayout} className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors" style={{ background: "var(--border-default)", border: "1px solid var(--border-default)", color: "var(--text-primary)" }}>
+            <button
+              onClick={handleResetLayout}
+              className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+              style={{
+                background: "var(--border-default)",
+                border: "1px solid var(--border-default)",
+                color: "var(--text-primary)",
+              }}
+            >
               <RotateCcw className="w-4 h-4" />
             </button>
           </div>
@@ -695,7 +998,10 @@ export default function FinancialNetworkView() {
           >
             {/* Filters */}
             <div className="flex flex-col gap-1.5">
-              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
+              <p
+                className="text-[10px] font-semibold uppercase tracking-wider"
+                style={{ color: "var(--text-tertiary)" }}
+              >
                 Filter Nodes
               </p>
               <div className="flex gap-2">
@@ -705,35 +1011,62 @@ export default function FinancialNetworkView() {
                     onClick={() => toggleFilter(type)}
                     className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium transition-all"
                     style={{
-                      background: filterTypes.has(type) ? NODE_COLORS[type] + "22" : "transparent",
-                      border: `1px solid ${filterTypes.has(type) ? NODE_COLORS[type] + "66" : "rgba(255,255,255,0.06)"}`,
-                      color: filterTypes.has(type) ? NODE_COLORS[type] : "#3d4659",
+                      background: filterTypes.has(type)
+                        ? NODE_COLORS[type] + "22"
+                        : "transparent",
+                      border: `1px solid ${
+                        filterTypes.has(type)
+                          ? NODE_COLORS[type] + "66"
+                          : "rgba(255,255,255,0.06)"
+                      }`,
+                      color: filterTypes.has(type)
+                        ? NODE_COLORS[type]
+                        : "#3d4659",
                       opacity: filterTypes.has(type) ? 1 : 0.5,
                     }}
                   >
-                    <Circle className="w-2.5 h-2.5" fill={filterTypes.has(type) ? NODE_COLORS[type] : "transparent"} stroke={NODE_COLORS[type]} />
+                    <Circle
+                      className="w-2.5 h-2.5"
+                      fill={filterTypes.has(type) ? NODE_COLORS[type] : "transparent"}
+                      stroke={NODE_COLORS[type]}
+                    />
                     {NODE_LABELS[type]}
                   </button>
                 ))}
               </div>
             </div>
 
-            <Separator orientation="vertical" className="h-auto" style={{ background: "var(--border-default)" }} />
+            <Separator
+              orientation="vertical"
+              className="h-auto"
+              style={{ background: "var(--border-default)" }}
+            />
 
             {/* Legend */}
             <div className="flex flex-col gap-1.5">
-              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
+              <p
+                className="text-[10px] font-semibold uppercase tracking-wider"
+                style={{ color: "var(--text-tertiary)" }}
+              >
                 Edge Types
               </p>
               <div className="flex gap-3">
-                {(["transaction", "account_holder", "used_in", "gang_member"] as const).map((type) => (
-                  <div key={type} className="flex items-center gap-1.5">
-                    <div className="w-4 h-0.5 rounded" style={{ background: EDGE_COLORS[type] }} />
-                    <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
-                      {EDGE_LABELS[type]}
-                    </span>
-                  </div>
-                ))}
+                {(["transaction", "account_holder", "used_in", "gang_member"] as const).map(
+                  (type) => (
+                    <div key={type} className="flex items-center gap-1.5">
+                      <div
+                        className="w-4 h-0.5 rounded"
+                        style={{ background: EDGE_COLORS[type] }}
+                      />
+                      <span
+                        className="text-[10px]"
+                        style={{ color: "var(--text-tertiary)" }}
+                      >
+                        {EDGE_LABELS[type]}
+                      </span>
+                    </div>
+                  )
+                )}
               </div>
             </div>
           </div>
@@ -760,25 +1093,57 @@ export default function FinancialNetworkView() {
               }}
             >
               {/* Header */}
-              <div className="flex items-center justify-between px-5 py-4 shrink-0" style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+              <div
+                className="flex items-center justify-between px-5 py-4 shrink-0"
+                style={{ borderBottom: "1px solid var(--border-subtle)" }}
+              >
                 <div className="flex items-center gap-3 min-w-0">
                   <div
                     className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                    style={{ background: (NODE_COLORS[selectedNode.type] || "#5a657a") + "22" }}
+                    style={{
+                      background: (NODE_COLORS[selectedNode.type] || "#5a657a") + "22",
+                    }}
                   >
-                    {selectedNode.type === "account" && <Building2 className="w-4 h-4" style={{ color: NODE_COLORS.account }} />}
-                    {selectedNode.type === "accused" && <User className="w-4 h-4" style={{ color: NODE_COLORS.accused }} />}
-                    {selectedNode.type === "fir" && <FileText className="w-4 h-4" style={{ color: NODE_COLORS.fir }} />}
-                    {selectedNode.type === "gang" && <Users className="w-4 h-4" style={{ color: NODE_COLORS.gang }} />}
+                    {selectedNode.type === "account" && (
+                      <Building2
+                        className="w-4 h-4"
+                        style={{ color: NODE_COLORS.account }}
+                      />
+                    )}
+                    {selectedNode.type === "accused" && (
+                      <User
+                        className="w-4 h-4"
+                        style={{ color: NODE_COLORS.accused }}
+                      />
+                    )}
+                    {selectedNode.type === "fir" && (
+                      <FileText
+                        className="w-4 h-4"
+                        style={{ color: NODE_COLORS.fir }}
+                      />
+                    )}
+                    {selectedNode.type === "gang" && (
+                      <Users
+                        className="w-4 h-4"
+                        style={{ color: NODE_COLORS.gang }}
+                      />
+                    )}
                   </div>
                   <div className="min-w-0">
                     <Badge
                       className="text-[10px] px-1.5 py-0"
-                      style={{ background: (NODE_COLORS[selectedNode.type] || "#5a657a") + "22", color: NODE_COLORS[selectedNode.type], border: `1px solid ${(NODE_COLORS[selectedNode.type] || "#5a657a")}44` }}
+                      style={{
+                        background: (NODE_COLORS[selectedNode.type] || "#5a657a") + "22",
+                        color: NODE_COLORS[selectedNode.type],
+                        border: `1px solid ${(NODE_COLORS[selectedNode.type] || "#5a657a")}44`,
+                      }}
                     >
                       {NODE_LABELS[selectedNode.type]}
                     </Badge>
-                    <p className="text-sm font-semibold truncate mt-0.5" style={{ color: "var(--text-primary)" }}>
+                    <p
+                      className="text-sm font-semibold truncate mt-0.5"
+                      style={{ color: "var(--text-primary)" }}
+                    >
                       {selectedNode.label}
                     </p>
                   </div>
@@ -788,7 +1153,9 @@ export default function FinancialNetworkView() {
                   className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors"
                   style={{ color: "var(--text-tertiary)" }}
                   onMouseEnter={(e) => (e.currentTarget.style.color = "#f1f5f9")}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = "#5a657a")}
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.color = "#5a657a")
+                  }
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -798,26 +1165,45 @@ export default function FinancialNetworkView() {
               <ScrollArea className="flex-1 px-5 py-4">
                 {/* Details */}
                 <div className="space-y-2.5 mb-5">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
+                  <p
+                    className="text-[10px] font-semibold uppercase tracking-wider"
+                    style={{ color: "var(--text-tertiary)" }}
+                  >
                     Details
                   </p>
                   {Object.entries(selectedNode.details).map(([key, val]) => (
-                    <div key={key} className="flex justify-between items-start gap-2">
-                      <span className="text-xs capitalize shrink-0" style={{ color: "var(--text-secondary)" }}>
+                    <div
+                      key={key}
+                      className="flex justify-between items-start gap-2"
+                    >
+                      <span
+                        className="text-xs capitalize shrink-0"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
                         {key.replace(/_/g, " ")}
                       </span>
-                      <span className="text-xs font-medium text-right" style={{ color: "var(--text-primary)" }}>
+                      <span
+                        className="text-xs font-medium text-right"
+                        style={{ color: "var(--text-primary)" }}
+                      >
                         {val}
                       </span>
                     </div>
                   ))}
                   {selectedNode.value > 0 && (
                     <div className="flex justify-between items-start gap-2">
-                      <span className="text-xs capitalize shrink-0" style={{ color: "var(--text-secondary)" }}>
+                      <span
+                        className="text-xs capitalize shrink-0"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
                         Value
                       </span>
-                      <span className="text-xs font-medium" style={{ color: "var(--success)" }}>
-                        {selectedNode.type === "account" || selectedNode.type === "fir"
+                      <span
+                        className="text-xs font-medium"
+                        style={{ color: "var(--success)" }}
+                      >
+                        {selectedNode.type === "account" ||
+                        selectedNode.type === "fir"
                           ? `₹${selectedNode.value.toLocaleString("en-IN")}`
                           : selectedNode.value}
                       </span>
@@ -825,12 +1211,18 @@ export default function FinancialNetworkView() {
                   )}
                 </div>
 
-                <Separator className="my-3" style={{ background: "var(--border-default)" }} />
+                <Separator
+                  className="my-3"
+                  style={{ background: "var(--border-default)" }}
+                />
 
                 {/* Connected Nodes */}
                 {selectedConnections.nodes.length > 0 && (
                   <div className="mb-5">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
+                    <p
+                      className="text-[10px] font-semibold uppercase tracking-wider mb-2"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
                       Connected Nodes ({selectedConnections.nodes.length})
                     </p>
                     <div className="space-y-1.5">
@@ -840,24 +1232,39 @@ export default function FinancialNetworkView() {
                           onClick={() => setSelectedNode(node)}
                           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-colors group"
                           style={{ background: "var(--border-subtle)" }}
-                          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
-                          onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
+                          onMouseEnter={(e) =>
+                            (e.currentTarget.style.background =
+                              "rgba(255,255,255,0.08)")
+                          }
+                          onMouseLeave={(e) =>
+                            (e.currentTarget.style.background =
+                              "rgba(255,255,255,0.03)")
+                          }
                         >
                           <Circle
                             className="w-3 h-3 shrink-0"
                             fill={NODE_COLORS[node.type]}
                             stroke={NODE_COLORS[node.type]}
                           />
-                          <span className="text-xs font-medium truncate flex-1" style={{ color: "var(--text-primary)" }}>
+                          <span
+                            className="text-xs font-medium truncate flex-1"
+                            style={{ color: "var(--text-primary)" }}
+                          >
                             {node.label}
                           </span>
                           <Badge
                             className="text-[9px] px-1.5 py-0 shrink-0"
-                            style={{ background: NODE_COLORS[node.type] + "22", color: NODE_COLORS[node.type] }}
+                            style={{
+                              background: NODE_COLORS[node.type] + "22",
+                              color: NODE_COLORS[node.type],
+                            }}
                           >
                             {NODE_LABELS[node.type]}
                           </Badge>
-                          <ChevronRight className="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--text-tertiary)" }} />
+                          <ChevronRight
+                            className="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            style={{ color: "var(--text-tertiary)" }}
+                          />
                         </button>
                       ))}
                     </div>
@@ -867,39 +1274,59 @@ export default function FinancialNetworkView() {
                 {/* Connected Edges */}
                 {selectedConnections.edges.length > 0 && (
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
+                    <p
+                      className="text-[10px] font-semibold uppercase tracking-wider mb-2"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
                       Connections ({selectedConnections.edges.length})
                     </p>
                     <div className="space-y-1.5">
                       {selectedConnections.edges.map((edge, i) => {
                         const isOutgoing = edge.source === selectedNode.id;
                         const otherId = isOutgoing ? edge.target : edge.source;
-                        const otherNode = simNodes.find((n) => n.id === otherId);
+                        const otherNode = simNodes.find(
+                          (n) => n.id === otherId
+                        );
                         return (
                           <div
                             key={i}
                             className="flex items-center gap-2.5 px-3 py-2 rounded-lg"
                             style={{ background: "var(--border-subtle)" }}
                           >
-                            <div className="w-3 h-0.5 rounded shrink-0" style={{ background: EDGE_COLORS[edge.type] }} />
+                            <div
+                              className="w-3 h-0.5 rounded shrink-0"
+                              style={{ background: EDGE_COLORS[edge.type] }}
+                            />
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5">
-                                <span className="text-[9px] uppercase font-medium" style={{ color: EDGE_COLORS[edge.type] }}>
+                                <span
+                                  className="text-[9px] uppercase font-medium"
+                                  style={{ color: EDGE_COLORS[edge.type] }}
+                                >
                                   {edge.type}
                                 </span>
                                 {edge.amount != null && (
-                                  <span className="text-[10px] font-semibold" style={{ color: "var(--success)" }}>
+                                  <span
+                                    className="text-[10px] font-semibold"
+                                    style={{ color: "var(--success)" }}
+                                  >
                                     ₹{edge.amount.toLocaleString("en-IN")}
                                   </span>
                                 )}
                               </div>
                               {edge.label && (
-                                <p className="text-[10px] truncate mt-0.5" style={{ color: "var(--text-tertiary)" }}>
+                                <p
+                                  className="text-[10px] truncate mt-0.5"
+                                  style={{ color: "var(--text-tertiary)" }}
+                                >
                                   {edge.label}
                                 </p>
                               )}
                               {otherNode && (
-                                <p className="text-[10px] truncate mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                                <p
+                                  className="text-[10px] truncate mt-0.5"
+                                  style={{ color: "var(--text-secondary)" }}
+                                >
                                   {isOutgoing ? "→" : "←"} {otherNode.label}
                                 </p>
                               )}
@@ -918,3 +1345,11 @@ export default function FinancialNetworkView() {
     </div>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/*  Dynamic export (SSR-safe)                                          */
+/* ------------------------------------------------------------------ */
+
+export default dynamic(() => Promise.resolve(FinancialNetworkViewInner), {
+  ssr: false,
+});

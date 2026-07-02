@@ -1,7 +1,14 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState, useMemo, useCallback, useEffect, useRef, Suspense } from "react";
+import {
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+  useRef,
+  Suspense,
+} from "react";
 import { useAppStore } from "@/lib/store";
 import { getNetworkEdges } from "@/lib/data";
 import {
@@ -26,8 +33,7 @@ import {
 import type { FIR, Accused, Gang, Vehicle, District } from "@/lib/types";
 import LoadingSpinner from "./LoadingSpinner";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, Html, Line, Stars } from "@react-three/drei";
-import { EffectComposer, Bloom } from "@react-three/postprocessing";
+import { OrbitControls, Html } from "@react-three/drei";
 import * as THREE from "three";
 
 /* ------------------------------------------------------------------ */
@@ -62,15 +68,15 @@ interface SimLink {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Constants                                                          */
+/*  Constants — Classified Console Design System (Phosphor Green)       */
 /* ------------------------------------------------------------------ */
 
 const LINK_COLORS: Record<string, string> = {
-  involved_in: "#5a657a",
-  member_of: "#fbbf24",
-  occurred_in: "#818cf8",
-  used_vehicle: "#22d3ee",
-  gang_associate: "#fbbf24",
+  involved_in: "rgba(255,107,107,0.35)",
+  member_of: "rgba(255,217,61,0.4)",
+  occurred_in: "rgba(107,203,119,0.3)",
+  used_vehicle: "rgba(77,150,255,0.35)",
+  gang_associate: "rgba(255,146,43,0.2)",
 };
 
 const CRIME_TYPES = [
@@ -83,27 +89,25 @@ const CRIME_TYPES = [
 
 const NODE_TYPE_CONFIG: Record<
   string,
-  { color: string; label: string; icon: string; baseSize: number }
+  { color: string; label: string; icon: string; radius: number }
 > = {
-  accused: { color: "#f87171", label: "Accused", icon: "●", baseSize: 6 },
-  gang: { color: "#fbbf24", label: "Gang", icon: "◆", baseSize: 8 },
-  fir: { color: "#eab308", label: "FIR", icon: "■", baseSize: 4 },
-  vehicle: { color: "#22d3ee", label: "Vehicle", icon: "▲", baseSize: 5 },
-  district: { color: "#818cf8", label: "District", icon: "◉", baseSize: 7 },
+  accused: { color: "#FF6B6B", label: "Accused", icon: "●", radius: 0.65 },
+  gang: { color: "#FFD93D", label: "Gang", icon: "◆", radius: 1.6 },
+  fir: { color: "#6BCB77", label: "FIR", icon: "■", radius: 0.5 },
+  vehicle: { color: "#4D96FF", label: "Vehicle", icon: "▲", radius: 0.55 },
+  district: { color: "#FF922B", label: "District", icon: "◉", radius: 1.3 },
 };
 
 /* ------------------------------------------------------------------ */
-/*  Glass Card Styles                                                  */
+/*  Solid Card Style                                                   */
 /* ------------------------------------------------------------------ */
 
-const glassCard: React.CSSProperties = {
+const solidCard: React.CSSProperties = {
   background: "var(--bg-card)",
-  backdropFilter: "blur(24px)",
-  WebkitBackdropFilter: "blur(24px)",
   border: "1px solid var(--border-default)",
-  borderRadius: "12px",
+  borderRadius: "3px",
   boxShadow:
-    "0 16px 48px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.03)",
+    "0 16px 48px -12px rgba(0, 0, 0, 0.5), 0 0 8px rgba(0,255,102,0.04)",
 };
 
 /* ------------------------------------------------------------------ */
@@ -141,8 +145,8 @@ function AccusedPanel({ node }: { node: SimNode }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <div className="w-9 h-9 rounded-full bg-[#f87171]/20 flex items-center justify-center">
-          <User className="size-4 text-[#f87171]" />
+        <div className="w-9 h-9 rounded-full bg-[#FF6B6B]/15 flex items-center justify-center">
+          <User className="size-4 text-[#FF6B6B]" />
         </div>
         <div>
           <h3 className="text-base font-semibold text-white leading-tight">
@@ -162,10 +166,10 @@ function AccusedPanel({ node }: { node: SimNode }) {
           <span
             className={
               a.risk > 80
-                ? "text-[#f87171] font-bold"
+                ? "text-[#00FF66] font-bold"
                 : a.risk > 60
-                ? "text-[#fbbf24] font-bold"
-                : "text-[#34d399] font-bold"
+                ? "text-[#00cc52] font-bold"
+                : "text-[rgba(0,255,102,0.6)] font-bold"
             }
           >
             {a.risk}/100
@@ -191,7 +195,7 @@ function AccusedPanel({ node }: { node: SimNode }) {
             {firs.map((f) => (
               <span
                 key={f.fir_id}
-                className="px-1.5 py-0.5 bg-[#fbbf24]/10 text-[#fbbf24] text-[11px] rounded"
+                className="px-1.5 py-0.5 bg-[#FF6B6B]/10 text-[#FF6B6B] text-[11px] rounded font-mono"
               >
                 {f.fir_id}
               </span>
@@ -209,8 +213,8 @@ function GangPanel({ node }: { node: SimNode }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <div className="w-9 h-9 rounded-full bg-[#fbbf24]/20 flex items-center justify-center">
-          <Shield className="size-4 text-[#fbbf24]" />
+        <div className="w-9 h-9 rounded-full bg-[#FFD93D]/15 flex items-center justify-center">
+          <Shield className="size-4 text-[#FFD93D]" />
         </div>
         <div>
           <h3 className="text-base font-semibold text-white leading-tight">
@@ -249,8 +253,8 @@ function FIRPanel({ node }: { node: SimNode }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <div className="w-9 h-9 rounded-full bg-[#fbbf24]/20 flex items-center justify-center">
-          <FileText className="size-4 text-[#fbbf24]" />
+        <div className="w-9 h-9 rounded-full bg-[#6BCB77]/15 flex items-center justify-center">
+          <FileText className="size-4 text-[#6BCB77]" />
         </div>
         <div>
           <h3 className="text-base font-semibold text-white leading-tight">
@@ -270,10 +274,10 @@ function FIRPanel({ node }: { node: SimNode }) {
           <span
             className={
               f.severity === "critical"
-                ? "text-[#f87171]"
+                ? "text-[#00FF66]"
                 : f.severity === "high"
-                ? "text-[#fbbf24]"
-                : "text-[#fbbf24]"
+                ? "text-[#00cc52]"
+                : "text-[rgba(0,255,102,0.7)]"
             }
           >
             {f.severity.toUpperCase()}
@@ -306,8 +310,8 @@ function VehiclePanel({ node }: { node: SimNode }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <div className="w-9 h-9 rounded-full bg-[#22d3ee]/20 flex items-center justify-center">
-          <Car className="size-4 text-[#22d3ee]" />
+        <div className="w-9 h-9 rounded-full bg-[#4D96FF]/15 flex items-center justify-center">
+          <Car className="size-4 text-[#4D96FF]" />
         </div>
         <div>
           <h3 className="text-base font-semibold text-white leading-tight">
@@ -330,8 +334,8 @@ function DistrictPanel({ node }: { node: SimNode }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <div className="w-9 h-9 rounded-full bg-[#818cf8]/20 flex items-center justify-center">
-          <MapPin className="size-4 text-[#818cf8]" />
+        <div className="w-9 h-9 rounded-full bg-[#FF922B]/15 flex items-center justify-center">
+          <MapPin className="size-4 text-[#FF922B]" />
         </div>
         <div>
           <h3 className="text-base font-semibold text-white leading-tight">
@@ -347,7 +351,7 @@ function DistrictPanel({ node }: { node: SimNode }) {
         icon={FileText}
         label="FIR Count"
         value={
-          <span className="font-bold text-[#818cf8]">
+          <span className="font-bold text-[#FF922B]">
             {node._firCount ?? 0}
           </span>
         }
@@ -357,113 +361,391 @@ function DistrictPanel({ node }: { node: SimNode }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  3D Force Simulation                                                */
+/*  Hierarchical Radial Layout (deterministic, no force simulation)     */
 /* ------------------------------------------------------------------ */
 
-function simulateForce3D(
+function layoutHierarchical(
   nodes: SimNode[],
-  links: SimLink[],
-  iterations: number = 500
+  links: SimLink[]
 ) {
-  const spread = 10;
-
-  for (const n of nodes) {
-    n.x = (Math.random() - 0.5) * spread * 2;
-    n.y = (Math.random() - 0.5) * spread;
-    n.z = (Math.random() - 0.5) * spread * 2;
-    n.vx = 0;
-    n.vy = 0;
-    n.vz = 0;
-  }
-
   const nodeMap = new Map<string, SimNode>();
   for (const n of nodes) nodeMap.set(n.id, n);
 
-  for (let iter = 0; iter < iterations; iter++) {
-    const alpha = 1 - iter / iterations;
-    const repulsion = 3000;
-    const attraction = 0.008;
-    const centerForce = 0.015;
-    const damping = 0.75;
+  /* Group by type */
+  const gangs: SimNode[] = [];
+  const accused: SimNode[] = [];
+  const firs: SimNode[] = [];
+  const vehicles: SimNode[] = [];
+  const districts: SimNode[] = [];
 
-    // Repulsion between all pairs
+  for (const n of nodes) {
+    switch (n.type) {
+      case "gang": gangs.push(n); break;
+      case "accused": accused.push(n); break;
+      case "fir": firs.push(n); break;
+      case "vehicle": vehicles.push(n); break;
+      case "district": districts.push(n); break;
+    }
+  }
+
+  /* Build adjacency: accused → gang */
+  const accusedToGang = new Map<string, SimNode>();
+  const gangMembers = new Map<string, SimNode[]>();
+  for (const a of accused) {
+    if (a._accused?.gang) {
+      const g = nodeMap.get(a._accused.gang);
+      if (g) {
+        accusedToGang.set(a.id, g);
+        if (!gangMembers.has(g.id)) gangMembers.set(g.id, []);
+        gangMembers.get(g.id)!.push(a);
+      }
+    }
+  }
+
+  /* Build adjacency: FIR → accused, FIR → district, FIR → vehicle */
+  const firToAccused = new Map<string, SimNode[]>();
+  const firToDistrict = new Map<string, SimNode>();
+  const firToVehicle = new Map<string, SimNode>();
+  for (const f of firs) {
+    if (f._fir) {
+      const linked: SimNode[] = [];
+      for (const aid of f._fir.accused) {
+        const a = nodeMap.get(aid);
+        if (a) linked.push(a);
+      }
+      firToAccused.set(f.id, linked);
+      if (f._fir.district) {
+        const d = nodeMap.get(f._fir.district);
+        if (d) firToDistrict.set(f.id, d);
+      }
+      if (f._fir.vehicle_used) {
+        const v = nodeMap.get(f._fir.vehicle_used);
+        if (v) firToVehicle.set(f.id, v);
+      }
+    }
+  }
+
+  /* ── 1. Place GANGS in center ring ── */
+  const gangRadius = Math.max(5, gangs.length * 2.8);
+  const gangAngleStep = gangs.length > 0 ? (2 * Math.PI) / gangs.length : 0;
+  for (let i = 0; i < gangs.length; i++) {
+    const angle = gangAngleStep * i - Math.PI / 2;
+    gangs[i].x = Math.cos(angle) * gangRadius;
+    gangs[i].y = 1.0;
+    gangs[i].z = Math.sin(angle) * gangRadius;
+  }
+
+  /* ── 2. Place ACCUSED around their gang ── */
+  for (const gang of gangs) {
+    const members = gangMembers.get(gang.id) ?? [];
+    const memberRadius = 6.0;
+    const arcSpan = Math.min(Math.PI * 0.85, members.length * 0.5);
+    const memberAngleStep =
+      members.length > 1 ? arcSpan / (members.length - 1) : 0;
+    const gangAngle = Math.atan2(gang.z, gang.x);
+    const startAngle = gangAngle - arcSpan / 2;
+
+    for (let i = 0; i < members.length; i++) {
+      const angle = startAngle + memberAngleStep * i;
+      members[i].x = gang.x + Math.cos(angle) * memberRadius;
+      members[i].y = 0.3;
+      members[i].z = gang.z + Math.sin(angle) * memberRadius;
+    }
+  }
+
+  /* Accused with no gang → outer scatter */
+  const unaffiliated = accused.filter((a) => !accusedToGang.has(a.id));
+  const uaRadius = gangRadius + 10;
+  const uaStep =
+    unaffiliated.length > 0 ? (2 * Math.PI) / unaffiliated.length : 0;
+  for (let i = 0; i < unaffiliated.length; i++) {
+    const angle = uaStep * i + 0.5;
+    unaffiliated[i].x = Math.cos(angle) * uaRadius;
+    unaffiliated[i].y = 0.3;
+    unaffiliated[i].z = Math.sin(angle) * uaRadius;
+  }
+
+  /* ── 3. Place FIRs near their first accused, pushed outward ── */
+  // Track FIR placement angles to spread multiple FIRs per accused
+  const accusedFirCount = new Map<string, number>();
+  for (const fir of firs) {
+    const linked = firToAccused.get(fir.id);
+    if (linked && linked.length > 0) {
+      const anchor = linked[0];
+      const dirX = anchor.x;
+      const dirZ = anchor.z;
+      const dist = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+      const outX = dirX / dist;
+      const outZ = dirZ / dist;
+      const idx = accusedFirCount.get(anchor.id) ?? 0;
+      accusedFirCount.set(anchor.id, idx + 1);
+      // Fan out multiple FIRs per accused
+      const spread = idx * 0.6;
+      const perpX = -outZ;
+      const perpZ = outX;
+      fir.x = anchor.x + outX * 4.0 + perpX * spread;
+      fir.y = -0.1;
+      fir.z = anchor.z + outZ * 4.0 + perpZ * spread;
+    } else {
+      // Fallback: place in a ring
+      const fIdx = firs.indexOf(fir);
+      const fAngle = (2 * Math.PI * fIdx) / firs.length;
+      const fRadius = gangRadius + 7;
+      fir.x = Math.cos(fAngle) * fRadius;
+      fir.y = -0.2;
+      fir.z = Math.sin(fAngle) * fRadius;
+    }
+  }
+
+  /* ── 4. Place VEHICLES near their FIR ── */
+  for (const v of vehicles) {
+    const link = links.find((l) => l.source === v.id || l.target === v.id);
+    if (link) {
+      const otherId =
+        link.source === v.id ? link.target : link.source;
+      const anchor = nodeMap.get(otherId);
+      if (anchor) {
+        const dx = anchor.x;
+        const dz = anchor.z;
+        const dist = Math.sqrt(dx * dx + dz * dz) || 1;
+        const perpX = -dz / dist;
+        const perpZ = dx / dist;
+        v.x = anchor.x + perpX * 2.5 + (dx / dist) * 1.8;
+        v.y = -0.3;
+        v.z = anchor.z + perpZ * 2.5 + (dz / dist) * 1.8;
+        continue;
+      }
+    }
+    // Fallback: outer ring
+    const vIdx = vehicles.indexOf(v);
+    const vAngle = (2 * Math.PI * vIdx) / vehicles.length + 1.0;
+    const vRadius = gangRadius + 12;
+    v.x = Math.cos(vAngle) * vRadius;
+    v.y = -0.4;
+    v.z = Math.sin(vAngle) * vRadius;
+  }
+
+  /* ── 5. Place DISTRICTS in outer ring ── */
+  const distRadius = gangRadius + 16;
+  const distStep =
+    districts.length > 0 ? (2 * Math.PI) / districts.length : 0;
+  for (let i = 0; i < districts.length; i++) {
+    const angle = distStep * i + 0.3;
+    districts[i].x = Math.cos(angle) * distRadius;
+    districts[i].y = -0.6;
+    districts[i].z = Math.sin(angle) * distRadius;
+  }
+
+  /* ── 6. Collision avoidance (8 passes, stronger) ── */
+  for (let pass = 0; pass < 8; pass++) {
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
         const a = nodes[i];
         const b = nodes[j];
-        let dx = a.x - b.x;
-        let dy = a.y - b.y;
-        let dz = a.z - b.z;
-        let dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (dist < 1) {
-          dist = 1;
-          dx = Math.random() - 0.5;
-          dy = Math.random() - 0.5;
-          dz = Math.random() - 0.5;
+        const dx = a.x - b.x;
+        const dz = a.z - b.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        // Larger minimum distance for bigger node types
+        const ra = getNodeRadius(a);
+        const rb = getNodeRadius(b);
+        const minDist = (ra + rb) * 2.5 + 0.5;
+        if (dist < minDist && dist > 0.01) {
+          const push = (minDist - dist) * 0.45;
+          const nx = dx / dist;
+          const nz = dz / dist;
+          a.x += nx * push;
+          a.z += nz * push;
+          b.x -= nx * push;
+          b.z -= nz * push;
         }
-        const force = (repulsion * alpha) / (dist * dist);
-        const fx = (dx / dist) * force;
-        const fy = (dy / dist) * force;
-        const fz = (dz / dist) * force;
-        a.vx += fx; a.vy += fy; a.vz += fz;
-        b.vx -= fx; b.vy -= fy; b.vz -= fz;
       }
     }
-
-    // Attraction along links
-    for (const link of links) {
-      const s = nodeMap.get(link.source);
-      const t = nodeMap.get(link.target);
-      if (!s || !t) continue;
-      const dx = t.x - s.x;
-      const dy = t.y - s.y;
-      const dz = t.z - s.z;
-      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-      if (dist < 1) continue;
-      const force = dist * attraction * alpha;
-      const fx = (dx / dist) * force;
-      const fy = (dy / dist) * force;
-      const fz = (dz / dist) * force;
-      s.vx += fx; s.vy += fy; s.vz += fz;
-      t.vx -= fx; t.vy -= fy; t.vz -= fz;
-    }
-
-    // Center gravity
-    for (const n of nodes) {
-      n.vx += (0 - n.x) * centerForce * alpha;
-      n.vy += (0 - n.y) * centerForce * alpha;
-      n.vz += (0 - n.z) * centerForce * alpha;
-    }
-
-    // Apply velocity with damping
-    for (const n of nodes) {
-      n.vx *= damping;
-      n.vy *= damping;
-      n.vz *= damping;
-      n.x += n.vx;
-      n.y += n.vy;
-      n.z += n.vz;
-    }
   }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Compute curved link points (quadratic bezier arc in 3D)           */
+/* ------------------------------------------------------------------ */
+
+function curvedLinkPoints(
+  sx: number,
+  sy: number,
+  sz: number,
+  tx: number,
+  ty: number,
+  tz: number,
+  segments: number = 12
+): [number, number, number][] {
+  // Midpoint with upward arc
+  const mx = (sx + tx) / 2;
+  const mz = (sz + tz) / 2;
+  const my = Math.max(sy, ty) + 0.8; // arc upward
+
+  const points: [number, number, number][] = [];
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const inv = 1 - t;
+    // Quadratic bezier
+    const px = inv * inv * sx + 2 * inv * t * mx + t * t * tx;
+    const py = inv * inv * sy + 2 * inv * t * my + t * t * ty;
+    const pz = inv * inv * sz + 2 * inv * t * mz + t * t * tz;
+    points.push([px, py, pz]);
+  }
+  return points;
 }
 
 /* ------------------------------------------------------------------ */
 /*  3D Scene Components                                                */
 /* ------------------------------------------------------------------ */
 
-// Pre-compute node sizes for 3D rendering
 function getNodeRadius(node: SimNode): number {
-  let r = NODE_TYPE_CONFIG[node.type]?.baseSize ?? 4;
+  let r = NODE_TYPE_CONFIG[node.type]?.radius ?? 0.5;
   if (node.type === "accused" && node._accused) {
-    r = Math.max(3, node._accused.risk / 8);
+    r = Math.max(0.4, node._accused.risk / 100);
   }
   if (node.type === "district" && node._firCount) {
-    r = Math.max(3, Math.min(6, 2 + node._firCount * 0.4));
+    r = Math.max(0.6, Math.min(1.4, 0.7 + node._firCount * 0.15));
   }
-  return r * 0.12;
+  return r;
 }
 
-// A single node mesh
+/* ── Animated Dashed Edge ── */
+function AnimatedEdge({
+  link,
+  nodeMap,
+  selectedNodeId,
+}: {
+  link: SimLink;
+  nodeMap: Map<string, SimNode>;
+  selectedNodeId: string | null;
+}) {
+  const s = nodeMap.get(link.source);
+  const t = nodeMap.get(link.target);
+  const lineRef = useRef<THREE.Line>(null);
+  const matRef = useRef<THREE.LineDashedMaterial>(null);
+
+  if (!s || !t) return null;
+  if (link.type === "gang_associate") return null;
+
+  const isHighlighted =
+    selectedNodeId &&
+    (link.source === selectedNodeId || link.target === selectedNodeId);
+
+  const baseOpacity = link.type === "involved_in" ? 0.28 : 0.35;
+  const opacity = selectedNodeId
+    ? isHighlighted
+      ? 0.95
+      : 0.02
+    : baseOpacity;
+
+  if (opacity < 0.02) return null;
+
+  const points = curvedLinkPoints(s.x, s.y, s.z, t.x, t.y, t.z, 20);
+
+  const geometry = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    const vertices = new Float32Array(points.length * 3);
+    for (let i = 0; i < points.length; i++) {
+      vertices[i * 3] = points[i][0];
+      vertices[i * 3 + 1] = points[i][1];
+      vertices[i * 3 + 2] = points[i][2];
+    }
+    geo.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
+    return geo;
+  }, [points]);
+
+  // Animate dash offset to create "data flowing" effect
+  useFrame((_state, delta) => {
+    if (matRef.current) {
+      matRef.current.dashOffset -= delta * (isHighlighted ? 2.0 : 0.6);
+    }
+  });
+
+  const edgeColorMap: Record<string, string> = {
+    involved_in: "#FF6B6B",
+    member_of: "#FFD93D",
+    occurred_in: "#6BCB77",
+    used_vehicle: "#4D96FF",
+    gang_associate: "#FF922B",
+  };
+
+  return (
+    <line ref={lineRef} geometry={geometry}>
+      {/* @ts-expect-error R3F lowercase primitive for THREE.Line */}
+      <lineDashedMaterial
+        ref={matRef}
+        color={edgeColorMap[link.type] || "#00FF66"}
+        transparent
+        opacity={opacity}
+        dashSize={isHighlighted ? 1.0 : 0.6}
+        gapSize={isHighlighted ? 0.3 : 0.6}
+        linewidth={1}
+        toneMapped={false}
+      />
+    </line>
+  );
+}
+
+/* ── Green Particle Field ── */
+function GreenParticleField() {
+  const pointsRef = useRef<THREE.Points>(null);
+
+  const geometry = useMemo(() => {
+    const count = 1200;
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+    const sizes = new Float32Array(count);
+
+    for (let i = 0; i < count; i++) {
+      // Random positions in a large sphere
+      const r = 15 + Math.random() * 45;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+
+      positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 20;
+      positions[i * 3 + 2] = r * Math.cos(phi);
+
+      // Multi-colored particles
+      const particleColors = ["#FF6B6B", "#FFD93D", "#6BCB77", "#4D96FF", "#FF922B", "#00FF66"];
+      const pColor = new THREE.Color(particleColors[Math.floor(Math.random() * particleColors.length)]);
+      colors[i * 3] = pColor.r;
+      colors[i * 3 + 1] = pColor.g;
+      colors[i * 3 + 2] = pColor.b;
+
+      sizes[i] = 0.1 + Math.random() * 0.35;
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+    geo.setAttribute("size", new THREE.BufferAttribute(sizes, 1));
+    return geo;
+  }, []);
+
+  // Slow rotation for ambient feel
+  useFrame((_state, delta) => {
+    if (pointsRef.current) {
+      pointsRef.current.rotation.y += delta * 0.008;
+    }
+  });
+
+  return (
+    <points ref={pointsRef} geometry={geometry}>
+      <pointsMaterial
+        size={0.2}
+        vertexColors
+        transparent
+        opacity={0.5}
+        sizeAttenuation
+        toneMapped={false}
+        depthWrite={false}
+      />
+    </points>
+  );
+}
+
+/* ── Node Mesh ── */
 function NodeMesh({
   node,
   isSelected,
@@ -483,42 +765,93 @@ function NodeMesh({
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const glowRef = useRef<THREE.Mesh>(null);
+  const ringRef = useRef<THREE.Mesh>(null);
   const [hoveredLocal, setHoveredLocal] = useState(false);
   const radius = getNodeRadius(node);
+  const isActive = isSelected || isHovered || hoveredLocal;
 
   useFrame((_state, delta) => {
+    // Gentle pulse for selected/hovered
     if (glowRef.current) {
-      const scale = isSelected || isHovered || hoveredLocal
-        ? 1.6 + Math.sin(Date.now() * 0.004) * 0.15
-        : 1.2;
-      glowRef.current.scale.setScalar(scale);
+      const targetScale = isActive ? 3.5 : 2.2;
+      const current = glowRef.current.scale.x;
+      const next = current + (targetScale - current) * 0.08;
+      glowRef.current.scale.setScalar(next);
     }
-    // Slow rotation for gang and FIR nodes
-    if (meshRef.current && (node.type === "gang" || node.type === "fir" || node.type === "vehicle")) {
-      meshRef.current.rotation.y += delta * 0.3;
+    // Slow rotation for gang nodes
+    if (meshRef.current && node.type === "gang") {
+      meshRef.current.rotation.y += delta * 0.5;
+    }
+    // Selection ring rotation
+    if (ringRef.current && isSelected) {
+      ringRef.current.rotation.z += delta * 1.0;
+    }
+    // Ambient pulse — all nodes breathe subtly
+    if (meshRef.current) {
+      const pulse = 1 + Math.sin(_state.clock.elapsedTime * 1.5 + node.x * 0.3) * 0.04;
+      meshRef.current.scale.setScalar(pulse);
     }
   });
 
-  const baseOpacity = isDimmed ? 0.12 : 1;
-  const emissiveIntensity = isSelected || isHovered || hoveredLocal ? 2.0 : 1.0;
+  const opacity = isDimmed ? 0.06 : 1;
+  const emissiveIntensity = isActive ? 0.9 : 0.5;
   const color = new THREE.Color(node.color);
+
+  // Only gang and district show labels by default
+  const showLabelAlways = node.type === "gang" || node.type === "district";
+  const showLabel = !isDimmed && (showLabelAlways || isActive);
 
   const geometry = useMemo(() => {
     switch (node.type) {
       case "accused":
-        return <sphereGeometry args={[radius, 24, 24]} />;
+        return <icosahedronGeometry args={[radius, 1]} />;
       case "gang":
-        return <octahedronGeometry args={[radius * 1.3, 0]} />;
+        return <octahedronGeometry args={[radius, 0]} />;
       case "fir":
-        return <boxGeometry args={[radius * 1.2, radius * 1.2, radius * 1.2]} />;
+        return <boxGeometry args={[radius * 1.2, radius * 1.2, radius * 0.3]} />;
       case "vehicle":
-        return <coneGeometry args={[radius * 0.8, radius * 2, 6]} />;
+        return <coneGeometry args={[radius * 0.7, radius * 2.0, 4]} />;
       case "district":
-        return <sphereGeometry args={[radius, 32, 32]} />;
+        return <dodecahedronGeometry args={[radius, 0]} />;
       default:
         return <sphereGeometry args={[radius, 16, 16]} />;
     }
   }, [node.type, radius]);
+
+  const labelStyle: React.CSSProperties = showLabelAlways
+    ? {
+        background: "rgba(5, 7, 10, 0.92)",
+        border: `1px solid ${node.color}26`,
+        borderRadius: "2px",
+        padding: "2px 6px",
+        whiteSpace: "nowrap",
+        fontSize: isActive ? "11px" : "10px",
+        fontWeight: 600,
+        color: node.color,
+        fontFamily: "var(--font-ibm-plex-mono), monospace",
+        letterSpacing: "0.06em",
+        textTransform: "uppercase",
+        boxShadow: `0 2px 12px rgba(0,0,0,0.6), 0 0 6px ${node.color}14`,
+        pointerEvents: "none",
+      }
+    : {
+        background: "rgba(5, 7, 10, 0.94)",
+        border: `1px solid ${node.color}4D`,
+        borderRadius: "2px",
+        padding: "2px 8px",
+        whiteSpace: "nowrap",
+        fontSize: "11px",
+        fontWeight: 600,
+        color: node.color,
+        fontFamily: "var(--font-ibm-plex-mono), monospace",
+        letterSpacing: "0.06em",
+        textTransform: "uppercase",
+        boxShadow: `0 4px 16px rgba(0,0,0,0.7), 0 0 10px ${node.color}1F`,
+        pointerEvents: "none",
+      };
+
+  const truncatedName =
+    node.name.length > 20 ? node.name.slice(0, 20) + "…" : node.name;
 
   return (
     <group position={[node.x, node.y, node.z]}>
@@ -547,112 +880,72 @@ function NodeMesh({
           emissive={color}
           emissiveIntensity={emissiveIntensity}
           transparent
-          opacity={node.type === "district" ? baseOpacity * 0.35 : baseOpacity}
-          roughness={0.3}
-          metalness={0.5}
+          opacity={opacity}
+          roughness={0.2}
+          metalness={0.7}
           toneMapped={false}
         />
       </mesh>
 
-      {/* Glow sphere */}
-      {!isDimmed && (isSelected || isHovered || hoveredLocal) && (
+      {/* Outer glow — larger, more visible */}
+      {!isDimmed && (
         <mesh ref={glowRef}>
-          <sphereGeometry args={[radius * 2.5, 16, 16]} />
+          <sphereGeometry args={[radius * 2.0, 16, 16]} />
           <meshBasicMaterial
             color={color}
             transparent
-            opacity={0.08}
+            opacity={isActive ? 0.25 : 0.08}
             toneMapped={false}
+            depthWrite={false}
           />
         </mesh>
       )}
 
-      {/* Selection ring */}
-      {isSelected && !isDimmed && (
+      {/* Ambient pulse ring for gang nodes */}
+      {node.type === "gang" && !isDimmed && (
         <mesh rotation={[Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[radius * 1.8, radius * 2.0, 32]} />
+          <ringGeometry args={[radius * 2.0, radius * 2.3, 6]} />
           <meshBasicMaterial
-            color="#ffffff"
+            color="#FFD93D"
             transparent
-            opacity={0.4}
+            opacity={0.12}
+            side={THREE.DoubleSide}
+            toneMapped={false}
+            depthWrite={false}
+          />
+        </mesh>
+      )}
+
+      {/* Selection ring — bright phosphor green */}
+      {isSelected && !isDimmed && (
+        <mesh ref={ringRef} rotation={[Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[radius * 1.6, radius * 1.8, 32]} />
+          <meshBasicMaterial
+            color={node.color}
+            transparent
+            opacity={0.6}
             side={THREE.DoubleSide}
             toneMapped={false}
           />
         </mesh>
       )}
 
-      {/* HTML Label */}
-      {!isDimmed && (isSelected || isHovered || hoveredLocal) && (
+      {/* Label */}
+      {showLabel && (
         <Html
-          position={[0, radius * 2.5 + 0.3, 0]}
+          position={[0, radius + 0.5, 0]}
           center
           style={{ pointerEvents: "none" }}
+          distanceFactor={14}
         >
-          <div
-            style={{
-              background: "rgba(5, 8, 16, 0.92)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              borderRadius: "6px",
-              padding: "3px 8px",
-              whiteSpace: "nowrap",
-              fontSize: "11px",
-              fontWeight: 600,
-              color: "#f1f5f9",
-              boxShadow: "0 4px 16px rgba(0,0,0,0.6)",
-              backdropFilter: "blur(8px)",
-            }}
-          >
-            {node.name.length > 20 ? node.name.slice(0, 20) + "..." : node.name}
-          </div>
+          <div style={labelStyle}>{truncatedName}</div>
         </Html>
       )}
     </group>
   );
 }
 
-// A single link line
-function LinkLine({
-  link,
-  nodeMap,
-  selectedNodeId,
-}: {
-  link: SimLink;
-  nodeMap: Map<string, SimNode>;
-  selectedNodeId: string | null;
-}) {
-  const s = nodeMap.get(link.source);
-  const t = nodeMap.get(link.target);
-  if (!s || !t) return null;
-
-  const isHighlighted =
-    selectedNodeId &&
-    (link.source === selectedNodeId || link.target === selectedNodeId);
-  const isDashed = link.type === "gang_associate";
-  const opacity = selectedNodeId ? (isHighlighted ? 0.7 : 0.04) : isDashed ? 0.12 : 0.35;
-  const lineWidth = isHighlighted ? 3 : 1.5;
-
-  if (opacity < 0.02) return null;
-
-  const points: [number, number, number][] = [
-    [s.x, s.y, s.z],
-    [t.x, t.y, t.z],
-  ];
-
-  return (
-    <Line
-      points={points}
-      color={link.color}
-      lineWidth={lineWidth}
-      transparent
-      opacity={opacity}
-      dashed={isDashed}
-      dashSize={0.3}
-      gapSize={0.2}
-    />
-  );
-}
-
-// Camera controller to reset view
+/* Camera controller with auto-rotate */
 function CameraController({
   resetFlag,
 }: {
@@ -662,10 +955,7 @@ function CameraController({
   const controlsRef = useRef<any>(null);
 
   useEffect(() => {
-    if (controlsRef.current) {
-      controlsRef.current.reset();
-    }
-    camera.position.set(0, 8, 18);
+    camera.position.set(0, 22, 28);
     camera.lookAt(0, 0, 0);
     if (controlsRef.current) {
       controlsRef.current.target.set(0, 0, 0);
@@ -679,17 +969,20 @@ function CameraController({
       ref={controlsRef}
       makeDefault
       enableDamping
-      dampingFactor={0.12}
-      rotateSpeed={0.8}
-      zoomSpeed={1.2}
-      minDistance={4}
-      maxDistance={60}
-      maxPolarAngle={Math.PI * 0.9}
+      dampingFactor={0.08}
+      rotateSpeed={0.6}
+      zoomSpeed={1.0}
+      minDistance={5}
+      maxDistance={55}
+      maxPolarAngle={Math.PI * 0.85}
+      minPolarAngle={Math.PI * 0.1}
+      autoRotate
+      autoRotateSpeed={0.1}
     />
   );
 }
 
-// The full 3D graph scene
+/* The full 3D graph scene */
 function GraphScene3D({
   nodes,
   links,
@@ -725,39 +1018,60 @@ function GraphScene3D({
 
   return (
     <>
-      {/* Environment */}
-      <color attach="background" args={["#050810"]} />
-      <fog attach="fog" args={["#050810", 40, 80]} />
+      {/* Environment — dark classified console background */}
+      <color attach="background" args={["#030508"]} />
+      <fog attach="fog" args={["#030508", 30, 70]} />
 
-      {/* Lighting — brighter for visibility */}
-      <ambientLight intensity={0.6} />
-      <pointLight position={[15, 20, 15]} intensity={1.2} color="#22d3ee" />
-      <pointLight position={[-15, -10, -15]} intensity={0.8} color="#818cf8" />
-      <pointLight position={[0, 25, 0]} intensity={0.5} color="#fbbf24" />
-
-      {/* Stars background */}
-      <Stars
-        radius={80}
-        depth={50}
-        count={1500}
-        factor={2}
-        saturation={0}
-        fade
-        speed={0.3}
+      {/* Lighting — multi-colored for vibrant feel */}
+      <ambientLight intensity={0.3} />
+      <directionalLight
+        position={[15, 25, 15]}
+        intensity={0.3}
+        color="#e8e8e8"
       />
+      {/* Central green point light for node glow illumination */}
+      <pointLight
+        position={[0, 8, 0]}
+        intensity={1.0}
+        color="#00FF66"
+        distance={55}
+        decay={2}
+      />
+      <pointLight
+        position={[15, 10, 15]}
+        intensity={0.3}
+        color="#00FF66"
+        distance={45}
+        decay={2}
+      />
+      <pointLight
+        position={[-15, 10, -15]}
+        intensity={0.2}
+        color="#00cc52"
+        distance={45}
+        decay={2}
+      />
+      {/* Colored point lights for different node types */}
+      <pointLight position={[12, 8, 0]} intensity={0.6} color="#FF6B6B" distance={40} decay={2} />
+      <pointLight position={[-12, 8, 0]} intensity={0.6} color="#4D96FF" distance={40} decay={2} />
+      <pointLight position={[0, 8, 12]} intensity={0.5} color="#FFD93D" distance={40} decay={2} />
+      <pointLight position={[0, 8, -12]} intensity={0.5} color="#FF922B" distance={40} decay={2} />
 
-      {/* Grid helper */}
+      {/* Green particle field (star field replacement) */}
+      <GreenParticleField />
+
+      {/* Ground grid — subtle green tint */}
       <gridHelper
-        args={[40, 20, "#0f1628", "#0a0f1c"]}
-        position={[0, -6, 0]}
+        args={[60, 30, "rgba(0,255,102,0.08)", "rgba(0,255,102,0.03)"]}
+        position={[0, -1.5, 0]}
       />
 
       {/* Camera */}
       <CameraController resetFlag={resetFlag} />
 
-      {/* Links */}
+      {/* Links — animated dashed edges */}
       {links.map((link, i) => (
-        <LinkLine
+        <AnimatedEdge
           key={`link-${i}`}
           link={link}
           nodeMap={nodeMap}
@@ -772,22 +1086,16 @@ function GraphScene3D({
           node={node}
           isSelected={selectedNode?.id === node.id}
           isConnected={connectedNodeIds.has(node.id)}
-          isDimmed={!!selectedNode && selectedNode.id !== node.id && !connectedNodeIds.has(node.id)}
+          isDimmed={
+            !!selectedNode &&
+            selectedNode.id !== node.id &&
+            !connectedNodeIds.has(node.id)
+          }
           isHovered={hoveredNode?.id === node.id}
           onClick={onSelectNode}
           onHover={onHoverNode}
         />
       ))}
-
-      {/* Post-processing — subtle Bloom */}
-      <EffectComposer>
-        <Bloom
-          intensity={0.5}
-          luminanceThreshold={0.6}
-          luminanceSmoothing={0.4}
-          mipmapBlur
-        />
-      </EffectComposer>
     </>
   );
 }
@@ -879,7 +1187,7 @@ function NetworkGraphInner() {
         id: a.id,
         name: a.name,
         type: "accused",
-        color: "#f87171",
+        color: "#FF6B6B",
         size: a.risk / 10,
         x: 0, y: 0, z: 0,
         vx: 0, vy: 0, vz: 0,
@@ -895,7 +1203,7 @@ function NetworkGraphInner() {
         id: g.id,
         name: g.name,
         type: "gang",
-        color: "#fbbf24",
+        color: "#FFD93D",
         size: 6,
         x: 0, y: 0, z: 0,
         vx: 0, vy: 0, vz: 0,
@@ -909,7 +1217,7 @@ function NetworkGraphInner() {
         id: f.fir_id,
         name: f.fir_id,
         type: "fir",
-        color: "#eab308",
+        color: "#6BCB77",
         size: 2,
         x: 0, y: 0, z: 0,
         vx: 0, vy: 0, vz: 0,
@@ -923,7 +1231,7 @@ function NetworkGraphInner() {
         id: v.id,
         name: v.reg,
         type: "vehicle",
-        color: "#22d3ee",
+        color: "#4D96FF",
         size: 3,
         x: 0, y: 0, z: 0,
         vx: 0, vy: 0, vz: 0,
@@ -943,7 +1251,7 @@ function NetworkGraphInner() {
         id: d.name,
         name: d.name,
         type: "district",
-        color: "#818cf8",
+        color: "#FF922B",
         size: 4,
         x: 0, y: 0, z: 0,
         vx: 0, vy: 0, vz: 0,
@@ -961,21 +1269,21 @@ function NetworkGraphInner() {
       source: e.source,
       target: e.target,
       type: e.type,
-      color: LINK_COLORS[e.type] || "#5a657a",
+      color: LINK_COLORS[e.type] || "rgba(255,255,255,0.12)",
     }));
 
     return { nodes: Array.from(nodeMap.values()), links: filteredLinks };
   }, [crimeData, crimeTypeFilter, gangFilter]);
 
-  /* Run 3D force simulation */
-  const simNodes = useMemo(() => {
+  /* Run hierarchical layout */
+  const layoutNodes = useMemo(() => {
     if (nodes.length === 0) return [];
     const result = nodes.map((n) => ({ ...n }));
-    simulateForce3D(result, links, 400);
+    layoutHierarchical(result, links);
     return result;
   }, [nodes, links, layoutVersion]);
 
-  const simReady = simNodes.length > 0;
+  const simReady = layoutNodes.length > 0;
 
   const handleSelectNode = useCallback((node: SimNode | null) => {
     setSelectedNode((prev) => (prev?.id === node?.id ? null : node ?? null));
@@ -1001,7 +1309,13 @@ function NetworkGraphInner() {
   return (
     <div className="flex flex-col h-full w-full">
       {/* Filter Controls Bar */}
-      <div className="flex flex-wrap items-center gap-3 px-4 py-2.5 shrink-0" style={{ background: "var(--bg-elevated-1)", borderBottom: "1px solid var(--border-default)" }}>
+      <div
+        className="flex flex-wrap items-center gap-3 px-4 py-2.5 shrink-0"
+        style={{
+          background: "var(--bg-elevated-1)",
+          borderBottom: "1px solid var(--border-default)",
+        }}
+      >
         <div className="flex items-center gap-2">
           <label className="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">
             Crime
@@ -1022,7 +1336,11 @@ function NetworkGraphInner() {
                 All Types
               </SelectItem>
               {crimeTypes.map((ct) => (
-                <SelectItem key={ct} value={ct} className="text-[var(--text-primary)]">
+                <SelectItem
+                  key={ct}
+                  value={ct}
+                  className="text-[var(--text-primary)]"
+                >
                   {ct}
                 </SelectItem>
               ))}
@@ -1049,7 +1367,11 @@ function NetworkGraphInner() {
                 All Gangs
               </SelectItem>
               {gangNames.map((gn) => (
-                <SelectItem key={gn} value={gn} className="text-[var(--text-primary)]">
+                <SelectItem
+                  key={gn}
+                  value={gn}
+                  className="text-[var(--text-primary)]"
+                >
                   {gn}
                 </SelectItem>
               ))}
@@ -1063,15 +1385,21 @@ function NetworkGraphInner() {
         {/* Node/Link count in toolbar */}
         {simReady && (
           <span className="text-[10px] text-[var(--text-tertiary)] font-medium tabular-nums mr-2">
-            <span className="text-[var(--text-secondary)]">{simNodes.length}</span> nodes
+            <span className="text-[var(--text-secondary)]">
+              {layoutNodes.length}
+            </span>{" "}
+            nodes
             <span className="mx-1 text-[var(--text-muted)]">&middot;</span>
-            <span className="text-[var(--text-secondary)]">{links.length}</span> links
+            <span className="text-[var(--text-secondary)]">
+              {links.filter((l) => l.type !== "gang_associate").length}
+            </span>{" "}
+            links
           </span>
         )}
 
-        {/* 3D badge */}
+        {/* 3D badge — green themed */}
         {simReady && (
-          <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[#22d3ee]/10 text-[#22d3ee] border border-[#22d3ee]/20">
+          <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[#00FF66]/10 text-[#00FF66] border border-[#00FF66]/20 font-mono">
             3D
           </span>
         )}
@@ -1081,24 +1409,24 @@ function NetworkGraphInner() {
       <div
         ref={containerRef}
         className="flex-1 relative overflow-hidden"
-        style={{ background: "#050810" }}
+        style={{ background: "#05070A" }}
       >
         {/* Three.js Canvas */}
         {simReady && (
           <Canvas
-            camera={{ position: [0, 8, 18], fov: 60, near: 0.1, far: 200 }}
+            camera={{ position: [0, 18, 22], fov: 50, near: 0.1, far: 200 }}
             gl={{
               antialias: true,
               alpha: false,
               powerPreference: "high-performance",
               toneMapping: THREE.ACESFilmicToneMapping,
-              toneMappingExposure: 1.2,
+              toneMappingExposure: 1.1,
             }}
             dpr={[1, 2]}
           >
             <Suspense fallback={null}>
               <GraphScene3D
-                nodes={simNodes}
+                nodes={layoutNodes}
                 links={links}
                 selectedNode={selectedNode}
                 hoveredNode={hoveredNode}
@@ -1110,9 +1438,17 @@ function NetworkGraphInner() {
           </Canvas>
         )}
 
+        {/* Vignette overlay — CSS post-processing feel */}
+        <div
+          className="absolute inset-0 pointer-events-none z-[5]"
+          style={{
+            boxShadow: "inset 0 0 120px 40px rgba(5,7,10,0.7), inset 0 0 40px 10px rgba(5,7,10,0.4)",
+          }}
+        />
+
         {!simReady && nodes.length > 0 && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <LoadingSpinner message="Computing 3D layout..." />
+            <LoadingSpinner message="Computing layout..." />
           </div>
         )}
 
@@ -1120,7 +1456,7 @@ function NetworkGraphInner() {
         {simReady && (
           <div
             className="absolute top-3 left-3 z-10 flex flex-col gap-1 p-1.5"
-            style={glassCard}
+            style={solidCard}
           >
             <ToolbarButton
               icon={<RotateCcw className="size-4" />}
@@ -1152,11 +1488,11 @@ function NetworkGraphInner() {
           <div
             className="absolute bottom-3 left-3 z-10 px-3 py-2.5"
             style={{
-              ...glassCard,
-              borderRadius: "10px",
+              ...solidCard,
+              borderRadius: "3px",
             }}
           >
-            <p className="text-[9px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-2">
+            <p className="text-[9px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-2 font-mono">
               Node Types
             </p>
             <div className="flex flex-col gap-1.5">
@@ -1166,7 +1502,7 @@ function NetworkGraphInner() {
                     className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
                     style={{
                       backgroundColor: cfg.color,
-                      boxShadow: `0 0 6px ${cfg.color}50`,
+                      boxShadow: `0 0 6px ${cfg.color}66`,
                     }}
                   />
                   <span className="text-[11px] text-[var(--text-secondary)]">
@@ -1176,15 +1512,15 @@ function NetworkGraphInner() {
               ))}
             </div>
             <div className="mt-2 pt-2 border-t border-[var(--border-subtle)]">
-              <p className="text-[9px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5">
+              <p className="text-[9px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5 font-mono">
                 Link Types
               </p>
               <div className="flex flex-col gap-1">
                 {[
-                  { color: "#5a657a", label: "Involved In" },
-                  { color: "#fbbf24", label: "Member Of" },
-                  { color: "#818cf8", label: "Occurred In" },
-                  { color: "#22d3ee", label: "Used Vehicle" },
+                  { color: "#FF6B6B", label: "Involved In" },
+                  { color: "#FFD93D", label: "Member Of" },
+                  { color: "#6BCB77", label: "Occurred In" },
+                  { color: "#4D96FF", label: "Used Vehicle" },
                 ].map((l) => (
                   <div key={l.label} className="flex items-center gap-2">
                     <span
@@ -1206,23 +1542,24 @@ function NetworkGraphInner() {
           <div
             className="absolute bottom-3 right-3 z-10 px-3 py-2"
             style={{
-              ...glassCard,
-              borderRadius: "8px",
+              ...solidCard,
+              borderRadius: "2px",
             }}
           >
-            <p className="text-[9px] text-[var(--text-muted)] leading-relaxed">
-              Left-drag: rotate &bull; Scroll: zoom &bull; Right-drag: pan &bull; Click: select
+            <p className="text-[9px] text-[var(--text-muted)] leading-relaxed font-mono">
+              LMB: rotate &bull; Scroll: zoom &bull; RMB: pan
+              &bull; Click: select
             </p>
           </div>
         )}
 
-        {/* ── Hover Tooltip (glass-card) ── */}
+        {/* ── Hover Tooltip ── */}
         {displayNode && !selectedNode && (
           <div
             className="absolute z-20 pointer-events-none px-3 py-2.5 max-w-xs"
             style={{
-              ...glassCard,
-              borderRadius: "10px",
+              ...solidCard,
+              borderRadius: "3px",
               left: "50%",
               top: "12px",
               transform: "translateX(-50%)",
@@ -1233,13 +1570,13 @@ function NetworkGraphInner() {
                 className="w-2 h-2 rounded-full shrink-0"
                 style={{
                   backgroundColor: displayNode.color,
-                  boxShadow: `0 0 8px ${displayNode.color}60`,
+                  boxShadow: `0 0 8px ${displayNode.color}80`,
                 }}
               />
-              <span className="text-[12px] font-semibold text-[var(--text-primary)] truncate">
+              <span className="text-[12px] font-semibold text-[var(--text-primary)] truncate font-mono">
                 {displayNode.name}
               </span>
-              <span className="text-[9px] text-[var(--text-tertiary)] uppercase tracking-wider ml-auto">
+              <span className="text-[9px] text-[var(--text-tertiary)] uppercase tracking-wider ml-auto font-mono">
                 {displayNode.type}
               </span>
             </div>
@@ -1250,10 +1587,10 @@ function NetworkGraphInner() {
                   <span
                     className={
                       displayNode._accused.risk > 80
-                        ? "text-[#f87171] font-bold"
+                        ? "text-[#00FF66] font-bold"
                         : displayNode._accused.risk > 60
-                        ? "text-[#fbbf24] font-bold"
-                        : "text-[#34d399] font-bold"
+                        ? "text-[#00cc52] font-bold"
+                        : "text-[rgba(0,255,102,0.6)] font-bold"
                     }
                   >
                     {displayNode._accused.risk}/100
@@ -1274,10 +1611,10 @@ function NetworkGraphInner() {
                 <span
                   className={
                     displayNode._fir.severity === "critical"
-                      ? "text-[#f87171]"
+                      ? "text-[#00FF66]"
                       : displayNode._fir.severity === "high"
-                      ? "text-[#fbbf24]"
-                      : "text-[#fbbf24]"
+                      ? "text-[#00cc52]"
+                      : "text-[rgba(0,255,102,0.7)]"
                   }
                 >
                   {displayNode._fir.severity.toUpperCase()}
@@ -1319,14 +1656,11 @@ function NetworkGraphInner() {
         {/* ── Right Side Info Panel ── */}
         {selectedNode && (
           <div
-            className="absolute top-0 right-0 w-80 max-w-[85vw] h-full z-10 flex flex-col overflow-hidden rounded-l-xl"
+            className="absolute top-0 right-0 w-80 max-w-[85vw] h-full z-10 flex flex-col overflow-hidden"
             style={{
-              background: "var(--bg-sidebar)",
-              backdropFilter: "blur(24px)",
-              WebkitBackdropFilter: "blur(24px)",
+              background: "var(--bg-card)",
               borderLeft: "1px solid var(--border-default)",
-              boxShadow:
-                "-8px 0 32px rgba(0,0,0,0.4)",
+              boxShadow: "-8px 0 32px rgba(0,0,0,0.4), 0 0 12px rgba(0,255,102,0.04)",
             }}
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-default)] shrink-0">
@@ -1335,16 +1669,16 @@ function NetworkGraphInner() {
                   className="w-2 h-2 rounded-full"
                   style={{
                     backgroundColor: selectedNode.color,
-                    boxShadow: `0 0 8px ${selectedNode.color}60`,
+                    boxShadow: `0 0 8px ${selectedNode.color}80`,
                   }}
                 />
-                <h2 className="text-xs font-semibold text-white uppercase tracking-wider">
+                <h2 className="text-xs font-semibold text-white uppercase tracking-wider font-mono">
                   Node Details
                 </h2>
               </div>
               <button
                 onClick={() => setSelectedNode(null)}
-                className="w-7 h-7 rounded-md flex items-center justify-center text-[var(--text-tertiary)] hover:text-white hover:bg-[rgba(34,211,238,0.08)] transition-colors"
+                className="w-7 h-7 rounded-md flex items-center justify-center text-[var(--text-tertiary)] hover:text-[#00FF66] hover:bg-[rgba(0,255,102,0.08)] transition-colors"
               >
                 <X className="size-4" />
               </button>
@@ -1372,11 +1706,11 @@ function NetworkGraphInner() {
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: selectedNode.color }}
                 />
-                <span className="text-[11px] text-[var(--text-tertiary)] uppercase">
+                <span className="text-[11px] text-[var(--text-tertiary)] uppercase font-mono">
                   {selectedNode.type}
                 </span>
                 <span className="text-[11px] text-[#334155]">&middot;</span>
-                <span className="text-[11px] text-[var(--text-muted)] truncate">
+                <span className="text-[11px] text-[var(--text-muted)] truncate font-mono">
                   {selectedNode.id}
                 </span>
               </div>
@@ -1407,10 +1741,10 @@ function ToolbarButton({
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-150 relative group"
+      className="w-8 h-8 flex items-center justify-center rounded transition-all duration-150 relative group"
       style={{
-        color: hovered ? "#22d3ee" : "var(--text-secondary)",
-        background: hovered ? "rgba(34,211,238,0.08)" : "transparent",
+        color: hovered ? "#00FF66" : "var(--text-secondary)",
+        background: hovered ? "rgba(0,255,102,0.08)" : "transparent",
       }}
       title={tooltip}
     >
@@ -1418,12 +1752,12 @@ function ToolbarButton({
       {/* Tooltip */}
       {hovered && (
         <span
-          className="absolute left-full ml-2 whitespace-nowrap text-[10px] font-medium px-2 py-1 rounded-md z-50 pointer-events-none"
+          className="absolute left-full ml-2 whitespace-nowrap text-[10px] font-medium px-2 py-1 rounded-md z-50 pointer-events-none font-mono"
           style={{
             background: "var(--bg-card)",
-            border: "1px solid var(--border-default)",
+            border: "1px solid rgba(0,255,102,0.2)",
             color: "var(--text-primary)",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.4), 0 0 8px rgba(0,255,102,0.1)",
           }}
         >
           {tooltip}

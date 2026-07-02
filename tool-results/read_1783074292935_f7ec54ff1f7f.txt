@@ -1,0 +1,920 @@
+     1→     1→     1→"use client";
+     2→     2→     2→
+     3→     3→     3→import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
+     4→     4→     4→import { motion, AnimatePresence } from "framer-motion";
+     5→     5→     5→import {
+     6→     6→     6→  ZoomIn,
+     7→     7→     7→  ZoomOut,
+     8→     8→     8→  RotateCcw,
+     9→     9→     9→  X,
+    10→    10→    10→  Circle,
+    11→    11→    11→  ArrowRight,
+    12→    12→    12→  Wallet,
+    13→    13→    13→  User,
+    14→    14→    14→  FileText,
+    15→    15→    15→  Users,
+    16→    16→    16→  IndianRupee,
+    17→    17→    17→  Building2,
+    18→    18→    18→  ChevronRight,
+    19→    19→    19→  Filter,
+    20→    20→    20→  Network,
+    21→    21→    21→  AlertCircle,
+    22→    22→    22→} from "lucide-react";
+    23→    23→    23→import { useAppStore } from "@/lib/store";
+    24→    24→    24→import { loadCrimeData } from "@/lib/data";
+    25→    25→    25→import { buildFinancialNetwork } from "@/lib/intelligence";
+    26→    26→    26→import type { FinancialNetworkNode, FinancialNetworkEdge } from "@/lib/intelligence";
+    27→    27→    27→import { Button } from "@/components/ui/button";
+    28→    28→    28→import { Badge } from "@/components/ui/badge";
+    29→    29→    29→import { ScrollArea } from "@/components/ui/scroll-area";
+    30→    30→    30→import { Separator } from "@/components/ui/separator";
+    31→    31→    31→import { Skeleton } from "@/components/ui/skeleton";
+    32→    32→    32→import LoadingSpinner from "@/components/ksp/LoadingSpinner";
+    33→    33→    33→
+    34→    34→    34→/* ------------------------------------------------------------------ */
+    35→    35→    35→/*  Constants                                                          */
+    36→    36→    36→/* ------------------------------------------------------------------ */
+    37→    37→    37→
+    38→    38→    38→const NODE_COLORS: Record<string, string> = {
+    39→    39→    39→  account: "#fbbf24",
+    40→    40→    40→  accused: "#f87171",
+    41→    41→    41→  fir: "#22d3ee",
+    42→    42→    42→  gang: "#818cf8",
+    43→    43→    43→};
+    44→    44→    44→
+    45→    45→    45→const NODE_LABELS: Record<string, string> = {
+    46→    46→    46→  account: "Bank Account",
+    47→    47→    47→  accused: "Accused",
+    48→    48→    48→  fir: "FIR Case",
+    49→    49→    49→  gang: "Gang",
+    50→    50→    50→};
+    51→    51→    51→
+    52→    52→    52→const EDGE_COLORS: Record<string, string> = {
+    53→    53→    53→  transaction: "#34d399",
+    54→    54→    54→  account_holder: "#5a657a",
+    55→    55→    55→  used_in: "#fbbf24",
+    56→    56→    56→  gang_member: "#818cf8",
+    57→    57→    57→};
+    58→    58→    58→
+    59→    59→    59→const EDGE_LABELS: Record<string, string> = {
+    60→    60→    60→  transaction: "Transaction",
+    61→    61→    61→  account_holder: "Account Holder",
+    62→    62→    62→  used_in: "Used In Crime",
+    63→    63→    63→  gang_member: "Gang Member",
+    64→    64→    64→};
+    65→    65→    65→
+    66→    66→    66→const NODE_BASE_RADIUS = 16;
+    67→    67→    67→const NODE_MAX_RADIUS = 40;
+    68→    68→    68→
+    69→    69→    69→/* ------------------------------------------------------------------ */
+    70→    70→    70→/*  SimNode (runtime position added)                                   */
+    71→    71→    71→/* ------------------------------------------------------------------ */
+    72→    72→    72→
+    73→    73→    73→interface SimNode extends FinancialNetworkNode {
+    74→    74→    74→  x: number;
+    75→    75→    75→  y: number;
+    76→    76→    76→  vx: number;
+    77→    77→    77→  vy: number;
+    78→    78→    78→  radius: number;
+    79→    79→    79→}
+    80→    80→    80→
+    81→    81→    81→/* ------------------------------------------------------------------ */
+    82→    82→    82→/*  Component                                                          */
+    83→    83→    83→/* ------------------------------------------------------------------ */
+    84→    84→    84→
+    85→    85→    85→export default function FinancialNetworkView() {
+    86→    86→    86→  const { crimeData, setCrimeData, dataLoading, setDataLoading } = useAppStore();
+    87→    87→    87→  const canvasRef = useRef<HTMLCanvasElement>(null);
+    88→    88→    88→  const containerRef = useRef<HTMLDivElement>(null);
+    89→    89→    89→  const animFrameRef = useRef<number>(0);
+    90→    90→    90→  const simRunningRef = useRef(false);
+    91→    91→    91→
+    92→    92→    92→  // Network state
+    93→    93→    93→  const [simNodes, setSimNodes] = useState<SimNode[]>([]);
+    94→    94→    94→  const [edges, setEdges] = useState<FinancialNetworkEdge[]>([]);
+    95→    95→    95→  const [zoom, setZoom] = useState(1);
+    96→    96→    96→  const [panX, setPanX] = useState(0);
+    97→    97→    97→  const [panY] = useState(0);
+    98→    98→    98→
+    99→    99→    99→  // Interaction state
+   100→   100→   100→  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+   101→   101→   101→  const [selectedNode, setSelectedNode] = useState<SimNode | null>(null);
+   102→   102→   102→  const [dragNode, setDragNode] = useState<SimNode | null>(null);
+   103→   103→   103→  const dragStartRef = useRef<{ mx: number; my: number; nx: number; ny: number } | null>(null);
+   104→   104→   104→
+   105→   105→   105→  // Filter state
+   106→   106→   106→  const [filterTypes, setFilterTypes] = useState<Set<string>>(
+   107→   107→   107→    new Set(["account", "accused", "fir", "gang"])
+   108→   108→   108→  );
+   109→   109→   109→
+   110→   110→   110→  // Data loading
+   111→   111→   111→  const [networkBuilt, setNetworkBuilt] = useState(false);
+   112→   112→   112→
+   113→   113→   113→  /* ---------------------------------------------------------------- */
+   114→   114→   114→  /*  Load data & build network                                        */
+   115→   115→   115→  /* ---------------------------------------------------------------- */
+   116→   116→   116→
+   117→   117→   117→  useEffect(() => {
+   118→   118→   118→    if (!crimeData) {
+   119→   119→   119→      setDataLoading(true);
+   120→   120→   120→      loadCrimeData()
+   121→   121→   121→        .then((data) => {
+   122→   122→   122→          setCrimeData(data);
+   123→   123→   123→          setDataLoading(false);
+   124→   124→   124→        })
+   125→   125→   125→        .catch(() => setDataLoading(false));
+   126→   126→   126→    }
+   127→   127→   127→  }, [crimeData, setCrimeData, setDataLoading]);
+   128→   128→   128→
+   129→   129→   129→  useEffect(() => {
+   130→   130→   130→    if (!crimeData || networkBuilt) return;
+   131→   131→   131→    const { nodes, edges } = buildFinancialNetwork(crimeData);
+   132→   132→   132→
+   133→   133→   133→    if (nodes.length === 0) {
+   134→   134→   134→      setNetworkBuilt(true);
+   135→   135→   135→      return;
+   136→   136→   136→    }
+   137→   137→   137→
+   138→   138→   138→    // Initialize positions in a circle + center arrangement
+   139→   139→   139→    const cx = 500;
+   140→   140→   140→    const cy = 400;
+   141→   141→   141→    const radius = Math.min(300, nodes.length * 25);
+   142→   142→   142→
+   143→   143→   143→    const initialized: SimNode[] = nodes.map((n, i) => {
+   144→   144→   144→      const angle = (2 * Math.PI * i) / nodes.length;
+   145→   145→   145→      const r = n.type === "gang" ? 0 : radius * (0.6 + Math.random() * 0.4);
+   146→   146→   146→      const maxValue = Math.max(...nodes.map((nn) => nn.value), 1);
+   147→   147→   147→      const nodeRadius =
+   148→   148→   148→        n.value > 0
+   149→   149→   149→          ? NODE_BASE_RADIUS + (NODE_MAX_RADIUS - NODE_BASE_RADIUS) * (n.value / maxValue)
+   150→   150→   150→          : NODE_BASE_RADIUS;
+   151→   151→   151→      return {
+   152→   152→   152→        ...n,
+   153→   153→   153→        x: cx + Math.cos(angle) * r,
+   154→   154→   154→        y: cy + Math.sin(angle) * r,
+   155→   155→   155→        vx: 0,
+   156→   156→   156→        vy: 0,
+   157→   157→   157→        radius: nodeRadius,
+   158→   158→   158→      };
+   159→   159→   159→    });
+   160→   160→   160→
+   161→   161→   161→    setSimNodes(initialized);
+   162→   162→   162→    setEdges(edges);
+   163→   163→   163→    setNetworkBuilt(true);
+   164→   164→   164→  }, [crimeData, networkBuilt]);
+   165→   165→   165→
+   166→   166→   166→  /* ---------------------------------------------------------------- */
+   167→   167→   167→  /*  Force-directed simulation                                        */
+   168→   168→   168→  /* ---------------------------------------------------------------- */
+   169→   169→   169→
+   170→   170→   170→  const runSimulation = useCallback(() => {
+   171→   171→   171→    if (simNodes.length < 2) return;
+   172→   172→   172→    let nodes = simNodes;
+   173→   173→   173→    const alpha = 0.3;
+   174→   174→   174→    const repulsionStrength = 8000;
+   175→   175→   175→    const attractionStrength = 0.005;
+   176→   176→   176→    const centerPull = 0.01;
+   177→   177→   177→    const damping = 0.85;
+   178→   178→   178→
+   179→   179→   179→    const step = () => {
+   180→   180→   180→      const visibleNodes = nodes.filter((n) => filterTypes.has(n.type));
+   181→   181→   181→      const visibleEdges = edges.filter((e) => {
+   182→   182→   182→        const src = nodes.find((n) => n.id === e.source);
+   183→   183→   183→        const tgt = nodes.find((n) => n.id === e.target);
+   184→   184→   184→        return src && tgt && filterTypes.has(src.type) && filterTypes.has(tgt.type);
+   185→   185→   185→      });
+   186→   186→   186→
+   187→   187→   187→      const forces = new Map<string, { fx: number; fy: number }>();
+   188→   188→   188→      for (const n of visibleNodes) forces.set(n.id, { fx: 0, fy: 0 });
+   189→   189→   189→
+   190→   190→   190→      // Repulsion (Coulomb-like)
+   191→   191→   191→      for (let i = 0; i < visibleNodes.length; i++) {
+   192→   192→   192→        for (let j = i + 1; j < visibleNodes.length; j++) {
+   193→   193→   193→          const a = visibleNodes[i];
+   194→   194→   194→          const b = visibleNodes[j];
+   195→   195→   195→          const dx = a.x - b.x;
+   196→   196→   196→          const dy = a.y - b.y;
+   197→   197→   197→          const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
+   198→   198→   198→          const force = repulsionStrength / (dist * dist);
+   199→   199→   199→          const fx = (dx / dist) * force;
+   200→   200→   200→          const fy = (dy / dist) * force;
+   201→   201→   201→          forces.get(a.id)!.fx += fx;
+   202→   202→   202→          forces.get(a.id)!.fy += fy;
+   203→   203→   203→          forces.get(b.id)!.fx -= fx;
+   204→   204→   204→          forces.get(b.id)!.fy -= fy;
+   205→   205→   205→        }
+   206→   206→   206→      }
+   207→   207→   207→
+   208→   208→   208→      // Attraction along edges (Hooke-like)
+   209→   209→   209→      for (const edge of visibleEdges) {
+   210→   210→   210→        const src = visibleNodes.find((n) => n.id === edge.source);
+   211→   211→   211→        const tgt = visibleNodes.find((n) => n.id === edge.target);
+   212→   212→   212→        if (!src || !tgt) continue;
+   213→   213→   213→        const dx = tgt.x - src.x;
+   214→   214→   214→        const dy = tgt.y - src.y;
+   215→   215→   215→        const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
+   216→   216→   216→        const idealDist = 180;
+   217→   217→   217→        const force = attractionStrength * (dist - idealDist);
+   218→   218→   218→        const fx = (dx / dist) * force;
+   219→   219→   219→        const fy = (dy / dist) * force;
+   220→   220→   220→        forces.get(src.id)!.fx += fx;
+   221→   221→   221→        forces.get(src.id)!.fy += fy;
+   222→   222→   222→        forces.get(tgt.id)!.fx -= fx;
+   223→   223→   223→        forces.get(tgt.id)!.fy -= fy;
+   224→   224→   224→      }
+   225→   225→   225→
+   226→   226→   226→      // Center gravity
+   227→   227→   227→      const cx = visibleNodes.reduce((s, n) => s + n.x, 0) / visibleNodes.length;
+   228→   228→   228→      const cy = visibleNodes.reduce((s, n) => s + n.y, 0) / visibleNodes.length;
+   229→   229→   229→      for (const n of visibleNodes) {
+   230→   230→   230→        forces.get(n.id)!.fx += (cx - n.x) * centerPull;
+   231→   231→   231→        forces.get(n.id)!.fy += (cy - n.y) * centerPull;
+   232→   232→   232→      }
+   233→   233→   233→
+   234→   234→   234→      // Apply forces
+   235→   235→   235→      nodes = nodes.map((n) => {
+   236→   236→   236→        if (!forces.has(n.id)) return n;
+   237→   237→   237→        if (n.id === dragNode?.id) return n;
+   238→   238→   238→        const { fx, fy } = forces.get(n.id)!;
+   239→   239→   239→        return {
+   240→   240→   240→          ...n,
+   241→   241→   241→          vx: (n.vx + fx * alpha) * damping,
+   242→   242→   242→          vy: (n.vy + fy * alpha) * damping,
+   243→   243→   243→          x: n.x + n.vx,
+   244→   244→   244→          y: n.y + n.vy,
+   245→   245→   245→        };
+   246→   246→   246→      });
+   247→   247→   247→
+   248→   248→   248→      setSimNodes([...nodes]);
+   249→   249→   249→
+   250→   250→   250→      // Check if settled
+   251→   251→   251→      let totalVelocity = 0;
+   252→   252→   252→      for (const n of nodes) {
+   253→   253→   253→        totalVelocity += Math.abs(n.vx) + Math.abs(n.vy);
+   254→   254→   254→      }
+   255→   255→   255→      if (totalVelocity > 0.5) {
+   256→   256→   256→        animFrameRef.current = requestAnimationFrame(step);
+   257→   257→   257→      } else {
+   258→   258→   258→        simRunningRef.current = false;
+   259→   259→   259→      }
+   260→   260→   260→    };
+   261→   261→   261→
+   262→   262→   262→    simRunningRef.current = true;
+   263→   263→   263→    animFrameRef.current = requestAnimationFrame(step);
+   264→   264→   264→  }, [simNodes, edges, filterTypes, dragNode]);
+   265→   265→   265→
+   266→   266→   266→  useEffect(() => {
+   267→   267→   267→    if (simNodes.length >= 2 && networkBuilt && !simRunningRef.current) {
+   268→   268→   268→      runSimulation();
+   269→   269→   269→    }
+   270→   270→   270→    return () => {
+   271→   271→   271→      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+   272→   272→   272→    };
+   273→   273→   273→  }, [simNodes.length, networkBuilt, runSimulation]);
+   274→   274→   274→
+   275→   275→   275→  /* ---------------------------------------------------------------- */
+   276→   276→   276→  /*  Canvas rendering                                                 */
+   277→   277→   277→  /* ---------------------------------------------------------------- */
+   278→   278→   278→
+   279→   279→   279→  const getConnectedIds = useCallback(
+   280→   280→   280→    (nodeId: string): Set<string> => {
+   281→   281→   281→      const connected = new Set<string>();
+   282→   282→   282→      for (const e of edges) {
+   283→   283→   283→        if (e.source === nodeId) connected.add(e.target);
+   284→   284→   284→        if (e.target === nodeId) connected.add(e.source);
+   285→   285→   285→      }
+   286→   286→   286→      return connected;
+   287→   287→   287→    },
+   288→   288→   288→    [edges]
+   289→   289→   289→  );
+   290→   290→   290→
+   291→   291→   291→  const renderCanvas = useCallback(() => {
+   292→   292→   292→    const canvas = canvasRef.current;
+   293→   293→   293→    if (!canvas) return;
+   294→   294→   294→    const ctx = canvas.getContext("2d");
+   295→   295→   295→    if (!ctx) return;
+   296→   296→   296→
+   297→   297→   297→    const dpr = window.devicePixelRatio || 1;
+   298→   298→   298→    const rect = containerRef.current?.getBoundingClientRect();
+   299→   299→   299→    if (!rect) return;
+   300→   300→   300→    const w = rect.width;
+   301→   301→   301→    const h = rect.height;
+   302→   302→   302→
+   303→   303→   303→    canvas.width = w * dpr;
+   304→   304→   304→    canvas.height = h * dpr;
+   305→   305→   305→    canvas.style.width = `${w}px`;
+   306→   306→   306→    canvas.style.height = `${h}px`;
+   307→   307→   307→    ctx.scale(dpr, dpr);
+   308→   308→   308→
+   309→   309→   309→    // Clear
+   310→   310→   310→    ctx.fillStyle = "rgba(10,15,28,0.6)";
+   311→   311→   311→    ctx.fillRect(0, 0, w, h);
+   312→   312→   312→
+   313→   313→   313→    // Apply zoom + pan
+   314→   314→   314→    ctx.save();
+   315→   315→   315→    ctx.translate(w / 2 + panX, h / 2 + panY);
+   316→   316→   316→    ctx.scale(zoom, zoom);
+   317→   317→   317→    ctx.translate(-w / 2, -h / 2);
+   318→   318→   318→
+   319→   319→   319→    const visibleNodes = simNodes.filter((n) => filterTypes.has(n.type));
+   320→   320→   320→    const activeHover = hoveredNode;
+   321→   321→   321→    const connectedToHover = activeHover ? getConnectedIds(activeHover) : new Set<string>();
+   322→   322→   322→    const connectedToSelected = selectedNode ? getConnectedIds(selectedNode.id) : new Set<string>();
+   323→   323→   323→
+   324→   324→   324→    // Draw edges
+   325→   325→   325→    for (const edge of edges) {
+   326→   326→   326→      const src = visibleNodes.find((n) => n.id === edge.source);
+   327→   327→   327→      const tgt = visibleNodes.find((n) => n.id === edge.target);
+   328→   328→   328→      if (!src || !tgt) continue;
+   329→   329→   329→
+   330→   330→   330→      const isHighlighted =
+   331→   331→   331→        activeHover &&
+   332→   332→   332→        (edge.source === activeHover || edge.target === activeHover);
+   333→   333→   333→      const isSelectedEdge =
+   334→   334→   334→        selectedNode &&
+   335→   335→   335→        (edge.source === selectedNode.id || edge.target === selectedNode.id);
+   336→   336→   336→
+   337→   337→   337→      ctx.beginPath();
+   338→   338→   338→      ctx.moveTo(src.x, src.y);
+   339→   339→   339→      ctx.lineTo(tgt.x, tgt.y);
+   340→   340→   340→
+   341→   341→   341→      if (isHighlighted || isSelectedEdge) {
+   342→   342→   342→        ctx.strokeStyle = EDGE_COLORS[edge.type] || "#5a657a";
+   343→   343→   343→        ctx.lineWidth = 2.5;
+   344→   344→   344→        ctx.globalAlpha = 1;
+   345→   345→   345→      } else if (activeHover || selectedNode) {
+   346→   346→   346→        ctx.strokeStyle = "#1e293b";
+   347→   347→   347→        ctx.lineWidth = 1;
+   348→   348→   348→        ctx.globalAlpha = 0.3;
+   349→   349→   349→      } else {
+   350→   350→   350→        ctx.strokeStyle = EDGE_COLORS[edge.type] || "#5a657a";
+   351→   351→   351→        ctx.lineWidth = 1.2;
+   352→   352→   352→        ctx.globalAlpha = 0.5;
+   353→   353→   353→      }
+   354→   354→   354→      ctx.stroke();
+   355→   355→   355→      ctx.globalAlpha = 1;
+   356→   356→   356→
+   357→   357→   357→      // Amount label on transaction edges
+   358→   358→   358→      if (edge.type === "transaction" && edge.amount && (isHighlighted || isSelectedEdge || (!activeHover && !selectedNode))) {
+   359→   359→   359→        const mx = (src.x + tgt.x) / 2;
+   360→   360→   360→        const my = (src.y + tgt.y) / 2;
+   361→   361→   361→        ctx.font = "600 11px Inter, system-ui, sans-serif";
+   362→   362→   362→        ctx.fillStyle = "#34d399";
+   363→   363→   363→        ctx.textAlign = "center";
+   364→   364→   364→        ctx.textBaseline = "middle";
+   365→   365→   365→
+   366→   366→   366→        const label = `₹${(edge.amount / 1000).toFixed(0)}K`;
+   367→   367→   367→        const tw = ctx.measureText(label).width;
+   368→   368→   368→        ctx.fillStyle = "rgba(10, 15, 30, 0.85)";
+   369→   369→   369→        ctx.fillRect(mx - tw / 2 - 4, my - 8, tw + 8, 16);
+   370→   370→   370→        ctx.fillStyle = "#34d399";
+   371→   371→   371→        ctx.fillText(label, mx, my);
+   372→   372→   372→      }
+   373→   373→   373→    }
+   374→   374→   374→
+   375→   375→   375→    // Draw nodes
+   376→   376→   376→    for (const node of visibleNodes) {
+   377→   377→   377→      const isConnectedToHover = connectedToHover.has(node.id) || node.id === activeHover;
+   378→   378→   378→      const isConnectedToSel = connectedToSelected.has(node.id) || node.id === selectedNode?.id;
+   379→   379→   379→      const dimmed = (activeHover && !isConnectedToHover) || (selectedNode && !isConnectedToSel);
+   380→   380→   380→      const highlighted = isConnectedToHover || isConnectedToSel;
+   381→   381→   381→
+   382→   382→   382→      const color = NODE_COLORS[node.type] || "#5a657a";
+   383→   383→   383→
+   384→   384→   384→      // Glow
+   385→   385→   385→      if (highlighted) {
+   386→   386→   386→        ctx.beginPath();
+   387→   387→   387→        ctx.arc(node.x, node.y, node.radius + 8, 0, Math.PI * 2);
+   388→   388→   388→        const grad = ctx.createRadialGradient(node.x, node.y, node.radius, node.x, node.y, node.radius + 8);
+   389→   389→   389→        grad.addColorStop(0, color + "44");
+   390→   390→   390→        grad.addColorStop(1, "transparent");
+   391→   391→   391→        ctx.fillStyle = grad;
+   392→   392→   392→        ctx.fill();
+   393→   393→   393→      }
+   394→   394→   394→
+   395→   395→   395→      // Circle
+   396→   396→   396→      ctx.beginPath();
+   397→   397→   397→      ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+   398→   398→   398→      ctx.fillStyle = dimmed ? color + "33" : color + "cc";
+   399→   399→   399→      ctx.fill();
+   400→   400→   400→      ctx.strokeStyle = dimmed ? color + "22" : color;
+   401→   401→   401→      ctx.lineWidth = highlighted ? 3 : 1.5;
+   402→   402→   402→      ctx.stroke();
+   403→   403→   403→
+   404→   404→   404→      // Inner lighter fill
+   405→   405→   405→      ctx.beginPath();
+   406→   406→   406→      ctx.arc(node.x, node.y, node.radius * 0.55, 0, Math.PI * 2);
+   407→   407→   407→      ctx.fillStyle = dimmed ? color + "11" : color + "33";
+   408→   408→   408→      ctx.fill();
+   409→   409→   409→
+   410→   410→   410→      // Label
+   411→   411→   411→      if (!dimmed || highlighted) {
+   412→   412→   412→        ctx.font = `${highlighted ? "700" : "500"} 11px Inter, system-ui, sans-serif`;
+   413→   413→   413→        ctx.fillStyle = highlighted ? "#f1f5f9" : "#8b97b0";
+   414→   414→   414→        ctx.textAlign = "center";
+   415→   415→   415→        ctx.textBaseline = "top";
+   416→   416→   416→
+   417→   417→   417→        const label = node.label.length > 18 ? node.label.slice(0, 16) + "..." : node.label;
+   418→   418→   418→        ctx.fillText(label, node.x, node.y + node.radius + 6);
+   419→   419→   419→      }
+   420→   420→   420→    }
+   421→   421→   421→
+   422→   422→   422→    ctx.restore();
+   423→   423→   423→  }, [simNodes, edges, zoom, panX, panY, hoveredNode, selectedNode, filterTypes, getConnectedIds]);
+   424→   424→   424→
+   425→   425→   425→  useEffect(() => {
+   426→   426→   426→    renderCanvas();
+   427→   427→   427→  }, [renderCanvas]);
+   428→   428→   428→
+   429→   429→   429→  // Resize observer
+   430→   430→   430→  useEffect(() => {
+   431→   431→   431→    const container = containerRef.current;
+   432→   432→   432→    if (!container) return;
+   433→   433→   433→    const observer = new ResizeObserver(() => renderCanvas());
+   434→   434→   434→    observer.observe(container);
+   435→   435→   435→    return () => observer.disconnect();
+   436→   436→   436→  }, [renderCanvas]);
+   437→   437→   437→
+   438→   438→   438→  /* ---------------------------------------------------------------- */
+   439→   439→   439→  /*  Mouse interaction                                                */
+   440→   440→   440→  /* ---------------------------------------------------------------- */
+   441→   441→   441→
+   442→   442→   442→  const canvasToWorld = useCallback(
+   443→   443→   443→    (clientX: number, clientY: number) => {
+   444→   444→   444→      const rect = canvasRef.current?.getBoundingClientRect();
+   445→   445→   445→      if (!rect) return { x: 0, y: 0 };
+   446→   446→   446→      const cx = rect.width / 2 + panX;
+   447→   447→   447→      const cy = rect.height / 2 + panY;
+   448→   448→   448→      const x = (clientX - rect.left - cx) / zoom + rect.width / 2;
+   449→   449→   449→      const y = (clientY - rect.top - cy) / zoom + rect.height / 2;
+   450→   450→   450→      return { x, y };
+   451→   451→   451→    },
+   452→   452→   452→    [zoom, panX]
+   453→   453→   453→  );
+   454→   454→   454→
+   455→   455→   455→  const findNodeAt = useCallback(
+   456→   456→   456→    (worldX: number, worldY: number) => {
+   457→   457→   457→      const visible = simNodes.filter((n) => filterTypes.has(n.type));
+   458→   458→   458→      // Reverse so top-drawn nodes are picked first
+   459→   459→   459→      for (let i = visible.length - 1; i >= 0; i--) {
+   460→   460→   460→        const n = visible[i];
+   461→   461→   461→        const dx = worldX - n.x;
+   462→   462→   462→        const dy = worldY - n.y;
+   463→   463→   463→        if (dx * dx + dy * dy <= (n.radius + 4) * (n.radius + 4)) return n;
+   464→   464→   464→      }
+   465→   465→   465→      return null;
+   466→   466→   466→    },
+   467→   467→   467→    [simNodes, filterTypes]
+   468→   468→   468→  );
+   469→   469→   469→
+   470→   470→   470→  const handleMouseMove = useCallback(
+   471→   471→   471→    (e: React.MouseEvent) => {
+   472→   472→   472→      const { x, y } = canvasToWorld(e.clientX, e.clientY);
+   473→   473→   473→
+   474→   474→   474→      if (dragNode && dragStartRef.current) {
+   475→   475→   475→        const dx = x - dragStartRef.current.mx;
+   476→   476→   476→        const dy = y - dragStartRef.current.my;
+   477→   477→   477→        setSimNodes((prev) =>
+   478→   478→   478→          prev.map((n) =>
+   479→   479→   479→            n.id === dragNode.id
+   480→   480→   480→              ? { ...n, x: dragStartRef.current!.nx + dx, y: dragStartRef.current!.ny + dy, vx: 0, vy: 0 }
+   481→   481→   481→              : n
+   482→   482→   482→          )
+   483→   483→   483→        );
+   484→   484→   484→        return;
+   485→   485→   485→      }
+   486→   486→   486→
+   487→   487→   487→      const node = findNodeAt(x, y);
+   488→   488→   488→      setHoveredNode(node?.id ?? null);
+   489→   489→   489→      if (canvasRef.current) canvasRef.current.style.cursor = node ? "pointer" : "default";
+   490→   490→   490→    },
+   491→   491→   491→    [canvasToWorld, findNodeAt, dragNode]
+   492→   492→   492→  );
+   493→   493→   493→
+   494→   494→   494→  const handleMouseDown = useCallback(
+   495→   495→   495→    (e: React.MouseEvent) => {
+   496→   496→   496→      const { x, y } = canvasToWorld(e.clientX, e.clientY);
+   497→   497→   497→      const node = findNodeAt(x, y);
+   498→   498→   498→      if (node) {
+   499→   499→   499→        setDragNode(node);
+   500→   500→   500→        dragStartRef.current = { mx: x, my: y, nx: node.x, ny: node.y };
+   501→   501→   501→      }
+   502→   502→   502→    },
+   503→   503→   503→    [canvasToWorld, findNodeAt]
+   504→   504→   504→  );
+   505→   505→   505→
+   506→   506→   506→  const handleMouseUp = useCallback(() => {
+   507→   507→   507→    if (dragNode) {
+   508→   508→   508→      // If barely moved, treat as click → select
+   509→   509→   509→      const node = simNodes.find((n) => n.id === dragNode.id);
+   510→   510→   510→      if (node && selectedNode?.id !== node.id) {
+   511→   511→   511→        setSelectedNode(node);
+   512→   512→   512→      } else if (node && selectedNode?.id === node.id) {
+   513→   513→   513→        setSelectedNode(null);
+   514→   514→   514→      }
+   515→   515→   515→      setDragNode(null);
+   516→   516→   516→      dragStartRef.current = null;
+   517→   517→   517→    }
+   518→   518→   518→  }, [dragNode, selectedNode, simNodes]);
+   519→   519→   519→
+   520→   520→   520→  /* ---------------------------------------------------------------- */
+   521→   521→   521→  /*  Controls                                                         */
+   522→   522→   522→  /* ---------------------------------------------------------------- */
+   523→   523→   523→
+   524→   524→   524→  const handleZoomIn = () => setZoom((z) => Math.min(z * 1.25, 4));
+   525→   525→   525→  const handleZoomOut = () => setZoom((z) => Math.max(z / 1.25, 0.3));
+   526→   526→   526→  const handleResetLayout = () => {
+   527→   527→   527→    setZoom(1);
+   528→   528→   528→    setPanX(0);
+   529→   529→   529→    setSimNodes((prev) =>
+   530→   530→   530→      prev.map((n, i) => {
+   531→   531→   531→        const angle = (2 * Math.PI * i) / prev.length;
+   532→   532→   532→        const r = n.type === "gang" ? 0 : 200 + Math.random() * 150;
+   533→   533→   533→        return { ...n, x: 500 + Math.cos(angle) * r, y: 400 + Math.sin(angle) * r, vx: 0, vy: 0 };
+   534→   534→   534→      })
+   535→   535→   535→    );
+   536→   536→   536→    simRunningRef.current = false;
+   537→   537→   537→    setTimeout(() => {
+   538→   538→   538→      simRunningRef.current = false;
+   539→   539→   539→      // Trigger re-sim
+   540→   540→   540→      setSimNodes((prev) => [...prev]);
+   541→   541→   541→    }, 50);
+   542→   542→   542→  };
+   543→   543→   543→
+   544→   544→   544→  const toggleFilter = (type: string) => {
+   545→   545→   545→    setFilterTypes((prev) => {
+   546→   546→   546→      const next = new Set(prev);
+   547→   547→   547→      if (next.has(type)) {
+   548→   548→   548→        if (next.size > 1) next.delete(type);
+   549→   549→   549→      } else {
+   550→   550→   550→        next.add(type);
+   551→   551→   551→      }
+   552→   552→   552→      return next;
+   553→   553→   553→    });
+   554→   554→   554→  };
+   555→   555→   555→
+   556→   556→   556→  /* ---------------------------------------------------------------- */
+   557→   557→   557→  /*  Computed stats                                                   */
+   558→   558→   558→  /* ---------------------------------------------------------------- */
+   559→   559→   559→
+   560→   560→   560→  const stats = useMemo(() => {
+   561→   561→   561→    const accounts = simNodes.filter((n) => n.type === "account").length;
+   562→   562→   562→    const transactionEdges = edges.filter((e) => e.type === "transaction");
+   563→   563→   563→    const totalValue = transactionEdges.reduce((s, e) => s + (e.amount || 0), 0);
+   564→   564→   564→    const gangs = simNodes.filter((n) => n.type === "gang").length;
+   565→   565→   565→    return { accounts, transactions: transactionEdges.length, totalValue, gangs };
+   566→   566→   566→  }, [simNodes, edges]);
+   567→   567→   567→
+   568→   568→   568→  /* ---------------------------------------------------------------- */
+   569→   569→   569→  /*  Selected node details                                            */
+   570→   570→   570→  /* ---------------------------------------------------------------- */
+   571→   571→   571→
+   572→   572→   572→  const selectedConnections = useMemo(() => {
+   573→   573→   573→    if (!selectedNode) return { nodes: [], edges: [] };
+   574→   574→   574→    const connNodes: SimNode[] = [];
+   575→   575→   575→    const connEdges: FinancialNetworkEdge[] = [];
+   576→   576→   576→    for (const e of edges) {
+   577→   577→   577→      if (e.source === selectedNode.id) {
+   578→   578→   578→        const target = simNodes.find((n) => n.id === e.target);
+   579→   579→   579→        if (target) connNodes.push(target);
+   580→   580→   580→        connEdges.push(e);
+   581→   581→   581→      } else if (e.target === selectedNode.id) {
+   582→   582→   582→        const source = simNodes.find((n) => n.id === e.source);
+   583→   583→   583→        if (source) connNodes.push(source);
+   584→   584→   584→        connEdges.push(e);
+   585→   585→   585→      }
+   586→   586→   586→    }
+   587→   587→   587→    return { nodes: connNodes, edges: connEdges };
+   588→   588→   588→  }, [selectedNode, edges, simNodes]);
+   589→   589→   589→
+   590→   590→   590→  /* ---------------------------------------------------------------- */
+   591→   591→   591→  /*  Render                                                           */
+   592→   592→   592→  /* ---------------------------------------------------------------- */
+   593→   593→   593→
+   594→   594→   594→  if (dataLoading) return <LoadingSpinner />;
+   595→   595→   595→
+   596→   596→   596→  if (networkBuilt && simNodes.length === 0) {
+   597→   597→   597→    return (
+   598→   598→   598→      <div className="flex items-center justify-center h-full">
+   599→   599→   599→        <div
+   600→   600→   600→          className="flex flex-col items-center gap-4 px-8 py-12 max-w-md text-center"
+   601→   601→   601→          style={{
+   602→   602→   602→            background: "var(--border-subtle)",
+   603→   603→   603→            backdropFilter: "blur(24px)",
+   604→   604→   604→            border: "1px solid var(--border-default)",
+   605→   605→   605→            borderRadius: 16,
+   606→   606→   606→          }}
+   607→   607→   607→        >
+   608→   608→   608→          <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: "rgba(16,185,129,0.15)" }}>
+   609→   609→   609→            <Network className="w-8 h-8 text-[#34d399]" />
+   610→   610→   610→          </div>
+   611→   611→   611→          <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>No Financial Network Data</h3>
+   612→   612→   612→          <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+   613→   613→   613→            No financial transactions have been linked to FIR records yet. Once bank accounts and
+   614→   614→   614→            transaction amounts are associated with cases, the financial network graph will appear here.
+   615→   615→   615→          </p>
+   616→   616→   616→          <div className="flex items-center gap-2 mt-2">
+   617→   617→   617→            <IndianRupee className="w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
+   618→   618→   618→            <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+   619→   619→   619→              Link financial transactions to FIRs to see the network
+   620→   620→   620→            </span>
+   621→   621→   621→          </div>
+   622→   622→   622→        </div>
+   623→   623→   623→      </div>
+   624→   624→   624→    );
+   625→   625→   625→  }
+   626→   626→   626→
+   627→   627→   627→  return (
+   628→   628→   628→    <div className="flex h-full gap-4 p-4 overflow-hidden">
+   629→   629→   629→      {/* Left: Canvas + controls */}
+   630→   630→   630→      <div className="flex-1 flex flex-col gap-4 min-w-0">
+   631→   631→   631→        {/* Stats Cards */}
+   632→   632→   632→        <div className="grid grid-cols-4 gap-3 shrink-0">
+   633→   633→   633→          {[
+   634→   634→   634→            { label: "Total Accounts", value: stats.accounts, icon: Building2, color: "var(--warning)" },
+   635→   635→   635→            { label: "Transactions", value: stats.transactions, icon: ArrowRight, color: "var(--success)" },
+   636→   636→   636→            { label: "Total Value", value: `₹${stats.totalValue.toLocaleString("en-IN")}`, icon: IndianRupee, color: "var(--success)" },
+   637→   637→   637→            { label: "Gangs Involved", value: stats.gangs, icon: Users, color: "var(--secondary)" },
+   638→   638→   638→          ].map((stat) => (
+   639→   639→   639→            <div
+   640→   640→   640→              key={stat.label}
+   641→   641→   641→              className="flex items-center gap-3 px-4 py-3"
+   642→   642→   642→              style={{
+   643→   643→   643→                background: "var(--border-subtle)",
+   644→   644→   644→                backdropFilter: "blur(24px)",
+   645→   645→   645→                border: "1px solid var(--border-default)",
+   646→   646→   646→                borderRadius: 12,
+   647→   647→   647→              }}
+   648→   648→   648→            >
+   649→   649→   649→              <div
+   650→   650→   650→                className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+   651→   651→   651→                style={{ background: stat.color + "1a" }}
+   652→   652→   652→              >
+   653→   653→   653→                <stat.icon className="w-4 h-4" style={{ color: stat.color }} />
+   654→   654→   654→              </div>
+   655→   655→   655→              <div className="min-w-0">
+   656→   656→   656→                <p className="text-xs truncate" style={{ color: "var(--text-tertiary)" }}>
+   657→   657→   657→                  {stat.label}
+   658→   658→   658→                </p>
+   659→   659→   659→                <p className="text-sm font-bold truncate" style={{ color: "var(--text-primary)" }}>
+   660→   660→   660→                  {stat.value}
+   661→   661→   661→                </p>
+   662→   662→   662→              </div>
+   663→   663→   663→            </div>
+   664→   664→   664→          ))}
+   665→   665→   665→        </div>
+   666→   666→   666→
+   667→   667→   667→        {/* Canvas */}
+   668→   668→   668→        <div className="flex-1 relative rounded-2xl overflow-hidden min-h-0" style={{ border: "1px solid var(--border-default)" }}>
+   669→   669→   669→          <div ref={containerRef} className="absolute inset-0" style={{ background: "rgba(10,15,28,0.6)" }}>
+   670→   670→   670→            <canvas ref={canvasRef} onMouseMove={handleMouseMove} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onMouseLeave={() => { setHoveredNode(null); setDragNode(null); dragStartRef.current = null; }} className="absolute inset-0 w-full h-full" />
+   671→   671→   671→          </div>
+   672→   672→   672→
+   673→   673→   673→          {/* Controls overlay */}
+   674→   674→   674→          <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
+   675→   675→   675→            <button onClick={handleZoomIn} className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors" style={{ background: "var(--border-default)", border: "1px solid var(--border-default)", color: "var(--text-primary)" }}>
+   676→   676→   676→              <ZoomIn className="w-4 h-4" />
+   677→   677→   677→            </button>
+   678→   678→   678→            <button onClick={handleZoomOut} className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors" style={{ background: "var(--border-default)", border: "1px solid var(--border-default)", color: "var(--text-primary)" }}>
+   679→   679→   679→              <ZoomOut className="w-4 h-4" />
+   680→   680→   680→            </button>
+   681→   681→   681→            <button onClick={handleResetLayout} className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors" style={{ background: "var(--border-default)", border: "1px solid var(--border-default)", color: "var(--text-primary)" }}>
+   682→   682→   682→              <RotateCcw className="w-4 h-4" />
+   683→   683→   683→            </button>
+   684→   684→   684→          </div>
+   685→   685→   685→
+   686→   686→   686→          {/* Filter + Legend overlay */}
+   687→   687→   687→          <div
+   688→   688→   688→            className="absolute bottom-3 left-3 flex items-start gap-4 z-10 px-4 py-3"
+   689→   689→   689→            style={{
+   690→   690→   690→              background: "rgba(10,15,30,0.85)",
+   691→   691→   691→              backdropFilter: "blur(16px)",
+   692→   692→   692→              border: "1px solid var(--border-default)",
+   693→   693→   693→              borderRadius: 12,
+   694→   694→   694→            }}
+   695→   695→   695→          >
+   696→   696→   696→            {/* Filters */}
+   697→   697→   697→            <div className="flex flex-col gap-1.5">
+   698→   698→   698→              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
+   699→   699→   699→                Filter Nodes
+   700→   700→   700→              </p>
+   701→   701→   701→              <div className="flex gap-2">
+   702→   702→   702→                {(["account", "accused", "fir", "gang"] as const).map((type) => (
+   703→   703→   703→                  <button
+   704→   704→   704→                    key={type}
+   705→   705→   705→                    onClick={() => toggleFilter(type)}
+   706→   706→   706→                    className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium transition-all"
+   707→   707→   707→                    style={{
+   708→   708→   708→                      background: filterTypes.has(type) ? NODE_COLORS[type] + "22" : "transparent",
+   709→   709→   709→                      border: `1px solid ${filterTypes.has(type) ? NODE_COLORS[type] + "66" : "rgba(255,255,255,0.06)"}`,
+   710→   710→   710→                      color: filterTypes.has(type) ? NODE_COLORS[type] : "#3d4659",
+   711→   711→   711→                      opacity: filterTypes.has(type) ? 1 : 0.5,
+   712→   712→   712→                    }}
+   713→   713→   713→                  >
+   714→   714→   714→                    <Circle className="w-2.5 h-2.5" fill={filterTypes.has(type) ? NODE_COLORS[type] : "transparent"} stroke={NODE_COLORS[type]} />
+   715→   715→   715→                    {NODE_LABELS[type]}
+   716→   716→   716→                  </button>
+   717→   717→   717→                ))}
+   718→   718→   718→              </div>
+   719→   719→   719→            </div>
+   720→   720→   720→
+   721→   721→   721→            <Separator orientation="vertical" className="h-auto" style={{ background: "var(--border-default)" }} />
+   722→   722→   722→
+   723→   723→   723→            {/* Legend */}
+   724→   724→   724→            <div className="flex flex-col gap-1.5">
+   725→   725→   725→              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
+   726→   726→   726→                Edge Types
+   727→   727→   727→              </p>
+   728→   728→   728→              <div className="flex gap-3">
+   729→   729→   729→                {(["transaction", "account_holder", "used_in", "gang_member"] as const).map((type) => (
+   730→   730→   730→                  <div key={type} className="flex items-center gap-1.5">
+   731→   731→   731→                    <div className="w-4 h-0.5 rounded" style={{ background: EDGE_COLORS[type] }} />
+   732→   732→   732→                    <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
+   733→   733→   733→                      {EDGE_LABELS[type]}
+   734→   734→   734→                    </span>
+   735→   735→   735→                  </div>
+   736→   736→   736→                ))}
+   737→   737→   737→              </div>
+   738→   738→   738→            </div>
+   739→   739→   739→          </div>
+   740→   740→   740→        </div>
+   741→   741→   741→      </div>
+   742→   742→   742→
+   743→   743→   743→      {/* Right: Detail Panel */}
+   744→   744→   744→      <AnimatePresence>
+   745→   745→   745→        {selectedNode && (
+   746→   746→   746→          <motion.div
+   747→   747→   747→            initial={{ width: 0, opacity: 0 }}
+   748→   748→   748→            animate={{ width: 340, opacity: 1 }}
+   749→   749→   749→            exit={{ width: 0, opacity: 0 }}
+   750→   750→   750→            transition={{ duration: 0.25, ease: "easeInOut" }}
+   751→   751→   751→            className="overflow-hidden shrink-0"
+   752→   752→   752→          >
+   753→   753→   753→            <div
+   754→   754→   754→              className="h-full flex flex-col"
+   755→   755→   755→              style={{
+   756→   756→   756→                background: "var(--border-subtle)",
+   757→   757→   757→                backdropFilter: "blur(24px)",
+   758→   758→   758→                border: "1px solid var(--border-default)",
+   759→   759→   759→                borderRadius: 16,
+   760→   760→   760→              }}
+   761→   761→   761→            >
+   762→   762→   762→              {/* Header */}
+   763→   763→   763→              <div className="flex items-center justify-between px-5 py-4 shrink-0" style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+   764→   764→   764→                <div className="flex items-center gap-3 min-w-0">
+   765→   765→   765→                  <div
+   766→   766→   766→                    className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+   767→   767→   767→                    style={{ background: (NODE_COLORS[selectedNode.type] || "#5a657a") + "22" }}
+   768→   768→   768→                  >
+   769→   769→   769→                    {selectedNode.type === "account" && <Building2 className="w-4 h-4" style={{ color: NODE_COLORS.account }} />}
+   770→   770→   770→                    {selectedNode.type === "accused" && <User className="w-4 h-4" style={{ color: NODE_COLORS.accused }} />}
+   771→   771→   771→                    {selectedNode.type === "fir" && <FileText className="w-4 h-4" style={{ color: NODE_COLORS.fir }} />}
+   772→   772→   772→                    {selectedNode.type === "gang" && <Users className="w-4 h-4" style={{ color: NODE_COLORS.gang }} />}
+   773→   773→   773→                  </div>
+   774→   774→   774→                  <div className="min-w-0">
+   775→   775→   775→                    <Badge
+   776→   776→   776→                      className="text-[10px] px-1.5 py-0"
+   777→   777→   777→                      style={{ background: (NODE_COLORS[selectedNode.type] || "#5a657a") + "22", color: NODE_COLORS[selectedNode.type], border: `1px solid ${(NODE_COLORS[selectedNode.type] || "#5a657a")}44` }}
+   778→   778→   778→                    >
+   779→   779→   779→                      {NODE_LABELS[selectedNode.type]}
+   780→   780→   780→                    </Badge>
+   781→   781→   781→                    <p className="text-sm font-semibold truncate mt-0.5" style={{ color: "var(--text-primary)" }}>
+   782→   782→   782→                      {selectedNode.label}
+   783→   783→   783→                    </p>
+   784→   784→   784→                  </div>
+   785→   785→   785→                </div>
+   786→   786→   786→                <button
+   787→   787→   787→                  onClick={() => setSelectedNode(null)}
+   788→   788→   788→                  className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors"
+   789→   789→   789→                  style={{ color: "var(--text-tertiary)" }}
+   790→   790→   790→                  onMouseEnter={(e) => (e.currentTarget.style.color = "#f1f5f9")}
+   791→   791→   791→                  onMouseLeave={(e) => (e.currentTarget.style.color = "#5a657a")}
+   792→   792→   792→                >
+   793→   793→   793→                  <X className="w-4 h-4" />
+   794→   794→   794→                </button>
+   795→   795→   795→              </div>
+   796→   796→   796→
+   797→   797→   797→              {/* Body */}
+   798→   798→   798→              <ScrollArea className="flex-1 px-5 py-4">
+   799→   799→   799→                {/* Details */}
+   800→   800→   800→                <div className="space-y-2.5 mb-5">
+   801→   801→   801→                  <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
+   802→   802→   802→                    Details
+   803→   803→   803→                  </p>
+   804→   804→   804→                  {Object.entries(selectedNode.details).map(([key, val]) => (
+   805→   805→   805→                    <div key={key} className="flex justify-between items-start gap-2">
+   806→   806→   806→                      <span className="text-xs capitalize shrink-0" style={{ color: "var(--text-secondary)" }}>
+   807→   807→   807→                        {key.replace(/_/g, " ")}
+   808→   808→   808→                      </span>
+   809→   809→   809→                      <span className="text-xs font-medium text-right" style={{ color: "var(--text-primary)" }}>
+   810→   810→   810→                        {val}
+   811→   811→   811→                      </span>
+   812→   812→   812→                    </div>
+   813→   813→   813→                  ))}
+   814→   814→   814→                  {selectedNode.value > 0 && (
+   815→   815→   815→                    <div className="flex justify-between items-start gap-2">
+   816→   816→   816→                      <span className="text-xs capitalize shrink-0" style={{ color: "var(--text-secondary)" }}>
+   817→   817→   817→                        Value
+   818→   818→   818→                      </span>
+   819→   819→   819→                      <span className="text-xs font-medium" style={{ color: "var(--success)" }}>
+   820→   820→   820→                        {selectedNode.type === "account" || selectedNode.type === "fir"
+   821→   821→   821→                          ? `₹${selectedNode.value.toLocaleString("en-IN")}`
+   822→   822→   822→                          : selectedNode.value}
+   823→   823→   823→                      </span>
+   824→   824→   824→                    </div>
+   825→   825→   825→                  )}
+   826→   826→   826→                </div>
+   827→   827→   827→
+   828→   828→   828→                <Separator className="my-3" style={{ background: "var(--border-default)" }} />
+   829→   829→   829→
+   830→   830→   830→                {/* Connected Nodes */}
+   831→   831→   831→                {selectedConnections.nodes.length > 0 && (
+   832→   832→   832→                  <div className="mb-5">
+   833→   833→   833→                    <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
+   834→   834→   834→                      Connected Nodes ({selectedConnections.nodes.length})
+   835→   835→   835→                    </p>
+   836→   836→   836→                    <div className="space-y-1.5">
+   837→   837→   837→                      {selectedConnections.nodes.map((node) => (
+   838→   838→   838→                        <button
+   839→   839→   839→                          key={node.id}
+   840→   840→   840→                          onClick={() => setSelectedNode(node)}
+   841→   841→   841→                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-colors group"
+   842→   842→   842→                          style={{ background: "var(--border-subtle)" }}
+   843→   843→   843→                          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
+   844→   844→   844→                          onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
+   845→   845→   845→                        >
+   846→   846→   846→                          <Circle
+   847→   847→   847→                            className="w-3 h-3 shrink-0"
+   848→   848→   848→                            fill={NODE_COLORS[node.type]}
+   849→   849→   849→                            stroke={NODE_COLORS[node.type]}
+   850→   850→   850→                          />
+   851→   851→   851→                          <span className="text-xs font-medium truncate flex-1" style={{ color: "var(--text-primary)" }}>
+   852→   852→   852→                            {node.label}
+   853→   853→   853→                          </span>
+   854→   854→   854→                          <Badge
+   855→   855→   855→                            className="text-[9px] px-1.5 py-0 shrink-0"
+   856→   856→   856→                            style={{ background: NODE_COLORS[node.type] + "22", color: NODE_COLORS[node.type] }}
+   857→   857→   857→                          >
+   858→   858→   858→                            {NODE_LABELS[node.type]}
+   859→   859→   859→                          </Badge>
+   860→   860→   860→                          <ChevronRight className="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "var(--text-tertiary)" }} />
+   861→   861→   861→                        </button>
+   862→   862→   862→                      ))}
+   863→   863→   863→                    </div>
+   864→   864→   864→                  </div>
+   865→   865→   865→                )}
+   866→   866→   866→
+   867→   867→   867→                {/* Connected Edges */}
+   868→   868→   868→                {selectedConnections.edges.length > 0 && (
+   869→   869→   869→                  <div>
+   870→   870→   870→                    <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
+   871→   871→   871→                      Connections ({selectedConnections.edges.length})
+   872→   872→   872→                    </p>
+   873→   873→   873→                    <div className="space-y-1.5">
+   874→   874→   874→                      {selectedConnections.edges.map((edge, i) => {
+   875→   875→   875→                        const isOutgoing = edge.source === selectedNode.id;
+   876→   876→   876→                        const otherId = isOutgoing ? edge.target : edge.source;
+   877→   877→   877→                        const otherNode = simNodes.find((n) => n.id === otherId);
+   878→   878→   878→                        return (
+   879→   879→   879→                          <div
+   880→   880→   880→                            key={i}
+   881→   881→   881→                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg"
+   882→   882→   882→                            style={{ background: "var(--border-subtle)" }}
+   883→   883→   883→                          >
+   884→   884→   884→                            <div className="w-3 h-0.5 rounded shrink-0" style={{ background: EDGE_COLORS[edge.type] }} />
+   885→   885→   885→                            <div className="min-w-0 flex-1">
+   886→   886→   886→                              <div className="flex items-center gap-1.5">
+   887→   887→   887→                                <span className="text-[9px] uppercase font-medium" style={{ color: EDGE_COLORS[edge.type] }}>
+   888→   888→   888→                                  {edge.type}
+   889→   889→   889→                                </span>
+   890→   890→   890→                                {edge.amount != null && (
+   891→   891→   891→                                  <span className="text-[10px] font-semibold" style={{ color: "var(--success)" }}>
+   892→   892→   892→                                    ₹{edge.amount.toLocaleString("en-IN")}
+   893→   893→   893→                                  </span>
+   894→   894→   894→                                )}
+   895→   895→   895→                              </div>
+   896→   896→   896→                              {edge.label && (
+   897→   897→   897→                                <p className="text-[10px] truncate mt-0.5" style={{ color: "var(--text-tertiary)" }}>
+   898→   898→   898→                                  {edge.label}
+   899→   899→   899→                                </p>
+   900→   900→   900→                              )}
+   901→   901→   901→                              {otherNode && (
+   902→   902→   902→                                <p className="text-[10px] truncate mt-0.5" style={{ color: "var(--text-secondary)" }}>
+   903→   903→   903→                                  {isOutgoing ? "→" : "←"} {otherNode.label}
+   904→   904→   904→                                </p>
+   905→   905→   905→                              )}
+   906→   906→   906→                            </div>
+   907→   907→   907→                          </div>
+   908→   908→   908→                        );
+   909→   909→   909→                      })}
+   910→   910→   910→                    </div>
+   911→   911→   911→                  </div>
+   912→   912→   912→                )}
+   913→   913→   913→              </ScrollArea>
+   914→   914→   914→            </div>
+   915→   915→   915→          </motion.div>
+   916→   916→   916→        )}
+   917→   917→   917→      </AnimatePresence>
+   918→   918→   918→    </div>
+   919→   919→   919→  );
+   920→   920→   920→}

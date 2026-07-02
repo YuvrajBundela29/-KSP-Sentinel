@@ -1,0 +1,1762 @@
+     1→     1→"use client";
+     2→     2→
+     3→     3→import dynamic from "next/dynamic";
+     4→     4→import {
+     5→     5→  useState,
+     6→     6→  useMemo,
+     7→     7→  useCallback,
+     8→     8→  useEffect,
+     9→     9→  useRef,
+    10→    10→  Suspense,
+    11→    11→} from "react";
+    12→    12→import { useAppStore } from "@/lib/store";
+    13→    13→import { getNetworkEdges } from "@/lib/data";
+    14→    14→import {
+    15→    15→  Select,
+    16→    16→  SelectContent,
+    17→    17→  SelectItem,
+    18→    18→  SelectTrigger,
+    19→    19→  SelectValue,
+    20→    20→} from "@/components/ui/select";
+    21→    21→import {
+    22→    22→  X,
+    23→    23→  User,
+    24→    24→  Shield,
+    25→    25→  FileText,
+    26→    26→  Car,
+    27→    27→  MapPin,
+    28→    28→  Users,
+    29→    29→  RotateCcw,
+    30→    30→  Maximize2,
+    31→    31→  Box,
+    32→    32→} from "lucide-react";
+    33→    33→import type { FIR, Accused, Gang, Vehicle, District } from "@/lib/types";
+    34→    34→import LoadingSpinner from "./LoadingSpinner";
+    35→    35→import { Canvas, useFrame, useThree } from "@react-three/fiber";
+    36→    36→import { OrbitControls, Html } from "@react-three/drei";
+    37→    37→import * as THREE from "three";
+    38→    38→
+    39→    39→/* ------------------------------------------------------------------ */
+    40→    40→/*  Types                                                              */
+    41→    41→/* ------------------------------------------------------------------ */
+    42→    42→
+    43→    43→interface SimNode {
+    44→    44→  id: string;
+    45→    45→  name: string;
+    46→    46→  type: "accused" | "gang" | "fir" | "vehicle" | "district";
+    47→    47→  color: string;
+    48→    48→  size: number;
+    49→    49→  x: number;
+    50→    50→  y: number;
+    51→    51→  z: number;
+    52→    52→  vx: number;
+    53→    53→  vy: number;
+    54→    54→  vz: number;
+    55→    55→  _accused?: Accused;
+    56→    56→  _gang?: Gang;
+    57→    57→  _fir?: FIR;
+    58→    58→  _vehicle?: Vehicle;
+    59→    59→  _district?: District;
+    60→    60→  _firCount?: number;
+    61→    61→}
+    62→    62→
+    63→    63→interface SimLink {
+    64→    64→  source: string;
+    65→    65→  target: string;
+    66→    66→  type: string;
+    67→    67→  color: string;
+    68→    68→}
+    69→    69→
+    70→    70→/* ------------------------------------------------------------------ */
+    71→    71→/*  Constants — Classified Console Design System (Phosphor Green)       */
+    72→    72→/* ------------------------------------------------------------------ */
+    73→    73→
+    74→    74→const LINK_COLORS: Record<string, string> = {
+    75→    75→  involved_in: "rgba(0,255,102,0.12)",
+    76→    76→  member_of: "rgba(0,255,102,0.18)",
+    77→    77→  occurred_in: "rgba(0,255,102,0.12)",
+    78→    78→  used_vehicle: "rgba(0,255,102,0.12)",
+    79→    79→  gang_associate: "rgba(0,255,102,0.08)",
+    80→    80→};
+    81→    81→
+    82→    82→const CRIME_TYPES = [
+    83→    83→  "Chain Snatching",
+    84→    84→  "Vehicle Theft",
+    85→    85→  "Cyber Fraud",
+    86→    86→  "Jewellery Heist",
+    87→    87→  "Drug Trafficking",
+    88→    88→];
+    89→    89→
+    90→    90→const NODE_TYPE_CONFIG: Record<
+    91→    91→  string,
+    92→    92→  { color: string; label: string; icon: string; radius: number }
+    93→    93→> = {
+    94→    94→  accused: { color: "#00cc52", label: "Accused", icon: "●", radius: 0.65 },
+    95→    95→  gang: { color: "#00FF66", label: "Gang", icon: "◆", radius: 1.6 },
+    96→    96→  fir: { color: "rgba(0,255,102,0.7)", label: "FIR", icon: "■", radius: 0.5 },
+    97→    97→  vehicle: { color: "rgba(0,255,102,0.4)", label: "Vehicle", icon: "▲", radius: 0.55 },
+    98→    98→  district: { color: "rgba(0,255,102,0.35)", label: "District", icon: "◉", radius: 1.3 },
+    99→    99→};
+   100→   100→
+   101→   101→/* ------------------------------------------------------------------ */
+   102→   102→/*  Solid Card Style                                                   */
+   103→   103→/* ------------------------------------------------------------------ */
+   104→   104→
+   105→   105→const solidCard: React.CSSProperties = {
+   106→   106→  background: "var(--bg-card)",
+   107→   107→  border: "1px solid var(--border-default)",
+   108→   108→  borderRadius: "3px",
+   109→   109→  boxShadow:
+   110→   110→    "0 16px 48px -12px rgba(0, 0, 0, 0.5), 0 0 8px rgba(0,255,102,0.04)",
+   111→   111→};
+   112→   112→
+   113→   113→/* ------------------------------------------------------------------ */
+   114→   114→/*  Info Panel sub-components                                          */
+   115→   115→/* ------------------------------------------------------------------ */
+   116→   116→
+   117→   117→function InfoRow({
+   118→   118→  icon: Icon,
+   119→   119→  label,
+   120→   120→  value,
+   121→   121→}: {
+   122→   122→  icon: React.ElementType;
+   123→   123→  label: string;
+   124→   124→  value: React.ReactNode;
+   125→   125→}) {
+   126→   126→  return (
+   127→   127→    <div className="flex items-start gap-2 py-1.5">
+   128→   128→      <Icon className="size-4 mt-0.5 shrink-0 text-[var(--text-secondary)]" />
+   129→   129→      <div className="min-w-0">
+   130→   130→        <p className="text-[11px] uppercase tracking-wider text-[var(--text-tertiary)]">
+   131→   131→          {label}
+   132→   132→        </p>
+   133→   133→        <p className="text-sm text-[var(--text-primary)] break-words">{value}</p>
+   134→   134→      </div>
+   135→   135→    </div>
+   136→   136→  );
+   137→   137→}
+   138→   138→
+   139→   139→function AccusedPanel({ node }: { node: SimNode }) {
+   140→   140→  const a = node._accused!;
+   141→   141→  const crimeData = useAppStore((s) => s.crimeData);
+   142→   142→  const firs =
+   143→   143→    crimeData?.firs.filter((f) => f.accused.includes(a.id)) ?? [];
+   144→   144→  const gang = crimeData?.gangs.find((g) => g.id === a.gang);
+   145→   145→  return (
+   146→   146→    <div className="space-y-3">
+   147→   147→      <div className="flex items-center gap-2">
+   148→   148→        <div className="w-9 h-9 rounded-full bg-[#00FF66]/15 flex items-center justify-center">
+   149→   149→          <User className="size-4 text-[#00FF66]" />
+   150→   150→        </div>
+   151→   151→        <div>
+   152→   152→          <h3 className="text-base font-semibold text-white leading-tight">
+   153→   153→            {a.name}
+   154→   154→          </h3>
+   155→   155→          <span className="text-[11px] text-[var(--text-tertiary)] uppercase">
+   156→   156→            Accused &bull; {a.id}
+   157→   157→          </span>
+   158→   158→        </div>
+   159→   159→      </div>
+   160→   160→      <InfoRow icon={User} label="Age" value={`${a.age} years`} />
+   161→   161→      <InfoRow icon={Users} label="Gender" value={a.gender} />
+   162→   162→      <InfoRow
+   163→   163→        icon={Shield}
+   164→   164→        label="Risk Score"
+   165→   165→        value={
+   166→   166→          <span
+   167→   167→            className={
+   168→   168→              a.risk > 80
+   169→   169→                ? "text-[#00FF66] font-bold"
+   170→   170→                : a.risk > 60
+   171→   171→                ? "text-[#00cc52] font-bold"
+   172→   172→                : "text-[rgba(0,255,102,0.6)] font-bold"
+   173→   173→            }
+   174→   174→          >
+   175→   175→            {a.risk}/100
+   176→   176→          </span>
+   177→   177→        }
+   178→   178→      />
+   179→   179→      <InfoRow
+   180→   180→        icon={Shield}
+   181→   181→        label="Gang"
+   182→   182→        value={gang ? gang.name : "None"}
+   183→   183→      />
+   184→   184→      <InfoRow
+   185→   185→        icon={FileText}
+   186→   186→        label="Prior FIRs"
+   187→   187→        value={String(a.prior_firs)}
+   188→   188→      />
+   189→   189→      {firs.length > 0 && (
+   190→   190→        <div className="mt-2">
+   191→   191→          <p className="text-[11px] uppercase tracking-wider text-[var(--text-tertiary)] mb-1">
+   192→   192→            Linked FIRs
+   193→   193→          </p>
+   194→   194→          <div className="flex flex-wrap gap-1">
+   195→   195→            {firs.map((f) => (
+   196→   196→              <span
+   197→   197→                key={f.fir_id}
+   198→   198→                className="px-1.5 py-0.5 bg-[#00FF66]/10 text-[#00FF66] text-[11px] rounded font-mono"
+   199→   199→              >
+   200→   200→                {f.fir_id}
+   201→   201→              </span>
+   202→   202→            ))}
+   203→   203→          </div>
+   204→   204→        </div>
+   205→   205→      )}
+   206→   206→    </div>
+   207→   207→  );
+   208→   208→}
+   209→   209→
+   210→   210→function GangPanel({ node }: { node: SimNode }) {
+   211→   211→  const g = node._gang!;
+   212→   212→  const crimeData = useAppStore((s) => s.crimeData);
+   213→   213→  return (
+   214→   214→    <div className="space-y-3">
+   215→   215→      <div className="flex items-center gap-2">
+   216→   216→        <div className="w-9 h-9 rounded-full bg-[#00FF66]/15 flex items-center justify-center">
+   217→   217→          <Shield className="size-4 text-[#00FF66]" />
+   218→   218→        </div>
+   219→   219→        <div>
+   220→   220→          <h3 className="text-base font-semibold text-white leading-tight">
+   221→   221→            {g.name}
+   222→   222→          </h3>
+   223→   223→          <span className="text-[11px] text-[var(--text-tertiary)] uppercase">
+   224→   224→            Gang &bull; {g.id}
+   225→   225→          </span>
+   226→   226→        </div>
+   227→   227→      </div>
+   228→   228→      <InfoRow icon={Shield} label="Type" value={g.type} />
+   229→   229→      <InfoRow icon={MapPin} label="Base" value={g.base} />
+   230→   230→      <InfoRow
+   231→   231→        icon={Users}
+   232→   232→        label="Members"
+   233→   233→        value={
+   234→   234→          <div className="space-y-0.5">
+   235→   235→            {g.members.map((mid) => {
+   236→   236→              const acc = crimeData?.accused.find((a) => a.id === mid);
+   237→   237→              return (
+   238→   238→                <div key={mid}>
+   239→   239→                  {acc ? acc.name : mid}{" "}
+   240→   240→                  <span className="text-[var(--text-tertiary)]">({mid})</span>
+   241→   241→                </div>
+   242→   242→              );
+   243→   243→            })}
+   244→   244→          </div>
+   245→   245→        }
+   246→   246→      />
+   247→   247→    </div>
+   248→   248→  );
+   249→   249→}
+   250→   250→
+   251→   251→function FIRPanel({ node }: { node: SimNode }) {
+   252→   252→  const f = node._fir!;
+   253→   253→  return (
+   254→   254→    <div className="space-y-3">
+   255→   255→      <div className="flex items-center gap-2">
+   256→   256→        <div className="w-9 h-9 rounded-full bg-[#00FF66]/15 flex items-center justify-center">
+   257→   257→          <FileText className="size-4 text-[#00FF66]" />
+   258→   258→        </div>
+   259→   259→        <div>
+   260→   260→          <h3 className="text-base font-semibold text-white leading-tight">
+   261→   261→            {f.fir_id}
+   262→   262→          </h3>
+   263→   263→          <span className="text-[11px] text-[var(--text-tertiary)] uppercase">
+   264→   264→            FIR &bull; {f.crime_type}
+   265→   265→          </span>
+   266→   266→        </div>
+   267→   267→      </div>
+   268→   268→      <InfoRow icon={FileText} label="Date" value={`${f.date} ${f.time}`} />
+   269→   269→      <InfoRow icon={MapPin} label="District" value={f.district} />
+   270→   270→      <InfoRow
+   271→   271→        icon={Shield}
+   272→   272→        label="Severity"
+   273→   273→        value={
+   274→   274→          <span
+   275→   275→            className={
+   276→   276→              f.severity === "critical"
+   277→   277→                ? "text-[#00FF66]"
+   278→   278→                : f.severity === "high"
+   279→   279→                ? "text-[#00cc52]"
+   280→   280→                : "text-[rgba(0,255,102,0.7)]"
+   281→   281→            }
+   282→   282→          >
+   283→   283→            {f.severity.toUpperCase()}
+   284→   284→          </span>
+   285→   285→        }
+   286→   286→      />
+   287→   287→      <InfoRow
+   288→   288→        icon={Shield}
+   289→   289→        label="Status"
+   290→   290→        value={f.investigation_status}
+   291→   291→      />
+   292→   292→      <InfoRow icon={MapPin} label="Location" value={f.location.place} />
+   293→   293→      <InfoRow
+   294→   294→        icon={Users}
+   295→   295→        label="Accused"
+   296→   296→        value={
+   297→   297→          <div className="space-y-0.5">
+   298→   298→            {f.accused.map((a) => (
+   299→   299→              <div key={a}>{a}</div>
+   300→   300→            ))}
+   301→   301→          </div>
+   302→   302→        }
+   303→   303→      />
+   304→   304→    </div>
+   305→   305→  );
+   306→   306→}
+   307→   307→
+   308→   308→function VehiclePanel({ node }: { node: SimNode }) {
+   309→   309→  const v = node._vehicle!;
+   310→   310→  return (
+   311→   311→    <div className="space-y-3">
+   312→   312→      <div className="flex items-center gap-2">
+   313→   313→        <div className="w-9 h-9 rounded-full bg-[rgba(0,255,102,0.3)]/15 flex items-center justify-center">
+   314→   314→          <Car className="size-4 text-[rgba(0,255,102,0.6)]" />
+   315→   315→        </div>
+   316→   316→        <div>
+   317→   317→          <h3 className="text-base font-semibold text-white leading-tight">
+   318→   318→            {v.reg}
+   319→   319→          </h3>
+   320→   320→          <span className="text-[11px] text-[var(--text-tertiary)] uppercase">
+   321→   321→            Vehicle &bull; {v.id}
+   322→   322→          </span>
+   323→   323→        </div>
+   324→   324→      </div>
+   325→   325→      <InfoRow icon={Car} label="Type" value={v.type} />
+   326→   326→      <InfoRow icon={Car} label="Make" value={v.make} />
+   327→   327→      <InfoRow icon={Shield} label="Color" value={v.color} />
+   328→   328→    </div>
+   329→   329→  );
+   330→   330→}
+   331→   331→
+   332→   332→function DistrictPanel({ node }: { node: SimNode }) {
+   333→   333→  const d = node._district!;
+   334→   334→  return (
+   335→   335→    <div className="space-y-3">
+   336→   336→      <div className="flex items-center gap-2">
+   337→   337→        <div className="w-9 h-9 rounded-full bg-[rgba(0,255,102,0.3)]/15 flex items-center justify-center">
+   338→   338→          <MapPin className="size-4 text-[rgba(0,255,102,0.6)]" />
+   339→   339→        </div>
+   340→   340→        <div>
+   341→   341→          <h3 className="text-base font-semibold text-white leading-tight">
+   342→   342→            {d.name}
+   343→   343→          </h3>
+   344→   344→          <span className="text-[11px] text-[var(--text-tertiary)] uppercase">
+   345→   345→            District
+   346→   346→          </span>
+   347→   347→        </div>
+   348→   348→      </div>
+   349→   349→      <InfoRow icon={MapPin} label="Name" value={d.name} />
+   350→   350→      <InfoRow
+   351→   351→        icon={FileText}
+   352→   352→        label="FIR Count"
+   353→   353→        value={
+   354→   354→          <span className="font-bold text-[#00FF66]">
+   355→   355→            {node._firCount ?? 0}
+   356→   356→          </span>
+   357→   357→        }
+   358→   358→      />
+   359→   359→    </div>
+   360→   360→  );
+   361→   361→}
+   362→   362→
+   363→   363→/* ------------------------------------------------------------------ */
+   364→   364→/*  Hierarchical Radial Layout (deterministic, no force simulation)     */
+   365→   365→/* ------------------------------------------------------------------ */
+   366→   366→
+   367→   367→function layoutHierarchical(
+   368→   368→  nodes: SimNode[],
+   369→   369→  links: SimLink[]
+   370→   370→) {
+   371→   371→  const nodeMap = new Map<string, SimNode>();
+   372→   372→  for (const n of nodes) nodeMap.set(n.id, n);
+   373→   373→
+   374→   374→  /* Group by type */
+   375→   375→  const gangs: SimNode[] = [];
+   376→   376→  const accused: SimNode[] = [];
+   377→   377→  const firs: SimNode[] = [];
+   378→   378→  const vehicles: SimNode[] = [];
+   379→   379→  const districts: SimNode[] = [];
+   380→   380→
+   381→   381→  for (const n of nodes) {
+   382→   382→    switch (n.type) {
+   383→   383→      case "gang": gangs.push(n); break;
+   384→   384→      case "accused": accused.push(n); break;
+   385→   385→      case "fir": firs.push(n); break;
+   386→   386→      case "vehicle": vehicles.push(n); break;
+   387→   387→      case "district": districts.push(n); break;
+   388→   388→    }
+   389→   389→  }
+   390→   390→
+   391→   391→  /* Build adjacency: accused → gang */
+   392→   392→  const accusedToGang = new Map<string, SimNode>();
+   393→   393→  const gangMembers = new Map<string, SimNode[]>();
+   394→   394→  for (const a of accused) {
+   395→   395→    if (a._accused?.gang) {
+   396→   396→      const g = nodeMap.get(a._accused.gang);
+   397→   397→      if (g) {
+   398→   398→        accusedToGang.set(a.id, g);
+   399→   399→        if (!gangMembers.has(g.id)) gangMembers.set(g.id, []);
+   400→   400→        gangMembers.get(g.id)!.push(a);
+   401→   401→      }
+   402→   402→    }
+   403→   403→  }
+   404→   404→
+   405→   405→  /* Build adjacency: FIR → accused, FIR → district, FIR → vehicle */
+   406→   406→  const firToAccused = new Map<string, SimNode[]>();
+   407→   407→  const firToDistrict = new Map<string, SimNode>();
+   408→   408→  const firToVehicle = new Map<string, SimNode>();
+   409→   409→  for (const f of firs) {
+   410→   410→    if (f._fir) {
+   411→   411→      const linked: SimNode[] = [];
+   412→   412→      for (const aid of f._fir.accused) {
+   413→   413→        const a = nodeMap.get(aid);
+   414→   414→        if (a) linked.push(a);
+   415→   415→      }
+   416→   416→      firToAccused.set(f.id, linked);
+   417→   417→      if (f._fir.district) {
+   418→   418→        const d = nodeMap.get(f._fir.district);
+   419→   419→        if (d) firToDistrict.set(f.id, d);
+   420→   420→      }
+   421→   421→      if (f._fir.vehicle_used) {
+   422→   422→        const v = nodeMap.get(f._fir.vehicle_used);
+   423→   423→        if (v) firToVehicle.set(f.id, v);
+   424→   424→      }
+   425→   425→    }
+   426→   426→  }
+   427→   427→
+   428→   428→  /* ── 1. Place GANGS in center ring ── */
+   429→   429→  const gangRadius = Math.max(5, gangs.length * 2.8);
+   430→   430→  const gangAngleStep = gangs.length > 0 ? (2 * Math.PI) / gangs.length : 0;
+   431→   431→  for (let i = 0; i < gangs.length; i++) {
+   432→   432→    const angle = gangAngleStep * i - Math.PI / 2;
+   433→   433→    gangs[i].x = Math.cos(angle) * gangRadius;
+   434→   434→    gangs[i].y = 1.0;
+   435→   435→    gangs[i].z = Math.sin(angle) * gangRadius;
+   436→   436→  }
+   437→   437→
+   438→   438→  /* ── 2. Place ACCUSED around their gang ── */
+   439→   439→  for (const gang of gangs) {
+   440→   440→    const members = gangMembers.get(gang.id) ?? [];
+   441→   441→    const memberRadius = 6.0;
+   442→   442→    const arcSpan = Math.min(Math.PI * 0.85, members.length * 0.5);
+   443→   443→    const memberAngleStep =
+   444→   444→      members.length > 1 ? arcSpan / (members.length - 1) : 0;
+   445→   445→    const gangAngle = Math.atan2(gang.z, gang.x);
+   446→   446→    const startAngle = gangAngle - arcSpan / 2;
+   447→   447→
+   448→   448→    for (let i = 0; i < members.length; i++) {
+   449→   449→      const angle = startAngle + memberAngleStep * i;
+   450→   450→      members[i].x = gang.x + Math.cos(angle) * memberRadius;
+   451→   451→      members[i].y = 0.3;
+   452→   452→      members[i].z = gang.z + Math.sin(angle) * memberRadius;
+   453→   453→    }
+   454→   454→  }
+   455→   455→
+   456→   456→  /* Accused with no gang → outer scatter */
+   457→   457→  const unaffiliated = accused.filter((a) => !accusedToGang.has(a.id));
+   458→   458→  const uaRadius = gangRadius + 10;
+   459→   459→  const uaStep =
+   460→   460→    unaffiliated.length > 0 ? (2 * Math.PI) / unaffiliated.length : 0;
+   461→   461→  for (let i = 0; i < unaffiliated.length; i++) {
+   462→   462→    const angle = uaStep * i + 0.5;
+   463→   463→    unaffiliated[i].x = Math.cos(angle) * uaRadius;
+   464→   464→    unaffiliated[i].y = 0.3;
+   465→   465→    unaffiliated[i].z = Math.sin(angle) * uaRadius;
+   466→   466→  }
+   467→   467→
+   468→   468→  /* ── 3. Place FIRs near their first accused, pushed outward ── */
+   469→   469→  // Track FIR placement angles to spread multiple FIRs per accused
+   470→   470→  const accusedFirCount = new Map<string, number>();
+   471→   471→  for (const fir of firs) {
+   472→   472→    const linked = firToAccused.get(fir.id);
+   473→   473→    if (linked && linked.length > 0) {
+   474→   474→      const anchor = linked[0];
+   475→   475→      const dirX = anchor.x;
+   476→   476→      const dirZ = anchor.z;
+   477→   477→      const dist = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
+   478→   478→      const outX = dirX / dist;
+   479→   479→      const outZ = dirZ / dist;
+   480→   480→      const idx = accusedFirCount.get(anchor.id) ?? 0;
+   481→   481→      accusedFirCount.set(anchor.id, idx + 1);
+   482→   482→      // Fan out multiple FIRs per accused
+   483→   483→      const spread = idx * 0.6;
+   484→   484→      const perpX = -outZ;
+   485→   485→      const perpZ = outX;
+   486→   486→      fir.x = anchor.x + outX * 4.0 + perpX * spread;
+   487→   487→      fir.y = -0.1;
+   488→   488→      fir.z = anchor.z + outZ * 4.0 + perpZ * spread;
+   489→   489→    } else {
+   490→   490→      // Fallback: place in a ring
+   491→   491→      const fIdx = firs.indexOf(fir);
+   492→   492→      const fAngle = (2 * Math.PI * fIdx) / firs.length;
+   493→   493→      const fRadius = gangRadius + 7;
+   494→   494→      fir.x = Math.cos(fAngle) * fRadius;
+   495→   495→      fir.y = -0.2;
+   496→   496→      fir.z = Math.sin(fAngle) * fRadius;
+   497→   497→    }
+   498→   498→  }
+   499→   499→
+   500→   500→  /* ── 4. Place VEHICLES near their FIR ── */
+   501→   501→  for (const v of vehicles) {
+   502→   502→    const link = links.find((l) => l.source === v.id || l.target === v.id);
+   503→   503→    if (link) {
+   504→   504→      const otherId =
+   505→   505→        link.source === v.id ? link.target : link.source;
+   506→   506→      const anchor = nodeMap.get(otherId);
+   507→   507→      if (anchor) {
+   508→   508→        const dx = anchor.x;
+   509→   509→        const dz = anchor.z;
+   510→   510→        const dist = Math.sqrt(dx * dx + dz * dz) || 1;
+   511→   511→        const perpX = -dz / dist;
+   512→   512→        const perpZ = dx / dist;
+   513→   513→        v.x = anchor.x + perpX * 2.5 + (dx / dist) * 1.8;
+   514→   514→        v.y = -0.3;
+   515→   515→        v.z = anchor.z + perpZ * 2.5 + (dz / dist) * 1.8;
+   516→   516→        continue;
+   517→   517→      }
+   518→   518→    }
+   519→   519→    // Fallback: outer ring
+   520→   520→    const vIdx = vehicles.indexOf(v);
+   521→   521→    const vAngle = (2 * Math.PI * vIdx) / vehicles.length + 1.0;
+   522→   522→    const vRadius = gangRadius + 12;
+   523→   523→    v.x = Math.cos(vAngle) * vRadius;
+   524→   524→    v.y = -0.4;
+   525→   525→    v.z = Math.sin(vAngle) * vRadius;
+   526→   526→  }
+   527→   527→
+   528→   528→  /* ── 5. Place DISTRICTS in outer ring ── */
+   529→   529→  const distRadius = gangRadius + 16;
+   530→   530→  const distStep =
+   531→   531→    districts.length > 0 ? (2 * Math.PI) / districts.length : 0;
+   532→   532→  for (let i = 0; i < districts.length; i++) {
+   533→   533→    const angle = distStep * i + 0.3;
+   534→   534→    districts[i].x = Math.cos(angle) * distRadius;
+   535→   535→    districts[i].y = -0.6;
+   536→   536→    districts[i].z = Math.sin(angle) * distRadius;
+   537→   537→  }
+   538→   538→
+   539→   539→  /* ── 6. Collision avoidance (8 passes, stronger) ── */
+   540→   540→  for (let pass = 0; pass < 8; pass++) {
+   541→   541→    for (let i = 0; i < nodes.length; i++) {
+   542→   542→      for (let j = i + 1; j < nodes.length; j++) {
+   543→   543→        const a = nodes[i];
+   544→   544→        const b = nodes[j];
+   545→   545→        const dx = a.x - b.x;
+   546→   546→        const dz = a.z - b.z;
+   547→   547→        const dist = Math.sqrt(dx * dx + dz * dz);
+   548→   548→        // Larger minimum distance for bigger node types
+   549→   549→        const ra = getNodeRadius(a);
+   550→   550→        const rb = getNodeRadius(b);
+   551→   551→        const minDist = (ra + rb) * 2.5 + 0.5;
+   552→   552→        if (dist < minDist && dist > 0.01) {
+   553→   553→          const push = (minDist - dist) * 0.45;
+   554→   554→          const nx = dx / dist;
+   555→   555→          const nz = dz / dist;
+   556→   556→          a.x += nx * push;
+   557→   557→          a.z += nz * push;
+   558→   558→          b.x -= nx * push;
+   559→   559→          b.z -= nz * push;
+   560→   560→        }
+   561→   561→      }
+   562→   562→    }
+   563→   563→  }
+   564→   564→}
+   565→   565→
+   566→   566→/* ------------------------------------------------------------------ */
+   567→   567→/*  Compute curved link points (quadratic bezier arc in 3D)           */
+   568→   568→/* ------------------------------------------------------------------ */
+   569→   569→
+   570→   570→function curvedLinkPoints(
+   571→   571→  sx: number,
+   572→   572→  sy: number,
+   573→   573→  sz: number,
+   574→   574→  tx: number,
+   575→   575→  ty: number,
+   576→   576→  tz: number,
+   577→   577→  segments: number = 12
+   578→   578→): [number, number, number][] {
+   579→   579→  // Midpoint with upward arc
+   580→   580→  const mx = (sx + tx) / 2;
+   581→   581→  const mz = (sz + tz) / 2;
+   582→   582→  const my = Math.max(sy, ty) + 0.8; // arc upward
+   583→   583→
+   584→   584→  const points: [number, number, number][] = [];
+   585→   585→  for (let i = 0; i <= segments; i++) {
+   586→   586→    const t = i / segments;
+   587→   587→    const inv = 1 - t;
+   588→   588→    // Quadratic bezier
+   589→   589→    const px = inv * inv * sx + 2 * inv * t * mx + t * t * tx;
+   590→   590→    const py = inv * inv * sy + 2 * inv * t * my + t * t * ty;
+   591→   591→    const pz = inv * inv * sz + 2 * inv * t * mz + t * t * tz;
+   592→   592→    points.push([px, py, pz]);
+   593→   593→  }
+   594→   594→  return points;
+   595→   595→}
+   596→   596→
+   597→   597→/* ------------------------------------------------------------------ */
+   598→   598→/*  3D Scene Components                                                */
+   599→   599→/* ------------------------------------------------------------------ */
+   600→   600→
+   601→   601→function getNodeRadius(node: SimNode): number {
+   602→   602→  let r = NODE_TYPE_CONFIG[node.type]?.radius ?? 0.5;
+   603→   603→  if (node.type === "accused" && node._accused) {
+   604→   604→    r = Math.max(0.4, node._accused.risk / 100);
+   605→   605→  }
+   606→   606→  if (node.type === "district" && node._firCount) {
+   607→   607→    r = Math.max(0.6, Math.min(1.4, 0.7 + node._firCount * 0.15));
+   608→   608→  }
+   609→   609→  return r;
+   610→   610→}
+   611→   611→
+   612→   612→/* ── Animated Dashed Edge ── */
+   613→   613→function AnimatedEdge({
+   614→   614→  link,
+   615→   615→  nodeMap,
+   616→   616→  selectedNodeId,
+   617→   617→}: {
+   618→   618→  link: SimLink;
+   619→   619→  nodeMap: Map<string, SimNode>;
+   620→   620→  selectedNodeId: string | null;
+   621→   621→}) {
+   622→   622→  const s = nodeMap.get(link.source);
+   623→   623→  const t = nodeMap.get(link.target);
+   624→   624→  const lineRef = useRef<THREE.Line>(null);
+   625→   625→  const matRef = useRef<THREE.LineDashedMaterial>(null);
+   626→   626→
+   627→   627→  if (!s || !t) return null;
+   628→   628→  if (link.type === "gang_associate") return null;
+   629→   629→
+   630→   630→  const isHighlighted =
+   631→   631→    selectedNodeId &&
+   632→   632→    (link.source === selectedNodeId || link.target === selectedNodeId);
+   633→   633→
+   634→   634→  const baseOpacity = link.type === "involved_in" ? 0.28 : 0.35;
+   635→   635→  const opacity = selectedNodeId
+   636→   636→    ? isHighlighted
+   637→   637→      ? 0.95
+   638→   638→      : 0.02
+   639→   639→    : baseOpacity;
+   640→   640→
+   641→   641→  if (opacity < 0.02) return null;
+   642→   642→
+   643→   643→  const points = curvedLinkPoints(s.x, s.y, s.z, t.x, t.y, t.z, 20);
+   644→   644→
+   645→   645→  const geometry = useMemo(() => {
+   646→   646→    const geo = new THREE.BufferGeometry();
+   647→   647→    const vertices = new Float32Array(points.length * 3);
+   648→   648→    for (let i = 0; i < points.length; i++) {
+   649→   649→      vertices[i * 3] = points[i][0];
+   650→   650→      vertices[i * 3 + 1] = points[i][1];
+   651→   651→      vertices[i * 3 + 2] = points[i][2];
+   652→   652→    }
+   653→   653→    geo.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
+   654→   654→    return geo;
+   655→   655→  }, [points]);
+   656→   656→
+   657→   657→  // Animate dash offset to create "data flowing" effect
+   658→   658→  useFrame((_state, delta) => {
+   659→   659→    if (matRef.current) {
+   660→   660→      matRef.current.dashOffset -= delta * (isHighlighted ? 2.0 : 0.6);
+   661→   661→    }
+   662→   662→  });
+   663→   663→
+   664→   664→  return (
+   665→   665→    <line ref={lineRef} geometry={geometry}>
+   666→   666→      {/* @ts-expect-error R3F lowercase primitive for THREE.Line */}
+   667→   667→      <lineDashedMaterial
+   668→   668→        ref={matRef}
+   669→   669→        color="#00FF66"
+   670→   670→        transparent
+   671→   671→        opacity={opacity}
+   672→   672→        dashSize={isHighlighted ? 1.0 : 0.6}
+   673→   673→        gapSize={isHighlighted ? 0.3 : 0.6}
+   674→   674→        linewidth={1}
+   675→   675→        toneMapped={false}
+   676→   676→      />
+   677→   677→    </line>
+   678→   678→  );
+   679→   679→}
+   680→   680→
+   681→   681→/* ── Green Particle Field ── */
+   682→   682→function GreenParticleField() {
+   683→   683→  const pointsRef = useRef<THREE.Points>(null);
+   684→   684→
+   685→   685→  const geometry = useMemo(() => {
+   686→   686→    const count = 1200;
+   687→   687→    const positions = new Float32Array(count * 3);
+   688→   688→    const colors = new Float32Array(count * 3);
+   689→   689→    const sizes = new Float32Array(count);
+   690→   690→
+   691→   691→    for (let i = 0; i < count; i++) {
+   692→   692→      // Random positions in a large sphere
+   693→   693→      const r = 15 + Math.random() * 45;
+   694→   694→      const theta = Math.random() * Math.PI * 2;
+   695→   695→      const phi = Math.acos(2 * Math.random() - 1);
+   696→   696→
+   697→   697→      positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+   698→   698→      positions[i * 3 + 1] = (Math.random() - 0.5) * 20;
+   699→   699→      positions[i * 3 + 2] = r * Math.cos(phi);
+   700→   700→
+   701→   701→      // Green tint with more variation
+   702→   702→      const brightness = 0.2 + Math.random() * 0.8;
+   703→   703→      colors[i * 3] = 0;
+   704→   704→      colors[i * 3 + 1] = brightness;
+   705→   705→      colors[i * 3 + 2] = brightness * 0.3;
+   706→   706→
+   707→   707→      sizes[i] = 0.1 + Math.random() * 0.35;
+   708→   708→    }
+   709→   709→
+   710→   710→    const geo = new THREE.BufferGeometry();
+   711→   711→    geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+   712→   712→    geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+   713→   713→    geo.setAttribute("size", new THREE.BufferAttribute(sizes, 1));
+   714→   714→    return geo;
+   715→   715→  }, []);
+   716→   716→
+   717→   717→  // Slow rotation for ambient feel
+   718→   718→  useFrame((_state, delta) => {
+   719→   719→    if (pointsRef.current) {
+   720→   720→      pointsRef.current.rotation.y += delta * 0.008;
+   721→   721→    }
+   722→   722→  });
+   723→   723→
+   724→   724→  return (
+   725→   725→    <points ref={pointsRef} geometry={geometry}>
+   726→   726→      <pointsMaterial
+   727→   727→        size={0.2}
+   728→   728→        vertexColors
+   729→   729→        transparent
+   730→   730→        opacity={0.5}
+   731→   731→        sizeAttenuation
+   732→   732→        toneMapped={false}
+   733→   733→        depthWrite={false}
+   734→   734→      />
+   735→   735→    </points>
+   736→   736→  );
+   737→   737→}
+   738→   738→
+   739→   739→/* ── Node Mesh ── */
+   740→   740→function NodeMesh({
+   741→   741→  node,
+   742→   742→  isSelected,
+   743→   743→  isConnected,
+   744→   744→  isDimmed,
+   745→   745→  isHovered,
+   746→   746→  onClick,
+   747→   747→  onHover,
+   748→   748→}: {
+   749→   749→  node: SimNode;
+   750→   750→  isSelected: boolean;
+   751→   751→  isConnected: boolean;
+   752→   752→  isDimmed: boolean;
+   753→   753→  isHovered: boolean;
+   754→   754→  onClick: (n: SimNode) => void;
+   755→   755→  onHover: (n: SimNode | null) => void;
+   756→   756→}) {
+   757→   757→  const meshRef = useRef<THREE.Mesh>(null);
+   758→   758→  const glowRef = useRef<THREE.Mesh>(null);
+   759→   759→  const ringRef = useRef<THREE.Mesh>(null);
+   760→   760→  const [hoveredLocal, setHoveredLocal] = useState(false);
+   761→   761→  const radius = getNodeRadius(node);
+   762→   762→  const isActive = isSelected || isHovered || hoveredLocal;
+   763→   763→
+   764→   764→  useFrame((_state, delta) => {
+   765→   765→    // Gentle pulse for selected/hovered
+   766→   766→    if (glowRef.current) {
+   767→   767→      const targetScale = isActive ? 3.5 : 2.2;
+   768→   768→      const current = glowRef.current.scale.x;
+   769→   769→      const next = current + (targetScale - current) * 0.08;
+   770→   770→      glowRef.current.scale.setScalar(next);
+   771→   771→    }
+   772→   772→    // Slow rotation for gang nodes
+   773→   773→    if (meshRef.current && node.type === "gang") {
+   774→   774→      meshRef.current.rotation.y += delta * 0.5;
+   775→   775→    }
+   776→   776→    // Selection ring rotation
+   777→   777→    if (ringRef.current && isSelected) {
+   778→   778→      ringRef.current.rotation.z += delta * 1.0;
+   779→   779→    }
+   780→   780→    // Ambient pulse — all nodes breathe subtly
+   781→   781→    if (meshRef.current) {
+   782→   782→      const pulse = 1 + Math.sin(_state.clock.elapsedTime * 1.5 + node.x * 0.3) * 0.04;
+   783→   783→      meshRef.current.scale.setScalar(pulse);
+   784→   784→    }
+   785→   785→  });
+   786→   786→
+   787→   787→  const opacity = isDimmed ? 0.06 : 1;
+   788→   788→  const emissiveIntensity = isActive ? 0.9 : 0.5;
+   789→   789→  const color = new THREE.Color(node.color);
+   790→   790→
+   791→   791→  // Only gang and district show labels by default
+   792→   792→  const showLabelAlways = node.type === "gang" || node.type === "district";
+   793→   793→  const showLabel = !isDimmed && (showLabelAlways || isActive);
+   794→   794→
+   795→   795→  const geometry = useMemo(() => {
+   796→   796→    switch (node.type) {
+   797→   797→      case "accused":
+   798→   798→        return <icosahedronGeometry args={[radius, 1]} />;
+   799→   799→      case "gang":
+   800→   800→        return <octahedronGeometry args={[radius, 0]} />;
+   801→   801→      case "fir":
+   802→   802→        return <boxGeometry args={[radius * 1.2, radius * 1.2, radius * 0.3]} />;
+   803→   803→      case "vehicle":
+   804→   804→        return <coneGeometry args={[radius * 0.7, radius * 2.0, 4]} />;
+   805→   805→      case "district":
+   806→   806→        return <dodecahedronGeometry args={[radius, 0]} />;
+   807→   807→      default:
+   808→   808→        return <sphereGeometry args={[radius, 16, 16]} />;
+   809→   809→    }
+   810→   810→  }, [node.type, radius]);
+   811→   811→
+   812→   812→  const labelStyle: React.CSSProperties = showLabelAlways
+   813→   813→    ? {
+   814→   814→        background: "rgba(5, 7, 10, 0.92)",
+   815→   815→        border: `1px solid rgba(0,255,102,0.15)`,
+   816→   816→        borderRadius: "2px",
+   817→   817→        padding: "2px 6px",
+   818→   818→        whiteSpace: "nowrap",
+   819→   819→        fontSize: isActive ? "11px" : "10px",
+   820→   820→        fontWeight: 600,
+   821→   821→        color: "#00FF66",
+   822→   822→        fontFamily: "var(--font-ibm-plex-mono), monospace",
+   823→   823→        letterSpacing: "0.06em",
+   824→   824→        textTransform: "uppercase",
+   825→   825→        boxShadow: `0 2px 12px rgba(0,0,0,0.6), 0 0 6px rgba(0,255,102,0.08)`,
+   826→   826→        pointerEvents: "none",
+   827→   827→      }
+   828→   828→    : {
+   829→   829→        background: "rgba(5, 7, 10, 0.94)",
+   830→   830→        border: `1px solid rgba(0,255,102,0.3)`,
+   831→   831→        borderRadius: "2px",
+   832→   832→        padding: "2px 8px",
+   833→   833→        whiteSpace: "nowrap",
+   834→   834→        fontSize: "11px",
+   835→   835→        fontWeight: 600,
+   836→   836→        color: "#00FF66",
+   837→   837→        fontFamily: "var(--font-ibm-plex-mono), monospace",
+   838→   838→        letterSpacing: "0.06em",
+   839→   839→        textTransform: "uppercase",
+   840→   840→        boxShadow: `0 4px 16px rgba(0,0,0,0.7), 0 0 10px rgba(0,255,102,0.12)`,
+   841→   841→        pointerEvents: "none",
+   842→   842→      };
+   843→   843→
+   844→   844→  const truncatedName =
+   845→   845→    node.name.length > 20 ? node.name.slice(0, 20) + "…" : node.name;
+   846→   846→
+   847→   847→  return (
+   848→   848→    <group position={[node.x, node.y, node.z]}>
+   849→   849→      {/* Main mesh */}
+   850→   850→      <mesh
+   851→   851→        ref={meshRef}
+   852→   852→        onClick={(e) => {
+   853→   853→          e.stopPropagation();
+   854→   854→          onClick(node);
+   855→   855→        }}
+   856→   856→        onPointerOver={(e) => {
+   857→   857→          e.stopPropagation();
+   858→   858→          setHoveredLocal(true);
+   859→   859→          onHover(node);
+   860→   860→          document.body.style.cursor = "pointer";
+   861→   861→        }}
+   862→   862→        onPointerOut={() => {
+   863→   863→          setHoveredLocal(false);
+   864→   864→          onHover(null);
+   865→   865→          document.body.style.cursor = "auto";
+   866→   866→        }}
+   867→   867→      >
+   868→   868→        {geometry}
+   869→   869→        <meshStandardMaterial
+   870→   870→          color={color}
+   871→   871→          emissive={color}
+   872→   872→          emissiveIntensity={emissiveIntensity}
+   873→   873→          transparent
+   874→   874→          opacity={opacity}
+   875→   875→          roughness={0.2}
+   876→   876→          metalness={0.7}
+   877→   877→          toneMapped={false}
+   878→   878→        />
+   879→   879→      </mesh>
+   880→   880→
+   881→   881→      {/* Outer glow — larger, more visible */}
+   882→   882→      {!isDimmed && (
+   883→   883→        <mesh ref={glowRef}>
+   884→   884→          <sphereGeometry args={[radius * 2.0, 16, 16]} />
+   885→   885→          <meshBasicMaterial
+   886→   886→            color={color}
+   887→   887→            transparent
+   888→   888→            opacity={isActive ? 0.25 : 0.08}
+   889→   889→            toneMapped={false}
+   890→   890→            depthWrite={false}
+   891→   891→          />
+   892→   892→        </mesh>
+   893→   893→      )}
+   894→   894→
+   895→   895→      {/* Ambient pulse ring for gang nodes */}
+   896→   896→      {node.type === "gang" && !isDimmed && (
+   897→   897→        <mesh rotation={[Math.PI / 2, 0, 0]}>
+   898→   898→          <ringGeometry args={[radius * 2.0, radius * 2.3, 6]} />
+   899→   899→          <meshBasicMaterial
+   900→   900→            color="#00FF66"
+   901→   901→            transparent
+   902→   902→            opacity={0.12}
+   903→   903→            side={THREE.DoubleSide}
+   904→   904→            toneMapped={false}
+   905→   905→            depthWrite={false}
+   906→   906→          />
+   907→   907→        </mesh>
+   908→   908→      )}
+   909→   909→
+   910→   910→      {/* Selection ring — bright phosphor green */}
+   911→   911→      {isSelected && !isDimmed && (
+   912→   912→        <mesh ref={ringRef} rotation={[Math.PI / 2, 0, 0]}>
+   913→   913→          <ringGeometry args={[radius * 1.6, radius * 1.8, 32]} />
+   914→   914→          <meshBasicMaterial
+   915→   915→            color="#00FF66"
+   916→   916→            transparent
+   917→   917→            opacity={0.6}
+   918→   918→            side={THREE.DoubleSide}
+   919→   919→            toneMapped={false}
+   920→   920→          />
+   921→   921→        </mesh>
+   922→   922→      )}
+   923→   923→
+   924→   924→      {/* Label */}
+   925→   925→      {showLabel && (
+   926→   926→        <Html
+   927→   927→          position={[0, radius + 0.5, 0]}
+   928→   928→          center
+   929→   929→          style={{ pointerEvents: "none" }}
+   930→   930→          distanceFactor={14}
+   931→   931→        >
+   932→   932→          <div style={labelStyle}>{truncatedName}</div>
+   933→   933→        </Html>
+   934→   934→      )}
+   935→   935→    </group>
+   936→   936→  );
+   937→   937→}
+   938→   938→
+   939→   939→/* Camera controller with auto-rotate */
+   940→   940→function CameraController({
+   941→   941→  resetFlag,
+   942→   942→}: {
+   943→   943→  resetFlag: number;
+   944→   944→}) {
+   945→   945→  const { camera } = useThree();
+   946→   946→  const controlsRef = useRef<any>(null);
+   947→   947→
+   948→   948→  useEffect(() => {
+   949→   949→    camera.position.set(0, 22, 28);
+   950→   950→    camera.lookAt(0, 0, 0);
+   951→   951→    if (controlsRef.current) {
+   952→   952→      controlsRef.current.target.set(0, 0, 0);
+   953→   953→      controlsRef.current.update();
+   954→   954→    }
+   955→   955→    // eslint-disable-next-line react-hooks/exhaustive-deps
+   956→   956→  }, [resetFlag]);
+   957→   957→
+   958→   958→  return (
+   959→   959→    <OrbitControls
+   960→   960→      ref={controlsRef}
+   961→   961→      makeDefault
+   962→   962→      enableDamping
+   963→   963→      dampingFactor={0.08}
+   964→   964→      rotateSpeed={0.6}
+   965→   965→      zoomSpeed={1.0}
+   966→   966→      minDistance={5}
+   967→   967→      maxDistance={55}
+   968→   968→      maxPolarAngle={Math.PI * 0.85}
+   969→   969→      minPolarAngle={Math.PI * 0.1}
+   970→   970→      autoRotate
+   971→   971→      autoRotateSpeed={0.1}
+   972→   972→    />
+   973→   973→  );
+   974→   974→}
+   975→   975→
+   976→   976→/* The full 3D graph scene */
+   977→   977→function GraphScene3D({
+   978→   978→  nodes,
+   979→   979→  links,
+   980→   980→  selectedNode,
+   981→   981→  hoveredNode,
+   982→   982→  onSelectNode,
+   983→   983→  onHoverNode,
+   984→   984→  resetFlag,
+   985→   985→}: {
+   986→   986→  nodes: SimNode[];
+   987→   987→  links: SimLink[];
+   988→   988→  selectedNode: SimNode | null;
+   989→   989→  hoveredNode: SimNode | null;
+   990→   990→  onSelectNode: (node: SimNode) => void;
+   991→   991→  onHoverNode: (node: SimNode | null) => void;
+   992→   992→  resetFlag: number;
+   993→   993→}) {
+   994→   994→  const nodeMap = useMemo(() => {
+   995→   995→    const m = new Map<string, SimNode>();
+   996→   996→    for (const n of nodes) m.set(n.id, n);
+   997→   997→    return m;
+   998→   998→  }, [nodes]);
+   999→   999→
+  1000→  1000→  const connectedNodeIds = useMemo(() => {
+  1001→  1001→    if (!selectedNode) return new Set<string>();
+  1002→  1002→    const ids = new Set<string>();
+  1003→  1003→    for (const l of links) {
+  1004→  1004→      if (l.source === selectedNode.id) ids.add(l.target);
+  1005→  1005→      if (l.target === selectedNode.id) ids.add(l.source);
+  1006→  1006→    }
+  1007→  1007→    return ids;
+  1008→  1008→  }, [selectedNode, links]);
+  1009→  1009→
+  1010→  1010→  return (
+  1011→  1011→    <>
+  1012→  1012→      {/* Environment — dark classified console background */}
+  1013→  1013→      <color attach="background" args={["#030508"]} />
+  1014→  1014→      <fog attach="fog" args={["#030508", 30, 70]} />
+  1015→  1015→
+  1016→  1016→      {/* Lighting — green-tinted for console feel */}
+  1017→  1017→      <ambientLight intensity={0.3} />
+  1018→  1018→      <directionalLight
+  1019→  1019→        position={[15, 25, 15]}
+  1020→  1020→        intensity={0.3}
+  1021→  1021→        color="#d0ffe0"
+  1022→  1022→      />
+  1023→  1023→      {/* Central green point light for node glow illumination */}
+  1024→  1024→      <pointLight
+  1025→  1025→        position={[0, 8, 0]}
+  1026→  1026→        intensity={1.5}
+  1027→  1027→        color="#00FF66"
+  1028→  1028→        distance={55}
+  1029→  1029→        decay={2}
+  1030→  1030→      />
+  1031→  1031→      <pointLight
+  1032→  1032→        position={[15, 10, 15]}
+  1033→  1033→        intensity={0.4}
+  1034→  1034→        color="#00FF66"
+  1035→  1035→        distance={45}
+  1036→  1036→        decay={2}
+  1037→  1037→      />
+  1038→  1038→      <pointLight
+  1039→  1039→        position={[-15, 10, -15]}
+  1040→  1040→        intensity={0.3}
+  1041→  1041→        color="#00cc52"
+  1042→  1042→        distance={45}
+  1043→  1043→        decay={2}
+  1044→  1044→      />
+  1045→  1045→
+  1046→  1046→      {/* Green particle field (star field replacement) */}
+  1047→  1047→      <GreenParticleField />
+  1048→  1048→
+  1049→  1049→      {/* Ground grid — subtle green tint */}
+  1050→  1050→      <gridHelper
+  1051→  1051→        args={[60, 30, "rgba(0,255,102,0.08)", "rgba(0,255,102,0.03)"]}
+  1052→  1052→        position={[0, -1.5, 0]}
+  1053→  1053→      />
+  1054→  1054→
+  1055→  1055→      {/* Camera */}
+  1056→  1056→      <CameraController resetFlag={resetFlag} />
+  1057→  1057→
+  1058→  1058→      {/* Links — animated dashed edges */}
+  1059→  1059→      {links.map((link, i) => (
+  1060→  1060→        <AnimatedEdge
+  1061→  1061→          key={`link-${i}`}
+  1062→  1062→          link={link}
+  1063→  1063→          nodeMap={nodeMap}
+  1064→  1064→          selectedNodeId={selectedNode?.id}
+  1065→  1065→        />
+  1066→  1066→      ))}
+  1067→  1067→
+  1068→  1068→      {/* Nodes */}
+  1069→  1069→      {nodes.map((node) => (
+  1070→  1070→        <NodeMesh
+  1071→  1071→          key={node.id}
+  1072→  1072→          node={node}
+  1073→  1073→          isSelected={selectedNode?.id === node.id}
+  1074→  1074→          isConnected={connectedNodeIds.has(node.id)}
+  1075→  1075→          isDimmed={
+  1076→  1076→            !!selectedNode &&
+  1077→  1077→            selectedNode.id !== node.id &&
+  1078→  1078→            !connectedNodeIds.has(node.id)
+  1079→  1079→          }
+  1080→  1080→          isHovered={hoveredNode?.id === node.id}
+  1081→  1081→          onClick={onSelectNode}
+  1082→  1082→          onHover={onHoverNode}
+  1083→  1083→        />
+  1084→  1084→      ))}
+  1085→  1085→    </>
+  1086→  1086→  );
+  1087→  1087→}
+  1088→  1088→
+  1089→  1089→/* ------------------------------------------------------------------ */
+  1090→  1090→/*  Main Component                                                     */
+  1091→  1091→/* ------------------------------------------------------------------ */
+  1092→  1092→
+  1093→  1093→function NetworkGraphInner() {
+  1094→  1094→  const crimeData = useAppStore((s) => s.crimeData);
+  1095→  1095→  const [crimeTypeFilter, setCrimeTypeFilter] = useState<string>("all");
+  1096→  1096→  const [gangFilter, setGangFilter] = useState<string>("all");
+  1097→  1097→  const [selectedNode, setSelectedNode] = useState<SimNode | null>(null);
+  1098→  1098→  const [hoveredNode, setHoveredNode] = useState<SimNode | null>(null);
+  1099→  1099→  const [layoutVersion, setLayoutVersion] = useState(0);
+  1100→  1100→  const containerRef = useRef<HTMLDivElement>(null);
+  1101→  1101→
+  1102→  1102→  /* derive unique crime types & gang names */
+  1103→  1103→  const crimeTypes = useMemo(() => {
+  1104→  1104→    if (!crimeData) return CRIME_TYPES;
+  1105→  1105→    const set = new Set(crimeData.firs.map((f) => f.crime_type));
+  1106→  1106→    return CRIME_TYPES.filter((t) => set.has(t));
+  1107→  1107→  }, [crimeData]);
+  1108→  1108→
+  1109→  1109→  const gangNames = useMemo(() => {
+  1110→  1110→    if (!crimeData) return [];
+  1111→  1111→    return crimeData.gangs.map((g) => g.name);
+  1112→  1112→  }, [crimeData]);
+  1113→  1113→
+  1114→  1114→  /* build filtered nodes & links */
+  1115→  1115→  const { nodes, links } = useMemo(() => {
+  1116→  1116→    if (!crimeData)
+  1117→  1117→      return { nodes: [] as SimNode[], links: [] as SimLink[] };
+  1118→  1118→
+  1119→  1119→    const firs = crimeData.firs;
+  1120→  1120→    const accused = crimeData.accused;
+  1121→  1121→    const gangs = crimeData.gangs;
+  1122→  1122→    const vehicles = crimeData.vehicles;
+  1123→  1123→    const districts = crimeData.districts;
+  1124→  1124→
+  1125→  1125→    let visibleFirIds: Set<string> | null = null;
+  1126→  1126→    let visibleAccusedIds: Set<string> | null = null;
+  1127→  1127→    let visibleGangIds: Set<string> | null = null;
+  1128→  1128→
+  1129→  1129→    if (crimeTypeFilter !== "all") {
+  1130→  1130→      visibleFirIds = new Set(
+  1131→  1131→        firs.filter((f) => f.crime_type === crimeTypeFilter).map((f) => f.fir_id)
+  1132→  1132→      );
+  1133→  1133→      visibleAccusedIds = new Set<string>();
+  1134→  1134→      for (const fir of firs) {
+  1135→  1135→        if (visibleFirIds.has(fir.fir_id)) {
+  1136→  1136→          for (const aid of fir.accused) visibleAccusedIds.add(aid);
+  1137→  1137→          if (fir.vehicle_used) visibleAccusedIds.add(fir.vehicle_used);
+  1138→  1138→          visibleAccusedIds.add(fir.district);
+  1139→  1139→          if (fir.gang_id) visibleAccusedIds.add(fir.gang_id);
+  1140→  1140→        }
+  1141→  1141→      }
+  1142→  1142→    }
+  1143→  1143→
+  1144→  1144→    if (gangFilter !== "all") {
+  1145→  1145→      const gang = gangs.find((g) => g.name === gangFilter);
+  1146→  1146→      if (gang) {
+  1147→  1147→        visibleGangIds = new Set([gang.id]);
+  1148→  1148→        const memberIds = new Set(gang.members);
+  1149→  1149→        const gangFirIds = new Set(
+  1150→  1150→          firs.filter((f) => f.gang_id === gang.id).map((f) => f.fir_id)
+  1151→  1151→        );
+  1152→  1152→        visibleFirIds = visibleFirIds
+  1153→  1153→          ? new Set([...visibleFirIds].filter((id) => gangFirIds.has(id)))
+  1154→  1154→          : gangFirIds;
+  1155→  1155→        visibleAccusedIds = memberIds;
+  1156→  1156→        for (const fir of firs) {
+  1157→  1157→          if (visibleFirIds.has(fir.fir_id)) {
+  1158→  1158→            if (fir.vehicle_used) memberIds.add(fir.vehicle_used);
+  1159→  1159→            memberIds.add(fir.district);
+  1160→  1160→          }
+  1161→  1161→        }
+  1162→  1162→      }
+  1163→  1163→    }
+  1164→  1164→
+  1165→  1165→    const isFiltered =
+  1166→  1166→      visibleFirIds !== null || visibleAccusedIds !== null;
+  1167→  1167→    const nodeMap = new Map<string, SimNode>();
+  1168→  1168→
+  1169→  1169→    for (const a of accused) {
+  1170→  1170→      if (isFiltered && visibleAccusedIds && !visibleAccusedIds.has(a.id))
+  1171→  1171→        continue;
+  1172→  1172→      nodeMap.set(a.id, {
+  1173→  1173→        id: a.id,
+  1174→  1174→        name: a.name,
+  1175→  1175→        type: "accused",
+  1176→  1176→        color: "#00cc52",
+  1177→  1177→        size: a.risk / 10,
+  1178→  1178→        x: 0, y: 0, z: 0,
+  1179→  1179→        vx: 0, vy: 0, vz: 0,
+  1180→  1180→        _accused: a,
+  1181→  1181→      });
+  1182→  1182→    }
+  1183→  1183→    for (const g of gangs) {
+  1184→  1184→      if (isFiltered && visibleGangIds && !visibleGangIds.has(g.id))
+  1185→  1185→        continue;
+  1186→  1186→      if (isFiltered && visibleAccusedIds && !visibleAccusedIds.has(g.id))
+  1187→  1187→        continue;
+  1188→  1188→      nodeMap.set(g.id, {
+  1189→  1189→        id: g.id,
+  1190→  1190→        name: g.name,
+  1191→  1191→        type: "gang",
+  1192→  1192→        color: "#00FF66",
+  1193→  1193→        size: 6,
+  1194→  1194→        x: 0, y: 0, z: 0,
+  1195→  1195→        vx: 0, vy: 0, vz: 0,
+  1196→  1196→        _gang: g,
+  1197→  1197→      });
+  1198→  1198→    }
+  1199→  1199→    for (const f of firs) {
+  1200→  1200→      if (isFiltered && visibleFirIds && !visibleFirIds.has(f.fir_id))
+  1201→  1201→        continue;
+  1202→  1202→      nodeMap.set(f.fir_id, {
+  1203→  1203→        id: f.fir_id,
+  1204→  1204→        name: f.fir_id,
+  1205→  1205→        type: "fir",
+  1206→  1206→        color: "rgba(0,255,102,0.6)",
+  1207→  1207→        size: 2,
+  1208→  1208→        x: 0, y: 0, z: 0,
+  1209→  1209→        vx: 0, vy: 0, vz: 0,
+  1210→  1210→        _fir: f,
+  1211→  1211→      });
+  1212→  1212→    }
+  1213→  1213→    for (const v of vehicles) {
+  1214→  1214→      if (isFiltered && visibleAccusedIds && !visibleAccusedIds.has(v.id))
+  1215→  1215→        continue;
+  1216→  1216→      nodeMap.set(v.id, {
+  1217→  1217→        id: v.id,
+  1218→  1218→        name: v.reg,
+  1219→  1219→        type: "vehicle",
+  1220→  1220→        color: "rgba(0,255,102,0.3)",
+  1221→  1221→        size: 3,
+  1222→  1222→        x: 0, y: 0, z: 0,
+  1223→  1223→        vx: 0, vy: 0, vz: 0,
+  1224→  1224→        _vehicle: v,
+  1225→  1225→      });
+  1226→  1226→    }
+  1227→  1227→    for (const d of districts) {
+  1228→  1228→      if (isFiltered && visibleAccusedIds && !visibleAccusedIds.has(d.name))
+  1229→  1229→        continue;
+  1230→  1230→      const firCount = firs.filter(
+  1231→  1231→        (f) =>
+  1232→  1232→          (!visibleFirIds || visibleFirIds.has(f.fir_id)) &&
+  1233→  1233→          f.district === d.name
+  1234→  1234→      ).length;
+  1235→  1235→      if (isFiltered && firCount === 0) continue;
+  1236→  1236→      nodeMap.set(d.name, {
+  1237→  1237→        id: d.name,
+  1238→  1238→        name: d.name,
+  1239→  1239→        type: "district",
+  1240→  1240→        color: "rgba(0,255,102,0.3)",
+  1241→  1241→        size: 4,
+  1242→  1242→        x: 0, y: 0, z: 0,
+  1243→  1243→        vx: 0, vy: 0, vz: 0,
+  1244→  1244→        _district: d,
+  1245→  1245→        _firCount: firCount,
+  1246→  1246→      });
+  1247→  1247→    }
+  1248→  1248→
+  1249→  1249→    const allEdges = getNetworkEdges(crimeData);
+  1250→  1250→    const nodeIds = new Set(nodeMap.keys());
+  1251→  1251→    const filteredEdges = allEdges.filter(
+  1252→  1252→      (e) => nodeIds.has(e.source) && nodeIds.has(e.target)
+  1253→  1253→    );
+  1254→  1254→    const filteredLinks: SimLink[] = filteredEdges.map((e) => ({
+  1255→  1255→      source: e.source,
+  1256→  1256→      target: e.target,
+  1257→  1257→      type: e.type,
+  1258→  1258→      color: LINK_COLORS[e.type] || "rgba(0,255,102,0.12)",
+  1259→  1259→    }));
+  1260→  1260→
+  1261→  1261→    return { nodes: Array.from(nodeMap.values()), links: filteredLinks };
+  1262→  1262→  }, [crimeData, crimeTypeFilter, gangFilter]);
+  1263→  1263→
+  1264→  1264→  /* Run hierarchical layout */
+  1265→  1265→  const layoutNodes = useMemo(() => {
+  1266→  1266→    if (nodes.length === 0) return [];
+  1267→  1267→    const result = nodes.map((n) => ({ ...n }));
+  1268→  1268→    layoutHierarchical(result, links);
+  1269→  1269→    return result;
+  1270→  1270→  }, [nodes, links, layoutVersion]);
+  1271→  1271→
+  1272→  1272→  const simReady = layoutNodes.length > 0;
+  1273→  1273→
+  1274→  1274→  const handleSelectNode = useCallback((node: SimNode | null) => {
+  1275→  1275→    setSelectedNode((prev) => (prev?.id === node?.id ? null : node ?? null));
+  1276→  1276→  }, []);
+  1277→  1277→
+  1278→  1278→  const handleHoverNode = useCallback((node: SimNode | null) => {
+  1279→  1279→    setHoveredNode(node);
+  1280→  1280→  }, []);
+  1281→  1281→
+  1282→  1282→  const handleReset = useCallback(() => {
+  1283→  1283→    setCrimeTypeFilter("all");
+  1284→  1284→    setGangFilter("all");
+  1285→  1285→    setSelectedNode(null);
+  1286→  1286→    setLayoutVersion((v) => v + 1);
+  1287→  1287→  }, []);
+  1288→  1288→
+  1289→  1289→  if (!crimeData) {
+  1290→  1290→    return <LoadingSpinner message="Loading network data..." />;
+  1291→  1291→  }
+  1292→  1292→
+  1293→  1293→  const displayNode = hoveredNode || selectedNode;
+  1294→  1294→
+  1295→  1295→  return (
+  1296→  1296→    <div className="flex flex-col h-full w-full">
+  1297→  1297→      {/* Filter Controls Bar */}
+  1298→  1298→      <div
+  1299→  1299→        className="flex flex-wrap items-center gap-3 px-4 py-2.5 shrink-0"
+  1300→  1300→        style={{
+  1301→  1301→          background: "var(--bg-elevated-1)",
+  1302→  1302→          borderBottom: "1px solid var(--border-default)",
+  1303→  1303→        }}
+  1304→  1304→      >
+  1305→  1305→        <div className="flex items-center gap-2">
+  1306→  1306→          <label className="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">
+  1307→  1307→            Crime
+  1308→  1308→          </label>
+  1309→  1309→          <Select
+  1310→  1310→            value={crimeTypeFilter}
+  1311→  1311→            onValueChange={(v) => {
+  1312→  1312→              setCrimeTypeFilter(v);
+  1313→  1313→              setSelectedNode(null);
+  1314→  1314→              setLayoutVersion((l) => l + 1);
+  1315→  1315→            }}
+  1316→  1316→          >
+  1317→  1317→            <SelectTrigger className="w-32 sm:w-40 h-7 text-xs bg-[var(--bg-input)] border-[var(--border-default)] text-[var(--text-primary)]">
+  1318→  1318→              <SelectValue placeholder="All Types" />
+  1319→  1319→            </SelectTrigger>
+  1320→  1320→            <SelectContent className="bg-[var(--bg-card)] border-[var(--border-default)]">
+  1321→  1321→              <SelectItem value="all" className="text-[var(--text-primary)]">
+  1322→  1322→                All Types
+  1323→  1323→              </SelectItem>
+  1324→  1324→              {crimeTypes.map((ct) => (
+  1325→  1325→                <SelectItem
+  1326→  1326→                  key={ct}
+  1327→  1327→                  value={ct}
+  1328→  1328→                  className="text-[var(--text-primary)]"
+  1329→  1329→                >
+  1330→  1330→                  {ct}
+  1331→  1331→                </SelectItem>
+  1332→  1332→              ))}
+  1333→  1333→            </SelectContent>
+  1334→  1334→          </Select>
+  1335→  1335→        </div>
+  1336→  1336→        <div className="flex items-center gap-2">
+  1337→  1337→          <label className="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">
+  1338→  1338→            Gang
+  1339→  1339→          </label>
+  1340→  1340→          <Select
+  1341→  1341→            value={gangFilter}
+  1342→  1342→            onValueChange={(v) => {
+  1343→  1343→              setGangFilter(v);
+  1344→  1344→              setSelectedNode(null);
+  1345→  1345→              setLayoutVersion((l) => l + 1);
+  1346→  1346→            }}
+  1347→  1347→          >
+  1348→  1348→            <SelectTrigger className="w-36 sm:w-48 h-7 text-xs bg-[var(--bg-input)] border-[var(--border-default)] text-[var(--text-primary)]">
+  1349→  1349→              <SelectValue placeholder="All Gangs" />
+  1350→  1350→            </SelectTrigger>
+  1351→  1351→            <SelectContent className="bg-[var(--bg-card)] border-[var(--border-default)]">
+  1352→  1352→              <SelectItem value="all" className="text-[var(--text-primary)]">
+  1353→  1353→                All Gangs
+  1354→  1354→              </SelectItem>
+  1355→  1355→              {gangNames.map((gn) => (
+  1356→  1356→                <SelectItem
+  1357→  1357→                  key={gn}
+  1358→  1358→                  value={gn}
+  1359→  1359→                  className="text-[var(--text-primary)]"
+  1360→  1360→                >
+  1361→  1361→                  {gn}
+  1362→  1362→                </SelectItem>
+  1363→  1363→              ))}
+  1364→  1364→            </SelectContent>
+  1365→  1365→          </Select>
+  1366→  1366→        </div>
+  1367→  1367→
+  1368→  1368→        {/* Spacer */}
+  1369→  1369→        <div className="flex-1" />
+  1370→  1370→
+  1371→  1371→        {/* Node/Link count in toolbar */}
+  1372→  1372→        {simReady && (
+  1373→  1373→          <span className="text-[10px] text-[var(--text-tertiary)] font-medium tabular-nums mr-2">
+  1374→  1374→            <span className="text-[var(--text-secondary)]">
+  1375→  1375→              {layoutNodes.length}
+  1376→  1376→            </span>{" "}
+  1377→  1377→            nodes
+  1378→  1378→            <span className="mx-1 text-[var(--text-muted)]">&middot;</span>
+  1379→  1379→            <span className="text-[var(--text-secondary)]">
+  1380→  1380→              {links.filter((l) => l.type !== "gang_associate").length}
+  1381→  1381→            </span>{" "}
+  1382→  1382→            links
+  1383→  1383→          </span>
+  1384→  1384→        )}
+  1385→  1385→
+  1386→  1386→        {/* 3D badge — green themed */}
+  1387→  1387→        {simReady && (
+  1388→  1388→          <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[#00FF66]/10 text-[#00FF66] border border-[#00FF66]/20 font-mono">
+  1389→  1389→            3D
+  1390→  1390→          </span>
+  1391→  1391→        )}
+  1392→  1392→      </div>
+  1393→  1393→
+  1394→  1394→      {/* 3D Canvas Area */}
+  1395→  1395→      <div
+  1396→  1396→        ref={containerRef}
+  1397→  1397→        className="flex-1 relative overflow-hidden"
+  1398→  1398→        style={{ background: "#05070A" }}
+  1399→  1399→      >
+  1400→  1400→        {/* Three.js Canvas */}
+  1401→  1401→        {simReady && (
+  1402→  1402→          <Canvas
+  1403→  1403→            camera={{ position: [0, 18, 22], fov: 50, near: 0.1, far: 200 }}
+  1404→  1404→            gl={{
+  1405→  1405→              antialias: true,
+  1406→  1406→              alpha: false,
+  1407→  1407→              powerPreference: "high-performance",
+  1408→  1408→              toneMapping: THREE.ACESFilmicToneMapping,
+  1409→  1409→              toneMappingExposure: 1.1,
+  1410→  1410→            }}
+  1411→  1411→            dpr={[1, 2]}
+  1412→  1412→          >
+  1413→  1413→            <Suspense fallback={null}>
+  1414→  1414→              <GraphScene3D
+  1415→  1415→                nodes={layoutNodes}
+  1416→  1416→                links={links}
+  1417→  1417→                selectedNode={selectedNode}
+  1418→  1418→                hoveredNode={hoveredNode}
+  1419→  1419→                onSelectNode={handleSelectNode}
+  1420→  1420→                onHoverNode={handleHoverNode}
+  1421→  1421→                resetFlag={layoutVersion}
+  1422→  1422→              />
+  1423→  1423→            </Suspense>
+  1424→  1424→          </Canvas>
+  1425→  1425→        )}
+  1426→  1426→
+  1427→  1427→        {/* Vignette overlay — CSS post-processing feel */}
+  1428→  1428→        <div
+  1429→  1429→          className="absolute inset-0 pointer-events-none z-[5]"
+  1430→  1430→          style={{
+  1431→  1431→            boxShadow: "inset 0 0 120px 40px rgba(5,7,10,0.7), inset 0 0 40px 10px rgba(5,7,10,0.4)",
+  1432→  1432→          }}
+  1433→  1433→        />
+  1434→  1434→
+  1435→  1435→        {!simReady && nodes.length > 0 && (
+  1436→  1436→          <div className="absolute inset-0 flex items-center justify-center">
+  1437→  1437→            <LoadingSpinner message="Computing layout..." />
+  1438→  1438→          </div>
+  1439→  1439→        )}
+  1440→  1440→
+  1441→  1441→        {/* ── Floating Toolbar — Top Left ── */}
+  1442→  1442→        {simReady && (
+  1443→  1443→          <div
+  1444→  1444→            className="absolute top-3 left-3 z-10 flex flex-col gap-1 p-1.5"
+  1445→  1445→            style={solidCard}
+  1446→  1446→          >
+  1447→  1447→            <ToolbarButton
+  1448→  1448→              icon={<RotateCcw className="size-4" />}
+  1449→  1449→              tooltip="Reset View"
+  1450→  1450→              onClick={() => {
+  1451→  1451→                setLayoutVersion((v) => v + 1);
+  1452→  1452→                setSelectedNode(null);
+  1453→  1453→              }}
+  1454→  1454→            />
+  1455→  1455→            <ToolbarButton
+  1456→  1456→              icon={<Maximize2 className="size-4" />}
+  1457→  1457→              tooltip="Re-layout Graph"
+  1458→  1458→              onClick={() => {
+  1459→  1459→                setLayoutVersion((v) => v + 1);
+  1460→  1460→                setSelectedNode(null);
+  1461→  1461→              }}
+  1462→  1462→            />
+  1463→  1463→            <div className="w-full h-px bg-[var(--border-default)] my-0.5" />
+  1464→  1464→            <ToolbarButton
+  1465→  1465→              icon={<Box className="size-4" />}
+  1466→  1466→              tooltip="Reset Filters"
+  1467→  1467→              onClick={handleReset}
+  1468→  1468→            />
+  1469→  1469→          </div>
+  1470→  1470→        )}
+  1471→  1471→
+  1472→  1472→        {/* ── Legend Overlay — Bottom Left ── */}
+  1473→  1473→        {simReady && (
+  1474→  1474→          <div
+  1475→  1475→            className="absolute bottom-3 left-3 z-10 px-3 py-2.5"
+  1476→  1476→            style={{
+  1477→  1477→              ...solidCard,
+  1478→  1478→              borderRadius: "3px",
+  1479→  1479→            }}
+  1480→  1480→          >
+  1481→  1481→            <p className="text-[9px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-2 font-mono">
+  1482→  1482→              Node Types
+  1483→  1483→            </p>
+  1484→  1484→            <div className="flex flex-col gap-1.5">
+  1485→  1485→              {Object.entries(NODE_TYPE_CONFIG).map(([type, cfg]) => (
+  1486→  1486→                <div key={type} className="flex items-center gap-2">
+  1487→  1487→                  <span
+  1488→  1488→                    className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+  1489→  1489→                    style={{
+  1490→  1490→                      backgroundColor: cfg.color,
+  1491→  1491→                      boxShadow: `0 0 6px rgba(0,255,102,0.4)`,
+  1492→  1492→                    }}
+  1493→  1493→                  />
+  1494→  1494→                  <span className="text-[11px] text-[var(--text-secondary)]">
+  1495→  1495→                    {cfg.label}
+  1496→  1496→                  </span>
+  1497→  1497→                </div>
+  1498→  1498→              ))}
+  1499→  1499→            </div>
+  1500→  1500→            <div className="mt-2 pt-2 border-t border-[var(--border-subtle)]">
+  1501→  1501→              <p className="text-[9px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5 font-mono">
+  1502→  1502→                Link Types
+  1503→  1503→              </p>
+  1504→  1504→              <div className="flex flex-col gap-1">
+  1505→  1505→                {[
+  1506→  1506→                  { color: "rgba(0,255,102,0.5)", label: "Involved In" },
+  1507→  1507→                  { color: "rgba(0,255,102,0.6)", label: "Member Of" },
+  1508→  1508→                  { color: "rgba(0,255,102,0.4)", label: "Occurred In" },
+  1509→  1509→                  { color: "rgba(0,255,102,0.35)", label: "Used Vehicle" },
+  1510→  1510→                ].map((l) => (
+  1511→  1511→                  <div key={l.label} className="flex items-center gap-2">
+  1512→  1512→                    <span
+  1513→  1513→                      className="inline-block w-3 h-0.5 shrink-0 rounded-full"
+  1514→  1514→                      style={{ backgroundColor: l.color }}
+  1515→  1515→                    />
+  1516→  1516→                    <span className="text-[10px] text-[var(--text-tertiary)]">
+  1517→  1517→                      {l.label}
+  1518→  1518→                    </span>
+  1519→  1519→                  </div>
+  1520→  1520→                ))}
+  1521→  1521→              </div>
+  1522→  1522→            </div>
+  1523→  1523→          </div>
+  1524→  1524→        )}
+  1525→  1525→
+  1526→  1526→        {/* ── Controls Hint — Bottom Right ── */}
+  1527→  1527→        {simReady && (
+  1528→  1528→          <div
+  1529→  1529→            className="absolute bottom-3 right-3 z-10 px-3 py-2"
+  1530→  1530→            style={{
+  1531→  1531→              ...solidCard,
+  1532→  1532→              borderRadius: "2px",
+  1533→  1533→            }}
+  1534→  1534→          >
+  1535→  1535→            <p className="text-[9px] text-[var(--text-muted)] leading-relaxed font-mono">
+  1536→  1536→              LMB: rotate &bull; Scroll: zoom &bull; RMB: pan
+  1537→  1537→              &bull; Click: select
+  1538→  1538→            </p>
+  1539→  1539→          </div>
+  1540→  1540→        )}
+  1541→  1541→
+  1542→  1542→        {/* ── Hover Tooltip ── */}
+  1543→  1543→        {displayNode && !selectedNode && (
+  1544→  1544→          <div
+  1545→  1545→            className="absolute z-20 pointer-events-none px-3 py-2.5 max-w-xs"
+  1546→  1546→            style={{
+  1547→  1547→              ...solidCard,
+  1548→  1548→              borderRadius: "3px",
+  1549→  1549→              left: "50%",
+  1550→  1550→              top: "12px",
+  1551→  1551→              transform: "translateX(-50%)",
+  1552→  1552→            }}
+  1553→  1553→          >
+  1554→  1554→            <div className="flex items-center gap-2 mb-1.5">
+  1555→  1555→              <span
+  1556→  1556→                className="w-2 h-2 rounded-full shrink-0"
+  1557→  1557→                style={{
+  1558→  1558→                  backgroundColor: "#00FF66",
+  1559→  1559→                  boxShadow: `0 0 8px rgba(0,255,102,0.5)`,
+  1560→  1560→                }}
+  1561→  1561→              />
+  1562→  1562→              <span className="text-[12px] font-semibold text-[var(--text-primary)] truncate font-mono">
+  1563→  1563→                {displayNode.name}
+  1564→  1564→              </span>
+  1565→  1565→              <span className="text-[9px] text-[var(--text-tertiary)] uppercase tracking-wider ml-auto font-mono">
+  1566→  1566→                {displayNode.type}
+  1567→  1567→              </span>
+  1568→  1568→            </div>
+  1569→  1569→            {displayNode.type === "accused" && displayNode._accused && (
+  1570→  1570→              <div className="flex items-center gap-3 text-[11px]">
+  1571→  1571→                <span className="text-[var(--text-secondary)]">
+  1572→  1572→                  Risk:{" "}
+  1573→  1573→                  <span
+  1574→  1574→                    className={
+  1575→  1575→                      displayNode._accused.risk > 80
+  1576→  1576→                        ? "text-[#00FF66] font-bold"
+  1577→  1577→                        : displayNode._accused.risk > 60
+  1578→  1578→                        ? "text-[#00cc52] font-bold"
+  1579→  1579→                        : "text-[rgba(0,255,102,0.6)] font-bold"
+  1580→  1580→                    }
+  1581→  1581→                  >
+  1582→  1582→                    {displayNode._accused.risk}/100
+  1583→  1583→                  </span>
+  1584→  1584→                </span>
+  1585→  1585→                <span className="text-[var(--text-tertiary)]">&middot;</span>
+  1586→  1586→                <span className="text-[var(--text-secondary)]">
+  1587→  1587→                  Age: {displayNode._accused.age}
+  1588→  1588→                </span>
+  1589→  1589→              </div>
+  1590→  1590→            )}
+  1591→  1591→            {displayNode.type === "fir" && displayNode._fir && (
+  1592→  1592→              <div className="flex items-center gap-3 text-[11px]">
+  1593→  1593→                <span className="text-[var(--text-secondary)]">
+  1594→  1594→                  {displayNode._fir.crime_type}
+  1595→  1595→                </span>
+  1596→  1596→                <span className="text-[var(--text-tertiary)]">&middot;</span>
+  1597→  1597→                <span
+  1598→  1598→                  className={
+  1599→  1599→                    displayNode._fir.severity === "critical"
+  1600→  1600→                      ? "text-[#00FF66]"
+  1601→  1601→                      : displayNode._fir.severity === "high"
+  1602→  1602→                      ? "text-[#00cc52]"
+  1603→  1603→                      : "text-[rgba(0,255,102,0.7)]"
+  1604→  1604→                  }
+  1605→  1605→                >
+  1606→  1606→                  {displayNode._fir.severity.toUpperCase()}
+  1607→  1607→                </span>
+  1608→  1608→              </div>
+  1609→  1609→            )}
+  1610→  1610→            {displayNode.type === "gang" && displayNode._gang && (
+  1611→  1611→              <div className="flex items-center gap-3 text-[11px]">
+  1612→  1612→                <span className="text-[var(--text-secondary)]">
+  1613→  1613→                  {displayNode._gang.type}
+  1614→  1614→                </span>
+  1615→  1615→                <span className="text-[var(--text-tertiary)]">&middot;</span>
+  1616→  1616→                <span className="text-[var(--text-secondary)]">
+  1617→  1617→                  {displayNode._gang.members.length} members
+  1618→  1618→                </span>
+  1619→  1619→              </div>
+  1620→  1620→            )}
+  1621→  1621→            {displayNode.type === "vehicle" && displayNode._vehicle && (
+  1622→  1622→              <div className="flex items-center gap-3 text-[11px]">
+  1623→  1623→                <span className="text-[var(--text-secondary)]">
+  1624→  1624→                  {displayNode._vehicle.make} {displayNode._vehicle.type}
+  1625→  1625→                </span>
+  1626→  1626→                <span className="text-[var(--text-tertiary)]">&middot;</span>
+  1627→  1627→                <span className="text-[var(--text-secondary)]">
+  1628→  1628→                  {displayNode._vehicle.color}
+  1629→  1629→                </span>
+  1630→  1630→              </div>
+  1631→  1631→            )}
+  1632→  1632→            {displayNode.type === "district" && (
+  1633→  1633→              <div className="flex items-center gap-3 text-[11px]">
+  1634→  1634→                <span className="text-[var(--text-secondary)]">
+  1635→  1635→                  {displayNode._firCount ?? 0} FIRs
+  1636→  1636→                </span>
+  1637→  1637→              </div>
+  1638→  1638→            )}
+  1639→  1639→          </div>
+  1640→  1640→        )}
+  1641→  1641→
+  1642→  1642→        {/* ── Right Side Info Panel ── */}
+  1643→  1643→        {selectedNode && (
+  1644→  1644→          <div
+  1645→  1645→            className="absolute top-0 right-0 w-80 max-w-[85vw] h-full z-10 flex flex-col overflow-hidden"
+  1646→  1646→            style={{
+  1647→  1647→              background: "var(--bg-card)",
+  1648→  1648→              borderLeft: "1px solid var(--border-default)",
+  1649→  1649→              boxShadow: "-8px 0 32px rgba(0,0,0,0.4), 0 0 12px rgba(0,255,102,0.04)",
+  1650→  1650→            }}
+  1651→  1651→          >
+  1652→  1652→            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-default)] shrink-0">
+  1653→  1653→              <div className="flex items-center gap-2">
+  1654→  1654→                <span
+  1655→  1655→                  className="w-2 h-2 rounded-full"
+  1656→  1656→                  style={{
+  1657→  1657→                    backgroundColor: "#00FF66",
+  1658→  1658→                    boxShadow: `0 0 8px rgba(0,255,102,0.5)`,
+  1659→  1659→                  }}
+  1660→  1660→                />
+  1661→  1661→                <h2 className="text-xs font-semibold text-white uppercase tracking-wider font-mono">
+  1662→  1662→                  Node Details
+  1663→  1663→                </h2>
+  1664→  1664→              </div>
+  1665→  1665→              <button
+  1666→  1666→                onClick={() => setSelectedNode(null)}
+  1667→  1667→                className="w-7 h-7 rounded-md flex items-center justify-center text-[var(--text-tertiary)] hover:text-[#00FF66] hover:bg-[rgba(0,255,102,0.08)] transition-colors"
+  1668→  1668→              >
+  1669→  1669→                <X className="size-4" />
+  1670→  1670→              </button>
+  1671→  1671→            </div>
+  1672→  1672→            <div className="flex-1 overflow-y-auto px-4 py-4">
+  1673→  1673→              {selectedNode.type === "accused" && (
+  1674→  1674→                <AccusedPanel node={selectedNode} />
+  1675→  1675→              )}
+  1676→  1676→              {selectedNode.type === "gang" && (
+  1677→  1677→                <GangPanel node={selectedNode} />
+  1678→  1678→              )}
+  1679→  1679→              {selectedNode.type === "fir" && (
+  1680→  1680→                <FIRPanel node={selectedNode} />
+  1681→  1681→              )}
+  1682→  1682→              {selectedNode.type === "vehicle" && (
+  1683→  1683→                <VehiclePanel node={selectedNode} />
+  1684→  1684→              )}
+  1685→  1685→              {selectedNode.type === "district" && (
+  1686→  1686→                <DistrictPanel node={selectedNode} />
+  1687→  1687→              )}
+  1688→  1688→            </div>
+  1689→  1689→            <div className="px-4 py-2.5 border-t border-[var(--border-default)] shrink-0">
+  1690→  1690→              <div className="flex items-center gap-2">
+  1691→  1691→                <div
+  1692→  1692→                  className="w-3 h-3 rounded-full"
+  1693→  1693→                  style={{ backgroundColor: "#00FF66" }}
+  1694→  1694→                />
+  1695→  1695→                <span className="text-[11px] text-[var(--text-tertiary)] uppercase font-mono">
+  1696→  1696→                  {selectedNode.type}
+  1697→  1697→                </span>
+  1698→  1698→                <span className="text-[11px] text-[#334155]">&middot;</span>
+  1699→  1699→                <span className="text-[11px] text-[var(--text-muted)] truncate font-mono">
+  1700→  1700→                  {selectedNode.id}
+  1701→  1701→                </span>
+  1702→  1702→              </div>
+  1703→  1703→            </div>
+  1704→  1704→          </div>
+  1705→  1705→        )}
+  1706→  1706→      </div>
+  1707→  1707→    </div>
+  1708→  1708→  );
+  1709→  1709→}
+  1710→  1710→
+  1711→  1711→/* ------------------------------------------------------------------ */
+  1712→  1712→/*  Toolbar Button                                                     */
+  1713→  1713→/* ------------------------------------------------------------------ */
+  1714→  1714→
+  1715→  1715→function ToolbarButton({
+  1716→  1716→  icon,
+  1717→  1717→  tooltip,
+  1718→  1718→  onClick,
+  1719→  1719→}: {
+  1720→  1720→  icon: React.ReactNode;
+  1721→  1721→  tooltip: string;
+  1722→  1722→  onClick: () => void;
+  1723→  1723→}) {
+  1724→  1724→  const [hovered, setHovered] = useState(false);
+  1725→  1725→  return (
+  1726→  1726→    <button
+  1727→  1727→      onClick={onClick}
+  1728→  1728→      onMouseEnter={() => setHovered(true)}
+  1729→  1729→      onMouseLeave={() => setHovered(false)}
+  1730→  1730→      className="w-8 h-8 flex items-center justify-center rounded transition-all duration-150 relative group"
+  1731→  1731→      style={{
+  1732→  1732→        color: hovered ? "#00FF66" : "var(--text-secondary)",
+  1733→  1733→        background: hovered ? "rgba(0,255,102,0.08)" : "transparent",
+  1734→  1734→      }}
+  1735→  1735→      title={tooltip}
+  1736→  1736→    >
+  1737→  1737→      {icon}
+  1738→  1738→      {/* Tooltip */}
+  1739→  1739→      {hovered && (
+  1740→  1740→        <span
+  1741→  1741→          className="absolute left-full ml-2 whitespace-nowrap text-[10px] font-medium px-2 py-1 rounded-md z-50 pointer-events-none font-mono"
+  1742→  1742→          style={{
+  1743→  1743→            background: "var(--bg-card)",
+  1744→  1744→            border: "1px solid rgba(0,255,102,0.2)",
+  1745→  1745→            color: "var(--text-primary)",
+  1746→  1746→            boxShadow: "0 4px 12px rgba(0,0,0,0.4), 0 0 8px rgba(0,255,102,0.1)",
+  1747→  1747→          }}
+  1748→  1748→        >
+  1749→  1749→          {tooltip}
+  1750→  1750→        </span>
+  1751→  1751→      )}
+  1752→  1752→    </button>
+  1753→  1753→  );
+  1754→  1754→}
+  1755→  1755→
+  1756→  1756→/* ------------------------------------------------------------------ */
+  1757→  1757→/*  Dynamic wrapper for SSR safety                                     */
+  1758→  1758→/* ------------------------------------------------------------------ */
+  1759→  1759→
+  1760→  1760→export default dynamic(() => Promise.resolve(NetworkGraphInner), {
+  1761→  1761→  ssr: false,
+  1762→  1762→});

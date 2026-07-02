@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, memo, useCallback, useEffect } from "react";
 import { useAppStore } from "@/lib/store";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -12,7 +13,6 @@ import {
   Clock,
   FileText,
   Database,
-  ChevronDown,
   Fingerprint,
   Users,
   Car,
@@ -21,7 +21,6 @@ import {
   ScrollText,
   Cpu,
   Settings,
-  X,
   BarChart3,
   TrendingUp,
   GitBranch,
@@ -35,15 +34,12 @@ import {
   FileSearch,
   BadgeCheck,
   BookOpen,
+  PanelLeftClose,
+  PanelLeft,
 } from "lucide-react";
-import { useState, memo, useCallback, useEffect } from "react";
 import type { ViewType } from "@/lib/types";
 import { canAccessView } from "@/lib/permissions";
 import { getLabel } from "@/lib/translations";
-
-/* ═══════════════════════════════════════════════════════════════════════
-   NAV STRUCTURE — Items with keyboard shortcuts & sections
-   ═══════════════════════════════════════════════════════════════════════ */
 
 interface NavItemDef {
   key: string;
@@ -83,10 +79,6 @@ const DATA_MGMT_ITEMS: NavItemDef[] = [
   { key: "dmSettings", icon: Settings, view: "dm-settings" },
 ];
 
-/* ═══════════════════════════════════════════════════════════════════════
-   SECTION HEADER — Collapsible section with label
-   ═══════════════════════════════════════════════════════════════════════ */
-
 const SectionHeader = memo(function SectionHeader({
   label,
   icon: Icon,
@@ -103,7 +95,8 @@ const SectionHeader = memo(function SectionHeader({
   return (
     <button
       onClick={onToggle}
-      className="w-full flex items-center gap-2 px-2 py-1.5 mt-3 mb-1 cursor-pointer rounded-md transition-all duration-200 group"
+      className="w-full flex items-center gap-2 px-2 py-1.5 mt-3 mb-1 cursor-pointer transition-all duration-200 group"
+      style={{ fontFamily: "var(--font-ibm-plex-mono), monospace" }}
       onMouseEnter={(e) => {
         e.currentTarget.style.background = "var(--border-subtle)";
       }}
@@ -113,7 +106,7 @@ const SectionHeader = memo(function SectionHeader({
     >
       <Icon className="w-3 h-3 flex-shrink-0" style={{ color }} />
       <span
-        className="flex-1 text-left text-[10px] font-semibold uppercase tracking-[0.12em]"
+        className="flex-1 text-left text-[10px] font-bold uppercase tracking-[0.16em]"
         style={{ color: "var(--text-tertiary)" }}
       >
         {label}
@@ -128,10 +121,6 @@ const SectionHeader = memo(function SectionHeader({
     </button>
   );
 });
-
-/* ═══════════════════════════════════════════════════════════════════════
-   NAV ITEM — Individual nav button with shortcut, badge, glow
-   ═══════════════════════════════════════════════════════════════════════ */
 
 const NavItem = memo(function NavItem({
   item,
@@ -149,24 +138,18 @@ const NavItem = memo(function NavItem({
   onClick: () => void;
 }) {
   const Icon = item.icon;
-  const glowColor = accentColor === "var(--primary)"
-    ? "var(--primary-glow)"
-    : accentColor === "var(--secondary)"
-      ? "var(--secondary-glow)"
-      : "var(--success-glow)";
-
   return (
     <motion.button
       onClick={onClick}
       whileHover={{ x: collapsed ? 0 : 2 }}
       transition={{ duration: 0.15 }}
       title={collapsed ? `${getLabelFn(item.key)}${item.shortcut ? ` (${item.shortcut})` : ""}` : undefined}
-      className="w-full group relative flex items-center gap-2.5 rounded-lg text-[13px] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/30"
+      className="w-full group relative flex items-center gap-2.5 text-[13px] cursor-pointer outline-none"
       style={{
         padding: collapsed ? "9px" : "7px 10px",
         justifyContent: collapsed ? "center" : "flex-start",
         color: isActive ? accentColor : "var(--text-secondary)",
-        background: isActive ? glowColor : "transparent",
+        background: "transparent",
       }}
       onMouseEnter={(e) => {
         if (!isActive) {
@@ -181,45 +164,39 @@ const NavItem = memo(function NavItem({
         }
       }}
     >
-      {/* Active left indicator */}
+      {/* Phase 2: 2px left-border active indicator */}
       {isActive && (
         <motion.div
           layoutId={`nav-active-${item.view}`}
-          className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[55%] rounded-r-full"
+          className="absolute left-0 top-[15%] w-[2px] h-[70%]"
           style={{
             backgroundColor: accentColor,
-            boxShadow: `0 0 12px ${glowColor}`,
           }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
         />
       )}
-
-      {/* Icon */}
       <div className="relative flex-shrink-0">
+        {/* Phase 2: Smaller icons (3.5 = 14px) */}
         <Icon
-          className="w-[17px] h-[17px] transition-all duration-200"
-          style={isActive ? { filter: `drop-shadow(0 0 8px ${glowColor})` } : {}}
+          className="w-3.5 h-3.5 transition-all duration-200"
+          style={isActive ? { filter: `drop-shadow(0 0 6px ${accentColor})` } : {}}
         />
         {/* Badge: pulse dot for AI Copilot */}
         {item.badge === "pulse" && (
           <span
-            className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"
+            className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full"
             style={{
               backgroundColor: accentColor,
-              boxShadow: `0 0 6px ${accentColor}`,
+              boxShadow: `0 0 4px ${accentColor}`,
               animation: "status-pulse 2s ease-in-out infinite",
             }}
           />
         )}
-        {/* Badge: NEW tag */}
+        {/* Badge: NEW tag — bracket style */}
         {item.badge === "new" && !collapsed && (
           <span
-            className="absolute -top-1 -right-3 text-[7px] font-bold uppercase tracking-wider px-1 rounded-sm"
-            style={{
-              backgroundColor: "var(--success-glow)",
-              color: "var(--success)",
-              border: "1px solid var(--success-glow)",
-            }}
+            className="absolute -top-1 -right-3 text-[7px] font-bold uppercase tracking-wider px-1 bracket-badge"
+            style={{ color: "var(--success)" }}
           >
             NEW
           </span>
@@ -229,10 +206,10 @@ const NavItem = memo(function NavItem({
       {/* Label + Shortcut */}
       {!collapsed && (
         <div className="flex-1 flex items-center justify-between min-w-0 gap-1">
-          <span className="truncate font-medium text-[13px]">{getLabelFn(item.key)}</span>
+          <span className="truncate font-medium text-[12px]">{getLabelFn(item.key)}</span>
           {item.shortcut && (
             <kbd
-              className="flex-shrink-0 text-[9px] font-mono px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+              className="flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded font-mono"
               style={{
                 background: "var(--border-subtle)",
                 color: "var(--text-muted)",
@@ -247,10 +224,6 @@ const NavItem = memo(function NavItem({
     </motion.button>
   );
 });
-
-/* ═══════════════════════════════════════════════════════════════════════
-   MAIN SIDEBAR COMPONENT
-   ═══════════════════════════════════════════════════════════════════════ */
 
 export default function Sidebar() {
   const user = useAppStore((s) => s.user);
@@ -269,6 +242,9 @@ export default function Sidebar() {
   const getLabelFn = useCallback((key: string) => getLabel(lang, key), [lang]);
   const unreadCount = notifications.filter((n) => !n.read).length;
 
+  // Guard: don't render until user is authenticated (client-side auto-login)
+  if (!user) return null;
+
   const handleNav = useCallback(
     (view: ViewType) => {
       setView(view);
@@ -277,7 +253,6 @@ export default function Sidebar() {
     [setView]
   );
 
-  /* ── Keyboard Shortcuts (Alt+1..7) ─────────────────────────────── */
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.altKey && e.key >= "1" && e.key <= "7") {
@@ -293,7 +268,6 @@ export default function Sidebar() {
     return () => window.removeEventListener("keydown", handler);
   }, [user, handleNav]);
 
-  /* ── Separator ─────────────────────────────────────────────────── */
   const Separator = () => (
     <div
       className="my-2 mx-2"
@@ -304,24 +278,33 @@ export default function Sidebar() {
     />
   );
 
-  /* ── Nav Content (shared between desktop + mobile) ──────────────── */
-  const navContent = (
-    <div className="flex flex-col h-full">
-      {/* ── Logo Bar ──────────────────────────────────────────────── */}
+  const CollapseIcon = sidebarCollapsed ? PanelLeft : PanelLeftClose;
+
+  return (
+    <div
+      className="scanline-overlay flex flex-col h-full"
+      style={{
+        width: sidebarCollapsed ? "52px" : "220px",
+        minWidth: sidebarCollapsed ? "52px" : "220px",
+        background: "var(--bg-sidebar)",
+        borderRight: "1px solid var(--border-subtle)",
+        transition: "width 0.2s ease, min-width 0.2s ease",
+      }}
+    >
+      {/* Logo Bar */}
       <div
-        className="flex items-center justify-between px-4 h-14 flex-shrink-0"
+        className="flex items-center justify-between px-3 h-12 flex-shrink-0"
         style={{ borderBottom: "1px solid var(--border-subtle)" }}
       >
-        <div className="flex items-center gap-2.5 overflow-hidden">
+        <div className="flex items-center gap-2 overflow-hidden">
           <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+            className="w-7 h-7 rounded flex items-center justify-center flex-shrink-0"
             style={{
               background: "var(--primary-glow-strong)",
               border: "1px solid var(--border-accent)",
-              boxShadow: "0 0 16px var(--primary-glow)",
             }}
           >
-            <Shield className="w-4 h-4" style={{ color: "var(--primary)" }} />
+            <Shield className="w-3.5 h-3.5" style={{ color: "var(--primary)" }} />
           </div>
           <AnimatePresence>
             {!sidebarCollapsed && (
@@ -332,10 +315,10 @@ export default function Sidebar() {
                 className="overflow-hidden whitespace-nowrap"
               >
                 <span
-                  className="text-xs font-bold tracking-[0.14em] uppercase"
+                  className="text-[11px] font-bold tracking-[0.16em] uppercase"
                   style={{
                     color: "var(--primary)",
-                    textShadow: "0 0 20px var(--primary-glow-strong)",
+                    fontFamily: "var(--font-ibm-plex-mono), monospace",
                   }}
                 >
                   Sentinel
@@ -344,10 +327,10 @@ export default function Sidebar() {
             )}
           </AnimatePresence>
         </div>
-        {/* Collapse toggle — desktop only */}
+        {/* Collapse toggle */}
         <button
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className="hidden lg:flex items-center justify-center w-6 h-6 rounded-md transition-colors cursor-pointer"
+          className="w-6 h-6 flex items-center justify-center rounded cursor-pointer transition-all duration-200"
           style={{ color: "var(--text-muted)" }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = "var(--border-subtle)";
@@ -358,43 +341,32 @@ export default function Sidebar() {
             e.currentTarget.style.color = "var(--text-muted)";
           }}
         >
-          <motion.div
-            animate={{ rotate: sidebarCollapsed ? 0 : -90 }}
-            transition={{ duration: 0.2 }}
-          >
-            <ChevronDown className="w-3.5 h-3.5" />
-          </motion.div>
-        </button>
-        {/* Close button — mobile only */}
-        <button
-          onClick={() => setMobileOpen(false)}
-          className="lg:hidden flex items-center justify-center w-6 h-6 rounded-md cursor-pointer"
-          style={{ color: "var(--text-tertiary)" }}
-        >
-          <X className="w-4 h-4" />
+          <CollapseIcon className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      {/* ── Scrollable Navigation ─────────────────────────────────── */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2.5 py-2 space-y-0">
-        {/* INTELLIGENCE Section — always visible */}
+      {/* Scrollable Navigation */}
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-1.5 space-y-0 relative" style={{ zIndex: 2 }}>
+        {/* Intelligence section label */}
         {!sidebarCollapsed && (
-          <div className="flex items-center gap-2 px-2 py-1.5 mb-1">
+          <div className="flex items-center gap-2 px-2 py-1.5 mb-0.5">
             <Radar className="w-3 h-3" style={{ color: "var(--primary)" }} />
             <span
-              className="text-[10px] font-bold uppercase tracking-[0.12em]"
-              style={{ color: "var(--text-tertiary)" }}
+              className="text-[10px] font-bold uppercase tracking-[0.16em] label-tracked"
+              style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-ibm-plex-mono), monospace" }}
             >
               {getLabel(lang, "intelligence")}
             </span>
           </div>
         )}
+        {sidebarCollapsed && (
+          <div className="flex justify-center py-1">
+            <div className="w-4 h-px" style={{ background: "rgba(0, 255, 102, 0.1)" }} />
+          </div>
+        )}
         {INTELLIGENCE_ITEMS.map((item) => {
           const isActive = currentView === item.view;
-          const accessible = canAccessView(
-            user?.role || "demo_user",
-            item.view
-          );
+          const accessible = canAccessView(user?.role || "demo_user", item.view);
           if (!accessible) return null;
           return (
             <NavItem
@@ -408,10 +380,8 @@ export default function Sidebar() {
             />
           );
         })}
-
         <Separator />
-
-        {/* ANALYTICS & AI Section */}
+        {/* Analytics section */}
         {!sidebarCollapsed ? (
           <SectionHeader
             label={getLabel(lang, "analytics")}
@@ -422,15 +392,11 @@ export default function Sidebar() {
           />
         ) : (
           <div className="flex justify-center py-1">
-            <div
-              className="w-6 h-px"
-              style={{ background: "var(--border-subtle)" }}
-            />
+            <div className="w-4 h-px" style={{ background: "rgba(0, 204, 82, 0.1)" }} />
           </div>
         )}
-
         <AnimatePresence initial={false}>
-          {(analyticsOpen || sidebarCollapsed) && (
+          {analyticsOpen && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
@@ -457,29 +423,23 @@ export default function Sidebar() {
             </motion.div>
           )}
         </AnimatePresence>
-
         <Separator />
-
-        {/* DATA MANAGEMENT Section */}
+        {/* Data Management section */}
         {!sidebarCollapsed ? (
           <SectionHeader
             label={getLabel(lang, "dataMgmt")}
             icon={Database}
-            color="var(--secondary)"
+            color="var(--text-muted)"
             open={dmOpen}
             onToggle={() => setDmOpen(!dmOpen)}
           />
         ) : (
           <div className="flex justify-center py-1">
-            <div
-              className="w-6 h-px"
-              style={{ background: "rgba(255,255,255,0.06)" }}
-            />
+            <div className="w-4 h-px" style={{ background: "rgba(255,255,255,0.06)" }} />
           </div>
         )}
-
         <AnimatePresence initial={false}>
-          {(dmOpen || sidebarCollapsed) && (
+          {dmOpen && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
@@ -498,7 +458,7 @@ export default function Sidebar() {
                     isActive={isActive}
                     getLabelFn={getLabelFn}
                     collapsed={sidebarCollapsed}
-                    accentColor="var(--secondary)"
+                    accentColor="var(--text-secondary)"
                     onClick={() => handleNav(item.view)}
                   />
                 );
@@ -506,128 +466,37 @@ export default function Sidebar() {
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Bottom spacer for scroll */}
-        <div className="h-4" />
       </nav>
 
-      {/* ── Bottom Section ───────────────────────────────────────── */}
-      <div
-        className="px-2.5 pb-3 space-y-1 flex-shrink-0"
-        style={{ borderTop: "1px solid var(--border-subtle)" }}
-      >
-        {/* Command Palette — desktop, expanded only */}
-        {!sidebarCollapsed && (
-          <motion.button
-            onClick={() => setCommandPaletteOpen(true)}
-            whileHover={{ scale: 1.01 }}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] cursor-pointer transition-colors"
+      {/* Bottom section: User info + Logout */}
+      <div className="flex-shrink-0" style={{ borderTop: "1px solid var(--border-subtle)", position: "relative", zIndex: 2 }}>
+        {/* User Info */}
+        <div className="flex items-center gap-2.5 px-3 py-2">
+          <div
+            className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0 text-[10px] font-bold"
             style={{
-              color: "var(--text-muted)",
-              border: "1px dashed var(--border-subtle)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "var(--border-default)";
-              e.currentTarget.style.color = "var(--text-tertiary)";
-              e.currentTarget.style.background = "var(--border-subtle)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "var(--border-subtle)";
-              e.currentTarget.style.color = "var(--text-muted)";
-              e.currentTarget.style.background = "transparent";
+              background: "var(--primary-glow-strong)",
+              color: "var(--primary)",
+              border: "1px solid var(--border-accent)",
             }}
           >
-            <Command className="w-3.5 h-3.5" />
-            <span className="flex-1 text-left">{getLabel(lang, "commandPalette")}</span>
-            <kbd
-              className="text-[9px] px-1.5 py-0.5 rounded font-mono"
-              style={{
-                background: "var(--border-subtle)",
-                color: "var(--text-muted)",
-                border: "1px solid var(--border-subtle)",
-              }}
-            >
-              Ctrl+K
-            </kbd>
-          </motion.button>
-        )}
-
-        {/* Help Guide button — desktop, expanded only */}
-        {!sidebarCollapsed && (
-          <button
-            onClick={() => setShowOnboarding(true)}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] cursor-pointer transition-all duration-200"
-            style={{
-              color: "var(--text-muted)",
-              border: "1px dashed var(--border-subtle)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "var(--border-default)";
-              e.currentTarget.style.color = "var(--text-tertiary)";
-              e.currentTarget.style.background = "var(--border-subtle)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "var(--border-subtle)";
-              e.currentTarget.style.color = "var(--text-muted)";
-              e.currentTarget.style.background = "transparent";
-            }}
-          >
-            <BookOpen className="w-3.5 h-3.5" />
-            <span className="flex-1 text-left">{getLabel(lang, "helpGuide")}</span>
-          </button>
-        )}
-
-        {/* Collapsed help guide — icon only */}
-        {sidebarCollapsed && (
-          <button
-            onClick={() => setShowOnboarding(true)}
-            className="w-full flex items-center justify-center py-2 rounded-lg cursor-pointer transition-all duration-200"
-            style={{ color: "var(--text-muted)" }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "var(--border-subtle)";
-              e.currentTarget.style.color = "var(--text-secondary)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = "var(--text-muted)";
-            }}
-            title="Help Guide"
-          >
-            <BookOpen className="w-4 h-4" />
-          </button>
-        )}
-
-        {/* User Info — desktop, expanded only */}
-        {user && !sidebarCollapsed && (
-          <div className="flex items-center gap-3 px-3 py-2">
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-[11px] font-bold"
-              style={{
-                background: "var(--primary-glow-strong)",
-                color: "var(--primary)",
-                border: "1px solid var(--border-accent)",
-              }}
-            >
-              {user.username.charAt(0).toUpperCase()}
-            </div>
+            {user?.username.charAt(0).toUpperCase()}
+          </div>
+          {!sidebarCollapsed && (
             <div className="flex-1 min-w-0">
-              <p
-                className="text-[12px] font-semibold truncate"
-                style={{ color: "var(--text-primary)" }}
-              >
-                {user.username}
+              <p className="text-[11px] font-semibold truncate" style={{ color: "var(--text-primary)" }}>
+                {user?.username}
               </p>
-              <p className="text-[10px] capitalize" style={{ color: "var(--text-muted)" }}>
+              <p className="text-[9px] capitalize" style={{ color: "var(--text-muted)" }}>
                 {user.role.replace(/_/g, " ")}
               </p>
             </div>
-          </div>
-        )}
-
+          )}
+        </div>
         {/* Logout */}
         <button
           onClick={logout}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[12px] cursor-pointer transition-all duration-200"
+          className="w-full flex items-center gap-2.5 px-3 py-1.5 text-[11px] cursor-pointer transition-all duration-200"
           style={{
             justifyContent: sidebarCollapsed ? "center" : "flex-start",
             color: "var(--text-tertiary)",
@@ -641,92 +510,10 @@ export default function Sidebar() {
             e.currentTarget.style.color = "var(--text-tertiary)";
           }}
         >
-          <LogOut className="w-4 h-4 flex-shrink-0" />
+          <LogOut className="w-3.5 h-3.5 flex-shrink-0" />
           {!sidebarCollapsed && <span>{getLabel(lang, "logout")}</span>}
         </button>
       </div>
     </div>
-  );
-
-  /* ── Render ─────────────────────────────────────────────────────── */
-  return (
-    <>
-      {/* Mobile overlay */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40 lg:hidden"
-            style={{
-              background: "rgba(0,0,0,0.6)",
-              backdropFilter: "blur(4px)",
-            }}
-            onClick={() => setMobileOpen(false)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Mobile hamburger trigger */}
-      <button
-        onClick={() => setMobileOpen(true)}
-        className="fixed top-3 left-3 z-50 lg:hidden w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-200"
-        style={{
-          background: "var(--bg-card)",
-          border: "1px solid var(--border-subtle)",
-          backdropFilter: "blur(16px)",
-        }}
-      >
-        <Shield className="w-4 h-4" style={{ color: "var(--primary)" }} />
-        {unreadCount > 0 && (
-          <span
-            className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold"
-            style={{ background: "var(--critical)", color: "var(--primary-foreground)" }}
-          >
-            {unreadCount}
-          </span>
-        )}
-      </button>
-
-      {/* Desktop Sidebar — always visible on lg+ screens */}
-      <aside
-        className="hidden lg:flex flex-col h-full flex-shrink-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-        style={{
-          width: sidebarCollapsed ? 60 : 256,
-          minWidth: sidebarCollapsed ? 60 : 256,
-          background: "var(--bg-sidebar)",
-          backdropFilter: "blur(32px)",
-          borderRight: "1px solid var(--border-subtle)",
-          boxShadow: sidebarCollapsed
-            ? "none"
-            : "4px 0 24px -4px rgba(0,0,0,0.3)",
-        }}
-      >
-        {navContent}
-      </aside>
-
-      {/* Mobile Sidebar — slide in overlay */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.aside
-            initial={{ x: -280, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -280, opacity: 0 }}
-            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-            className="fixed inset-y-0 left-0 z-50 w-[280px] max-w-[85vw] flex flex-col lg:hidden"
-            style={{
-              background: "var(--bg-sidebar)",
-              backdropFilter: "blur(32px)",
-              borderRight: "1px solid var(--border-default)",
-              boxShadow: "4px 0 32px rgba(0,0,0,0.5)",
-            }}
-          >
-            {navContent}
-          </motion.aside>
-        )}
-      </AnimatePresence>
-    </>
   );
 }

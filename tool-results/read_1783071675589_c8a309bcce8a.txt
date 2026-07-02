@@ -1,0 +1,1288 @@
+     1→     1→@import "tailwindcss";
+     2→     2→@import "tw-animate-css";
+     3→     3→
+     4→     4→@custom-variant dark (&:is(.dark *));
+     5→     5→
+     6→     6→@theme inline {
+     7→     7→  --color-background: var(--background);
+     8→     8→  --color-foreground: var(--foreground);
+     9→     9→  --font-sans: var(--font-inter-tight);
+    10→    10→  --font-mono: var(--font-ibm-plex-mono);
+    11→    11→  --color-sidebar-ring: var(--sidebar-ring);
+    12→    12→  --color-sidebar-border: var(--sidebar-border);
+    13→    13→  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    14→    14→  --color-sidebar-accent: var(--sidebar-accent);
+    15→    15→  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    16→    16→  --color-sidebar-primary: var(--sidebar-primary);
+    17→    17→  --color-sidebar-foreground: var(--sidebar-foreground);
+    18→    18→  --color-sidebar: var(--sidebar);
+    19→    19→  --color-chart-5: var(--chart-5);
+    20→    20→  --color-chart-4: var(--chart-4);
+    21→    21→  --color-chart-3: var(--chart-3);
+    22→    22→  --color-chart-2: var(--chart-2);
+    23→    23→  --color-chart-1: var(--chart-1);
+    24→    24→  --color-ring: var(--ring);
+    25→    25→  --color-input: var(--input);
+    26→    26→  --color-border: var(--border);
+    27→    27→  --color-destructive: var(--destructive);
+    28→    28→  --color-accent-foreground: var(--accent-foreground);
+    29→    29→  --color-accent: var(--accent);
+    30→    30→  --color-muted-foreground: var(--muted-foreground);
+    31→    31→  --color-muted: var(--muted);
+    32→    32→  --color-secondary-foreground: var(--secondary-foreground);
+    33→    33→  --color-secondary: var(--secondary);
+    34→    34→  --color-primary-foreground: var(--primary-foreground);
+    35→    35→  --color-primary: var(--primary);
+    36→    36→  --color-popover-foreground: var(--popover-foreground);
+    37→    37→  --color-popover: var(--popover);
+    38→    38→  --color-card-foreground: var(--card-foreground);
+    39→    39→  --color-card: var(--card);
+    40→    40→  --radius-sm: 2px;
+    41→    41→  --radius-md: 2px;
+    42→    42→  --radius-lg: 3px;
+    43→    43→  --radius-xl: 4px;
+    44→    44→}
+    45→    45→
+    46→    46→/* ═══════════════════════════════════════════════════════════════════════
+    47→    47→   CLASSIFIED CONSOLE DESIGN SYSTEM — KSP Sentinel AI
+    48→    48→   Reference: Person of Interest HUD × Palantir Gotham × Mr. Robot terminal
+    49→    49→   ═══════════════════════════════════════════════════════════════════════ */
+    50→    50→
+    51→    51→:root {
+    52→    52→  --radius: 0.125rem;
+    53→    53→
+    54→    54→  /* ── Background Elevation Layers ─────────────────────────────────── */
+    55→    55→  --background: #05070A;
+    56→    56→  --bg-elevated-1: #080b10;
+    57→    57→  --bg-elevated-2: #0a0e15;
+    58→    58→  --bg-elevated-3: #0d1117;
+    59→    59→  --bg-card: #0D1117;
+    60→    60→  --bg-card-hover: #111820;
+    61→    61→  --bg-input: #0a0e14;
+    62→    62→  --bg-sidebar: #060910;
+    63→    63→
+    64→    64→  /* ── Foreground / Text ──────────────────────────────────────────── */
+    65→    65→  --foreground: rgba(255, 255, 255, 0.87);
+    66→    66→  --text-primary: rgba(255, 255, 255, 0.87);
+    67→    67→  --text-secondary: rgba(255, 255, 255, 0.55);
+    68→    68→  --text-tertiary: rgba(255, 255, 255, 0.35);
+    69→    69→  --text-muted: rgba(255, 255, 255, 0.2);
+    70→    70→
+    71→    71→  /* ── Primary Accent: Phosphor Green ─────────────────────────────── */
+    72→    72→  --primary: #00FF66;
+    73→    73→  --primary-foreground: #05070A;
+    74→    74→  --primary-glow: rgba(0, 255, 102, 0.1);
+    75→    75→  --primary-glow-strong: rgba(0, 255, 102, 0.2);
+    76→    76→  --primary-subtle: rgba(0, 255, 102, 0.05);
+    77→    77→
+    78→    78→  /* ── Alert Accent: Amber ────────────────────────────────────────── */
+    79→    79→  --alert: #FF6B00;
+    80→    80→  --alert-glow: rgba(255, 107, 0, 0.1);
+    81→    81→
+    82→    82→  /* ── Secondary — repurposed as neutral (no indigo/purple) ───────── */
+    83→    83→  --secondary: #1a2030;
+    84→    84→  --secondary-foreground: rgba(255, 255, 255, 0.87);
+    85→    85→  --secondary-glow: rgba(255, 255, 255, 0.03);
+    86→    86→
+    87→    87→  /* ── Status Colors ──────────────────────────────────────────────── */
+    88→    88→  --success: #00cc52;
+    89→    89→  --success-glow: rgba(0, 204, 82, 0.1);
+    90→    90→  --warning: #FF6B00;
+    91→    91→  --warning-glow: rgba(255, 107, 0, 0.1);
+    92→    92→  --critical: #ff4444;
+    93→    93→  --critical-glow: rgba(255, 68, 68, 0.1);
+    94→    94→
+    95→    95→  /* ── Muted / Neutral ────────────────────────────────────────────── */
+    96→    96→  --muted: #0d1117;
+    97→    97→  --muted-foreground: rgba(255, 255, 255, 0.55);
+    98→    98→  --accent: #111820;
+    99→    99→  --accent-foreground: rgba(255, 255, 255, 0.87);
+   100→   100→
+   101→   101→  /* ── Borders — green-tinted ─────────────────────────────────────── */
+   102→   102→  --border: rgba(0, 255, 102, 0.15);
+   103→   103→  --border-subtle: rgba(0, 255, 102, 0.08);
+   104→   104→  --border-default: rgba(0, 255, 102, 0.15);
+   105→   105→  --border-strong: rgba(0, 255, 102, 0.25);
+   106→   106→  --border-accent: rgba(0, 255, 102, 0.4);
+   107→   107→
+   108→   108→  /* ── Destructive ────────────────────────────────────────────────── */
+   109→   109→  --destructive: #ff4444;
+   110→   110→
+   111→   111→  /* ── Card & Popover ─────────────────────────────────────────────── */
+   112→   112→  --card: #0D1117;
+   113→   113→  --card-foreground: rgba(255, 255, 255, 0.87);
+   114→   114→  --popover: #0D1117;
+   115→   115→  --popover-foreground: rgba(255, 255, 255, 0.87);
+   116→   116→
+   117→   117→  /* ── Input ──────────────────────────────────────────────────────── */
+   118→   118→  --input: #0a0e14;
+   119→   119→
+   120→   120→  /* ── Ring ───────────────────────────────────────────────────────── */
+   121→   121→  --ring: #00FF66;
+   122→   122→
+   123→   123→  /* ── Charts ─────────────────────────────────────────────────────── */
+   124→   124→  --chart-1: #00FF66;
+   125→   125→  --chart-2: #FF6B00;
+   126→   126→  --chart-3: #00cc52;
+   127→   127→  --chart-4: #ff4444;
+   128→   128→  --chart-5: #666666;
+   129→   129→
+   130→   130→  /* ── Sidebar ────────────────────────────────────────────────────── */
+   131→   131→  --sidebar: var(--bg-sidebar);
+   132→   132→  --sidebar-foreground: rgba(255, 255, 255, 0.7);
+   133→   133→  --sidebar-primary: #00FF66;
+   134→   134→  --sidebar-primary-foreground: #05070A;
+   135→   135→  --sidebar-accent: rgba(0, 255, 102, 0.05);
+   136→   136→  --sidebar-accent-foreground: rgba(255, 255, 255, 0.87);
+   137→   137→  --sidebar-border: rgba(0, 255, 102, 0.1);
+   138→   138→  --sidebar-ring: #00FF66;
+   139→   139→}
+   140→   140→
+   141→   141→.dark {
+   142→   142→  --background: #05070A;
+   143→   143→  --foreground: rgba(255, 255, 255, 0.87);
+   144→   144→  --card: #0D1117;
+   145→   145→  --card-foreground: rgba(255, 255, 255, 0.87);
+   146→   146→  --popover: #0D1117;
+   147→   147→  --popover-foreground: rgba(255, 255, 255, 0.87);
+   148→   148→  --primary: #00FF66;
+   149→   149→  --primary-foreground: #05070A;
+   150→   150→  --secondary: #1a2030;
+   151→   151→  --secondary-foreground: rgba(255, 255, 255, 0.87);
+   152→   152→  --muted: #0d1117;
+   153→   153→  --muted-foreground: rgba(255, 255, 255, 0.55);
+   154→   154→  --accent: #111820;
+   155→   155→  --accent-foreground: rgba(255, 255, 255, 0.87);
+   156→   156→  --destructive: #ff4444;
+   157→   157→  --border: rgba(0, 255, 102, 0.15);
+   158→   158→  --input: #0a0e14;
+   159→   159→  --ring: #00FF66;
+   160→   160→  --chart-1: #00FF66;
+   161→   161→  --chart-2: #FF6B00;
+   162→   162→  --chart-3: #00cc52;
+   163→   163→  --chart-4: #ff4444;
+   164→   164→  --chart-5: #666666;
+   165→   165→  --sidebar: var(--bg-sidebar);
+   166→   166→  --sidebar-foreground: rgba(255, 255, 255, 0.7);
+   167→   167→  --sidebar-primary: #00FF66;
+   168→   168→  --sidebar-primary-foreground: #05070A;
+   169→   169→  --sidebar-accent: rgba(0, 255, 102, 0.05);
+   170→   170→  --sidebar-accent-foreground: rgba(255, 255, 255, 0.87);
+   171→   171→  --sidebar-border: rgba(0, 255, 102, 0.1);
+   172→   172→  --sidebar-ring: #00FF66;
+   173→   173→
+   174→   174→  --bg-elevated-1: #080b10;
+   175→   175→  --bg-elevated-2: #0a0e15;
+   176→   176→  --bg-elevated-3: #0d1117;
+   177→   177→  --bg-card: #0D1117;
+   178→   178→  --bg-card-hover: #111820;
+   179→   179→  --bg-input: #0a0e14;
+   180→   180→  --bg-sidebar: #060910;
+   181→   181→  --text-primary: rgba(255, 255, 255, 0.87);
+   182→   182→  --text-secondary: rgba(255, 255, 255, 0.55);
+   183→   183→  --text-tertiary: rgba(255, 255, 255, 0.35);
+   184→   184→  --text-muted: rgba(255, 255, 255, 0.2);
+   185→   185→  --primary-glow: rgba(0, 255, 102, 0.1);
+   186→   186→  --primary-glow-strong: rgba(0, 255, 102, 0.2);
+   187→   187→  --primary-subtle: rgba(0, 255, 102, 0.05);
+   188→   188→  --secondary-glow: rgba(255, 255, 255, 0.03);
+   189→   189→  --alert: #FF6B00;
+   190→   190→  --alert-glow: rgba(255, 107, 0, 0.1);
+   191→   191→  --success: #00cc52;
+   192→   192→  --success-glow: rgba(0, 204, 82, 0.1);
+   193→   193→  --warning: #FF6B00;
+   194→   194→  --warning-glow: rgba(255, 107, 0, 0.1);
+   195→   195→  --critical: #ff4444;
+   196→   196→  --critical-glow: rgba(255, 68, 68, 0.1);
+   197→   197→  --border-subtle: rgba(0, 255, 102, 0.08);
+   198→   198→  --border-default: rgba(0, 255, 102, 0.15);
+   199→   199→  --border-strong: rgba(0, 255, 102, 0.25);
+   200→   200→  --border-accent: rgba(0, 255, 102, 0.4);
+   201→   201→
+   202→   202→  color-scheme: dark;
+   203→   203→}
+   204→   204→
+   205→   205→/* ═══════════════════════════════════════════════════════════════════════
+   206→   206→   LIGHT THEME — Minimal, functional
+   207→   207→   ═══════════════════════════════════════════════════════════════════════ */
+   208→   208→
+   209→   209→.light {
+   210→   210→  --background: #f8fafc;
+   211→   211→  --foreground: #0f172a;
+   212→   212→  --card: #ffffff;
+   213→   213→  --card-foreground: #0f172a;
+   214→   214→  --popover: #ffffff;
+   215→   215→  --popover-foreground: #0f172a;
+   216→   216→  --primary: #059669;
+   217→   217→  --primary-foreground: #ffffff;
+   218→   218→  --secondary: #e2e8f0;
+   219→   219→  --secondary-foreground: #0f172a;
+   220→   220→  --muted: #f1f5f9;
+   221→   221→  --muted-foreground: #64748b;
+   222→   222→  --accent: #f1f5f9;
+   223→   223→  --accent-foreground: #0c4a6e;
+   224→   224→  --destructive: #ef4444;
+   225→   225→  --border: rgba(0, 0, 0, 0.12);
+   226→   226→  --input: #e2e8f0;
+   227→   227→  --ring: #059669;
+   228→   228→  --chart-1: #059669;
+   229→   229→  --chart-2: #d97706;
+   230→   230→  --chart-3: #047857;
+   231→   231→  --chart-4: #ef4444;
+   232→   232→  --chart-5: #888888;
+   233→   233→  --sidebar: #ffffff;
+   234→   234→  --sidebar-foreground: #334155;
+   235→   235→  --sidebar-primary: #059669;
+   236→   236→  --sidebar-primary-foreground: #ffffff;
+   237→   237→  --sidebar-accent: rgba(5, 150, 105, 0.08);
+   238→   238→  --sidebar-accent-foreground: #0f172a;
+   239→   239→  --sidebar-border: rgba(0, 0, 0, 0.06);
+   240→   240→  --sidebar-ring: #059669;
+   241→   241→  --bg-elevated-1: #f1f5f9;
+   242→   242→  --bg-elevated-2: #e2e8f0;
+   243→   243→  --bg-elevated-3: #cbd5e1;
+   244→   244→  --bg-card: #ffffff;
+   245→   245→  --bg-card-hover: #f8fafc;
+   246→   246→  --bg-input: #f1f5f9;
+   247→   247→  --bg-sidebar: #ffffff;
+   248→   248→  --text-primary: #0f172a;
+   249→   249→  --text-secondary: #475569;
+   250→   250→  --text-tertiary: #94a3b8;
+   251→   251→  --text-muted: #cbd5e1;
+   252→   252→  --primary-glow: rgba(5, 150, 105, 0.1);
+   253→   253→  --primary-glow-strong: rgba(5, 150, 105, 0.2);
+   254→   254→  --primary-subtle: rgba(5, 150, 105, 0.05);
+   255→   255→  --secondary-glow: rgba(0, 0, 0, 0.03);
+   256→   256→  --success: #059669;
+   257→   257→  --success-glow: rgba(5, 150, 105, 0.1);
+   258→   258→  --warning: #d97706;
+   259→   259→  --warning-glow: rgba(217, 119, 6, 0.1);
+   260→   260→  --critical: #ef4444;
+   261→   261→  --critical-glow: rgba(239, 68, 68, 0.1);
+   262→   262→  --border-subtle: rgba(0, 0, 0, 0.06);
+   263→   263→  --border-default: rgba(0, 0, 0, 0.1);
+   264→   264→  --border-strong: rgba(0, 0, 0, 0.15);
+   265→   265→  --border-accent: rgba(5, 150, 105, 0.2);
+   266→   266→  color-scheme: light;
+   267→   267→}
+   268→   268→
+   269→   269→/* ═══════════════════════════════════════════════════════════════════════
+   270→   270→   OLD COLOR REMAPPING — Maps legacy hardcoded hex values to new system
+   271→   271→   Components use Tailwind arbitrary values from the old design.
+   272→   272→   These overrides remap them without touching component logic.
+   273→   273→   ═══════════════════════════════════════════════════════════════════════ */
+   274→   274→
+   275→   275→/* ── Primary heading text ─────────────────────────────────────────── */
+   276→   276→.text-\[\#f1f5f9\] { color: rgba(255, 255, 255, 0.87) !important; }
+   277→   277→.text-\[\#e8edf5\] { color: rgba(255, 255, 255, 0.87) !important; }
+   278→   278→.text-white { color: rgba(255, 255, 255, 0.87) !important; }
+   279→   279→
+   280→   280→/* ── Secondary body text ─────────────────────────────────────────── */
+   281→   281→.text-\[\#8b97b0\] { color: rgba(255, 255, 255, 0.55) !important; }
+   282→   282→
+   283→   283→/* ── Tertiary / hint text ────────────────────────────────────────── */
+   284→   284→.text-\[\#5a657a\] { color: rgba(255, 255, 255, 0.35) !important; }
+   285→   285→
+   286→   286→/* ── Muted / placeholder text ────────────────────────────────────── */
+   287→   287→.text-\[\#3d4659\] { color: rgba(255, 255, 255, 0.2) !important; }
+   288→   288→.text-\[\#334155\] { color: rgba(255, 255, 255, 0.35) !important; }
+   289→   289→
+   290→   290→/* ── Accent: Cyan → Phosphor Green ───────────────────────────────── */
+   291→   291→.text-\[\#22d3ee\] { color: #00FF66 !important; }
+   292→   292→.text-\[\#06b6d4\] { color: #00FF66 !important; }
+   293→   293→.bg-\[\#22d3ee\]\/10 { background-color: rgba(0, 255, 102, 0.1) !important; }
+   294→   294→.bg-\[\#22d3ee\]\/15 { background-color: rgba(0, 255, 102, 0.12) !important; }
+   295→   295→.bg-\[\#22d3ee\]\/20 { background-color: rgba(0, 255, 102, 0.15) !important; }
+   296→   296→.border-\[\#22d3ee\]\/20,
+   297→   297→.border-\[rgba\(34\,211\,238\,0\.2\)\] { border-color: rgba(0, 255, 102, 0.2) !important; }
+   298→   298→.bg-\[rgba\(34\,211\,238\,0\.15\)\] { background-color: rgba(0, 255, 102, 0.12) !important; }
+   299→   299→
+   300→   300→/* ── Accent: Indigo → Phosphor Green (or neutral) ────────────────── */
+   301→   301→.text-\[\#818cf8\] { color: #00FF66 !important; }
+   302→   302→.bg-\[\#818cf8\]\/10 { background-color: rgba(0, 255, 102, 0.1) !important; }
+   303→   303→.bg-\[\#818cf8\]\/15 { background-color: rgba(0, 255, 102, 0.12) !important; }
+   304→   304→.border-\[rgba\(129\,140\,248\,0\.15\)\] { border-color: rgba(0, 255, 102, 0.12) !important; }
+   305→   305→.bg-\[rgba\(129\,140\,248\,0\.08\)\] { background-color: rgba(0, 255, 102, 0.05) !important; }
+   306→   306→.bg-\[rgba\(129\,140\,248\,0\.15\)\] { background-color: rgba(0, 255, 102, 0.12) !important; }
+   307→   307→
+   308→   308→/* ── Accent: Emerald → Darker Green ──────────────────────────────── */
+   309→   309→.text-\[\#34d399\] { color: #00cc52 !important; }
+   310→   310→.bg-\[\#34d399\]\/10 { background-color: rgba(0, 204, 82, 0.1) !important; }
+   311→   311→.bg-\[\#34d399\]\/15 { background-color: rgba(0, 204, 82, 0.12) !important; }
+   312→   312→.bg-\[\#34d399\]\/20 { background-color: rgba(0, 204, 82, 0.15) !important; }
+   313→   313→.bg-\[rgba\(52\,211\,153\,0\.08\)\] { background-color: rgba(0, 204, 82, 0.06) !important; }
+   314→   314→.bg-\[rgba\(52\,211\,153\,0\.15\)\] { background-color: rgba(0, 204, 82, 0.12) !important; }
+   315→   315→
+   316→   316→/* ── Accent: Amber/Yellow → Alert Amber ──────────────────────────── */
+   317→   317→.text-\[\#fbbf24\] { color: #FF6B00 !important; }
+   318→   318→.bg-\[\#fbbf24\]\/10 { background-color: rgba(255, 107, 0, 0.1) !important; }
+   319→   319→.bg-\[\#fbbf24\]\/15 { background-color: rgba(255, 107, 0, 0.12) !important; }
+   320→   320→.bg-\[\#fbbf24\]\/20 { background-color: rgba(255, 107, 0, 0.15) !important; }
+   321→   321→.bg-\[rgba\(251\,191\,36\,0\.08\)\] { background-color: rgba(255, 107, 0, 0.06) !important; }
+   322→   322→
+   323→   323→/* ── Accent: Red → Critical Red ──────────────────────────────────── */
+   324→   324→.text-\[\#f87171\] { color: #ff4444 !important; }
+   325→   325→.bg-\[\#f87171\]\/10 { background-color: rgba(255, 68, 68, 0.1) !important; }
+   326→   326→.bg-\[\#f87171\]\/15 { background-color: rgba(255, 68, 68, 0.12) !important; }
+   327→   327→.bg-\[\#f87171\]\/20 { background-color: rgba(255, 68, 68, 0.15) !important; }
+   328→   328→.bg-\[rgba\(248\,113\,113\,0\.08\)\] { background-color: rgba(255, 68, 68, 0.06) !important; }
+   329→   329→
+   330→   330→/* ── Accent: Pink → Red ──────────────────────────────────────────── */
+   331→   331→.text-\[\#ec4899\] { color: #ff4444 !important; }
+   332→   332→.bg-\[\#ec4899\]\/10 { background-color: rgba(255, 68, 68, 0.1) !important; }
+   333→   333→.bg-\[\#ec4899\]\/20 { background-color: rgba(255, 68, 68, 0.15) !important; }
+   334→   334→.bg-\[rgba\(236\,72\,153\,0\.08\)\] { background-color: rgba(255, 68, 68, 0.06) !important; }
+   335→   335→
+   336→   336→/* ── Accent: Lime → Green ────────────────────────────────────────── */
+   337→   337→.text-\[\#84cc16\] { color: #00cc52 !important; }
+   338→   338→
+   339→   339→/* ── Sidebar text ────────────────────────────────────────────────── */
+   340→   340→.text-\[\#c8d0e0\] { color: rgba(255, 255, 255, 0.7) !important; }
+   341→   341→
+   342→   342→/* ── Background tints (white-on-dark) → near-invisible green tint ─ */
+   343→   343→.bg-white\/5,
+   344→   344→.bg-white\/\[0\.03\],
+   345→   345→.bg-white\/\[0\.04\],
+   346→   346→.bg-white\/\[0\.05\],
+   347→   347→.bg-white\/\[0\.06\],
+   348→   348→.bg-white\/\[0\.08\],
+   349→   349→.bg-white\/\[0\.1\],
+   350→   350→.bg-white\/10,
+   351→   351→.bg-white\/\[0\.15\],
+   352→   352→.bg-white\/\[0\.2\],
+   353→   353→.bg-white\/20 {
+   354→   354→  background-color: rgba(0, 255, 102, 0.03) !important;
+   355→   355→}
+   356→   356→.hover\:bg-white\/5:hover,
+   357→   357→.hover\:bg-white\/\[0\.05\]:hover,
+   358→   358→.hover\:bg-white\/\[0\.06\]:hover,
+   359→   359→.hover\:bg-white\/\[0\.08\]:hover,
+   360→   360→.hover\:bg-white\/10:hover,
+   361→   361→.hover\:bg-white\/\[0\.1\]:hover {
+   362→   362→  background-color: rgba(0, 255, 102, 0.06) !important;
+   363→   363→}
+   364→   364→.data-\[state\=active\]\:bg-white\/10,
+   365→   365→.data-\[state\=active\]\:bg-white\/\[0\.1\] { background-color: rgba(0, 255, 102, 0.06) !important; }
+   366→   366→.data-\[state\=active\]\:text-\[\#f1f5f9\] { color: #00FF66 !important; }
+   367→   367→.data-\[state\=active\]\:text-\[\#8b97b0\] { color: #00FF66 !important; }
+   368→   368→
+   369→   369→/* ── Border tints ────────────────────────────────────────────────── */
+   370→   370→.border-white\/5,
+   371→   371→.border-white\/\[0\.05\],
+   372→   372→.border-white\/\[0\.06\],
+   373→   373→.border-white\/\[0\.08\],
+   374→   374→.border-white\/\[0\.1\],
+   375→   375→.border-white\/10,
+   376→   376→.border-white\/\[0\.12\],
+   377→   377→.border-white\/\[0\.15\],
+   378→   378→.border-white\/\[0\.2\] {
+   379→   379→  border-color: rgba(0, 255, 102, 0.12) !important;
+   380→   380→}
+   381→   381→
+   382→   382→/* ── Separator backgrounds ───────────────────────────────────────── */
+   383→   383→.bg-white\/\[0\.12\] { background-color: rgba(0, 255, 102, 0.06) !important; }
+   384→   384→
+   385→   385→/* ── Inline bg tints ─────────────────────────────────────────────── */
+   386→   386→.bg-\[\#34d399\]\/15 { background-color: rgba(0, 204, 82, 0.12) !important; }
+   387→   387→.bg-\[\#fbbf24\]\/15 { background-color: rgba(255, 107, 0, 0.12) !important; }
+   388→   388→.bg-\[\#f87171\]\/15 { background-color: rgba(255, 68, 68, 0.12) !important; }
+   389→   389→
+   390→   390→/* ── Notification panel bg ──────────────────────────────────────── */
+   391→   391→.whilehover\:bg-white\/\[0\.02\]:hover { background-color: rgba(0, 255, 102, 0.03) !important; }
+   392→   392→
+   393→   393→/* ── Focus ring ──────────────────────────────────────────────────── */
+   394→   394→:focus-visible {
+   395→   395→  outline: 1.5px solid rgba(0, 255, 102, 0.5);
+   396→   396→  outline-offset: 1px;
+   397→   397→  border-radius: 2px;
+   398→   398→}
+   399→   399→
+   400→   400→/* ── Selection ───────────────────────────────────────────────────── */
+   401→   401→::selection {
+   402→   402→  background: rgba(0, 255, 102, 0.2);
+   403→   403→  color: rgba(255, 255, 255, 0.95);
+   404→   404→}
+   405→   405→
+   406→   406→/* ═══════════════════════════════════════════════════════════════════════
+   407→   407→   LIGHT MODE OVERRIDES
+   408→   408→   ═══════════════════════════════════════════════════════════════════════ */
+   409→   409→
+   410→   410→.light .text-\[\#f1f5f9\] { color: #0f172a !important; }
+   411→   411→.light .text-\[\#e8edf5\] { color: #0f172a !important; }
+   412→   412→.light .text-\[\#8b97b0\] { color: #475569 !important; }
+   413→   413→.light .text-\[\#5a657a\] { color: #94a3b8 !important; }
+   414→   414→.light .text-\[\#3d4659\] { color: #cbd5e1 !important; }
+   415→   415→.light .text-\[\#22d3ee\] { color: #059669 !important; }
+   416→   416→.light .text-\[\#818cf8\] { color: #059669 !important; }
+   417→   417→.light .text-\[\#34d399\] { color: #047857 !important; }
+   418→   418→.light .text-\[\#fbbf24\] { color: #d97706 !important; }
+   419→   419→.light .text-\[\#f87171\] { color: #ef4444 !important; }
+   420→   420→.light .text-\[\#ec4899\] { color: #db2777 !important; }
+   421→   421→.light .text-\[\#84cc16\] { color: #65a30d !important; }
+   422→   422→.light .text-\[\#06b6d4\] { color: #059669 !important; }
+   423→   423→.light .text-white { color: #0f172a !important; }
+   424→   424→
+   425→   425→.light .bg-\[\#22d3ee\]\/10 { background-color: rgba(5, 150, 105, 0.08) !important; }
+   426→   426→.light .bg-\[\#22d3ee\]\/20 { background-color: rgba(5, 150, 105, 0.15) !important; }
+   427→   427→.light .bg-\[\#818cf8\]\/10 { background-color: rgba(5, 150, 105, 0.08) !important; }
+   428→   428→.light .bg-\[\#818cf8\]\/15 { background-color: rgba(5, 150, 105, 0.1) !important; }
+   429→   429→.light .bg-\[\#34d399\]\/10 { background-color: rgba(5, 150, 105, 0.08) !important; }
+   430→   430→.light .bg-\[\#34d399\]\/20 { background-color: rgba(5, 150, 105, 0.15) !important; }
+   431→   431→.light .bg-\[\#fbbf24\]\/10 { background-color: rgba(217, 119, 6, 0.08) !important; }
+   432→   432→.light .bg-\[\#fbbf24\]\/20 { background-color: rgba(217, 119, 6, 0.15) !important; }
+   433→   433→.light .bg-\[\#f87171\]\/10 { background-color: rgba(239, 68, 68, 0.08) !important; }
+   434→   434→.light .bg-\[\#f87171\]\/20 { background-color: rgba(239, 68, 68, 0.15) !important; }
+   435→   435→.light .bg-\[\#ec4899\]\/10 { background-color: rgba(219, 39, 119, 0.08) !important; }
+   436→   436→.light .bg-\[\#ec4899\]\/20 { background-color: rgba(219, 39, 119, 0.15) !important; }
+   437→   437→
+   438→   438→.light .bg-\[\#22d3ee\]\/15 { background-color: rgba(5, 150, 105, 0.1) !important; }
+   439→   439→.light .bg-\[\#34d399\]\/15 { background-color: rgba(5, 150, 105, 0.1) !important; }
+   440→   440→.light .bg-\[\#fbbf24\]\/15 { background-color: rgba(217, 119, 6, 0.1) !important; }
+   441→   441→.light .bg-\[\#f87171\]\/15 { background-color: rgba(239, 68, 68, 0.1) !important; }
+   442→   442→.light .bg-\[rgba\(34\,211\,238\,0\.15\)\] { background-color: rgba(5, 150, 105, 0.1) !important; }
+   443→   443→.light .bg-\[rgba\(129\,140\,248\,0\.08\)\] { background-color: rgba(5, 150, 105, 0.06) !important; }
+   444→   444→.light .bg-\[rgba\(129\,140\,248\,0\.15\)\] { background-color: rgba(5, 150, 105, 0.1) !important; }
+   445→   445→.light .bg-\[rgba\(52\,211\,153\,0\.08\)\] { background-color: rgba(5, 150, 105, 0.06) !important; }
+   446→   446→.light .bg-\[rgba\(52\,211\,153\,0\.15\)\] { background-color: rgba(5, 150, 105, 0.1) !important; }
+   447→   447→.light .bg-\[rgba\(251\,191\,36\,0\.08\)\] { background-color: rgba(217, 119, 6, 0.06) !important; }
+   448→   448→.light .bg-\[rgba\(248\,113\,113\,0\.08\)\] { background-color: rgba(239, 68, 68, 0.06) !important; }
+   449→   449→.light .bg-\[rgba\(236\,72\,153\,0\.08\)\] { background-color: rgba(219, 39, 119, 0.06) !important; }
+   450→   450→
+   451→   451→.light .border-\[\#22d3ee\]\/20,
+   452→   452→.light .border-\[rgba\(34\,211\,238\,0\.2\)\] { border-color: rgba(5, 150, 105, 0.2) !important; }
+   453→   453→.light .border-\[rgba\(129\,140\,248\,0\.15\)\] { border-color: rgba(5, 150, 105, 0.15) !important; }
+   454→   454→.light .border-\[rgba\(255\,255\,255\,0\.06\)\],
+   455→   455→.light .border-\[rgba\(255\,255\,255\,0\.08\)\],
+   456→   456→.light .border-\[rgba\(255\,255\,255\,0\.1\)\],
+   457→   457→.light .border-\[rgba\(255\,255\,255\,0\.12\)\],
+   458→   458→.light .border-\[rgba\(255\,255\,255\,0\.15\)\],
+   459→   459→.light .border-\[rgba\(255\,255\,255\,0\.2\)\] { border-color: rgba(0, 0, 0, 0.1) !important; }
+   460→   460→
+   461→   461→.light .bg-white\/5,
+   462→   462→.light .bg-white\/\[0\.03\],
+   463→   463→.light .bg-white\/\[0\.04\],
+   464→   464→.light .bg-white\/\[0\.05\],
+   465→   465→.light .bg-white\/\[0\.06\],
+   466→   466→.light .bg-white\/\[0\.08\],
+   467→   467→.light .bg-white\/\[0\.1\],
+   468→   468→.light .bg-white\/10,
+   469→   469→.light .bg-white\/\[0\.15\],
+   470→   470→.light .bg-white\/\[0\.2\],
+   471→   471→.light .bg-white\/20 { background-color: rgba(0, 0, 0, 0.04) !important; }
+   472→   472→
+   473→   473→.light .hover\:bg-white\/5:hover,
+   474→   474→.light .hover\:bg-white\/\[0\.05\]:hover,
+   475→   475→.light .hover\:bg-white\/10:hover,
+   476→   476→.light .hover\:bg-white\/\[0\.1\]:hover,
+   477→   477→.light .hover\:bg-white\/\[0\.08\]:hover,
+   478→   478→.light .hover\:bg-white\/\[0\.06\]:hover { background-color: rgba(0, 0, 0, 0.06) !important; }
+   479→   479→
+   480→   480→.light .data-\[state\=active\]\:bg-white\/10,
+   481→   481→.light .data-\[state\=active\]\:bg-white\/\[0\.1\] { background-color: rgba(0, 0, 0, 0.06) !important; }
+   482→   482→.light .data-\[state\=active\]\:text-\[\#f1f5f9\] { color: #059669 !important; }
+   483→   483→.light .data-\[state\=active\]\:text-\[\#8b97b0\] { color: #059669 !important; }
+   484→   484→
+   485→   485→.light .border-white\/5,
+   486→   486→.light .border-white\/\[0\.05\],
+   487→   487→.light .border-white\/\[0\.06\],
+   488→   488→.light .border-white\/\[0\.08\],
+   489→   489→.light .border-white\/\[0\.1\],
+   490→   490→.light .border-white\/10,
+   491→   491→.light .border-white\/\[0\.12\],
+   492→   492→.light .border-white\/\[0\.15\],
+   493→   493→.light .border-white\/\[0\.2\] { border-color: rgba(0, 0, 0, 0.1) !important; }
+   494→   494→
+   495→   495→.light .text-red-300 { color: #dc2626 !important; }
+   496→   496→.light .text-amber-300 { color: #d97706 !important; }
+   497→   497→.light .text-emerald-300 { color: #047857 !important; }
+   498→   498→.light .text-cyan-300 { color: #059669 !important; }
+   499→   499→.light .text-pink-300 { color: #db2777 !important; }
+   500→   500→.light .text-lime-300 { color: #65a30d !important; }
+   501→   501→
+   502→   502→.light .border-blue-500 { border-color: #059669 !important; }
+   503→   503→.light .ring-blue-500\/30 { --tw-ring-color: rgba(5, 150, 105, 0.3) !important; }
+   504→   504→
+   505→   505→.light :focus-visible { outline: 1.5px solid rgba(5, 150, 105, 0.5); }
+   506→   506→
+   507→   507→.light .recharts-cartesian-axis-tick-value { fill: #64748b !important; }
+   508→   508→.light .recharts-legend-item-text { fill: #475569 !important; }
+   509→   509→.light .recharts-tooltip-label { fill: #0f172a !important; }
+   510→   510→.light .recharts-tooltip-item { color: #334155 !important; }
+   511→   511→
+   512→   512→.light .whilehover\:bg-white\/\[0\.02\]:hover { background-color: rgba(0, 0, 0, 0.02) !important; }
+   513→   513→
+   514→   514→.light .ambient-bg::before {
+   515→   515→  background: radial-gradient(ellipse at 20% 50%, rgba(5, 150, 105, 0.03) 0%, transparent 50%);
+   516→   516→}
+   517→   517→
+   518→   518→.light [style*="box-shadow"] { filter: none; }
+   519→   519→
+   520→   520→.light .gradient-cyan { background: linear-gradient(135deg, rgba(5, 150, 105, 0.06) 0%, transparent 60%); }
+   521→   521→.light .gradient-indigo { background: linear-gradient(135deg, rgba(5, 150, 105, 0.04) 0%, transparent 60%); }
+   522→   522→.light .gradient-emerald { background: linear-gradient(135deg, rgba(5, 150, 105, 0.06) 0%, transparent 60%); }
+   523→   523→.light .gradient-amber { background: linear-gradient(135deg, rgba(217, 119, 6, 0.06) 0%, transparent 60%); }
+   524→   524→.light .gradient-rose { background: linear-gradient(135deg, rgba(239, 68, 68, 0.06) 0%, transparent 60%); }
+   525→   525→
+   526→   526→.light .leaflet-container { background: #e2e8f0; }
+   527→   527→.light .leaflet-tile-pane { filter: none; }
+   528→   528→.light .leaflet-popup-content-wrapper { background: rgba(255, 255, 255, 0.95); color: #0f172a; border: 1px solid rgba(0, 0, 0, 0.1); }
+   529→   529→.light .leaflet-popup-tip { background: rgba(255, 255, 255, 0.95); }
+   530→   530→.light .leaflet-control-zoom a { background: rgba(255, 255, 255, 0.9) !important; color: #334155 !important; border-color: rgba(0, 0, 0, 0.08) !important; }
+   531→   531→.light .leaflet-control-zoom a:hover { background: rgba(5, 150, 105, 0.1) !important; color: #059669 !important; }
+   532→   532→
+   533→   533→.light .glass { background: rgba(255, 255, 255, 0.6); border-color: rgba(0, 0, 0, 0.06); }
+   534→   534→.light .glass-strong { background: rgba(255, 255, 255, 0.8); border-color: rgba(0, 0, 0, 0.08); }
+   535→   535→.light .glass-card { background: rgba(255, 255, 255, 0.5); border-color: rgba(0, 0, 0, 0.06); }
+   536→   536→.light .glass-card:hover { background: rgba(255, 255, 255, 0.7); border-color: rgba(5, 150, 105, 0.15); }
+   537→   537→
+   538→   538→.light .cmdk-overlay { background: rgba(0, 0, 0, 0.3) !important; }
+   539→   539→.light .cmdk { background: rgba(255, 255, 255, 0.95) !important; border-color: rgba(0, 0, 0, 0.08) !important; }
+   540→   540→.light .cmdk-input { color: #0f172a !important; border-color: rgba(0, 0, 0, 0.06) !important; }
+   541→   541→.light .cmdk-input::placeholder { color: #94a3b8 !important; }
+   542→   542→.light .cmdk-item { color: #334155 !important; }
+   543→   543→.light .cmdk-item[data-selected="true"] { background: rgba(5, 150, 105, 0.08) !important; color: #059669 !important; }
+   544→   544→.light .cmdk-group-heading { color: #94a3b8 !important; }
+   545→   545→.light .cmdk-separator { background: rgba(0, 0, 0, 0.06) !important; }
+   546→   546→.light .cmdk-shortcut { color: #94a3b8 !important; background: rgba(0, 0, 0, 0.04) !important; border-color: rgba(0, 0, 0, 0.06) !important; }
+   547→   547→
+   548→   548→.light ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.12); }
+   549→   549→.light ::-webkit-scrollbar-thumb:hover { background: rgba(5, 150, 105, 0.3); }
+   550→   550→.light .skeleton { background: linear-gradient(90deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.08) 50%, rgba(0, 0, 0, 0.04) 75%); }
+   551→   551→.light .sidebar-active-glow::before { background: #059669; box-shadow: 0 0 12px rgba(5, 150, 105, 0.3), 0 0 24px rgba(5, 150, 105, 0.1); }
+   552→   552→.light .border-glow { border-color: rgba(0, 0, 0, 0.06); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8); }
+   553→   553→.light .force-graph-tooltip { background: rgba(255, 255, 255, 0.95) !important; color: #0f172a !important; border-color: rgba(0, 0, 0, 0.08) !important; }
+   554→   554→
+   555→   555→/* ═══════════════════════════════════════════════════════════════════════
+   556→   556→   RADIX PORTAL — Ensure all dropdowns/popovers are always on top
+   557→   557→   ═══════════════════════════════════════════════════════════════════════ */
+   558→   558→
+   559→   559→[data-radix-popper-content-wrapper] {
+   560→   560→  z-index: 9999 !important;
+   561→   561→  position: fixed !important;
+   562→   562→}
+   563→   563→[data-radix-portal] {
+   564→   564→  z-index: 9999 !important;
+   565→   565→}
+   566→   566→
+   567→   567→/* ── SOLID OPAQUE BACKGROUNDS — Near-sharp corners ── */
+   568→   568→
+   569→   569→/* Shared shadow: border glow instead of drop shadows */
+   570→   570→/* Dropdown Menu */
+   571→   571→[data-slot="dropdown-menu-content"],
+   572→   572→[data-slot="dropdown-menu-sub-content"] {
+   573→   573→  background: var(--bg-card) !important;
+   574→   574→  backdrop-filter: none !important;
+   575→   575→  -webkit-backdrop-filter: none !important;
+   576→   576→  border: 1px solid var(--border-default) !important;
+   577→   577→  border-radius: 2px !important;
+   578→   578→  box-shadow: 0 0 8px rgba(0, 255, 102, 0.08) !important;
+   579→   579→  padding: 4px !important;
+   580→   580→}
+   581→   581→.light [data-slot="dropdown-menu-content"],
+   582→   582→.light [data-slot="dropdown-menu-sub-content"] {
+   583→   583→  box-shadow: 0 0 8px rgba(0, 0, 0, 0.06) !important;
+   584→   584→}
+   585→   585→
+   586→   586→/* Dropdown Menu Items */
+   587→   587→[data-slot="dropdown-menu-item"],
+   588→   588→[data-slot="dropdown-menu-checkbox-item"],
+   589→   589→[data-slot="dropdown-menu-radio-item"],
+   590→   590→[data-slot="dropdown-menu-sub-trigger"] {
+   591→   591→  border-radius: 2px !important;
+   592→   592→  margin: 1px 0 !important;
+   593→   593→  padding: 6px 10px !important;
+   594→   594→  font-size: 0.8125rem !important;
+   595→   595→  transition: background 0.15s ease, color 0.15s ease !important;
+   596→   596→}
+   597→   597→[data-slot="dropdown-menu-item"]:hover,
+   598→   598→[data-slot="dropdown-menu-item"][data-highlighted],
+   599→   599→[data-slot="dropdown-menu-checkbox-item"]:hover,
+   600→   600→[data-slot="dropdown-menu-checkbox-item"][data-highlighted],
+   601→   601→[data-slot="dropdown-menu-radio-item"]:hover,
+   602→   602→[data-slot="dropdown-menu-radio-item"][data-highlighted],
+   603→   603→[data-slot="dropdown-menu-sub-trigger"]:hover,
+   604→   604→[data-slot="dropdown-menu-sub-trigger"][data-highlighted] {
+   605→   605→  background: var(--primary-glow) !important;
+   606→   606→  color: #00FF66 !important;
+   607→   607→}
+   608→   608→[data-slot="dropdown-menu-item"][data-variant="destructive"]:hover {
+   609→   609→  background: var(--critical-glow) !important;
+   610→   610→  color: var(--critical) !important;
+   611→   611→}
+   612→   612→
+   613→   613→/* Dropdown Menu Label */
+   614→   614→[data-slot="dropdown-menu-label"] {
+   615→   615→  padding: 6px 10px 4px !important;
+   616→   616→  font-size: 0.6875rem !important;
+   617→   617→  font-weight: 600 !important;
+   618→   618→  text-transform: uppercase !important;
+   619→   619→  letter-spacing: 0.12em !important;
+   620→   620→  color: var(--text-muted) !important;
+   621→   621→  font-family: var(--font-ibm-plex-mono), monospace;
+   622→   622→}
+   623→   623→
+   624→   624→/* Dropdown Menu Separator */
+   625→   625→[data-slot="dropdown-menu-separator"] {
+   626→   626→  margin: 4px 6px !important;
+   627→   627→  height: 1px !important;
+   628→   628→  background: var(--border-subtle) !important;
+   629→   629→}
+   630→   630→
+   631→   631→/* Popover */
+   632→   632→[data-slot="popover-content"] {
+   633→   633→  background: var(--bg-card) !important;
+   634→   634→  backdrop-filter: none !important;
+   635→   635→  -webkit-backdrop-filter: none !important;
+   636→   636→  border: 1px solid var(--border-default) !important;
+   637→   637→  border-radius: 2px !important;
+   638→   638→  box-shadow: 0 0 8px rgba(0, 255, 102, 0.08) !important;
+   639→   639→}
+   640→   640→.light [data-slot="popover-content"] {
+   641→   641→  box-shadow: 0 0 8px rgba(0, 0, 0, 0.06) !important;
+   642→   642→}
+   643→   643→
+   644→   644→/* Context Menu */
+   645→   645→[data-slot="context-menu-content"],
+   646→   646→[data-slot="context-menu-sub-content"] {
+   647→   647→  background: var(--bg-card) !important;
+   648→   648→  backdrop-filter: none !important;
+   649→   649→  -webkit-backdrop-filter: none !important;
+   650→   650→  border: 1px solid var(--border-default) !important;
+   651→   651→  border-radius: 2px !important;
+   652→   652→  box-shadow: 0 0 8px rgba(0, 255, 102, 0.08) !important;
+   653→   653→  padding: 4px !important;
+   654→   654→}
+   655→   655→.light [data-slot="context-menu-content"],
+   656→   656→.light [data-slot="context-menu-sub-content"] {
+   657→   657→  box-shadow: 0 0 8px rgba(0, 0, 0, 0.06) !important;
+   658→   658→}
+   659→   659→
+   660→   660→/* Context Menu Items */
+   661→   661→[data-slot="context-menu-item"],
+   662→   662→[data-slot="context-menu-checkbox-item"],
+   663→   663→[data-slot="context-menu-radio-item"] {
+   664→   664→  border-radius: 2px !important;
+   665→   665→  margin: 1px 0 !important;
+   666→   666→  padding: 6px 10px !important;
+   667→   667→  transition: background 0.15s ease, color 0.15s ease !important;
+   668→   668→}
+   669→   669→[data-slot="context-menu-item"]:hover,
+   670→   670→[data-slot="context-menu-item"][data-highlighted],
+   671→   671→[data-slot="context-menu-checkbox-item"]:hover,
+   672→   672→[data-slot="context-menu-checkbox-item"][data-highlighted],
+   673→   673→[data-slot="context-menu-radio-item"]:hover,
+   674→   674→[data-slot="context-menu-radio-item"][data-highlighted] {
+   675→   675→  background: var(--primary-glow) !important;
+   676→   676→  color: #00FF66 !important;
+   677→   677→}
+   678→   678→
+   679→   679→/* Select Content */
+   680→   680→[data-slot="select-content"] {
+   681→   681→  background: var(--bg-card) !important;
+   682→   682→  backdrop-filter: none !important;
+   683→   683→  -webkit-backdrop-filter: none !important;
+   684→   684→  border: 1px solid var(--border-default) !important;
+   685→   685→  border-radius: 2px !important;
+   686→   686→  box-shadow: 0 0 8px rgba(0, 255, 102, 0.08) !important;
+   687→   687→  padding: 4px !important;
+   688→   688→}
+   689→   689→.light [data-slot="select-content"] {
+   690→   690→  box-shadow: 0 0 8px rgba(0, 0, 0, 0.06) !important;
+   691→   691→}
+   692→   692→[data-slot="select-content"] [data-slot="select-item"] {
+   693→   693→  border-radius: 2px;
+   694→   694→  margin: 2px 4px;
+   695→   695→  padding: 6px 10px;
+   696→   696→  font-size: 0.8125rem;
+   697→   697→  transition: background 0.15s ease, color 0.15s ease;
+   698→   698→}
+   699→   699→[data-slot="select-content"] [data-slot="select-item"][data-highlighted] {
+   700→   700→  background: var(--primary-glow) !important;
+   701→   701→  color: #00FF66 !important;
+   702→   702→}
+   703→   703→[data-slot="select-content"] [data-slot="select-item"][data-state="checked"] {
+   704→   704→  background: var(--primary-glow) !important;
+   705→   705→  color: #00FF66 !important;
+   706→   706→  font-weight: 500;
+   707→   707→}
+   708→   708→
+   709→   709→/* Dialog Content */
+   710→   710→[data-slot="dialog-content"] {
+   711→   711→  background: var(--bg-card) !important;
+   712→   712→  backdrop-filter: none !important;
+   713→   713→  -webkit-backdrop-filter: none !important;
+   714→   714→  border: 1px solid var(--border-default) !important;
+   715→   715→  border-radius: 3px !important;
+   716→   716→  box-shadow: 0 0 12px rgba(0, 255, 102, 0.06) !important;
+   717→   717→}
+   718→   718→.light [data-slot="dialog-content"] {
+   719→   719→  box-shadow: 0 0 12px rgba(0, 0, 0, 0.06) !important;
+   720→   720→}
+   721→   721→
+   722→   722→/* Command Palette Dialog */
+   723→   723→[data-slot="command"] {
+   724→   724→  background: var(--bg-card) !important;
+   725→   725→}
+   726→   726→
+   727→   727→/* Tooltip */
+   728→   728→[data-slot="tooltip-content"] {
+   729→   729→  background: var(--bg-elevated-3) !important;
+   730→   730→  backdrop-filter: none !important;
+   731→   731→  -webkit-backdrop-filter: none !important;
+   732→   732→  border: 1px solid var(--border-default) !important;
+   733→   733→  border-radius: 2px !important;
+   734→   734→  box-shadow: 0 0 6px rgba(0, 255, 102, 0.06) !important;
+   735→   735→  color: var(--text-primary) !important;
+   736→   736→  font-size: 0.75rem !important;
+   737→   737→  padding: 4px 8px !important;
+   738→   738→}
+   739→   739→
+   740→   740→/* Hover Card */
+   741→   741→[data-slot="hover-card-content"] {
+   742→   742→  background: var(--bg-card) !important;
+   743→   743→  backdrop-filter: none !important;
+   744→   744→  -webkit-backdrop-filter: none !important;
+   745→   745→  border: 1px solid var(--border-default) !important;
+   746→   746→  border-radius: 2px !important;
+   747→   747→  box-shadow: 0 0 8px rgba(0, 255, 102, 0.08) !important;
+   748→   748→}
+   749→   749→
+   750→   750→/* Sheet (side panel) */
+   751→   751→[data-slot="sheet-content"] {
+   752→   752→  background: var(--bg-card) !important;
+   753→   753→  backdrop-filter: none !important;
+   754→   754→  -webkit-backdrop-filter: none !important;
+   755→   755→  border-color: var(--border-default) !important;
+   756→   756→  box-shadow: 0 0 12px rgba(0, 255, 102, 0.04) !important;
+   757→   757→}
+   758→   758→[data-slot="sheet-content"][data-side="left"] {
+   759→   759→  box-shadow: 0 0 12px rgba(0, 255, 102, 0.04) !important;
+   760→   760→}
+   761→   761→.light [data-slot="sheet-content"] {
+   762→   762→  box-shadow: 0 0 12px rgba(0, 0, 0, 0.06) !important;
+   763→   763→}
+   764→   764→
+   765→   765→/* Drawer */
+   766→   766→[data-radix-drawer-content] {
+   767→   767→  background: var(--bg-card) !important;
+   768→   768→  backdrop-filter: none !important;
+   769→   769→  -webkit-backdrop-filter: none !important;
+   770→   770→}
+   771→   771→
+   772→   772→/* Alert Dialog */
+   773→   773→[data-slot="alert-dialog-content"] {
+   774→   774→  background: var(--bg-card) !important;
+   775→   775→  backdrop-filter: none !important;
+   776→   776→  -webkit-backdrop-filter: none !important;
+   777→   777→  border: 1px solid var(--border-default) !important;
+   778→   778→  border-radius: 3px !important;
+   779→   779→  box-shadow: 0 0 12px rgba(0, 255, 102, 0.06) !important;
+   780→   780→}
+   781→   781→.light [data-slot="alert-dialog-content"] {
+   782→   782→  box-shadow: 0 0 12px rgba(0, 0, 0, 0.06) !important;
+   783→   783→}
+   784→   784→
+   785→   785→/* ═══════════════════════════════════════════════════════════════════════
+   786→   786→   BASE LAYER
+   787→   787→   ═══════════════════════════════════════════════════════════════════════ */
+   788→   788→
+   789→   789→@layer base {
+   790→   790→  * {
+   791→   791→    @apply border-border outline-ring/50;
+   792→   792→  }
+   793→   793→  html, body {
+   794→   794→    overflow: hidden;
+   795→   795→    height: 100%;
+   796→   796→    margin: 0;
+   797→   797→    padding: 0;
+   798→   798→  }
+   799→   799→  body {
+   800→   800→    @apply bg-background text-foreground antialiased;
+   801→   801→    font-family: var(--font-inter-tight), "Inter", system-ui, -apple-system, sans-serif;
+   802→   802→    -webkit-font-smoothing: antialiased;
+   803→   803→    -moz-osx-font-smoothing: grayscale;
+   804→   804→  }
+   805→   805→  #__next {
+   806→   806→    height: 100%;
+   807→   807→    overflow: hidden;
+   808→   808→  }
+   809→   809→}
+   810→   810→
+   811→   811→/* ═══════════════════════════════════════════════════════════════════════
+   812→   812→   MONOSPACE DATA CLASS — Apply to all data/IDs/numbers/badges
+   813→   813→   ═══════════════════════════════════════════════════════════════════════ */
+   814→   814→
+   815→   815→.font-mono,
+   816→   816→.font-mono * {
+   817→   817→  font-family: var(--font-ibm-plex-mono), "IBM Plex Mono", "JetBrains Mono", "Fira Code", monospace;
+   818→   818→}
+   819→   819→
+   820→   820→/* ═══════════════════════════════════════════════════════════════════════
+   821→   821→   SCANLINE OVERLAY — Static CRT texture for sidebar
+   822→   822→   ═══════════════════════════════════════════════════════════════════════ */
+   823→   823→
+   824→   824→.scanline-overlay {
+   825→   825→  position: relative;
+   826→   826→}
+   827→   827→.scanline-overlay::after {
+   828→   828→  content: "";
+   829→   829→  position: absolute;
+   830→   830→  inset: 0;
+   831→   831→  background: repeating-linear-gradient(
+   832→   832→    0deg,
+   833→   833→    transparent,
+   834→   834→    transparent 2px,
+   835→   835→    rgba(0, 255, 102, 0.015) 2px,
+   836→   836→    rgba(0, 255, 102, 0.015) 4px
+   837→   837→  );
+   838→   838→  pointer-events: none;
+   839→   839→  z-index: 1;
+   840→   840→}
+   841→   841→
+   842→   842→/* ═══════════════════════════════════════════════════════════════════════
+   843→   843→   RETICULE HOVER — Corner bracket targeting motif
+   844→   844→   ═══════════════════════════════════════════════════════════════════════ */
+   845→   845→
+   846→   846→.reticule-hover {
+   847→   847→  position: relative;
+   848→   848→}
+   849→   849→.reticule-hover::before,
+   850→   850→.reticule-hover::after {
+   851→   851→  content: "";
+   852→   852→  position: absolute;
+   853→   853→  width: 10px;
+   854→   854→  height: 10px;
+   855→   855→  opacity: 0;
+   856→   856→  transition: opacity 0.2s ease;
+   857→   857→  pointer-events: none;
+   858→   858→}
+   859→   859→.reticule-hover:hover::before {
+   860→   860→  opacity: 0.6;
+   861→   861→  top: -1px;
+   862→   862→  left: -1px;
+   863→   863→  border-top: 1.5px solid #00FF66;
+   864→   864→  border-left: 1.5px solid #00FF66;
+   865→   865→}
+   866→   866→.reticule-hover:hover::after {
+   867→   867→  opacity: 0.6;
+   868→   868→  bottom: -1px;
+   869→   869→  right: -1px;
+   870→   870→  border-bottom: 1.5px solid #00FF66;
+   871→   871→  border-right: 1.5px solid #00FF66;
+   872→   872→}
+   873→   873→
+   874→   874→/* ═══════════════════════════════════════════════════════════════════════
+   875→   875→   BRACKET BADGE — [STATUS] monospace tag style
+   876→   876→   ═══════════════════════════════════════════════════════════════════════ */
+   877→   877→
+   878→   878→.bracket-badge {
+   879→   879→  font-family: var(--font-ibm-plex-mono), monospace;
+   880→   880→  font-size: 0.6875rem;
+   881→   881→  font-weight: 600;
+   882→   882→  letter-spacing: 0.08em;
+   883→   883→  padding: 1px 6px;
+   884→   884→  border-radius: 2px;
+   885→   885→  border: 1px solid currentColor;
+   886→   886→  opacity: 0.85;
+   887→   887→  background: transparent;
+   888→   888→}
+   889→   889→
+   890→   890→/* ═══════════════════════════════════════════════════════════════════════
+   891→   891→   SCROLLBAR — Thin, green-tinted
+   892→   892→   ═══════════════════════════════════════════════════════════════════════ */
+   893→   893→
+   894→   894→::-webkit-scrollbar {
+   895→   895→  width: 4px;
+   896→   896→  height: 4px;
+   897→   897→}
+   898→   898→::-webkit-scrollbar-track {
+   899→   899→  background: transparent;
+   900→   900→}
+   901→   901→::-webkit-scrollbar-thumb {
+   902→   902→  background: rgba(0, 255, 102, 0.08);
+   903→   903→  border-radius: 2px;
+   904→   904→}
+   905→   905→::-webkit-scrollbar-thumb:hover {
+   906→   906→  background: rgba(0, 255, 102, 0.2);
+   907→   907→}
+   908→   908→
+   909→   909→/* ═══════════════════════════════════════════════════════════════════════
+   910→   910→   LEAFLET — Dark map, green accents
+   911→   911→   ═══════════════════════════════════════════════════════════════════════ */
+   912→   912→
+   913→   913→.leaflet-container {
+   914→   914→  background: #05070A;
+   915→   915→}
+   916→   916→.leaflet-popup-content-wrapper {
+   917→   917→  background: rgba(13, 17, 23, 0.95);
+   918→   918→  color: rgba(255, 255, 255, 0.87);
+   919→   919→  border: 1px solid rgba(0, 255, 102, 0.15);
+   920→   920→  border-radius: 2px;
+   921→   921→  backdrop-filter: blur(16px);
+   922→   922→  box-shadow: 0 0 8px rgba(0, 255, 102, 0.08);
+   923→   923→}
+   924→   924→.leaflet-popup-tip {
+   925→   925→  background: rgba(13, 17, 23, 0.95);
+   926→   926→}
+   927→   927→.leaflet-tile-pane {
+   928→   928→  filter: brightness(0.5) contrast(1.2) saturate(0) hue-rotate(90deg);
+   929→   929→}
+   930→   930→.leaflet-control-zoom a {
+   931→   931→  background: rgba(13, 17, 23, 0.9) !important;
+   932→   932→  color: rgba(255, 255, 255, 0.7) !important;
+   933→   933→  border-color: rgba(0, 255, 102, 0.15) !important;
+   934→   934→  backdrop-filter: blur(8px);
+   935→   935→  transition: all 0.2s ease;
+   936→   936→  border-radius: 2px !important;
+   937→   937→}
+   938→   938→.leaflet-control-zoom a:hover {
+   939→   939→  background: rgba(0, 255, 102, 0.1) !important;
+   940→   940→  color: #00FF66 !important;
+   941→   941→  border-color: rgba(0, 255, 102, 0.4) !important;
+   942→   942→}
+   943→   943→
+   944→   944→/* ═══════════════════════════════════════════════════════════════════════
+   945→   945→   SOLID PANELS — Replace glass system
+   946→   946→   ═══════════════════════════════════════════════════════════════════════ */
+   947→   947→
+   948→   948→.glass {
+   949→   949→  background: #0D1117;
+   950→   950→  border: 1px solid rgba(0, 255, 102, 0.1);
+   951→   951→}
+   952→   952→.glass-strong {
+   953→   953→  background: #0D1117;
+   954→   954→  border: 1px solid rgba(0, 255, 102, 0.15);
+   955→   955→}
+   956→   956→.glass-card {
+   957→   957→  background: #0D1117;
+   958→   958→  border: 1px solid rgba(0, 255, 102, 0.1);
+   959→   959→  border-radius: 3px;
+   960→   960→  transition: all 0.2s ease;
+   961→   961→  box-shadow: 0 0 8px rgba(0, 255, 102, 0.04);
+   962→   962→}
+   963→   963→.glass-card:hover {
+   964→   964→  border-color: rgba(0, 255, 102, 0.3);
+   965→   965→  box-shadow: 0 0 12px rgba(0, 255, 102, 0.08);
+   966→   966→}
+   967→   967→
+   968→   968→/* ═══════════════════════════════════════════════════════════════════════
+   969→   969→   AMBIENT BACKGROUND — Minimal, no colorful blobs
+   970→   970→   ═══════════════════════════════════════════════════════════════════════ */
+   971→   971→
+   972→   972→.ambient-bg {
+   973→   973→  position: relative;
+   974→   974→  overflow: hidden;
+   975→   975→}
+   976→   976→.ambient-bg::before {
+   977→   977→  content: "";
+   978→   978→  position: absolute;
+   979→   979→  inset: 0;
+   980→   980→  background: radial-gradient(ellipse at 50% 0%, rgba(0, 255, 102, 0.015) 0%, transparent 60%);
+   981→   981→  pointer-events: none;
+   982→   982→  z-index: 0;
+   983→   983→}
+   984→   984→
+   985→   985→/* ═══════════════════════════════════════════════════════════════════════
+   986→   986→   SKELETON LOADERS
+   987→   987→   ═══════════════════════════════════════════════════════════════════════ */
+   988→   988→
+   989→   989→@keyframes shimmer {
+   990→   990→  0% { background-position: -200% 0; }
+   991→   991→  100% { background-position: 200% 0; }
+   992→   992→}
+   993→   993→.skeleton {
+   994→   994→  background: linear-gradient(90deg, rgba(0, 255, 102, 0.02) 25%, rgba(0, 255, 102, 0.05) 50%, rgba(0, 255, 102, 0.02) 75%);
+   995→   995→  background-size: 200% 100%;
+   996→   996→  animation: shimmer 2s ease-in-out infinite;
+   997→   997→  border-radius: 2px;
+   998→   998→}
+   999→   999→
+  1000→  1000→/* ═══════════════════════════════════════════════════════════════════════
+  1001→  1001→   ANIMATIONS
+  1002→  1002→   ═══════════════════════════════════════════════════════════════════════ */
+  1003→  1003→
+  1004→  1004→@keyframes fadeInUp {
+  1005→  1005→  from { opacity: 0; transform: translateY(12px); }
+  1006→  1006→  to { opacity: 1; transform: translateY(0); }
+  1007→  1007→}
+  1008→  1008→@keyframes fadeIn {
+  1009→  1009→  from { opacity: 0; }
+  1010→  1010→  to { opacity: 1; }
+  1011→  1011→}
+  1012→  1012→@keyframes slideInRight {
+  1013→  1013→  from { opacity: 0; transform: translateX(16px); }
+  1014→  1014→  to { opacity: 1; transform: translateX(0); }
+  1015→  1015→}
+  1016→  1016→@keyframes slideInLeft {
+  1017→  1017→  from { opacity: 0; transform: translateX(-16px); }
+  1018→  1018→  to { opacity: 1; transform: translateX(0); }
+  1019→  1019→}
+  1020→  1020→@keyframes pulse-glow {
+  1021→  1021→  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 255, 102, 0.15); }
+  1022→  1022→  50% { box-shadow: 0 0 20px 2px rgba(0, 255, 102, 0.06); }
+  1023→  1023→}
+  1024→  1024→@keyframes scaleIn {
+  1025→  1025→  from { opacity: 0; transform: scale(0.98); }
+  1026→  1026→  to { opacity: 1; transform: scale(1); }
+  1027→  1027→}
+  1028→  1028→@keyframes shimmer-line {
+  1029→  1029→  0% { transform: translateX(-100%); }
+  1030→  1030→  100% { transform: translateX(100%); }
+  1031→  1031→}
+  1032→  1032→@keyframes glow-pulse {
+  1033→  1033→  0%, 100% { opacity: 0.4; }
+  1034→  1034→  50% { opacity: 1; }
+  1035→  1035→}
+  1036→  1036→
+  1037→  1037→.animate-fade-in-up { animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+  1038→  1038→.animate-fade-in { animation: fadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+  1039→  1039→.animate-slide-in-right { animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+  1040→  1040→.animate-slide-in-left { animation: slideInLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+  1041→  1041→.animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+  1042→  1042→.animate-scale-in { animation: scaleIn 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+  1043→  1043→
+  1044→  1044→.stagger-1 { animation-delay: 0.05s; opacity: 0; }
+  1045→  1045→.stagger-2 { animation-delay: 0.1s; opacity: 0; }
+  1046→  1046→.stagger-3 { animation-delay: 0.15s; opacity: 0; }
+  1047→  1047→.stagger-4 { animation-delay: 0.2s; opacity: 0; }
+  1048→  1048→.stagger-5 { animation-delay: 0.25s; opacity: 0; }
+  1049→  1049→.stagger-6 { animation-delay: 0.3s; opacity: 0; }
+  1050→  1050→
+  1051→  1051→/* ═══════════════════════════════════════════════════════════════════════
+  1052→  1052→   SPARKLINE
+  1053→  1053→   ═══════════════════════════════════════════════════════════════════════ */
+  1054→  1054→
+  1055→  1055→.sparkline-path {
+  1056→  1056→  stroke-dasharray: 1000;
+  1057→  1057→  stroke-dashoffset: 1000;
+  1058→  1058→  animation: sparklineDraw 1.5s ease-out forwards;
+  1059→  1059→}
+  1060→  1060→@keyframes sparklineDraw {
+  1061→  1061→  to { stroke-dashoffset: 0; }
+  1062→  1062→}
+  1063→  1063→
+  1064→  1064→/* ═══════════════════════════════════════════════════════════════════════
+  1065→  1065→   TIMELINE
+  1066→  1066→   ═══════════════════════════════════════════════════════════════════════ */
+  1067→  1067→
+  1068→  1068→@keyframes timelinePulse {
+  1069→  1069→  0%, 100% { transform: scale(1); opacity: 1; }
+  1070→  1070→  50% { transform: scale(1.3); opacity: 0.5; }
+  1071→  1071→}
+  1072→  1072→.timeline-pulse {
+  1073→  1073→  animation: timelinePulse 2.5s ease-in-out infinite;
+  1074→  1074→}
+  1075→  1075→
+  1076→  1076→/* ═══════════════════════════════════════════════════════════════════════
+  1077→  1077→   COMMAND PALETTE — Terminal-style (Phase 4 full treatment)
+  1078→  1078→   ═══════════════════════════════════════════════════════════════════════ */
+  1079→  1079→
+  1080→  1080→.cmdk-overlay {
+  1081→  1081→  background: rgba(0, 0, 0, 0.7) !important;
+  1082→  1082→}
+  1083→  1083→.cmdk {
+  1084→  1084→  background: #0a0e14 !important;
+  1085→  1085→  border: 1px solid rgba(0, 255, 102, 0.2) !important;
+  1086→  1086→  border-radius: 3px !important;
+  1087→  1087→  box-shadow: 0 0 20px rgba(0, 255, 102, 0.06), 0 0 0 1px rgba(0, 255, 102, 0.1) !important;
+  1088→  1088→}
+  1089→  1089→.cmdk-input {
+  1090→  1090→  color: rgba(255, 255, 255, 0.87) !important;
+  1091→  1091→  border-bottom: 1px solid rgba(0, 255, 102, 0.1) !important;
+  1092→  1092→  font-family: var(--font-ibm-plex-mono), monospace !important;
+  1093→  1093→}
+  1094→  1094→.cmdk-input::placeholder {
+  1095→  1095→  color: rgba(255, 255, 255, 0.2) !important;
+  1096→  1096→}
+  1097→  1097→.cmdk-item {
+  1098→  1098→  color: rgba(255, 255, 255, 0.7) !important;
+  1099→  1099→  border-radius: 2px !important;
+  1100→  1100→  transition: all 0.1s ease;
+  1101→  1101→}
+  1102→  1102→.cmdk-item[data-selected="true"] {
+  1103→  1103→  background: rgba(0, 255, 102, 0.06) !important;
+  1104→  1104→  color: #00FF66 !important;
+  1105→  1105→}
+  1106→  1106→.cmdk-group-heading {
+  1107→  1107→  color: rgba(255, 255, 255, 0.25) !important;
+  1108→  1108→  font-size: 10px !important;
+  1109→  1109→  letter-spacing: 0.14em;
+  1110→  1110→  text-transform: uppercase;
+  1111→  1111→  font-family: var(--font-ibm-plex-mono), monospace !important;
+  1112→  1112→}
+  1113→  1113→.cmdk-separator {
+  1114→  1114→  background: rgba(0, 255, 102, 0.06) !important;
+  1115→  1115→}
+  1116→  1116→.cmdk-shortcut {
+  1117→  1117→  color: rgba(255, 255, 255, 0.25) !important;
+  1118→  1118→  background: rgba(0, 255, 102, 0.03) !important;
+  1119→  1119→  border-radius: 2px !important;
+  1120→  1120→  border: 1px solid rgba(0, 255, 102, 0.1) !important;
+  1121→  1121→  font-family: var(--font-ibm-plex-mono), monospace !important;
+  1122→  1122→  font-size: 10px !important;
+  1123→  1123→}
+  1124→  1124→
+  1125→  1125→/* ═══════════════════════════════════════════════════════════════════════
+  1126→  1126→   CONFIDENCE RING
+  1127→  1127→   ═══════════════════════════════════════════════════════════════════════ */
+  1128→  1128→
+  1129→  1129→.confidence-ring {
+  1130→  1130→  transform: rotate(-90deg);
+  1131→  1131→}
+  1132→  1132→.confidence-ring-circle {
+  1133→  1133→  transition: stroke-dashoffset 1s ease-out;
+  1134→  1134→}
+  1135→  1135→
+  1136→  1136→/* ═══════════════════════════════════════════════════════════════════════
+  1137→  1137→   CONSOLE UTILITIES
+  1138→  1138→   ═══════════════════════════════════════════════════════════════════════ */
+  1139→  1139→
+  1140→  1140→/* Metric card — no gradient blobs, just subtle border glow */
+  1141→  1141→.gradient-cyan {
+  1142→  1142→  background: linear-gradient(135deg, rgba(0, 255, 102, 0.03) 0%, transparent 60%);
+  1143→  1143→}
+  1144→  1144→.gradient-indigo {
+  1145→  1145→  background: linear-gradient(135deg, rgba(0, 255, 102, 0.02) 0%, transparent 60%);
+  1146→  1146→}
+  1147→  1147→.gradient-emerald {
+  1148→  1148→  background: linear-gradient(135deg, rgba(0, 204, 82, 0.03) 0%, transparent 60%);
+  1149→  1149→}
+  1150→  1150→.gradient-amber {
+  1151→  1151→  background: linear-gradient(135deg, rgba(255, 107, 0, 0.03) 0%, transparent 60%);
+  1152→  1152→}
+  1153→  1153→.gradient-rose {
+  1154→  1154→  background: linear-gradient(135deg, rgba(255, 68, 68, 0.03) 0%, transparent 60%);
+  1155→  1155→}
+  1156→  1156→
+  1157→  1157→/* Active sidebar indicator — 2px left border, no glow */
+  1158→  1158→.sidebar-active-glow {
+  1159→  1159→  position: relative;
+  1160→  1160→}
+  1161→  1161→.sidebar-active-glow::before {
+  1162→  1162→  content: "";
+  1163→  1163→  position: absolute;
+  1164→  1164→  left: 0;
+  1165→  1165→  top: 15%;
+  1166→  1166→  width: 2px;
+  1167→  1167→  height: 70%;
+  1168→  1168→  border-radius: 0 1px 1px 0;
+  1169→  1169→  background: #00FF66;
+  1170→  1170→  box-shadow: 0 0 8px rgba(0, 255, 102, 0.3);
+  1171→  1171→}
+  1172→  1172→
+  1173→  1173→/* Border glow — subtle green tint */
+  1174→  1174→.border-glow {
+  1175→  1175→  border: 1px solid rgba(0, 255, 102, 0.1);
+  1176→  1176→}
+  1177→  1177→
+  1178→  1178→/* Status dot pulse */
+  1179→  1179→@keyframes status-pulse {
+  1180→  1180→  0%, 100% { opacity: 1; transform: scale(1); }
+  1181→  1181→  50% { opacity: 0.5; transform: scale(1.4); }
+  1182→  1182→}
+  1183→  1183→.status-pulse {
+  1184→  1184→  animation: status-pulse 2s ease-in-out infinite;
+  1185→  1185→}
+  1186→  1186→
+  1187→  1187→/* Number counter animation */
+  1188→  1188→@keyframes countUp {
+  1189→  1189→  from { opacity: 0; transform: translateY(6px); }
+  1190→  1190→  to { opacity: 1; transform: translateY(0); }
+  1191→  1191→}
+  1192→  1192→.animate-count-up {
+  1193→  1193→  animation: countUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  1194→  1194→}
+  1195→  1195→
+  1196→  1196→/* Force graph tooltip */
+  1197→  1197→.force-graph-tooltip {
+  1198→  1198→  background: rgba(13, 17, 23, 0.95) !important;
+  1199→  1199→  color: rgba(255, 255, 255, 0.87) !important;
+  1200→  1200→  border: 1px solid rgba(0, 255, 102, 0.15) !important;
+  1201→  1201→  border-radius: 2px !important;
+  1202→  1202→  padding: 8px 12px !important;
+  1203→  1203→  font-size: 12px !important;
+  1204→  1204→  font-family: var(--font-ibm-plex-mono), monospace;
+  1205→  1205→  box-shadow: 0 0 8px rgba(0, 255, 102, 0.08) !important;
+  1206→  1206→}
+  1207→  1207→
+  1208→  1208→/* Typing indicator dots */
+  1209→  1209→@keyframes typing-dot {
+  1210→  1210→  0%, 60%, 100% { transform: translateY(0); opacity: 0.3; }
+  1211→  1211→  30% { transform: translateY(-3px); opacity: 1; }
+  1212→  1212→}
+  1213→  1213→.typing-dot {
+  1214→  1214→  animation: typing-dot 1.4s ease-in-out infinite;
+  1215→  1215→}
+  1216→  1216→
+  1217→  1217→/* ═══════════════════════════════════════════════════════════════════════
+  1218→  1218→   UPPERCASE LABEL UTILITY — Section labels, nav, categories
+  1219→  1219→   ═══════════════════════════════════════════════════════════════════════ */
+  1220→  1220→
+  1221→  1221→.label-tracked {
+  1222→  1222→  text-transform: uppercase;
+  1223→  1223→  letter-spacing: 0.14em;
+  1224→  1224→  font-weight: 500;
+  1225→  1225→  font-family: var(--font-ibm-plex-mono), monospace;
+  1226→  1226→}
+  1227→  1227→
+  1228→  1228→@keyframes blink {
+  1229→  1229→  0%, 100% { opacity: 1; }
+  1230→  1230→  50% { opacity: 0; }
+  1231→  1231→}
+  1232→  1232→
+  1233→  1233→/* ═══════════════════════════════════════════════════════════════════════
+  1234→  1234→   SCAN LINE LOADER
+  1235→  1235→   ═══════════════════════════════════════════════════════════════════════ */
+  1236→  1236→
+  1237→  1237→@keyframes scan-line {
+  1238→  1238→  0% { top: 0; opacity: 0; }
+  1239→  1239→  10% { opacity: 1; }
+  1240→  1240→  90% { opacity: 1; }
+  1241→  1241→  100% { top: 100%; opacity: 0; }
+  1242→  1242→}
+  1243→  1243→.scanning-loader {
+  1244→  1244→  position: relative;
+  1245→  1245→  overflow: hidden;
+  1246→  1246→}
+  1247→  1247→.scanning-loader::after {
+  1248→  1248→  content: "";
+  1249→  1249→  position: absolute;
+  1250→  1250→  left: 0;
+  1251→  1251→  right: 0;
+  1252→  1252→  height: 2px;
+  1253→  1253→  background: linear-gradient(90deg, transparent, #00FF66, transparent);
+  1254→  1254→  box-shadow: 0 0 12px rgba(0,255,102,0.4);
+  1255→  1255→  animation: scan-line 2s ease-in-out infinite;
+  1256→  1256→}
+  1257→  1257→
+  1258→  1258→/* ═══════════════════════════════════════════════════════════════════════
+  1259→  1259→   TERMINAL CURSOR — blinking block cursor for prompt
+  1260→  1260→   ═══════════════════════════════════════════════════════════════════════ */
+  1261→  1261→
+  1262→  1262→@keyframes cursor-blink {
+  1263→  1263→  0%, 100% { opacity: 1; }
+  1264→  1264→  50% { opacity: 0; }
+  1265→  1265→}
+  1266→  1266→.terminal-cursor {
+  1267→  1267→  display: inline-block;
+  1268→  1268→  width: 8px;
+  1269→  1269→  height: 16px;
+  1270→  1270→  background: #00FF66;
+  1271→  1271→  animation: cursor-blink 1s step-end infinite;
+  1272→  1272→  vertical-align: text-bottom;
+  1273→  1273→  margin-left: 1px;
+  1274→  1274→}
+  1275→  1275→
+  1276→  1276→/* Terminal empty-state prompt */
+  1277→  1277→.terminal-empty {
+  1278→  1278→  font-family: var(--font-ibm-plex-mono), monospace;
+  1279→  1279→  color: var(--muted-foreground, #5a657a);
+  1280→  1280→  font-size: 0.8125rem;
+  1281→  1281→  line-height: 1.8;
+  1282→  1282→}
+  1283→  1283→.terminal-empty-prompt {
+  1284→  1284→  color: #00FF66;
+  1285→  1285→  margin-right: 8px;
+  1286→  1286→  font-weight: 700;
+  1287→  1287→}
+  1288→  1288→

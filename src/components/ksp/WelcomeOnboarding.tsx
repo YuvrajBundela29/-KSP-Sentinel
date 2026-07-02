@@ -269,7 +269,7 @@ function useSteps(): StepData[] {
             title="Mission Control"
             description="Your operational overview — live crime stats, FIR trends, investigation queue, AI recommendations, intel feed, and risk alerts. Start here every shift."
             shortcut="Alt+1"
-            color="#22d3ee"
+            color="#00FF66"
             delay={0.05}
           />
           <FeatureCard
@@ -277,7 +277,7 @@ function useSteps(): StepData[] {
             title="AI Copilot"
             description="Ask questions about any case in plain English or Kannada. The AI analyzes FIRs, finds patterns, explains evidence chains, and provides confidence-scored answers. Supports voice input."
             shortcut="Alt+2"
-            color="#22d3ee"
+            color="#00FF66"
             delay={0.1}
           />
           <FeatureCard
@@ -285,7 +285,7 @@ function useSteps(): StepData[] {
             title="Network Graph"
             description="Visualize relationships between accused, gangs, FIRs, vehicles, and districts. Drag nodes to explore connections. Filter by crime type, gang, or relationship strength."
             shortcut="Alt+3"
-            color="#22d3ee"
+            color="#00FF66"
             delay={0.15}
           />
           <FeatureCard
@@ -293,7 +293,7 @@ function useSteps(): StepData[] {
             title="Crime Map"
             description="Interactive map showing crime locations across Karnataka. Toggle between marker view and heat map. Filter by crime type, severity, and district for focused analysis."
             shortcut="Alt+4"
-            color="#22d3ee"
+            color="#00FF66"
             delay={0.2}
           />
         </div>
@@ -317,7 +317,7 @@ function useSteps(): StepData[] {
             title="Accused Profile"
             description="Comprehensive suspect profiles with risk scores, prior FIR history, gang affiliations, linked cases, and financial records. Essential for building cases."
             shortcut="Alt+5"
-            color="#f87171"
+            color="#ff4444"
             delay={0.05}
           />
           <FeatureCard
@@ -325,7 +325,7 @@ function useSteps(): StepData[] {
             title="Investigation Timeline"
             description="Chronological view of all events in a case — complaints, witness statements, CCTV footage, arrests, and more. Filter by event type and build a complete case narrative."
             shortcut="Alt+6"
-            color="#fbbf24"
+            color="#FF6B00"
             delay={0.1}
           />
           <FeatureCard
@@ -333,7 +333,7 @@ function useSteps(): StepData[] {
             title="Report Generator"
             description="Generate professional investigation reports, intelligence briefs, and summary documents. Export as PDF with proper formatting for court submissions."
             shortcut="Alt+7"
-            color="#34d399"
+            color="#00cc52"
             delay={0.15}
           />
         </div>
@@ -357,21 +357,21 @@ function useSteps(): StepData[] {
             icon={TrendingUp}
             title="Crime Forecasting"
             description="AI-powered predictive models that forecast crime hotspots and trends based on historical patterns. Plan patrols and resource allocation proactively."
-            color="#34d399"
+            color="#00cc52"
             delay={0.05}
           />
           <FeatureCard
             icon={BrainCircuit}
             title="Sociological Insights"
             description="Deep analysis of socio-economic factors driving crime patterns. Understand root causes, demographic correlations, and community-level risk indicators."
-            color="#34d399"
+            color="#00cc52"
             delay={0.1}
           />
           <FeatureCard
             icon={Database}
             title="Data Management Hub"
             description="11 specialized modules for managing FIRs, evidence, criminals, victims, vehicles, financial records, imports, audit logs, AI processing queue, and settings."
-            color="#818cf8"
+            color="#00FF66"
             delay={0.15}
           />
         </div>
@@ -743,8 +743,8 @@ export default function WelcomeOnboarding() {
               className="h-full rounded-full"
               style={{
                 background:
-                  "linear-gradient(90deg, #22d3ee, #818cf8)",
-                boxShadow: "0 0 8px rgba(34,211,238,0.3)",
+                  "linear-gradient(90deg, #00FF66, #00cc52)",
+                boxShadow: "0 0 8px rgba(0,255,102,0.3)",
               }}
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
@@ -833,11 +833,11 @@ export default function WelcomeOnboarding() {
                   borderRadius: 3,
                   background:
                     i === currentStep
-                      ? "linear-gradient(90deg, #22d3ee, #818cf8)"
+                      ? "linear-gradient(90deg, #00FF66, #00cc52)"
                       : "rgba(255,255,255,0.1)",
                   boxShadow:
                     i === currentStep
-                      ? "0 0 8px rgba(34,211,238,0.3)"
+                      ? "0 0 8px rgba(0,255,102,0.3)"
                       : "none",
                 }}
               />
@@ -852,17 +852,17 @@ export default function WelcomeOnboarding() {
                 whileTap={{ scale: 0.98 }}
                 className="flex items-center gap-2 text-[13px] font-semibold px-6 py-2.5 rounded-xl cursor-pointer transition-all duration-200"
                 style={{
-                  background: "linear-gradient(135deg, #22d3ee, #06b6d4)",
-                  color: "#050810",
-                  boxShadow: "0 0 20px rgba(34,211,238,0.2)",
+                  background: "linear-gradient(135deg, #00FF66, #00cc52)",
+                  color: "#05070A",
+                  boxShadow: "0 0 20px rgba(0,255,102,0.2)",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.boxShadow =
-                    "0 0 30px rgba(34,211,238,0.35)";
+                    "0 0 30px rgba(0,255,102,0.35)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.boxShadow =
-                    "0 0 20px rgba(34,211,238,0.2)";
+                    "0 0 20px rgba(0,255,102,0.2)";
                 }}
               >
                 Start Exploring

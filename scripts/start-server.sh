@@ -1,15 +1,17 @@
 #!/bin/bash
 cd /home/z/my-project
-# Ensure static assets are linked
-if [ ! -d .next/standalone/.next/static ]; then
-  cp -r .next/static .next/standalone/.next/ 2>/dev/null
-fi
-if [ ! -d .next/standalone/public ]; then
-  cp -r public .next/standalone/ 2>/dev/null
-fi
+
+# Always sync static assets (handles rebuilds with changed chunk hashes)
+echo "[$(date)] Syncing static assets to standalone..." >> /tmp/next-dev.log
+rm -rf .next/standalone/.next/static
+cp -r .next/static .next/standalone/.next/
+rm -rf .next/standalone/public
+cp -r public .next/standalone/
+echo "[$(date)] Static assets synced." >> /tmp/next-dev.log
+
 while true; do
-  node .next/standalone/server.js >> /tmp/next-dev.log 2>&1
+  node scripts/serve.js >> /tmp/next-dev.log 2>&1
   EXIT_CODE=$?
-  echo "[$(date)] Server exited with code $EXIT_CODE, restarting in 1s..." >> /tmp/next-dev.log
-  sleep 1
+  echo "[$(date)] Serve.js exited with code $EXIT_CODE, restarting in 2s..." >> /tmp/next-dev.log
+  sleep 2
 done
