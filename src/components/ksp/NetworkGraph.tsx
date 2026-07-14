@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import {
+import React, {
   useState,
   useMemo,
   useCallback,
@@ -34,6 +34,7 @@ import type { FIR, Accused, Gang, Vehicle, District } from "@/lib/types";
 import LoadingSpinner from "./LoadingSpinner";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Html } from "@react-three/drei";
+import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import * as THREE from "three";
 
 /* ------------------------------------------------------------------ */
@@ -686,57 +687,171 @@ function AnimatedEdge({
   );
 }
 
-/* ── Green Particle Field ── */
+/* ── Edge Flow Particle — glowing sphere traveling along edge ── */
+function EdgeFlowParticle({
+  link,
+  nodeMap,
+  selectedNodeId,
+  speed,
+  offset,
+}: {
+  link: SimLink;
+  nodeMap: Map<string, SimNode>;
+  selectedNodeId: string | null;
+  speed: number;
+  offset: number;
+}) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const progressRef = useRef(offset);
+  const s = nodeMap.get(link.source);
+  const t = nodeMap.get(link.target);
+
+  if (!s || !t) return null;
+  if (link.type === "gang_associate") return null;
+
+  const isHighlighted =
+    selectedNodeId &&
+    (link.source === selectedNodeId || link.target === selectedNodeId);
+  const dimmed = selectedNodeId && !isHighlighted;
+
+  const edgeColorMap: Record<string, string> = {
+    involved_in: "#FF6B6B",
+    member_of: "#FFD93D",
+    occurred_in: "#6BCB77",
+    used_vehicle: "#4D96FF",
+    gang_associate: "#FF922B",
+  };
+
+  useFrame((_, delta) => {
+    progressRef.current += delta * (isHighlighted ? speed * 1.5 : speed);
+    if (progressRef.current > 1) progressRef.current -= 1;
+
+    if (meshRef.current) {
+      const prog = progressRef.current;
+      const inv = 1 - prog;
+      // Interpolate along curved path (matching curvedLinkPoints bezier)
+      const mx = (s.x + t.x) / 2;
+      const mz = (s.z + t.z) / 2;
+      const my = Math.max(s.y, t.y) + 0.8;
+      const px = inv * inv * s.x + 2 * inv * prog * mx + prog * prog * t.x;
+      const py = inv * inv * s.y + 2 * inv * prog * my + prog * prog * t.y;
+      const pz = inv * inv * s.z + 2 * inv * prog * mz + prog * prog * t.z;
+      meshRef.current.position.set(px, py, pz);
+    }
+  });
+
+  const color = edgeColorMap[link.type] || "#00FF66";
+
+  return (
+    <mesh ref={meshRef} frustumCulled={false}>
+      <sphereGeometry args={[isHighlighted ? 0.1 : 0.06, 6, 6]} />
+      <meshBasicMaterial
+        color={color}
+        transparent
+        opacity={dimmed ? 0.03 : isHighlighted ? 0.95 : 0.45}
+        toneMapped={false}
+        depthWrite={false}
+      />
+    </mesh>
+  );
+}
+
+/* ── Selection Pulse Wave — expanding ring from selected node ── */
+function SelectionPulse({
+  node,
+}: {
+  node: SimNode;
+}) {
+  const ringRef = useRef<THREE.Mesh>(null);
+  const progressRef = useRef(0);
+
+  useFrame((_, delta) => {
+    progressRef.current += delta * 0.5;
+    if (progressRef.current > 1) progressRef.current -= 1;
+
+    if (ringRef.current) {
+      const p = progressRef.current;
+      const scale = 1 + p * 2.5;
+      ringRef.current.scale.setScalar(scale);
+      // Access material opacity
+      const mat = ringRef.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = (1 - p) * 0.5;
+    }
+  });
+
+  const radius = getNodeRadius(node);
+  const color = new THREE.Color(node.color);
+
+  return (
+    <mesh ref={ringRef} rotation={[Math.PI / 2, 0, 0]} position={[node.x, node.y, node.z]}>
+      <ringGeometry args={[radius * 1.2, radius * 1.35, 48]} />
+      <meshBasicMaterial
+        color={color}
+        transparent
+        opacity={0.5}
+        side={THREE.DoubleSide}
+        toneMapped={false}
+        depthWrite={false}
+      />
+    </mesh>
+  );
+}
+
+/* ── Multi-Color Particle Field — ambient star field ── */
 function GreenParticleField() {
   const pointsRef = useRef<THREE.Points>(null);
+  const count = 1500;
 
   const geometry = useMemo(() => {
-    const count = 1200;
     const positions = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
-    const sizes = new Float32Array(count);
+    const palette = [
+      new THREE.Color("#FF6B6B"),
+      new THREE.Color("#FFD93D"),
+      new THREE.Color("#6BCB77"),
+      new THREE.Color("#4D96FF"),
+      new THREE.Color("#FF922B"),
+      new THREE.Color("#00FF66"),
+      new THREE.Color("#a78bfa"),
+      new THREE.Color("#22d3ee"),
+    ];
 
     for (let i = 0; i < count; i++) {
-      // Random positions in a large sphere
-      const r = 15 + Math.random() * 45;
+      const r = 12 + Math.random() * 50;
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
 
       positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 20;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 25;
       positions[i * 3 + 2] = r * Math.cos(phi);
 
-      // Multi-colored particles
-      const particleColors = ["#FF6B6B", "#FFD93D", "#6BCB77", "#4D96FF", "#FF922B", "#00FF66"];
-      const pColor = new THREE.Color(particleColors[Math.floor(Math.random() * particleColors.length)]);
-      colors[i * 3] = pColor.r;
-      colors[i * 3 + 1] = pColor.g;
-      colors[i * 3 + 2] = pColor.b;
-
-      sizes[i] = 0.1 + Math.random() * 0.35;
+      const c = palette[Math.floor(Math.random() * palette.length)];
+      colors[i * 3] = c.r;
+      colors[i * 3 + 1] = c.g;
+      colors[i * 3 + 2] = c.b;
     }
 
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
     geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-    geo.setAttribute("size", new THREE.BufferAttribute(sizes, 1));
     return geo;
   }, []);
 
-  // Slow rotation for ambient feel
-  useFrame((_state, delta) => {
+  useFrame((state) => {
     if (pointsRef.current) {
-      pointsRef.current.rotation.y += delta * 0.008;
+      pointsRef.current.rotation.y += 0.0004;
+      // Gentle vertical oscillation
+      pointsRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.15) * 0.5;
     }
   });
 
   return (
     <points ref={pointsRef} geometry={geometry}>
       <pointsMaterial
-        size={0.2}
+        size={0.25}
         vertexColors
         transparent
-        opacity={0.5}
+        opacity={0.6}
         sizeAttenuation
         toneMapped={false}
         depthWrite={false}
@@ -790,6 +905,10 @@ function NodeMesh({
     if (meshRef.current) {
       const pulse = 1 + Math.sin(_state.clock.elapsedTime * 1.5 + node.x * 0.3) * 0.04;
       meshRef.current.scale.setScalar(pulse);
+    }
+    // Gentle floating — nodes bob subtly on Y axis
+    if (meshRef.current && !isDimmed) {
+      meshRef.current.position.y = node.y + Math.sin(_state.clock.elapsedTime * 0.8 + node.z * 0.5) * 0.08;
     }
   });
 
@@ -886,6 +1005,20 @@ function NodeMesh({
           toneMapped={false}
         />
       </mesh>
+
+      {(isActive || isConnected) && !isDimmed && (
+        <mesh scale={[1.02, 1.02, 1.02]}>
+          {geometry}
+          <meshBasicMaterial
+            color={color}
+            wireframe
+            transparent
+            opacity={isActive ? 0.3 : 0.12}
+            toneMapped={false}
+            depthWrite={false}
+          />
+        </mesh>
+      )}
 
       {/* Outer glow — larger, more visible */}
       {!isDimmed && (
@@ -1060,9 +1193,9 @@ function GraphScene3D({
       {/* Green particle field (star field replacement) */}
       <GreenParticleField />
 
-      {/* Ground grid — subtle green tint */}
+      {/* Ground grid — subtle multi-color tint */}
       <gridHelper
-        args={[60, 30, "rgba(0,255,102,0.08)", "rgba(0,255,102,0.03)"]}
+        args={[80, 40, "rgba(77,150,255,0.06)", "rgba(0,255,102,0.025)"]}
         position={[0, -1.5, 0]}
       />
 
@@ -1075,9 +1208,26 @@ function GraphScene3D({
           key={`link-${i}`}
           link={link}
           nodeMap={nodeMap}
-          selectedNodeId={selectedNode?.id}
+          selectedNodeId={selectedNode?.id ?? null}
         />
       ))}
+
+      {/* Edge flow particles — data intelligence flowing */}
+      {links.map((link, i) => {
+        const s = nodeMap.get(link.source);
+        const t = nodeMap.get(link.target);
+        if (!s || !t || link.type === "gang_associate") return null;
+        const selId = selectedNode?.id;
+        const isHighlighted = selId && (link.source === selId || link.target === selId);
+        const dimmed = selId && !isHighlighted;
+        if (dimmed) return null;
+        return (
+          <React.Fragment key={`flow-${i}`}>
+            <EdgeFlowParticle link={link} nodeMap={nodeMap} selectedNodeId={selectedNode?.id ?? null} speed={0.18} offset={0} />
+            <EdgeFlowParticle link={link} nodeMap={nodeMap} selectedNodeId={selectedNode?.id ?? null} speed={0.12} offset={0.5} />
+          </React.Fragment>
+        );
+      })}
 
       {/* Nodes */}
       {nodes.map((node) => (
@@ -1096,6 +1246,18 @@ function GraphScene3D({
           onHover={onHoverNode}
         />
       ))}
+
+      {selectedNode && <SelectionPulse node={selectedNode} />}
+
+      <EffectComposer>
+        <Bloom
+          intensity={1.2}
+          luminanceThreshold={0.15}
+          luminanceSmoothing={0.9}
+          mipmapBlur
+        />
+        <Vignette darkness={0.4} offset={0.3} />
+      </EffectComposer>
     </>
   );
 }
@@ -1437,14 +1599,6 @@ function NetworkGraphInner() {
             </Suspense>
           </Canvas>
         )}
-
-        {/* Vignette overlay — CSS post-processing feel */}
-        <div
-          className="absolute inset-0 pointer-events-none z-[5]"
-          style={{
-            boxShadow: "inset 0 0 120px 40px rgba(5,7,10,0.7), inset 0 0 40px 10px rgba(5,7,10,0.4)",
-          }}
-        />
 
         {!simReady && nodes.length > 0 && (
           <div className="absolute inset-0 flex items-center justify-center">

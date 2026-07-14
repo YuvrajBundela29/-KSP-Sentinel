@@ -27,6 +27,7 @@ import LoadingSpinner from "@/components/ksp/LoadingSpinner";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree, ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, Html } from "@react-three/drei";
+import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -177,18 +178,20 @@ function to3D(ox: number, oy: number): [number, number, number] {
 /* ---------- Particle Field ---------- */
 
 function FinancialParticles() {
-  const count = 600;
+  const count = 800;
   const meshRef = useRef<THREE.Points>(null);
   const colorArray = useMemo(() => {
-    const colors = [
+    const palette = [
       new THREE.Color("#fbbf24"),
       new THREE.Color("#f87171"),
       new THREE.Color("#22d3ee"),
       new THREE.Color("#a78bfa"),
+      new THREE.Color("#34d399"),
+      new THREE.Color("#FF6B6B"),
     ];
     const arr = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
-      const c = colors[Math.floor(Math.random() * colors.length)];
+      const c = palette[Math.floor(Math.random() * palette.length)];
       arr[i * 3] = c.r;
       arr[i * 3 + 1] = c.g;
       arr[i * 3 + 2] = c.b;
@@ -199,18 +202,17 @@ function FinancialParticles() {
   const positions = useMemo(() => {
     const arr = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
-      arr[i * 3] = (Math.random() - 0.5) * 50;
-      arr[i * 3 + 1] = Math.random() * 20 - 2;
-      arr[i * 3 + 2] = (Math.random() - 0.5) * 50;
+      arr[i * 3] = (Math.random() - 0.5) * 60;
+      arr[i * 3 + 1] = Math.random() * 25 - 3;
+      arr[i * 3 + 2] = (Math.random() - 0.5) * 60;
     }
     return arr;
   }, []);
 
   useFrame((state) => {
     if (!meshRef.current) return;
-    const t = state.clock.elapsedTime * 0.02;
-    meshRef.current.rotation.y = t;
-    meshRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.1) * 0.3;
+    meshRef.current.rotation.y = state.clock.elapsedTime * 0.015;
+    meshRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.1) * 0.4;
   });
 
   return (
@@ -228,12 +230,13 @@ function FinancialParticles() {
         />
       </bufferGeometry>
       <pointsMaterial
-        size={0.06}
+        size={0.12}
         vertexColors
         transparent
-        opacity={0.5}
+        opacity={0.55}
         sizeAttenuation
         depthWrite={false}
+        toneMapped={false}
       />
     </points>
   );
@@ -328,6 +331,71 @@ function FinancialEdge({
   );
 }
 
+/* ---------- Edge Flow Particle ---------- */
+function FinancialEdgeFlowParticle({
+  edge,
+  nodeMap,
+  selectedNodeId,
+  hoveredNodeId,
+  speed,
+  offset,
+}: {
+  edge: FinancialNetworkEdge;
+  nodeMap: Map<string, SimNode>;
+  selectedNodeId: string | null;
+  hoveredNodeId: string | null;
+  speed: number;
+  offset: number;
+}) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const progressRef = useRef(offset);
+
+  const srcNode = nodeMap.get(edge.source);
+  const tgtNode = nodeMap.get(edge.target);
+  if (!srcNode || !tgtNode) return null;
+
+  const start = to3D(srcNode.x, srcNode.y);
+  const end = to3D(tgtNode.x, tgtNode.y);
+  const mid: [number, number, number] = [
+    (start[0] + end[0]) / 2,
+    0.6,
+    (start[2] + end[2]) / 2,
+  ];
+
+  const isHighlighted =
+    (hoveredNodeId && (edge.source === hoveredNodeId || edge.target === hoveredNodeId)) ||
+    (selectedNodeId && (edge.source === selectedNodeId || edge.target === selectedNodeId));
+  const isDimmed = (hoveredNodeId || selectedNodeId) && !isHighlighted;
+
+  const color = EDGE_COLORS[edge.type] || "#5a657a";
+
+  useFrame((_, delta) => {
+    progressRef.current += delta * (isHighlighted ? speed * 1.5 : speed);
+    if (progressRef.current > 1) progressRef.current -= 1;
+    if (meshRef.current) {
+      const t = progressRef.current;
+      const inv = 1 - t;
+      const px = inv * inv * start[0] + 2 * inv * t * mid[0] + t * t * end[0];
+      const py = inv * inv * start[1] + 2 * inv * t * mid[1] + t * t * end[1];
+      const pz = inv * inv * start[2] + 2 * inv * t * mid[2] + t * t * end[2];
+      meshRef.current.position.set(px, py, pz);
+    }
+  });
+
+  return (
+    <mesh ref={meshRef} frustumCulled={false}>
+      <sphereGeometry args={[isHighlighted ? 0.06 : 0.035, 6, 6]} />
+      <meshBasicMaterial
+        color={color}
+        transparent
+        opacity={isDimmed ? 0.02 : isHighlighted ? 0.9 : 0.4}
+        toneMapped={false}
+        depthWrite={false}
+      />
+    </mesh>
+  );
+}
+
 /* ---------- Node Mesh Component ---------- */
 
 function FinancialNodeMesh({
@@ -370,6 +438,11 @@ function FinancialNodeMesh({
     // Selection ring rotation
     if (ringRef.current && isSelected) {
       ringRef.current.rotation.z += 0.02;
+    }
+    // Gentle floating
+    if (groupRef.current) {
+      const baseY = position3D[1];
+      groupRef.current.position.y = baseY + Math.sin(state.clock.elapsedTime * 0.7 + position3D[0] * 0.3) * 0.04;
     }
   });
 
@@ -425,6 +498,12 @@ function FinancialNodeMesh({
           />
         </mesh>
       )}
+      {(isHovered || isSelected) && !isDimmed && node.type === "account" && (
+        <mesh scale={[1.05, 1.05, 1.05]}>
+          <sphereGeometry args={[radius, 24, 24]} />
+          <meshBasicMaterial color={threeColor} wireframe transparent opacity={0.25} depthWrite={false} toneMapped={false} />
+        </mesh>
+      )}
 
       {node.type === "accused" && (
         <mesh>
@@ -438,6 +517,12 @@ function FinancialNodeMesh({
             transparent
             opacity={opacity}
           />
+        </mesh>
+      )}
+      {(isHovered || isSelected) && !isDimmed && node.type === "accused" && (
+        <mesh scale={[1.05, 1.05, 1.05]}>
+          <icosahedronGeometry args={[radius, 1]} />
+          <meshBasicMaterial color={threeColor} wireframe transparent opacity={0.25} depthWrite={false} toneMapped={false} />
         </mesh>
       )}
 
@@ -455,6 +540,12 @@ function FinancialNodeMesh({
           />
         </mesh>
       )}
+      {(isHovered || isSelected) && !isDimmed && node.type === "fir" && (
+        <mesh scale={[1.05, 1.05, 1.05]} rotation={[0, Math.PI / 4, 0]}>
+          <boxGeometry args={[radius * 1.4, radius * 0.15, radius * 1.0]} />
+          <meshBasicMaterial color={threeColor} wireframe transparent opacity={0.25} depthWrite={false} toneMapped={false} />
+        </mesh>
+      )}
 
       {node.type === "gang" && (
         <mesh>
@@ -468,6 +559,12 @@ function FinancialNodeMesh({
             transparent
             opacity={opacity}
           />
+        </mesh>
+      )}
+      {(isHovered || isSelected) && !isDimmed && node.type === "gang" && (
+        <mesh scale={[1.05, 1.05, 1.05]}>
+          <octahedronGeometry args={[radius * 1.1, 0]} />
+          <meshBasicMaterial color={threeColor} wireframe transparent opacity={0.25} depthWrite={false} toneMapped={false} />
         </mesh>
       )}
 
@@ -593,6 +690,9 @@ function FinancialScene({
       <pointLight position={[-5, 6, -5]} color="#f87171" intensity={12} distance={30} />
       <pointLight position={[5, 6, -5]} color="#22d3ee" intensity={10} distance={30} />
       <pointLight position={[-5, 8, 5]} color="#a78bfa" intensity={10} distance={30} />
+      <pointLight position={[5, 5, 5]} intensity={0.4} color="#fbbf24" distance={30} decay={2} />
+      <pointLight position={[-5, 5, -5]} intensity={0.4} color="#22d3ee" distance={30} decay={2} />
+      <pointLight position={[5, 5, -5]} intensity={0.3} color="#f87171" distance={30} decay={2} />
 
       {/* Grid */}
       <GridFloor />
@@ -616,6 +716,24 @@ function FinancialScene({
           hoveredNodeId={hoveredNodeId}
         />
       ))}
+
+      {/* Edge flow particles */}
+      {visibleEdges.map((edge, i) => {
+        const srcNode = nodeMap.get(edge.source);
+        const tgtNode = nodeMap.get(edge.target);
+        if (!srcNode || !tgtNode) return null;
+        const isHighlighted =
+          (hoveredNodeId && (edge.source === hoveredNodeId || edge.target === hoveredNodeId)) ||
+          (selectedNodeId && (edge.source === selectedNodeId || edge.target === selectedNodeId));
+        const isDimmed = (hoveredNodeId || selectedNodeId) && !isHighlighted;
+        if (isDimmed) return null;
+        return (
+          <React.Fragment key={`efp-${i}`}>
+            <FinancialEdgeFlowParticle edge={edge} nodeMap={nodeMap} selectedNodeId={selectedNodeId} hoveredNodeId={hoveredNodeId} speed={0.15} offset={0} />
+            <FinancialEdgeFlowParticle edge={edge} nodeMap={nodeMap} selectedNodeId={selectedNodeId} hoveredNodeId={hoveredNodeId} speed={0.1} offset={0.5} />
+          </React.Fragment>
+        );
+      })}
 
       {/* Nodes */}
       {visibleNodes.map((node) => {
@@ -652,6 +770,15 @@ function FinancialScene({
         maxPolarAngle={Math.PI / 2.1}
         minPolarAngle={0.2}
       />
+      <EffectComposer>
+        <Bloom
+          intensity={1.0}
+          luminanceThreshold={0.15}
+          luminanceSmoothing={0.9}
+          mipmapBlur
+        />
+        <Vignette darkness={0.35} offset={0.3} />
+      </EffectComposer>
     </>
   );
 }
