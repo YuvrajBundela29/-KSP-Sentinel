@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+skills
+upload
+.agent-browser
+tool-results
+*.md
+.DS_Store
