@@ -232,32 +232,261 @@ function generateFallbackResponse(
   message: string,
   dataset: any
 ): string {
-  const lowerMsg = message.toLowerCase();
+  const lowerMsg = message.toLowerCase().trim();
   const firs = dataset.firs || [];
   const accused = dataset.accused || [];
   const gangs = dataset.gangs || [];
+  const vehicles = dataset.vehicles || [];
+  const bankAccounts = dataset.bank_accounts || [];
 
-  // Search the dataset for relevant info
-  let response = "";
+  // ── Helper: fuzzy match name against accused list ──────────────────
+  function findAccusedByName(query: string) {
+    const q = query.replace(/[?.!,'""]/g, "").trim().toLowerCase();
+    if (q.length < 2) return [];
+    // Exact substring match
+    let matches = accused.filter((a: any) => a.name.toLowerCase().includes(q));
+    // Also try matching individual words
+    if (matches.length === 0) {
+      const words = q.split(/\s+/).filter(w => w.length > 2);
+      if (words.length > 0) {
+        matches = accused.filter((a: any) => words.some(w => a.name.toLowerCase().includes(w)));
+      }
+    }
+    return matches;
+  }
 
+  // ── Helper: extract FIR IDs from message ───────────────────────────
+  function extractFirIds(msg: string): string[] {
+    const pattern = /fir[-\s]?(\d{4})[-\s]?ka[-\s]?(\d{4})/gi;
+    const found: string[] = [];
+    let match;
+    while ((match = pattern.exec(msg)) !== null) {
+      const normalized = `FIR-${match[1]}-KA-${match[2]}`;
+      if (firs.some((f: any) => f.fir_id === normalized)) {
+        found.push(normalized);
+      }
+    }
+    return found;
+  }
+
+  // ── 1. FIR-specific lookup ─────────────────────────────────────────
+  const firIds = extractFirIds(message);
+  if (firIds.length > 0) {
+    let response = "";
+    firIds.forEach((fid) => {
+      const fir = firs.find((f: any) => f.fir_id === fid);
+      if (!fir) return;
+      response += `**${fir.fir_id}**\n\n`;
+      response += `• **Crime Type:** ${fir.crime_type}\n`;
+      response += `• **District:** ${fir.district}\n`;
+      response += `• **Date:** ${fir.date} at ${fir.time}\n`;
+      response += `• **Status:** ${fir.investigation_status}\n`;
+      response += `• **Priority:** ${fir.priority}\n`;
+      response += `• **Modus Operandi:** ${fir.modus_operandi}\n`;
+
+      if (fir.accused && fir.accused.length > 0) {
+        response += `\n**Accused (${fir.accused.length}):**\n`;
+        fir.accused.forEach((aid: string) => {
+          const acc = accused.find((a: any) => a.id === aid);
+          if (acc) {
+            const gang = gangs.find((g: any) => g.id === acc.gang);
+            response += `• **${acc.name}** (${aid}) — Age: ${acc.age}, Risk: ${acc.risk}/100${gang ? `, Gang: ${gang.name}` : ""}\n`;
+          } else {
+            response += `• ${aid}\n`;
+          }
+        });
+      }
+
+      if (fir.vehicle_used) {
+        const v = vehicles.find((ve: any) => ve.id === fir.vehicle_used);
+        response += `\n**Vehicle:** ${v ? v.reg + " (" + v.make + ", " + v.color + ")" : fir.vehicle_used}\n`;
+      }
+
+      if (fir.gang_id) {
+        const gang = gangs.find((g: any) => g.id === fir.gang_id);
+        response += `**Gang Link:** ${gang ? gang.name + " (" + gang.type + ", Base: " + gang.base + ")" : fir.gang_id}\n`;
+      }
+
+      if (fir.items_stolen && fir.items_stolen.length > 0) {
+        response += `**Items Stolen:** ${fir.items_stolen.join(", ")}\n`;
+      }
+
+      if (fir.financial_transaction) {
+        const acc = bankAccounts.find((b: any) => b.id === fir.financial_transaction.account);
+        response += `\n**Financial Trail:** ₹${fir.financial_transaction.amount_inr.toLocaleString("en-IN")} via ${fir.financial_transaction.mode}`;
+        if (acc) response += ` → ${acc.bank} (${acc.holder})`;
+        response += `\n`;
+      }
+
+      response += "\n";
+    });
+    response += `Evidence sources: [${firIds.join(", ")}]`;
+    return response;
+  }
+
+  // ── 2. Name/person lookup ──────────────────────────────────────────
+  if (lowerMsg.includes("who is") || lowerMsg.includes("who are") || lowerMsg.includes("tell me about") || lowerMsg.includes("details of") || lowerMsg.includes("profile of") || lowerMsg.includes("find ")) {
+    const nameMatches = findAccusedByName(message);
+    if (nameMatches.length > 0) {
+      let response = "";
+      nameMatches.slice(0, 3).forEach((acc: any) => {
+        const gang = gangs.find((g: any) => g.id === acc.gang);
+        const linkedFirs = firs.filter((f: any) => f.accused.includes(acc.id));
+        response += `**${acc.name}** (${acc.id})\n\n`;
+        response += `• **Age:** ${acc.age}\n`;
+        response += `• **Gender:** ${acc.gender || "Unknown"}\n`;
+        response += `• **Risk Score:** ${acc.risk}/100\n`;
+        response += `• **Prior FIRs:** ${acc.prior_firs}\n`;
+        response += `• **Gang:** ${gang ? gang.name + " (" + gang.type + ")" : "None / Unknown"}\n`;
+        if (gang) response += `• **Gang Base:** ${gang.base}\n`;
+        response += `• **Linked Cases:** ${linkedFirs.length}\n`;
+        if (linkedFirs.length > 0) {
+          response += `\n**Cases involved:**\n`;
+          linkedFirs.forEach((f: any) => {
+            response += `• ${f.fir_id} — ${f.crime_type}, ${f.district} (${f.date})\n`;
+          });
+        }
+        response += "\n";
+      });
+      if (nameMatches.length > 3) {
+        response += `*...and ${nameMatches.length - 3} more matches. Ask for more details.*\n\n`;
+      }
+      const allFirIds = nameMatches.flatMap((a: any) => firs.filter((f: any) => f.accused.includes(a.id)).map((f: any) => f.fir_id));
+      response += `Evidence sources: [${[...new Set(allFirIds)].slice(0, 8).join(", ")}]`;
+      return response;
+    }
+  }
+
+  // ── 3. "How many" / counting queries ───────────────────────────────
+  if (lowerMsg.includes("how many") || lowerMsg.includes("count") || lowerMsg.includes("total number") || lowerMsg.includes("number of")) {
+    let response = `**Database Statistics:**\n\n`;
+    response += `• **Total FIRs:** ${firs.length}\n`;
+    response += `• **Total Accused:** ${accused.length}\n`;
+    response += `• **Total Gangs:** ${gangs.length}\n`;
+    response += `• **Total Vehicles tracked:** ${vehicles.length}\n`;
+    response += `• **Bank Accounts monitored:** ${bankAccounts.length}\n`;
+
+    const crimeTypes: Record<string, number> = {};
+    firs.forEach((f: any) => { crimeTypes[f.crime_type] = (crimeTypes[f.crime_type] || 0) + 1; });
+    response += `\n**By Crime Type:**\n`;
+    Object.entries(crimeTypes).sort(([, a], [, b]) => (b as number) - (a as number)).forEach(([t, c]) => {
+      response += `• ${t}: ${c}\n`;
+    });
+
+    // If asking about names/people specifically
+    if (lowerMsg.includes("name") || lowerMsg.includes("people") || lowerMsg.includes("person") || lowerMsg.includes("accused") || lowerMsg.includes("involved")) {
+      const allNames = new Set<string>();
+      firs.forEach((f: any) => f.accused.forEach((a: string) => allNames.add(a)));
+      response += `\n**Unique accused persons involved across all FIRs:** ${allNames.size}\n`;
+      response += `\n**All accused names:**\n`;
+      accused.forEach((a: any) => {
+        const gang = gangs.find((g: any) => g.id === a.gang);
+        response += `• ${a.name} (${a.id})${gang ? " — " + gang.name : ""}\n`;
+      });
+    }
+
+    // If asking about a specific district
+    const districts = ["mysuru", "bengaluru", "mangaluru", "shivamogga", "hubli", "dharwad", "belagavi", "kalaburagi"];
+    const mentionedDistrict = districts.find(d => lowerMsg.includes(d));
+    if (mentionedDistrict) {
+      const dFirs = firs.filter((f: any) => f.district.toLowerCase().includes(mentionedDistrict));
+      response += `\n**Cases in ${mentionedDistrict.charAt(0).toUpperCase() + mentionedDistrict.slice(1)}:** ${dFirs.length}\n`;
+      if (dFirs.length > 0) {
+        dFirs.forEach((f: any) => {
+          response += `• ${f.fir_id} — ${f.crime_type} (${f.date})\n`;
+        });
+      }
+    }
+
+    response += `\nEvidence sources: [${firs.slice(0, 5).map((f: any) => f.fir_id).join(", ")}]`;
+    return response;
+  }
+
+  // ── 4. District-specific queries ───────────────────────────────────
+  const allDistricts = [...new Set(firs.map((f: any) => f.district))];
+  const mentionedDistrict2 = allDistricts.find((d: string) => lowerMsg.includes(d.toLowerCase().split(" ")[0]));
+  if (mentionedDistrict2 && !lowerMsg.includes("chain snatching") && !lowerMsg.includes("vehicle") && !lowerMsg.includes("theft")) {
+    const dFirs = firs.filter((f: any) => f.district === mentionedDistrict2);
+    const dAccused = new Set<string>();
+    dFirs.forEach((f: any) => f.accused.forEach((a: string) => dAccused.add(a)));
+    const dGangs = new Set(dFirs.map((f: any) => f.gang_id).filter(Boolean));
+
+    let response = `**${mentionedDistrict2} — Crime Overview**\n\n`;
+    response += `• **Total cases:** ${dFirs.length}\n`;
+    response += `• **Unique accused:** ${dAccused.size}\n`;
+    response += `• **Gangs active:** ${dGangs.size}\n`;
+
+    const crimeTypes: Record<string, number> = {};
+    dFirs.forEach((f: any) => { crimeTypes[f.crime_type] = (crimeTypes[f.crime_type] || 0) + 1; });
+    response += `\n**Crime breakdown:**\n`;
+    Object.entries(crimeTypes).sort(([, a], [, b]) => (b as number) - (a as number)).forEach(([t, c]) => {
+      response += `• ${t}: ${c}\n`;
+    });
+
+    response += `\n**Recent cases:**\n`;
+    dFirs.slice(0, 5).forEach((f: any) => {
+      response += `• ${f.fir_id} — ${f.crime_type}, Status: ${f.investigation_status} (${f.date})\n`;
+    });
+
+    if (dGangs.size > 0) {
+      response += `\n**Active gangs:**\n`;
+      dGangs.forEach((gid) => {
+        const gang = gangs.find((g: any) => g.id === gid);
+        if (gang) response += `• ${gang.name} (${gang.type}, Members: ${gang.members.length})\n`;
+      });
+    }
+
+    response += `\nEvidence sources: [${dFirs.map((f: any) => f.fir_id).join(", ")}]`;
+    return response;
+  }
+
+  // ── 5. Gang queries ────────────────────────────────────────────────
+  if (lowerMsg.includes("gang")) {
+    // Try to find a specific gang by name
+    const matchedGang = gangs.find((g: any) => lowerMsg.includes(g.name.toLowerCase().split(" ")[0].toLowerCase()));
+    if (matchedGang) {
+      const gangFirs = firs.filter((f: any) => f.gang_id === matchedGang.id);
+      let response = `**${matchedGang.name}** (${matchedGang.id})\n\n`;
+      response += `• **Type:** ${matchedGang.type}\n• **Base:** ${matchedGang.base}\n\n`;
+      response += `**Members (${matchedGang.members.length}):**\n`;
+      matchedGang.members.forEach((mid: string) => {
+        const acc = accused.find((a: any) => a.id === mid);
+        if (acc) response += `• **${acc.name}** (${mid}) — Age: ${acc.age}, Risk: ${acc.risk}/100\n`;
+      });
+      response += `\n**Linked FIRs (${gangFirs.length}):**\n`;
+      gangFirs.forEach((f: any) => {
+        response += `• ${f.fir_id} — ${f.crime_type}, ${f.district} (${f.date})\n`;
+      });
+      const totalStolen = gangFirs.reduce((sum: number, f: any) => sum + (f.financial_transaction?.amount_inr || 0), 0);
+      if (totalStolen > 0) response += `\n**Total financial trail:** ₹${totalStolen.toLocaleString("en-IN")}\n`;
+      response += `\nEvidence sources: [${gangFirs.map((f: any) => f.fir_id).join(", ")}]`;
+      return response;
+    }
+
+    // List all gangs
+    let response = "**All Gang Networks in Database:**\n\n";
+    gangs.forEach((g: any) => {
+      const gangFirs = firs.filter((f: any) => f.gang_id === g.id);
+      response += `• **${g.name}** (${g.id}) — Type: ${g.type}, Base: ${g.base}, Members: ${g.members.length}, FIRs: ${gangFirs.length}\n`;
+      response += `  Members: ${g.members.map((m: string) => { const a = accused.find((x: any) => x.id === m); return a ? a.name : m; }).join(", ")}\n`;
+    });
+    response += `\nEvidence sources: [${firs.map((f: any) => f.fir_id).slice(0, 5).join(", ")}]`;
+    return response;
+  }
+
+  // ── 6. Chain snatching ─────────────────────────────────────────────
   if (lowerMsg.includes("chain snatching") || lowerMsg.includes("chain")) {
     const chainFirs = firs.filter((f: any) => f.crime_type === "Chain Snatching");
-    response = `Based on the database, there are **${chainFirs.length} chain snatching cases** recorded.\n\n`;
+    let response = `Based on the database, there are **${chainFirs.length} chain snatching cases** recorded.\n\n`;
     const byDistrict: Record<string, number> = {};
-    chainFirs.forEach((f: any) => {
-      byDistrict[f.district] = (byDistrict[f.district] || 0) + 1;
-    });
+    chainFirs.forEach((f: any) => { byDistrict[f.district] = (byDistrict[f.district] || 0) + 1; });
     response += "**District breakdown:**\n";
-    Object.entries(byDistrict)
-      .sort(([, a], [, b]) => (b as number) - (a as number))
-      .forEach(([d, c]) => {
-        response += `• ${d}: ${c} cases\n`;
-      });
-
+    Object.entries(byDistrict).sort(([, a], [, b]) => (b as number) - (a as number)).forEach(([d, c]) => {
+      response += `• ${d}: ${c} cases\n`;
+    });
     const involvedAccused = new Set<string>();
     chainFirs.forEach((f: any) => f.accused.forEach((a: string) => involvedAccused.add(a)));
     response += `\n**${involvedAccused.size} unique accused** involved across these cases.\n`;
-
     const gangIds = new Set(chainFirs.map((f: any) => f.gang_id).filter(Boolean));
     if (gangIds.size > 0) {
       response += `\n**Gang connection identified:** `;
@@ -266,79 +495,83 @@ function generateFallbackResponse(
         if (gang) response += `${gang.name} (${gid}) — Members: ${gang.members.join(", ")}. `;
       });
     }
-
-    response += `\n\nEvidence sources: [${chainFirs.map((f: any) => f.fir_id).join(", ")}]`;
-  } else if (lowerMsg.includes("silk city") || lowerMsg.includes("gang member") || lowerMsg.includes("members")) {
-    const gang = gangs.find((g: any) => g.name.toLowerCase().includes("silk") || lowerMsg.includes("gang"));
-    if (gang) {
-      response = `**${gang.name}** (${gang.id})\n\n`;
-      response += `• Type: ${gang.type}\n• Base: ${gang.base}\n\n`;
-      response += `**Members:**\n`;
-      gang.members.forEach((mid: string) => {
-        const acc = accused.find((a: any) => a.id === mid);
-        if (acc) response += `• ${acc.name} (${mid}) — Age: ${acc.age}, Risk: ${acc.risk}/100\n`;
+    // If district mentioned, filter
+    const districts2 = ["mysuru", "bengaluru", "mangaluru", "shivamogga"];
+    const menDist = districts2.find(d => lowerMsg.includes(d));
+    if (menDist) {
+      const distFirs = chainFirs.filter((f: any) => f.district.toLowerCase().includes(menDist));
+      response = `**Chain Snatching in ${menDist.charAt(0).toUpperCase() + menDist.slice(1)}:** ${distFirs.length} cases\n\n`;
+      distFirs.forEach((f: any) => {
+        response += `• ${f.fir_id} — ${f.date}, Status: ${f.investigation_status}\n`;
+        response += `  Accused: ${f.accused.map((a: string) => { const x = accused.find((y: any) => y.id === a); return x ? x.name : a; }).join(", ")}\n`;
       });
-      const gangFirs = firs.filter((f: any) => f.gang_id === gang.id);
-      response += `\nTotal FIRs linked: ${gangFirs.length}`;
-      response += `\n\nEvidence sources: [${gangFirs.map((f: any) => f.fir_id).join(", ")}]`;
-    } else {
-      // List all gangs
-      response = "**All Gang Networks in Database:**\n\n";
-      gangs.forEach((g: any) => {
-        response += `• **${g.name}** (${g.id}) — Type: ${g.type}, Base: ${g.base}, Members: ${g.members.length}\n`;
-      });
-      response += `\nEvidence sources: [${firs.map((f: any) => f.fir_id).slice(0, 5).join(", ")}]`;
+      response += `\nEvidence sources: [${distFirs.map((f: any) => f.fir_id).join(", ")}]`;
+      return response;
     }
-  } else if (lowerMsg.includes("risk") || lowerMsg.includes("highest")) {
+    response += `\n\nEvidence sources: [${chainFirs.map((f: any) => f.fir_id).join(", ")}]`;
+    return response;
+  }
+
+  // ── 7. Risk / dangerous offenders ──────────────────────────────────
+  if (lowerMsg.includes("risk") || lowerMsg.includes("dangerous") || lowerMsg.includes("most wanted") || lowerMsg.includes("top offender") || lowerMsg.includes("highest")) {
     const sorted = [...accused].sort((a: any, b: any) => b.risk - a.risk);
-    response = `**Top Risk Offenders:**\n\n`;
+    let response = `**Top Risk Offenders:**\n\n`;
     sorted.slice(0, 5).forEach((a: any, i: number) => {
       const gang = gangs.find((g: any) => g.id === a.gang);
-      response += `${i + 1}. **${a.name}** (${a.id}) — Risk: ${a.risk}/100, Prior FIRs: ${a.prior_firs}, Gang: ${gang ? gang.name : "None"}\n`;
+      const linkedFirs = firs.filter((f: any) => f.accused.includes(a.id));
+      response += `${i + 1}. **${a.name}** (${a.id}) — Risk: ${a.risk}/100, Prior FIRs: ${a.prior_firs}, Gang: ${gang ? gang.name : "None"}, Active cases: ${linkedFirs.length}\n`;
     });
     response += `\nEvidence sources: [${firs.map((f: any) => f.fir_id).slice(0, 5).join(", ")}]`;
-  } else if (lowerMsg.includes("vehicle") || lowerMsg.includes("theft")) {
+    return response;
+  }
+
+  // ── 8. Vehicle / theft ─────────────────────────────────────────────
+  if (lowerMsg.includes("vehicle") || lowerMsg.includes("theft")) {
     const vFirs = firs.filter((f: any) => f.crime_type === "Vehicle Theft");
-    response = `There are **${vFirs.length} vehicle theft cases** in the database.\n\n`;
-    const vehicles = new Set(vFirs.map((f: any) => f.vehicle_used).filter(Boolean));
-    const vehicleDetails = dataset.vehicles || [];
+    let response = `There are **${vFirs.length} vehicle theft cases** in the database.\n\n`;
     response += "**Vehicles used in thefts:**\n";
     vFirs.forEach((f: any) => {
       if (f.vehicle_used) {
-        const v = vehicleDetails.find((ve: any) => ve.id === f.vehicle_used);
+        const v = vehicles.find((ve: any) => ve.id === f.vehicle_used);
         response += `• ${v ? v.reg + " (" + v.make + ", " + v.color + ")" : f.vehicle_used} — [${f.fir_id}]\n`;
       }
     });
     response += `\n**Modus Operandi patterns:**\n`;
     const modiSet = new Set(vFirs.map((f: any) => f.modus_operandi));
-    [...modiSet].forEach((m) => {
-      response += `• ${m}\n`;
-    });
+    [...modiSet].forEach((m) => { response += `• ${m}\n`; });
     response += `\nEvidence sources: [${vFirs.map((f: any) => f.fir_id).join(", ")}]`;
-  } else if (lowerMsg.includes("financial") || lowerMsg.includes("bank") || lowerMsg.includes("jewellery") || lowerMsg.includes("heist")) {
-    const jFirs = firs.filter((f: any) => f.crime_type === "Jewellery Heist");
-    response = `There are **${jFirs.length} jewellery heist cases** recorded.\n\n`;
-    jFirs.forEach((f: any) => {
-      response += `**${f.fir_id}** — ${f.date}, ${f.district}\n`;
+    return response;
+  }
+
+  // ── 9. Financial / jewellery / heist / cyber fraud ─────────────────
+  if (lowerMsg.includes("financial") || lowerMsg.includes("bank") || lowerMsg.includes("money") || lowerMsg.includes("transaction") || lowerMsg.includes("jewellery") || lowerMsg.includes("heist") || lowerMsg.includes("cyber") || lowerMsg.includes("fraud")) {
+    const crimeKeywords = lowerMsg.includes("cyber") || lowerMsg.includes("fraud") ? "Cyber Fraud" : lowerMsg.includes("jewellery") || lowerMsg.includes("heist") ? "Jewellery Heist" : null;
+    const relevantFirs = crimeKeywords ? firs.filter((f: any) => f.crime_type === crimeKeywords) : firs.filter((f: any) => f.financial_transaction || f.crime_type === "Jewellery Heist");
+    let response = `There are **${relevantFirs.length} ${crimeKeywords || "financial-related"} cases** recorded.\n\n`;
+    relevantFirs.forEach((f: any) => {
+      response += `**${f.fir_id}** — ${f.crime_type}, ${f.district} (${f.date})\n`;
       response += `  Status: ${f.investigation_status}\n`;
-      response += `  Accused: ${f.accused.join(", ")}\n`;
+      response += `  Accused: ${f.accused.map((a: string) => { const x = accused.find((y: any) => y.id === a); return x ? x.name : a; }).join(", ")}\n`;
       if (f.financial_transaction) {
-        const acc = (dataset.bank_accounts || []).find((b: any) => b.id === f.financial_transaction.account);
+        const acc = bankAccounts.find((b: any) => b.id === f.financial_transaction.account);
         response += `  **Financial:** ₹${f.financial_transaction.amount_inr.toLocaleString("en-IN")} via ${f.financial_transaction.mode}`;
-        if (acc) response += ` (${acc.bank}, ${acc.holder})`;
+        if (acc) response += ` → ${acc.bank} (${acc.holder})`;
         response += `\n`;
       }
-      response += `  Items: ${f.items_stolen.join(", ")}\n\n`;
+      if (f.items_stolen && f.items_stolen.length > 0) response += `  Items: ${f.items_stolen.join(", ")}\n`;
+      response += "\n";
     });
-    response += `Evidence sources: [${jFirs.map((f: any) => f.fir_id).join(", ")}]`;
-  } else if (lowerMsg.includes("pattern") || lowerMsg.includes("analysis")) {
-    response = `**Crime Pattern Analysis Summary:**\n\n`;
+    response += `Evidence sources: [${relevantFirs.map((f: any) => f.fir_id).join(", ")}]`;
+    return response;
+  }
+
+  // ── 10. Pattern / analysis / summary / statistics ──────────────────
+  if (lowerMsg.includes("pattern") || lowerMsg.includes("analysis") || lowerMsg.includes("summary") || lowerMsg.includes("statistics") || lowerMsg.includes("overview") || lowerMsg.includes("trend")) {
+    let response = `**Crime Pattern Analysis Summary:**\n\n`;
     const crimeTypes: Record<string, number> = {};
-    firs.forEach((f: any) => {
-      crimeTypes[f.crime_type] = (crimeTypes[f.crime_type] || 0) + 1;
-    });
+    firs.forEach((f: any) => { crimeTypes[f.crime_type] = (crimeTypes[f.crime_type] || 0) + 1; });
     response += `**Crime Type Distribution:**\n`;
-    Object.entries(crimeTypes).forEach(([t, c]) => {
+    Object.entries(crimeTypes).sort(([, a], [, b]) => (b as number) - (a as number)).forEach(([t, c]) => {
       response += `• ${t}: ${c} cases\n`;
     });
     response += `\n**Time Patterns:**\n`;
@@ -350,26 +583,84 @@ function generateFallbackResponse(
       else if (h >= 17 && h < 21) times.evening++;
       else times.night++;
     });
-    Object.entries(times).forEach(([t, c]) => {
-      response += `• ${t}: ${c} cases\n`;
+    Object.entries(times).forEach(([t, c]) => { response += `• ${t}: ${c} cases\n`; });
+    response += `\n**District Heatmap:**\n`;
+    const byDist: Record<string, number> = {};
+    firs.forEach((f: any) => { byDist[f.district] = (byDist[f.district] || 0) + 1; });
+    Object.entries(byDist).sort(([, a], [, b]) => (b as number) - (a as number)).forEach(([d, c]) => {
+      response += `• ${d}: ${c} cases\n`;
     });
     response += `\n**Gang Activity:**\n`;
     gangs.forEach((g: any) => {
       const count = firs.filter((f: any) => f.gang_id === g.id).length;
-      response += `• ${g.name}: ${count} FIRs\n`;
+      response += `• ${g.name}: ${count} FIRs, ${g.members.length} members\n`;
     });
-    response += `\nEvidence sources: [${firs.map((f: any) => f.fir_id).join(", ")}]`;
-  } else {
-    // General response
-    response = `I found **${firs.length} FIR records**, **${accused.length} accused profiles**, and **${gangs.length} gang networks** in the database.\n\n`;
-    response += `**Quick Summary:**\n`;
     const active = firs.filter((f: any) => f.investigation_status === "Under Investigation").length;
     const arrested = firs.filter((f: any) => f.investigation_status === "Arrested").length;
-    response += `• Active investigations: ${active}\n• Arrested cases: ${arrested}\n• High-risk offenders (risk > 80): ${accused.filter((a: any) => a.risk > 80).length}\n\n`;
-    response += `Ask me about specific crime types, gang members, patterns, financial links, or individual accused profiles.\n\n`;
-    response += `Evidence sources: [${firs.slice(0, 5).map((f: any) => f.fir_id).join(", ")}]`;
+    const closed = firs.filter((f: any) => f.investigation_status === "Closed").length;
+    response += `\n**Case Status:**\n• Under Investigation: ${active}\n• Arrested: ${arrested}\n• Closed: ${closed}\n`;
+    response += `\nEvidence sources: [${firs.map((f: any) => f.fir_id).join(", ")}]`;
+    return response;
   }
 
+  // ── 11. Status queries (open, closed, arrested, pending) ───────────
+  if (lowerMsg.includes("open") || lowerMsg.includes("closed") || lowerMsg.includes("arrested") || lowerMsg.includes("pending") || lowerMsg.includes("under investigation") || lowerMsg.includes("unsolved") || lowerMsg.includes("solved")) {
+    const statusMap: Record<string, string> = {
+      "open": "Under Investigation", "under investigation": "Under Investigation",
+      "pending": "Under Investigation", "unsolved": "Under Investigation",
+      "arrested": "Arrested", "solved": "Arrested",
+      "closed": "Closed",
+    };
+    let matchedStatus: string | null = null;
+    for (const [key, val] of Object.entries(statusMap)) {
+      if (lowerMsg.includes(key)) { matchedStatus = val; break; }
+    }
+    if (matchedStatus) {
+      const sfirs = firs.filter((f: any) => f.investigation_status === matchedStatus);
+      let response = `**${matchedStatus} Cases (${sfirs.length}):**\n\n`;
+      sfirs.forEach((f: any) => {
+        response += `• ${f.fir_id} — ${f.crime_type}, ${f.district} (${f.date})\n`;
+      });
+      response += `\nEvidence sources: [${sfirs.map((f: any) => f.fir_id).join(", ")}]`;
+      return response;
+    }
+  }
+
+  // ── 12. Smart fuzzy fallback — try to match anything useful ────────
+  // Try matching any accused name anywhere in the message
+  const anyNameMatch = findAccusedByName(message);
+  if (anyNameMatch.length > 0) {
+    const acc = anyNameMatch[0];
+    const gang = gangs.find((g: any) => g.id === acc.gang);
+    const linkedFirs = firs.filter((f: any) => f.accused.includes(acc.id));
+    let response = `**${acc.name}** (${acc.id})\n\n`;
+    response += `• **Age:** ${acc.age}\n• **Risk Score:** ${acc.risk}/100\n• **Prior FIRs:** ${acc.prior_firs}\n`;
+    response += `• **Gang:** ${gang ? gang.name + " (" + gang.type + ")" : "None"}\n`;
+    response += `• **Linked Cases:** ${linkedFirs.length}\n`;
+    if (linkedFirs.length > 0) {
+      response += `\n**Cases:**\n`;
+      linkedFirs.forEach((f: any) => { response += `• ${f.fir_id} — ${f.crime_type}, ${f.district}\n`; });
+    }
+    response += `\nEvidence sources: [${linkedFirs.map((f: any) => f.fir_id).join(", ")}]`;
+    return response;
+  }
+
+  // ── 13. Final generic response ─────────────────────────────────────
+  const active = firs.filter((f: any) => f.investigation_status === "Under Investigation").length;
+  const arrested = firs.filter((f: any) => f.investigation_status === "Arrested").length;
+  let response = `I found **${firs.length} FIR records**, **${accused.length} accused profiles**, and **${gangs.length} gang networks** in the database.\n\n`;
+  response += `**Quick Summary:**\n`;
+  response += `• Active investigations: ${active}\n• Arrested cases: ${arrested}\n• High-risk offenders (risk > 80): ${accused.filter((a: any) => a.risk > 80).length}\n\n`;
+  response += `**You can ask me about:**\n`;
+  response += `• Specific FIRs (e.g. "Tell me about FIR-2024-KA-0001")\n`;
+  response += `• People (e.g. "Who is Vikram Singh?")\n`;
+  response += `• Crime types (e.g. "Show chain snatching cases in Mysuru")\n`;
+  response += `• Gang networks (e.g. "Tell me about Silk City Gang")\n`;
+  response += `• Patterns (e.g. "Crime pattern analysis")\n`;
+  response += `• Statistics (e.g. "How many cases in Bengaluru?")\n`;
+  response += `• Risk scores (e.g. "Top risk offenders")\n`;
+  response += `• Financial trails (e.g. "Show financial transactions")\n\n`;
+  response += `Evidence sources: [${firs.slice(0, 5).map((f: any) => f.fir_id).join(", ")}]`;
   return response;
 }
 
