@@ -70,18 +70,18 @@ function startNext() {
 
   nextProc.on('error', (err) => {
     console.error(`[next] Failed to start: ${err.message}`);
-    // Retry after 5 seconds
+    nextReady = false;
     setTimeout(startNext, 5000);
   });
 
   nextProc.on('exit', (code, signal) => {
     console.error(`[next] Exited: code=${code} signal=${signal}`);
     nextReady = false;
-    // Restart after 3 seconds unless we're shutting down
-    if (code !== 0 && !shuttingDown) {
-      console.log('[next] Restarting in 3s...');
-      setTimeout(startNext, 3000);
-    }
+    if (shuttingDown) return;
+    // Kill any leftover children, then restart
+    try { nextProc.kill('SIGKILL'); } catch (_) {}
+    console.log('[next] Restarting in 3s...');
+    setTimeout(startNext, 3000);
   });
 }
 
