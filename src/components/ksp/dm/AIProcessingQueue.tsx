@@ -370,7 +370,8 @@ export default function AIProcessingQueue() {
             error: `Processing error at ${PIPELINE_STAGES[currentIdx]?.label ?? "unknown"} stage: Unexpected internal failure.`,
             stageHistory: [...updatedHistory, { stage: "failed", enteredAt: now, exitedAt: null }],
           };
-          updateAIQueueItem(target.id, { stage: "failed", error: failedItem.error });
+          // Schedule side effects outside of render via microtask
+          queueMicrotask(() => updateAIQueueItem(target.id, { stage: "failed", error: failedItem.error }));
           copy[idx] = failedItem;
         } else {
           const nextStage = STAGE_ORDER[currentIdx + 1];
@@ -383,16 +384,17 @@ export default function AIProcessingQueue() {
             completedAt,
             stageHistory: [...updatedHistory, { stage: nextStage, enteredAt: now, exitedAt: null }],
           };
-          updateAIQueueItem(target.id, { stage: nextStage, progress: newItem.progress, completedAt });
+          // Schedule side effects outside of render via microtask
+          queueMicrotask(() => updateAIQueueItem(target.id, { stage: nextStage, progress: newItem.progress, completedAt }));
           copy[idx] = newItem;
 
           if (isCompleted) {
-            addNotification({
+            queueMicrotask(() => addNotification({
               title: "AI Processing Complete",
               message: `${target.firId} has been fully processed through the AI pipeline.`,
               type: "success",
               read: false,
-            });
+            }));
           }
         }
         return copy;
