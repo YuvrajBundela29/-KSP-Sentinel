@@ -324,7 +324,33 @@ function generateFallbackResponse(
     return response;
   }
 
-  // ── 2. Name/person lookup ──────────────────────────────────────────
+  // ── 2. Identity / greeting queries (who are you, what can you do, help, hello, hi) ─
+  if (/^(who are you|what are you|what can you do|how do you work|tell me about yourself|your name|introduce yourself|help|hello|hi |hey|good morning|good evening|good afternoon)\b/i.test(lowerMsg) || lowerMsg === "hi" || lowerMsg === "hey" || lowerMsg === "hello") {
+    return `**KSP Sentinel — AI Crime Intelligence Copilot**
+
+I am an AI-powered crime analysis assistant built for the **Karnataka State Police**. I analyze FIR records, accused profiles, gang networks, financial trails, and vehicle data to help investigators find patterns and connections.
+
+**What I can do:**
+• Look up any FIR by ID and show full details
+• Find accused persons by name and show their criminal history
+• Analyze crime patterns across districts and time periods
+• Track gang networks and member connections
+• Calculate total stolen amounts and financial trails
+• Identify high-risk offenders and repeat offenders
+• Show vehicle theft patterns and linked cases
+• Provide statistical breakdowns by crime type, district, or status
+
+**Database currently contains:**
+• **${firs.length}** FIR records
+• **${accused.length}** accused profiles
+• **${gangs.length}** gang networks
+• **${vehicles.length}** tracked vehicles
+• **${bankAccounts.length}** monitored bank accounts
+
+Just ask me anything about the crime data and I'll find the answers.`;
+  }
+
+  // ── 3. Name/person lookup ──────────────────────────────────────────
   if (lowerMsg.includes("who is") || lowerMsg.includes("who are") || lowerMsg.includes("tell me about") || lowerMsg.includes("details of") || lowerMsg.includes("profile of") || lowerMsg.includes("find ")) {
     const nameMatches = findAccusedByName(message);
     if (nameMatches.length > 0) {
@@ -357,7 +383,97 @@ function generateFallbackResponse(
     }
   }
 
-  // ── 3. "How many" / counting queries ───────────────────────────────
+  // ── 4. Financial aggregate queries (total cash, total stolen, how much) ─────
+  if (/how much|total (cash|money|amount|stolen|loss|value)|sum of|calculate.*stolen|overall.*financial|all.*money/i.test(lowerMsg)) {
+    // Calculate from financial_transaction field
+    let totalFinancial = 0;
+    const finFirs: any[] = [];
+    firs.forEach((f: any) => {
+      if (f.financial_transaction) {
+        totalFinancial += f.financial_transaction.amount_inr;
+        finFirs.push(f);
+      }
+    });
+
+    // Extract cash amounts from items_stolen text
+    let totalCashExtracted = 0;
+    const cashFirs: any[] = [];
+    firs.forEach((f: any) => {
+      if (f.items_stolen) {
+        f.items_stolen.forEach((item: string) => {
+          const cashMatch = item.match(/Rs\.?\s*([\d,]+)/i);
+          if (cashMatch) {
+            const val = parseInt(cashMatch[1].replace(/,/g, ""), 10);
+            if (!isNaN(val) && val > 0) {
+              totalCashExtracted += val;
+              if (!cashFirs.find((c: any) => c.fir_id === f.fir_id)) cashFirs.push(f);
+            }
+          }
+        });
+      }
+    });
+
+    // Estimate gold value from items_stolen
+    let totalGoldEstimate = 0;
+    const goldFirs: any[] = [];
+    firs.forEach((f: any) => {
+      if (f.items_stolen) {
+        f.items_stolen.forEach((item: string) => {
+          const goldMatch = item.match(/gold.*?(\d+(?:\.\d+)?)\s*(?:g|grams?|kg)/i);
+          if (goldMatch) {
+            let grams = parseFloat(goldMatch[1]);
+            if (item.toLowerCase().includes("kg")) grams *= 1000;
+            const estValue = Math.round(grams * 6500); // ~₹6,500/g estimated
+            totalGoldEstimate += estValue;
+            if (!goldFirs.find((g: any) => g.fir_id === f.fir_id)) goldFirs.push(f);
+          }
+        });
+      }
+    });
+
+    // Vehicle theft value estimate
+    let vehicleFirs = firs.filter((f: any) => f.crime_type === "Vehicle Theft");
+    let vehicleEstimate = vehicleFirs.length * 800000; // ~₹8L average
+
+    const grandTotal = totalFinancial + totalCashExtracted + totalGoldEstimate + vehicleEstimate;
+
+    let response = `**Total Financial Impact Analysis:**
+
+`;
+    response += `• **Bank/Wire Fraud (traced):** ₹${totalFinancial.toLocaleString("en-IN")} across ${finFirs.length} cases
+`;
+    if (totalCashExtracted > 0) {
+      response += `• **Cash stolen (from FIR descriptions):** ₹${totalCashExtracted.toLocaleString("en-IN")} across ${cashFirs.length} cases
+`;
+    }
+    if (totalGoldEstimate > 0) {
+      response += `• **Gold/jewellery (estimated at ~₹6,500/g):** ~₹${totalGoldEstimate.toLocaleString("en-IN")} across ${goldFirs.length} cases
+`;
+    }
+    if (vehicleFirs.length > 0) {
+      response += `• **Vehicle thefts (${vehicleFirs.length} cases, est. ~₹8L each):** ~₹${vehicleEstimate.toLocaleString("en-IN")}
+`;
+    }
+    response += `
+**Estimated Grand Total Loss: ₹${grandTotal.toLocaleString("en-IN")}**
+`;
+
+    if (finFirs.length > 0) {
+      response += `
+**Largest financial transactions:**
+`;
+      finFirs.sort((a: any, b: any) => (b.financial_transaction?.amount_inr || 0) - (a.financial_transaction?.amount_inr || 0)).slice(0, 5).forEach((f: any) => {
+        response += `• ${f.fir_id} — ₹${f.financial_transaction.amount_inr.toLocaleString("en-IN")} via ${f.financial_transaction.mode} (${f.crime_type}, ${f.district})
+`;
+      });
+    }
+
+    const allCited = [...new Set([...finFirs, ...cashFirs, ...goldFirs, ...vehicleFirs].map((f: any) => f.fir_id))];
+    response += `\nEvidence sources: [${allCited.join(", ")}]`;
+    return response;
+  }
+
+  // ── 5. "How many" / counting queries ───────────────────────────────
   if (lowerMsg.includes("how many") || lowerMsg.includes("count") || lowerMsg.includes("total number") || lowerMsg.includes("number of")) {
     let response = `**Database Statistics:**\n\n`;
     response += `• **Total FIRs:** ${firs.length}\n`;
@@ -402,7 +518,7 @@ function generateFallbackResponse(
     return response;
   }
 
-  // ── 4. District-specific queries ───────────────────────────────────
+  // ── 6. District-specific queries ───────────────────────────────────
   const allDistricts = [...new Set(firs.map((f: any) => f.district))];
   const mentionedDistrict2 = allDistricts.find((d: string) => lowerMsg.includes(d.toLowerCase().split(" ")[0]));
   if (mentionedDistrict2 && !lowerMsg.includes("chain snatching") && !lowerMsg.includes("vehicle") && !lowerMsg.includes("theft")) {
@@ -440,7 +556,7 @@ function generateFallbackResponse(
     return response;
   }
 
-  // ── 5. Gang queries ────────────────────────────────────────────────
+  // ── 7. Gang queries ────────────────────────────────────────────────
   if (lowerMsg.includes("gang")) {
     // Try to find a specific gang by name
     const matchedGang = gangs.find((g: any) => lowerMsg.includes(g.name.toLowerCase().split(" ")[0].toLowerCase()));
@@ -474,7 +590,7 @@ function generateFallbackResponse(
     return response;
   }
 
-  // ── 6. Chain snatching ─────────────────────────────────────────────
+  // ── 8. Chain snatching ─────────────────────────────────────────────
   if (lowerMsg.includes("chain snatching") || lowerMsg.includes("chain")) {
     const chainFirs = firs.filter((f: any) => f.crime_type === "Chain Snatching");
     let response = `Based on the database, there are **${chainFirs.length} chain snatching cases** recorded.\n\n`;
@@ -512,7 +628,7 @@ function generateFallbackResponse(
     return response;
   }
 
-  // ── 7. Risk / dangerous offenders ──────────────────────────────────
+  // ── 9. Risk / dangerous offenders ──────────────────────────────────
   if (lowerMsg.includes("risk") || lowerMsg.includes("dangerous") || lowerMsg.includes("most wanted") || lowerMsg.includes("top offender") || lowerMsg.includes("highest")) {
     const sorted = [...accused].sort((a: any, b: any) => b.risk - a.risk);
     let response = `**Top Risk Offenders:**\n\n`;
@@ -525,7 +641,7 @@ function generateFallbackResponse(
     return response;
   }
 
-  // ── 8. Vehicle / theft ─────────────────────────────────────────────
+  // ── 10. Vehicle / theft ─────────────────────────────────────────────
   if (lowerMsg.includes("vehicle") || lowerMsg.includes("theft")) {
     const vFirs = firs.filter((f: any) => f.crime_type === "Vehicle Theft");
     let response = `There are **${vFirs.length} vehicle theft cases** in the database.\n\n`;
@@ -543,7 +659,7 @@ function generateFallbackResponse(
     return response;
   }
 
-  // ── 9. Financial / jewellery / heist / cyber fraud ─────────────────
+  // ── 11. Financial / jewellery / heist / cyber fraud ─────────────────
   if (lowerMsg.includes("financial") || lowerMsg.includes("bank") || lowerMsg.includes("money") || lowerMsg.includes("transaction") || lowerMsg.includes("jewellery") || lowerMsg.includes("heist") || lowerMsg.includes("cyber") || lowerMsg.includes("fraud")) {
     const crimeKeywords = lowerMsg.includes("cyber") || lowerMsg.includes("fraud") ? "Cyber Fraud" : lowerMsg.includes("jewellery") || lowerMsg.includes("heist") ? "Jewellery Heist" : null;
     const relevantFirs = crimeKeywords ? firs.filter((f: any) => f.crime_type === crimeKeywords) : firs.filter((f: any) => f.financial_transaction || f.crime_type === "Jewellery Heist");
@@ -565,7 +681,7 @@ function generateFallbackResponse(
     return response;
   }
 
-  // ── 10. Pattern / analysis / summary / statistics ──────────────────
+  // ── 12. Pattern / analysis / summary / statistics ──────────────────
   if (lowerMsg.includes("pattern") || lowerMsg.includes("analysis") || lowerMsg.includes("summary") || lowerMsg.includes("statistics") || lowerMsg.includes("overview") || lowerMsg.includes("trend")) {
     let response = `**Crime Pattern Analysis Summary:**\n\n`;
     const crimeTypes: Record<string, number> = {};
@@ -603,7 +719,7 @@ function generateFallbackResponse(
     return response;
   }
 
-  // ── 11. Status queries (open, closed, arrested, pending) ───────────
+  // ── 13. Status queries (open, closed, arrested, pending) ───────────
   if (lowerMsg.includes("open") || lowerMsg.includes("closed") || lowerMsg.includes("arrested") || lowerMsg.includes("pending") || lowerMsg.includes("under investigation") || lowerMsg.includes("unsolved") || lowerMsg.includes("solved")) {
     const statusMap: Record<string, string> = {
       "open": "Under Investigation", "under investigation": "Under Investigation",
@@ -626,7 +742,7 @@ function generateFallbackResponse(
     }
   }
 
-  // ── 12. Smart fuzzy fallback — try to match anything useful ────────
+  // ── 14. Smart fuzzy fallback — try to match anything useful ────────
   // Try matching any accused name anywhere in the message
   const anyNameMatch = findAccusedByName(message);
   if (anyNameMatch.length > 0) {
@@ -645,7 +761,7 @@ function generateFallbackResponse(
     return response;
   }
 
-  // ── 13. Final generic response ─────────────────────────────────────
+  // ── 15. Final generic response ─────────────────────────────────────
   const active = firs.filter((f: any) => f.investigation_status === "Under Investigation").length;
   const arrested = firs.filter((f: any) => f.investigation_status === "Arrested").length;
   let response = `I found **${firs.length} FIR records**, **${accused.length} accused profiles**, and **${gangs.length} gang networks** in the database.\n\n`;
