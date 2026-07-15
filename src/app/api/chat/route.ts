@@ -50,25 +50,39 @@ ${JSON.stringify(dataset, null, 2)}`;
     // Add the current message
     messages.push({ role: "user", content: message });
 
-    // Try to use z-ai-web-dev-sdk for the LLM call
+    // Try to call LLM via OpenAI-compatible API
     try {
-      const ZAI = (await import("z-ai-web-dev-sdk")).default;
-      const zai = await ZAI.create();
-      const response = await zai.chat.completions.create({
-        model: "claude-sonnet-4-6",
-        messages,
-      });
+      const apiKey = process.env.LLM_API_KEY;
+      const apiUrl = process.env.LLM_API_URL || "https://api.openai.com/v1/chat/completions";
+      const model = process.env.LLM_MODEL || "gpt-4o";
 
-      const aiText = response?.choices?.[0]?.message?.content || "";
+      if (apiKey) {
+        const response = await fetch(apiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({ model, messages, max_tokens: 2048 }),
+        });
 
-      const explainable = buildExplainableResponse(aiText, dataset);
-      return NextResponse.json({ response: aiText, explainable });
-    } catch (sdkError) {
-      console.error("z-ai-web-dev-sdk error, using fallback:", sdkError);
-      const fallbackText = generateFallbackResponse(message, dataset);
-      const explainable = buildExplainableResponse(fallbackText, dataset);
-      return NextResponse.json({ response: fallbackText, explainable });
+        if (response.ok) {
+          const data = await response.json();
+          const aiText = data?.choices?.[0]?.message?.content || "";
+          if (aiText) {
+            const explainable = buildExplainableResponse(aiText, dataset);
+            return NextResponse.json({ response: aiText, explainable });
+          }
+        }
+      }
+    } catch (llmError) {
+      console.error("LLM API error, using fallback:", llmError);
     }
+
+    // Fallback: rule-based intelligence response
+    const fallbackText = generateFallbackResponse(message, dataset);
+    const explainable = buildExplainableResponse(fallbackText, dataset);
+    return NextResponse.json({ response: fallbackText, explainable });
   } catch (error) {
     console.error("Chat API error:", error);
     return NextResponse.json(
