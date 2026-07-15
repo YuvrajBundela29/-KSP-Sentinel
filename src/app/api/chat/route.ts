@@ -1,8 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
+import { execFile } from "child_process";
+import { writeFileSync, readFileSync, unlinkSync, existsSync } from "fs";
+import { join } from "path";
+import { tmpdir } from "os";
+import { randomUUID } from "crypto";
 import type { CrimeDataset, ExplainableResponse, ReasoningStep } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+/** Call the z-ai CLI chat tool and return the AI response text */
+async function callLocalLLM(systemPrompt: string, userPrompt: string): Promise<string | null> {
+  const outPath = join(tmpdir(), `ksp-llm-${randomUUID().slice(0, 8)}.json`);
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const child = execFile(
+        "z-ai",
+        ["chat", "--prompt", userPrompt, "--system", systemPrompt, "--output", outPath],
+        { timeout: 30000, env: { ...process.env, Z_AI_SKIP_BANNER: "1" } },
+        (err) => (err ? reject(err) : resolve())
+      );
+      // Suppress CLI output
+      child.stdout?.on("data", () => {});
+      child.stderr?.on("data", () => {});
+    });
+
+    if (!existsSync(outPath)) return null;
+    const raw = readFileSync(outPath, "utf-8");
+    const parsed = JSON.parse(raw);
+    return parsed?.choices?.[0]?.message?.content || null;
+  } catch (e) {
+    console.error("[LLM] z-ai chat error:", e);
+    return null;
+  } finally {
+    try { unlinkSync(outPath); } catch {}
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,61 +58,37 @@ Rules:
 2. When you identify a gang connection, name the gang and list member accused IDs.
 3. When asked about patterns, look for: same vehicle, same modus_operandi, same gang_id, same time patterns.
 4. Answer in the same language the user writes in. If they write in Kannada, reply in Kannada.
-5. Always end with: 'Evidence sources: [list FIR IDs used]'
+5. Always end with: "Evidence sources: [list FIR IDs used]"
 6. Never invent data not in the database.
 7. If asked for a risk score, look up the accused profile risk field.
 8. Be concise and analytical. Use bullet points for lists.
 9. Format your responses with **bold** for key terms and proper line breaks.
+10. For identity questions (who are you), introduce yourself as KSP Sentinel.
+11. For questions about totals, sums, or financials, calculate exact numbers from the data.
+12. Always provide specific, data-driven answers — never give vague or generic responses.
 
 DATABASE:
 ${JSON.stringify(dataset, null, 2)}`;
 
-    // Build messages array for Claude API format
-    const messages: Array<{ role: "user" | "assistant" | "system"; content: string }> = [
-      { role: "system", content: systemPrompt },
-      { role: "assistant", content: "Understood. I am KSP Sentinel, ready to assist with crime intelligence analysis using the provided Karnataka crime database." },
-    ];
-
-    // Add conversation history
-    if (history && Array.isArray(history)) {
-      for (const msg of history) {
-        messages.push({ role: msg.role === "assistant" ? "assistant" : "user", content: msg.content });
-      }
+    // Build a combined user prompt from history + current message
+    let userPrompt = message;
+    if (history && Array.isArray(history) && history.length > 0) {
+      const recentHistory = history.slice(-6); // Keep last 6 messages for context
+      const historyText = recentHistory
+        .map((m: any) => `${m.role === "assistant" ? "KSP Sentinel" : "User"}: ${m.content}`)
+        .join("\n");
+      userPrompt = `Previous conversation:\n${historyText}\n\nCurrent question: ${message}`;
     }
 
-    // Add the current message
-    messages.push({ role: "user", content: message });
-
-    // Try to call LLM via OpenAI-compatible API
-    try {
-      const apiKey = process.env.LLM_API_KEY;
-      const apiUrl = process.env.LLM_API_URL || "https://api.openai.com/v1/chat/completions";
-      const model = process.env.LLM_MODEL || "gpt-4o";
-
-      if (apiKey) {
-        const response = await fetch(apiUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({ model, messages, max_tokens: 2048 }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const aiText = data?.choices?.[0]?.message?.content || "";
-          if (aiText) {
-            const explainable = buildExplainableResponse(aiText, dataset);
-            return NextResponse.json({ response: aiText, explainable });
-          }
-        }
-      }
-    } catch (llmError) {
-      console.error("LLM API error, using fallback:", llmError);
+    // ── Primary: Call local LLM via z-ai CLI ──────────────────────
+    const aiText = await callLocalLLM(systemPrompt, userPrompt);
+    if (aiText && aiText.trim().length > 10) {
+      const explainable = buildExplainableResponse(aiText, dataset);
+      return NextResponse.json({ response: aiText, explainable });
     }
 
-    // Fallback: rule-based intelligence response
+    // ── Fallback: rule-based intelligence response ───────────────────
+    console.warn("[Chat] LLM returned empty/short, using rule-based fallback");
     const fallbackText = generateFallbackResponse(message, dataset);
     const explainable = buildExplainableResponse(fallbackText, dataset);
     return NextResponse.json({ response: fallbackText, explainable });
