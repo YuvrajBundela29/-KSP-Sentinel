@@ -56,7 +56,8 @@ server.log
 /tool-results/
 # Worklog
 worklog.md
-# Scripts (internal)
-/scripts/
+# Scripts (internal) - keep serve.js
+/scripts/*
+!/scripts/serve.js
 # Skills directory
 /skills/
