@@ -59,5 +59,6 @@ worklog.md
 # Scripts (internal) - keep serve.js
 /scripts/*
 !/scripts/serve.js
+!/scripts/dev-server.js
 # Skills directory
 /skills/
