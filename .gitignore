@@ -50,5 +50,13 @@ test
 prompt
 
 server.log
+# Temp uploads
+/upload/
+# Tool results
+/tool-results/
+# Worklog
+worklog.md
+# Scripts (internal)
+/scripts/
 # Skills directory
 /skills/
