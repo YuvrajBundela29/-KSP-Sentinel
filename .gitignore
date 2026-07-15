@@ -61,4 +61,4 @@ worklog.md
 !/scripts/serve.js
 !/scripts/dev-server.js
 # Skills directory
-/skills/
+/skills/bun.lock
