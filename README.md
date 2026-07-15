@@ -2,7 +2,7 @@
 
 <div align="center">
 
-<img src="public/logo.svg" alt="KSP Sentinel" width="120" height="120" />
+🛡️ **KSP Sentinel AI**
 
 **AI-Powered Crime Intelligence Platform for Karnataka State Police**
 
