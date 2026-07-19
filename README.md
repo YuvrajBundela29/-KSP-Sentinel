@@ -254,7 +254,7 @@ KSP Sentinel uses a **classified government command console** aesthetic:
 
 ## Author
 
-**Yuvraj Bundela**
+**Aditya Bundela**
 
 ---
 
